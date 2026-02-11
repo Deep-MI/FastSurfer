@@ -22,25 +22,24 @@ t1=""                 # Path and name of T1 input
 asegdkt_segfile=""    # Path and name of segmentation
 mask=""               # Path and name of the brainmask (defaults to $SUBJECTS_DIR/$SID/mri/mask.mgz)
 subject=""            # Subject name
-fstess=0              # run mri_tesselate (FS way), if 0 = run mri_mc
-fsqsphere=0           # run inflate1 and qsphere (FSway), if 0 run spectral projection
-fsaparc=0             # run FS aparc (and cortical ribbon), if 0 map aparc from asegdkt_segfile
-fssurfreg=1           # run FS surface registration to fsaverage, if 0 omit this step
+fstess="false"        # run mri_tesselate (FS way), if true = run mri_mc
+fsqsphere="false"     # run inflate1 and qsphere (FSway), if false run spectral projection
+fsaparc="false"       # run FS aparc (and cortical ribbon), if false map aparc from asegdkt_segfile
+fssurfreg="true"      # run FS surface registration to fsaverage, if false omit this step
 python="python3 -s"   # python version
-DoParallel=0          # if 1, run hemispheres in parallel
-DoParallelFlag=0      # 1, if --parallel passed
+ParallelFlag="false"  # "true", if --parallel passed
 threads="1"           # number of threads to use for running FastSurfer
 edits="false"         # flag for inclusion/exclusion of edits
                       #   (also ability to run on top of existing recon-surf.sh output)
 atlas3T="false"       # flag to use/do not use the 3t atlas for talairach registration/etiv
 segstats_legacy="false" # flag to enable segstats legacy mode
-base=0                # flag for longitudinal template (base) run
-long=0                # flag for longitudinal time point run
-baseid=""             # baseid for logitudinal time point run
+base="false"          # flag for longitudinal template (base) run
+long="false"          # flag for longitudinal time point run
+baseid=""             # baseid for longitudinal time point run
 
 # Dev flags default
-check_version=1       # Check for supported FreeSurfer version (terminate if not detected)
-get_t1=1              # Generate T1.mgz from nu.mgz and brainmask from it (default)
+check_version="true"  # Check for supported FreeSurfer version (terminate if not detected)
+get_t1="true"         # Generate T1.mgz from nu.mgz and brainmask from it (default)
 hires_voxsize_threshold=0.999  # Threshold below which the hires options are passed
 
 if [[ -z "$FASTSURFER_HOME" ]]
@@ -186,12 +185,12 @@ case $key in
     ;;
   --edits) edits="true" ;;
   --segstats_legacy) segstats_legacy="true" ;;
-  --fstess) fstess=1 ;;
-  --fsqsphere) fsqsphere=1 ;;
-  --fsaparc) fsaparc=1 ;;
-  --no_surfreg) fssurfreg=0 ;;
+  --fstess) fstess="true" ;;
+  --fsqsphere) fsqsphere="true" ;;
+  --fsaparc) fsaparc="true" ;;
+  --no_surfreg) fssurfreg="false" ;;
   --3t) atlas3T="true" ;;
-  --parallel) DoParallelFlag=1 ; echo "WARNING: The --parallel flag is obsolete and will be removed in FastSurfer 3!" ;;
+  --parallel) ParallelFlag="true" ; echo "WARNING: The --parallel flag is obsolete and will be removed in FastSurfer 3!" ;;
   --threads) threads="$1" ; shift ;;
   --py) python="$1" ; shift ;;
   --fs_license)
@@ -204,10 +203,10 @@ case $key in
     fi
     shift # past value
     ;;
-  --ignore_fs_version) check_version=0 ;;
-  --no_fs_t1 ) get_t1=0 ;;
-  --base) base=1 ;;
-  --long) long=1 ; baseid="$1" ; shift ;;
+  --ignore_fs_version) check_version="false" ;;
+  --no_fs_t1 ) get_t1="false" ;;
+  --base) base="true" ;;
+  --long) long="true" ; baseid="$1" ; shift ;;
   -h|--help) usage ; exit ;;
   # unknown option
   *) echo "ERROR: Flag $key unrecognized." ; exit 1 ;;
@@ -241,7 +240,7 @@ fi
 # needed in FS72 due to a bug in recon-all --fill using FREESURFER instead of FREESURFER_HOME
 export FREESURFER=$FREESURFER_HOME   
 
-if [[ "$check_version" == "1" ]] && grep -q -v "${FS_VERSION_SUPPORT}" "$FREESURFER_HOME/build-stamp.txt"
+if [[ "$check_version" == "true" ]] && grep -q -v "${FS_VERSION_SUPPORT}" "$FREESURFER_HOME/build-stamp.txt"
 then
   echo "ERROR: You are trying to run recon-surf with FreeSurfer version $(cat "$FREESURFER_HOME/build-stamp.txt")."
   echo "  We are currently supporting only FreeSurfer $FS_VERSION_SUPPORT."
@@ -254,14 +253,14 @@ fi
 
 if [[ -z "$PYTHONUNBUFFERED" ]] ; then export PYTHONUNBUFFERED=0 ; fi
 
-if [[ "$long" == "1" ]] && [[ "$base" == "1" ]]
+if [[ "$long" == "true" ]] && [[ "$base" == "true" ]]
 then
   echo "ERROR: You specified both --long and --base. You need to setup and then run base template first,"
   echo "before you can run any longitudinal time points."
   exit 1
 fi
 
-if [[ "$base" == "1" ]] && [[ ! -f "$SUBJECTS_DIR/$subject/base-tps.fastsurfer" ]]
+if [[ "$base" == "true" ]] && [[ ! -f "$SUBJECTS_DIR/$subject/base-tps.fastsurfer" ]]
 then
   echo "ERROR: $subject is either not found in SUBJECTS_DIR"
   echo "or it is not a longitudinal template directory (base),"
@@ -271,7 +270,7 @@ then
 fi
 
 basedir=""
-if [[ "$long" == "1" ]]
+if [[ "$long" == "true" ]]
 then
   basedir="$SUBJECTS_DIR/$baseid"
   if [[ ! -f "$basedir/base-tps.fastsurfer" ]] ; then
@@ -317,9 +316,9 @@ then
   exit 1
 fi
 
-if [[ "$DoParallelFlag" == 1 ]] ; then threads_hemi=$threads ; DoParallel=1
-elif [[ "$threads" -gt 1 ]]; then DoParallel=1 ; threads_hemi=$((threads / 2))
-else DoParallel=0 ; threads_hemi="$threads"
+if [[ "$ParallelFlag" == "true" ]] ; then ParallelHemi="true" ; threads_hemi=$threads
+elif [[ "$threads" -gt 1 ]]; then ParallelHemi="true" ; threads_hemi=$((threads / 2))
+else ParallelHemi="false" ; threads_hemi="$threads"
 fi
 
 # set threads for openMP and itk
@@ -329,7 +328,7 @@ export OMP_NUM_THREADS=$threads
 export ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS=$threads
 
 # define the fsthreads variable for the joint section
-if [[ "$threads" -gt "1" ]] ; then fsthreads="-threads $threads -itkthreads $threads" ; else fsthreads="" ; fi
+if [[ "$threads" -gt 1 ]] ; then fsthreads="-threads $threads -itkthreads $threads" ; else fsthreads="" ; fi
 
 if [[ "$(echo -n "${SUBJECTS_DIR}/${subject}" | wc -m)" -gt 185 ]]
 then
@@ -398,16 +397,16 @@ echo "Log file for recon-surf.sh" >> "$LF"
     echo "Running on top of an existing subject directory with edits=$edits!"
   fi
   echo " "
-  if [[ "$base" == "1" ]] ; then
+  if [[ "$base" == "true" ]] ; then
     echo "================== BASE - Longitudinal Template Creation ========================="
     echo " "
-  elif [[ "$long" == "1" ]] ; then
+  elif [[ "$long" == "true" ]] ; then
     echo "================== LONG - Longitudinal Timpe Point Creation ======================"
     echo "long: using template directory (base) $baseid"
     echo " "
   fi
   # Print parallelization parameters
-  if [[ "$DoParallel" == "1" ]]
+  if [[ "$ParallelHemi" == "true" ]]
   then
     echo " RUNNING both hemis in PARALLEL"
   else
@@ -484,7 +483,7 @@ popd > /dev/null || ( echo "Could not change to subject_dir" ; exit 1 )
 
 # ============================= MASK & ASEG_noCC ========================================
 
-if [[ "$long" == "1" ]] ; then
+if [[ "$long" == "true" ]] ; then
   # for long we copy mask from base
   cmda=(cp "$basedir/mri/mask.mgz" "$mask")
   run_it "$LF" "${cmda[@]}"
@@ -508,11 +507,11 @@ if [[ ! -f "$mask" ]] || [[ ! -f "$mdir/$aseg_nocc" ]] ; then
   cmda=($python "$FASTSURFER_HOME/FastSurferCNN/reduce_to_aseg.py" -i "$mdir/aparc.DKTatlas+aseg.orig.mgz"
         -o "$mdir/$aseg_nocc" --fixwm)
 
-  if [[ "$base" == "1" ]] && [[ ! -f "$mask" ]] ; then
+  if [[ "$base" == "true" ]] && [[ ! -f "$mask" ]] ; then
     # for base we build union of mapped masks beforehand so it should be available
     echo "ERROR: $mask missing, but base run requires $mask!" | tee -a "$LF"
     exit 1
-  elif [[ "$long" != "1" ]] && [[ "$base" != 1 ]] ; then
+  elif [[ "$long" != "true" ]] && [[ "$base" != "true" ]] ; then
     # cross-sectional processing, add outmask to cmd (not for or base long stream)
     cmda+=(--outmask "$mask")
   fi
@@ -563,8 +562,8 @@ if [[ ! -f "$mdir/transforms/talairach.lta" ]] || [[ ! -f "$mdir/transforms/tala
   # all transforms (also ltas) are the same
   cmda=("$binpath/talairach-reg.sh" "$LF"
         --dir "$mdir" --conformed_name "$mdir/orig.mgz" --norm_name "$mdir/orig_nu.mgz")
-  if [[ "$long" == "1" ]] ; then cmda+=(--long "$basedir") ; fi
-  if [[ "$edits" == "1" ]] ; then cmda+=(--edits) ; fi
+  if [[ "$long" == "true" ]] ; then cmda+=(--long "$basedir") ; fi
+  if [[ "$edits" == "true" ]] ; then cmda+=(--edits) ; fi
   if [[ "$atlas3T" == "true" ]] ; then cmda+=(--3T) ; fi
 
   {
@@ -588,7 +587,7 @@ fi
 # create norm by masking nu (supports manedit-ed mask)
 cmda=(mri_mask "$mdir/nu.mgz" "$mask" "$mdir/norm.mgz")
 run_it "$LF" "${cmda[@]}"
-if [[ "$get_t1" == "1" ]]
+if [[ "$get_t1" == "true" ]]
 then
   # create T1.mgz from nu (!! here we could also try passing aseg?)
   # T1.mgz was needed by some 3rd party downstream tools such as fmriprep, so we provide it
@@ -599,7 +598,7 @@ then
   # it is unclear what effect it would even have, given that segmentations come
   # from the FastSurferVINN. It could affect surface placement or partial volumes.
   #base_flags=""
-  #if [ "$base" == "1" ]
+  #if [ "$base" == "true" ]
   #then
   #  base_flags="-w $mdir/ctrl_vol.mgz $mdir/bias_vol.mgz"
   #fi
@@ -625,8 +624,8 @@ callosum_seg="callosum_seg_aseg_space.mgz"
 callosum_seg_manedit="$(add_file_suffix "$callosum_seg" "manedit")"
 aseg_auto="aseg.auto.mgz"
 CorpusCallosumDir="$FASTSURFER_HOME/CorpusCallosum"
-updated_cc_seg=0
-if [[ ! -e "$mdir/$aseg_auto" ]] || [[ ! -e "$mdir/$callosum_seg" ]] || [[ "$edits" == 1 ]]
+updated_cc_seg="false"
+if [[ ! -e "$mdir/$aseg_auto" ]] || [[ ! -e "$mdir/$callosum_seg" ]] || [[ "$edits" == "true" ]]
 then
   {
     echo " "
@@ -636,14 +635,14 @@ then
 fi
 # here, in edits mode we also check, if the corpus callosum should be updated based on an updated aseg.nocc
 if [[ ! -e "$mdir/$callosum_seg" ]] || \
-  { [[ "$edits" == 1 ]] && [[ "$(date -r "$mdir/$aseg_nocc" "+%s")" -gt "$(date -r "$mdir/$callosum_seg" "+%s")" ]] ; }
+  { [[ "$edits" == "true" ]] && [[ "$(date -r "$mdir/$aseg_nocc" "+%s")" -gt "$(date -r "$mdir/$callosum_seg" "+%s")" ]] ; }
 then
   {
     echo "Segmenting the corpus callosum, so mri/$aseg_nocc exists. If you are interested in detailed"
     echo "  and extended analysis and statistics of the Corpus Callosum, use the corpus callosum pipeline"
     echo "  of the segmentation pipeline (in run_fastsurfer.sh, i.e. run without --no_cc)."
   }
-  updated_cc_seg=1
+  updated_cc_seg="true"
   # create aseg.auto including corpus callosum segmentation and 46 sec, requires norm.mgz
   # Note: if original input segmentation already contains CC, this will exit with ERROR
   # in the future maybe check and skip this step (and next)
@@ -657,9 +656,9 @@ then
   run_it "$LF" "${cmda[@]}"
 fi
 # do not move below statement up, fastsurfer_cc.py uses the $callosum_seg variable
-if [[ "$edits" == 1 ]] && [[ -e "$mdir/$callosum_seg_manedit" ]] ; then callosum_seg="$callosum_seg_manedit" ; fi
+if [[ "$edits" == "true" ]] && [[ -e "$mdir/$callosum_seg_manedit" ]] ; then callosum_seg="$callosum_seg_manedit" ; fi
 cmd_paint_cc_into_pred=($python "$CorpusCallosumDir/paint_cc_into_pred.py" -in_cc "$mdir/$callosum_seg" -in_pred)
-if [[ ! -e "$mdir/$aseg_auto" ]] || [[ "$updated_cc_seg" == 1 ]]
+if [[ ! -e "$mdir/$aseg_auto" ]] || [[ "$updated_cc_seg" == "true" ]]
 then
   # add CC into aseg.auto.mgz as mri_cc did before. Not sure where this is used.
   cmda=("${cmd_paint_cc_into_pred[@]}" "$mdir/$aseg_nocc" "-out" "$mdir/$aseg_auto")
@@ -673,7 +672,7 @@ fi
   echo " "
 } | tee -a "$LF"
 
-if [[ "$long" == "1" ]] ; then
+if [[ "$long" == "true" ]] ; then
   # in long we can skip fill as surfaces come from base
   # it would be great to also skip WM, but it is needed in place_surface to clip bright
   # maybe later add code to copy edits from base in maskbfs and wm segmentation, currently not supported!
@@ -700,7 +699,7 @@ export OMP_NUM_THREADS=$threads_hemi
 export ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS=$threads_hemi
 
 # define the fsthreads variable for the joint section
-if [[ "$threads_hemi" -gt "1" ]] ; then fsthreads="-threads $threads_hemi -itkthreads $threads_hemi"
+if [[ "$threads_hemi" -gt 1 ]] ; then fsthreads="-threads $threads_hemi -itkthreads $threads_hemi"
 else fsthreads=""
 fi
 
@@ -720,7 +719,7 @@ for hemi in lh rh ; do
 # ============================= TESSELLATE - SMOOTH =====================================================
 
   # In Long stream we skip these
-  if [[ "$long" == "0" ]]
+  if [[ "$long" == "false" ]]
   then
 
     {
@@ -729,7 +728,7 @@ for hemi in lh rh ; do
       echo "echo \" \""
     } | tee -a "$CMDF"
 
-    if [[ "$fstess" == "1" ]]
+    if [[ "$fstess" == "true" ]]
     then
       cmd="recon-all -subject $subject -hemi $hemi -tessellate -smooth1 -no-isrunning -umask $(umask) $hiresflag $fsthreads"
       RunIt "$cmd" "$LF" "$CMDF"
@@ -793,7 +792,7 @@ for hemi in lh rh ; do
 # ============================= INFLATE1 - QSPHERE =====================================================
 
   # In Long stream we skip these
-  if [[ "$long" == "0" ]]
+  if [[ "$long" == "false" ]]
   then
 
     {
@@ -806,7 +805,7 @@ for hemi in lh rh ; do
     cmd="recon-all -subject $subject -hemi $hemi -inflate1 -no-isrunning -umask $(umask) $hiresflag $fsthreads"
     RunIt "$cmd" "$LF" "$CMDF"
 
-    if [ "$fsqsphere" == "1" ]
+    if [ "$fsqsphere" == "true" ]
     then
       # quick spherical mapping (2min48sec)
       cmd="recon-all -subject $subject -hemi $hemi -qsphere -no-isrunning -umask $(umask) $hiresflag $fsthreads"
@@ -822,7 +821,7 @@ for hemi in lh rh ; do
 # ============================= FIX - WHITEPREAPARC ==================================================
 
   # In Long stream we skip topo fix
-  if [ "$long" == "0" ]
+  if [ "$long" == "false" ]
   then
     # longitudinal base and cross-sectional
 
@@ -899,7 +898,7 @@ for hemi in lh rh ; do
 # ============================= SPHERE - SURFREG (optional) ==============================================
 
   # if we segment with FS or if surface registration is requested do it here:
-  if [[ "$fsaparc" == "1" ]] || [[ "$fssurfreg" == "1" ]]
+  if [[ "$fsaparc" == "true" ]] || [[ "$fssurfreg" == "true" ]]
   then
     {
       echo "echo \" \""
@@ -907,7 +906,7 @@ for hemi in lh rh ; do
       echo "echo \" \""
     } | tee -a "$CMDF"
 
-    if [[ "$long" == "0" ]]
+    if [[ "$long" == "false" ]]
     then
 
       # SPHERE: Inflate to sphere with minimal metric distortion
@@ -976,8 +975,8 @@ for hemi in lh rh ; do
   # aparc only takes 20 seconds, and is created when -fsaparc is passed
   # it is then used also below for surface placement.
   # we should consider, always computing it (when surfreg is available) -> test later what consequences this has
-  #if [ "$fsaparc" == "1" ] || [ "$fssurfreg" == "1" ] ; then
-  if [[ "$fsaparc" == "1" ]]
+  #if [ "$fsaparc" == "true" ] || [ "$fssurfreg" == "true" ] ; then
+  if [[ "$fsaparc" == "true" ]]
   then
     {
       echo "echo \" \""
@@ -986,7 +985,7 @@ for hemi in lh rh ; do
     } | tee -a "$CMDF"
 
     longflag=""
-    if [[ "$long" == "1" ]]
+    if [[ "$long" == "true" ]]
     then
       # recon-all has different treatment for cortparc:
       # initialize with aparc.annot from base
@@ -1004,7 +1003,7 @@ for hemi in lh rh ; do
 
   # first select what cortical parcellation to use to guide surface placement:
   aparc=""
-  if [[ "$fsaparc" == "1" ]]
+  if [[ "$fsaparc" == "true" ]]
   then
     {
       echo "echo \" \""
@@ -1033,7 +1032,7 @@ for hemi in lh rh ; do
     --threads $threads_hemi --wm wm.mgz --invol brain.finalsurfs.mgz --$hemi --o ../surf/${hemi}.white \
     --white --nsmooth 0 --rip-label ../label/${hemi}.cortex.label \
     --rip-bg --rip-surf ../surf/${hemi}.white.preaparc --aparc $aparc"
-  if [[ "$long" == "0" ]] ; then cmd="$cmd --i ../surf/$hemi.white.preaparc" # cross/regular/base
+  if [[ "$long" == "false" ]] ; then cmd="$cmd --i ../surf/$hemi.white.preaparc" # cross/regular/base
   else cmd="$cmd --i ../surf/$hemi.orig_white --max-cbv-dist 3.5" # longitudinal processing ; also adds longmaxdist
   fi
   RunIt "$cmd" "$LF" "$CMDF"
@@ -1045,7 +1044,7 @@ for hemi in lh rh ; do
     --pial --nsmooth 0 --rip-label ../label/${hemi}.cortex+hipamyg.label \
     --pin-medial-wall ../label/${hemi}.cortex.label --aparc $aparc \
     --repulse-surf ../surf/${hemi}.white --white-surf ../surf/${hemi}.white"
-  if [ "$long" == "0" ] ; then cmd="$cmd --i ../surf/$hemi.white" # cross/regular/base
+  if [ "$long" == "false" ] ; then cmd="$cmd --i ../surf/$hemi.white" # cross/regular/base
   else  # longitudinal processing ; also adds longmaxdist
     cmd="$cmd --i ../surf/$hemi.orig_pial --max-cbv-dist 3.5 --blend-surf .25 ../surf/$hemi.white"
   fi
@@ -1081,15 +1080,15 @@ for hemi in lh rh ; do
   cmd="recon-all -subject $subject -hemi $hemi -curvstats -no-isrunning -umask $(umask) $hiresflag $fsthreads"
   RunIt "$cmd" "$LF" "$CMDF"
 
-  if [[ "$DoParallel" == "0" ]]
+  if [[ "$ParallelHemi" == "false" ]]
   then
     {
       echo " "
       echo " RUNNING $hemi sequentially ... "
       echo " "
     } | tee -a "$LF"
-    chmod u+x $CMDF
-    RunIt "$CMDF" $LF
+    chmod u+x "$CMDF"
+    RunIt "$CMDF" "$LF"
   fi
 
 
@@ -1100,9 +1099,9 @@ export OMP_NUM_THREADS=$threads
 export ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS=$threads
 
 # define the fsthreads variable for the joint section (again)
-if [[ "$threads" -gt "1" ]] ; then fsthreads="-threads $threads -itkthreads $threads" ; else fsthreads="" ; fi
+if [[ "$threads" -gt 1 ]] ; then fsthreads="-threads $threads -itkthreads $threads" ; else fsthreads="" ; fi
 
-if [[ "$DoParallel" == 1 ]] ; then
+if [[ "$ParallelHemi" == "true" ]] ; then
   {
     echo ""
     echo " RUNNING HEMIs in PARALLEL !!! "
@@ -1115,7 +1114,7 @@ fi
 # ============================= RIBBON ===============================================
 
 # Skip RIBBON in base
-if [[ "$base" != "1" ]]
+if [[ "$base" != "true" ]]
 then
 
   {
@@ -1134,7 +1133,7 @@ fi # skip in base
 
 # ============================= FSAPARC - parc23 surfcon hypo ... =========================================
 
-if [[ "$fsaparc" == "1" ]] ; then
+if [[ "$fsaparc" == "true" ]] ; then
 
     # this per-hemi section does not get parallelized
   for hemi in lh rh
@@ -1148,7 +1147,7 @@ if [[ "$fsaparc" == "1" ]] ; then
 
     # Destrieux Atlas (recon-all -cortparc2):
     longflag=""
-    if [[ "$long" == "1" ]]
+    if [[ "$long" == "true" ]]
     then
       # recon-all has different treatment for cortparc:
       # initialize with destrieux annot from base
@@ -1162,7 +1161,7 @@ if [[ "$fsaparc" == "1" ]] ; then
     # DKT Atlas (recon-all -cortparc3):
     longflag=""
     # recon-all has different treatment for cortparc: initialize with destrieux annot from base
-    if [[ "$long" == "1" ]] ; then longflag="-long -R $basedir/label/${hemi}.DKTatlas.annot" ; fi
+    if [[ "$long" == "true" ]] ; then longflag="-long -R $basedir/label/${hemi}.DKTatlas.annot" ; fi
     CPAtlas="$FREESURFER_HOME/average/${hemi}.DKTaparc.atlas.acfb40.noaparc.i12.2016-08-02.gcs"
     annot="$ldir/${hemi}.aparc.DKTatlas.annot"
     cmd="mris_ca_label -l $ldir/${hemi}.cortex.label -aseg $mdir/aseg.presurf.mgz -seed 1234 $longflag $subject $hemi $sdir/${hemi}.sphere.reg $CPAtlas $annot"
@@ -1171,7 +1170,7 @@ if [[ "$fsaparc" == "1" ]] ; then
   done # hemi loop
 
   # skip in base
-  if [[ "$base" != "1" ]]
+  if [[ "$base" != "true" ]]
   then
     cmd="recon-all -subject $subject -pctsurfcon -hyporelabel -apas2aseg -aparc2aseg -wmparc -parcstats -parcstats2 -parcstats3 -umask $(umask) $hiresflag $fsthreads"
     RunIt "$cmd" "$LF"
@@ -1183,7 +1182,7 @@ fi  # (FS-APARC)
 
 
 # Skip rest in case we have a base run, we are done here (probably we can skip stuff already in surface creation above)
-if [[ "$base" != "1" ]]
+if [[ "$base" != "true" ]]
 then
 
 # ============================= MAPPED SURF-STATS =========================================
@@ -1203,7 +1202,7 @@ then
 
 # ============================= FASTSURFER - surfcon hypo stats =========================================
 
-  if [[ "$fsaparc" == "0" ]]
+  if [[ "$fsaparc" == "false" ]]
   then
     {
       echo ""
@@ -1271,7 +1270,7 @@ then
                              "SupraTentorialNotVent" "Mask($mask)"
                              "BrainSegVol-to-eTIV" "MaskVol-to-eTIV")
     # in long we do not have orig_nofix for surface hole computation as surfaces are inherited from base/template
-    if [[ "$long" == "0" ]] ; then cmda+=("lhSurfaceHoles" "rhSurfaceHoles" "SurfaceHoles") ; fi
+    if [[ "$long" == "false" ]] ; then cmda+=("lhSurfaceHoles" "rhSurfaceHoles" "SurfaceHoles") ; fi
     cmda+=("EstimatedTotalIntraCranialVol")
     run_it "$LF" "${cmda[@]}"
 
@@ -1357,7 +1356,7 @@ then
 # ============================= FASTSURFER - SYMLINKS =========================================
 
   # Create symlinks for downstream analysis (sub-segmentations, TRACULA, etc.)
-  if [[ "$fsaparc" == "0" ]]
+  if [[ "$fsaparc" == "false" ]]
   then
     # Symlink of aparc.DKTatlas+aseg.mapped.mgz
     pushd "$mdir" > /dev/null || (echo "Could not cd to $mdir" ; exit 1)
@@ -1379,7 +1378,7 @@ then
 # ============================= BALABELS =========================================
 
   # balabels need sphere.reg
-  if [[ "$fssurfreg" == "1" ]]
+  if [[ "$fssurfreg" == "true" ]]
   then
     # can be produced if surf registration exists
     #cmd="recon-all -subject $subject -balabels $hiresflag $fsthreads"
