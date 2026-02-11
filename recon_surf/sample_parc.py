@@ -194,7 +194,7 @@ def sample_nearest_nonzero(img, vox_coords, radius=3.0):
     data = np.asarray(img.dataobj)
     
     # radius in voxels:
-    rvox = radius * voxsize[0]
+    rvox = radius / voxsize[0]
     
     # sample window around nearest voxel
     x_nn = np.rint(vox_coords).astype(int)
