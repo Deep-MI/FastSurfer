@@ -464,7 +464,7 @@ function run_single()
   if [[ "$do_seg" == "false" ]] && [[ "$do_surf" == "false" ]]
   then
     echo "INFO: Skipping subject_id $subject_id (deselected)"
-    skip=1
+    skip="true"
   elif [[ -n "$statusfile" ]] && [[ "$do_surf" == "true" ]] && [[ "$do_seg" == "false" ]]
   then
     ## if status in statusfile is "Failed" last, skip this
@@ -495,7 +495,8 @@ function run_single()
     cmd=("${run_fastsurfer[@]}" --t1 "$image_path" "${POSITIONAL_FASTSURFER[@]}" "${args[@]}")
     if [[ "$debug" == "true" ]] ; then echo "DEBUG:" "${cmd[@]}" ; fi
     # multiple subjects in parallel is possible, then parallel = "true", else parallel = "false"
-    if [[ "$num_parallel_seg" == "max" ]] || [[ "$parallel_pipelines" == 2 ]] && [[ "$num_parallel_surf" == "max" ]]
+    if [[ "$num_parallel_seg" == "max" ]] || \
+       { [[ "$parallel_pipelines" == 2 ]] && [[ "$num_parallel_surf" == "max" ]] ; }
     then parallel="true" # one of "running pipeline" is max
     else parallel=$([[ $((num_parallel_seg + (parallel_pipelines - 1) * num_parallel_surf)) == 2 ]] && echo "false" || echo "true")
     fi
