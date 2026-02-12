@@ -317,7 +317,23 @@ function check_stage_dependencies() {
 # Warning if run as root user
 check_allow_root "${brun_flags[@]}" # --allow_root must be passed to brun
 
-# Check if prepare stage will run - only then we need t1s and tpids
+# Validate required inputs based on which stages will run
+if [ -z "$tid" ]
+ then
+  echo "ERROR: Must supply person-specific template name via --tid <template id>!"
+  exit 1
+fi
+
+# tpids required for prepare, long_seg, and long_surf stages
+if should_run_stage "prepare" || should_run_stage "long_seg" || should_run_stage "long_surf"; then
+  if [ "${#tpids[@]}" -lt 1 ]
+   then
+    echo "ERROR: Must supply time point IDs via --tpids <timepoint id 1> [<timepoint id 2> ...]!"
+    exit 1
+  fi
+fi
+
+# t1s only required for prepare stage
 if should_run_stage "prepare"; then
   if [ "${#t1s[@]}" -lt 1 ]
    then
@@ -325,33 +341,12 @@ if should_run_stage "prepare"; then
     exit 1
   fi
 
-  if [ "${#tpids[@]}" -lt 1 ]
-   then
-    echo "ERROR: Must supply time points ids via --tpids <timepoint id 1> [<timepoint id 2> ...] when running 'prepare' stage!"
-    exit 1
-  fi
-
-  # check that t1s list is same length as tpids
+  # For prepare stage, t1s and tpids must have same length
   if [ "${#tpids[@]}" -ne "${#t1s[@]}" ]
    then
     echo "ERROR: Length of tpids must equal t1s!"
     exit 1
   fi
-else
-  # For other stages, we still need tpids but not necessarily t1s
-  if should_run_stage "long_seg" || should_run_stage "long_surf"; then
-    if [ "${#tpids[@]}" -lt 1 ]
-     then
-      echo "ERROR: Must supply time points ids via --tpids <timepoint id 1> [<timepoint id 2> ...] when running 'long_seg' or 'long_surf' stages!"
-      exit 1
-    fi
-  fi
-fi
-
-if [ -z "$tid" ]
- then
-  echo "ERROR: Must supply person-specific template name via --tid <template id>!"
-  exit 1
 fi
 
 # check that SUBJECTS_DIR exists
