@@ -419,7 +419,8 @@ if should_run_stage "template_surf"; then
           --sid "$tid" --sd "$sd"
           --surf_only --base --py "$python"
           "${POSITIONAL_FASTSURFER[@]}")
-  if [[ "$parallel" == "1" ]] ; then
+  # Only background template_surf when long_surf will also run (so it can wait for completion)
+  if [[ "$parallel" == "1" ]] && should_run_stage "long_surf"; then
     base_surf_cmdf="$SUBJECTS_DIR/$tid/scripts/base_surf.cmdf"
     base_surf_cmdf_log="$SUBJECTS_DIR/$tid/scripts/base_surf.cmdf.log"
     {
@@ -454,7 +455,8 @@ if should_run_stage "long_seg"; then
   cmda=("$FASTSURFER_HOME/brun_fastsurfer.sh" --subjects "${time_points[@]}" --sd "$sd" --seg_only --long "$tid"
         "${brun_flags[@]}" "${POSITIONAL_FASTSURFER[@]}")
 
-  if [[ "$parallel" == "1" ]] ; then
+  # Only background long_seg when long_surf will also run (so it can wait for completion)
+  if [[ "$parallel" == "1" ]] && should_run_stage "long_surf"; then
     long_seg_cmdf="$SUBJECTS_DIR/$tid/scripts/long_seg.cmdf"
     long_seg_cmdf_log="$SUBJECTS_DIR/$tid/scripts/long_seg.cmdf.log"
     {
