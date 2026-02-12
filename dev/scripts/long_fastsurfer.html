@@ -465,6 +465,19 @@ FLAGS:
                               (-s: do no search for packages in home directory)
   -h --help                 Print Help
 
+Stage control:
+  --stage &lt;stage&gt;           Run specific stage(s). Can be specified multiple times.
+                              Valid stages: prepare, template_seg, template_surf,
+                                            long_seg, long_surf, all
+                              Default: all (runs full pipeline)
+
+                            Stage dependencies:
+                              - prepare: none (requires --t1s and --tpids)
+                              - template_seg: prepare
+                              - template_surf: prepare, template_seg
+                              - long_seg: prepare
+                              - long_surf: prepare, template_seg, template_surf, long_seg
+
 Parallelization options:
   All of the following options will activate parallel processing of the template and the longitudinal time-point images
   where possible. Additionally, the number of different processes for segmentation and surface reconstructionis set.
