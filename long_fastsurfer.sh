@@ -237,65 +237,85 @@ function should_run_stage() {
 
 # Function to validate stage dependencies
 function check_stage_dependencies() {
+  # Check 'prepare' stage outputs once if any dependent stage needs it and prepare won't run
+  if ! should_run_stage "prepare"; then
+    for stage in "${run_stages[@]}"; do
+      case $stage in
+        template_seg|template_surf|long_seg|long_surf)
+          # Basic checks: template directory and files from 'prepare'
+          if [[ ! -d "$sd/$tid" ]] || [[ ! -f "$sd/$tid/mri/orig.mgz" ]]; then
+            echo "ERROR: Stage '$stage' requires 'prepare' to have been run first."
+            echo "  Template directory $sd/$tid or $sd/$tid/mri/orig.mgz not found."
+            exit 1
+          fi
+          # Additional check: template must be fully prepared for --base/--long runs
+          if [[ ! -f "$sd/$tid/base-tps.fastsurfer" ]]; then
+            echo "ERROR: Stage '$stage' requires 'prepare' to have been fully completed."
+            echo "  Template indicator file $sd/$tid/base-tps.fastsurfer not found."
+            exit 1
+          fi
+          # Long stages additionally require long-inputs for all time points
+          if [[ "$stage" == "long_seg" || "$stage" == "long_surf" ]]; then
+            missing_long_inputs=()
+            for tpid in "${tpids[@]}"; do
+              if [[ ! -f "$sd/long-inputs/$tpid/long_conform.nii.gz" ]]; then
+                missing_long_inputs+=("$tpid")
+              fi
+            done
+            if [[ ${#missing_long_inputs[@]} -gt 0 ]]; then
+              echo "ERROR: Stage '$stage' requires 'prepare' long-inputs for ALL time points."
+              echo "  Missing long-inputs for: ${missing_long_inputs[*]}"
+              exit 1
+            fi
+          fi
+          # Only check once, then break
+          break
+          ;;
+      esac
+    done
+  fi
+
+  # Check other stage dependencies
   for stage in "${run_stages[@]}"; do
     case $stage in
-      template_seg|template_surf|long_seg|long_surf)
-        # Basic check: template directory and orig.mgz from 'prepare'
-        if [[ ! -d "$sd/$tid" ]] || [[ ! -f "$sd/$tid/mri/orig.mgz" ]]; then
-          echo "ERROR: Stage '$stage' requires 'prepare' to have been run first."
-          echo "  Template directory $sd/$tid or $sd/$tid/mri/orig.mgz not found."
-          exit 1
-        fi
-        # Additional check: template must be fully prepared for --base/--long runs
-        if [[ ! -f "$sd/$tid/base-tps.fastsurfer" ]]; then
-          echo "ERROR: Stage '$stage' requires 'prepare' to have been fully completed."
-          echo "  Template indicator file $sd/$tid/base-tps.fastsurfer not found."
-          exit 1
-        fi
-        # Long stages additionally require long-inputs for all time points
-        if [[ "$stage" == "long_seg" || "$stage" == "long_surf" ]]; then
-          missing_long_inputs=()
-          for tpid in "${tpids[@]}"; do
-            if [[ ! -f "$sd/long-inputs/$tpid/long_conform.nii.gz" ]]; then
-              missing_long_inputs+=("$tpid")
-            fi
-          done
-          if [[ ${#missing_long_inputs[@]} -gt 0 ]]; then
-            echo "ERROR: Stage '$stage' requires 'prepare' long-inputs for ALL time points."
-            echo "  Missing long-inputs for: ${missing_long_inputs[*]}"
+      template_surf)
+        # Only check for 'template_seg' outputs if 'template_seg' is NOT going to run
+        if ! should_run_stage "template_seg"; then
+          if [[ ! -f "$sd/$tid/mri/aparc.DKTatlas+aseg.deep.mgz" ]]; then
+            echo "ERROR: Stage 'template_surf' requires 'template_seg' to have been run first."
             exit 1
           fi
         fi
         ;;
-    esac
-
-    case $stage in
-      template_surf)
-        if [[ ! -f "$sd/$tid/mri/aparc.DKTatlas+aseg.deep.mgz" ]]; then
-          echo "ERROR: Stage 'template_surf' requires 'template_seg' to have been run first."
-          exit 1
-        fi
-        ;;
       long_surf)
-        if [[ ! -f "$sd/$tid/mri/aparc.DKTatlas+aseg.deep.mgz" ]]; then
-          echo "ERROR: Stage 'long_surf' requires 'template_seg' to have been run first."
-          exit 1
-        fi
-        if [[ ! -f "$sd/$tid/surf/lh.white" ]]; then
-          echo "ERROR: Stage 'long_surf' requires 'template_surf' to have been run first."
-          exit 1
-        fi
-        # Check that ALL time points have completed long_seg
-        missing_long_seg=()
-        for tpid in "${tpids[@]}"; do
-          if [[ ! -f "$sd/$tpid/mri/aparc.DKTatlas+aseg.deep.mgz" ]]; then
-            missing_long_seg+=("$tpid")
+        # Only check for 'template_seg' outputs if 'template_seg' is NOT going to run
+        if ! should_run_stage "template_seg"; then
+          if [[ ! -f "$sd/$tid/mri/aparc.DKTatlas+aseg.deep.mgz" ]]; then
+            echo "ERROR: Stage 'long_surf' requires 'template_seg' to have been run first."
+            exit 1
           fi
-        done
-        if [[ ${#missing_long_seg[@]} -gt 0 ]]; then
-          echo "ERROR: Stage 'long_surf' requires 'long_seg' to have been run first for ALL time points."
-          echo "  Missing segmentation for: ${missing_long_seg[*]}"
-          exit 1
+        fi
+        # Only check for 'template_surf' outputs if 'template_surf' is NOT going to run
+        if ! should_run_stage "template_surf"; then
+          if [[ ! -f "$sd/$tid/surf/lh.white" ]]; then
+            echo "ERROR: Stage 'long_surf' requires 'template_surf' to have been run first."
+            exit 1
+          fi
+        fi
+        # Only check for 'long_seg' outputs if 'long_seg' is NOT going to run
+        if ! should_run_stage "long_seg"; then
+          # Check that ALL time points have completed long_seg
+          missing_long_seg=()
+          for tpid in "${tpids[@]}"; do
+            if [[ ! -f "$sd/$tpid/mri/aparc.DKTatlas+aseg.deep.mgz" ]]; then
+              missing_long_seg+=("$tpid")
+            fi
+          done
+          if [[ ${#missing_long_seg[@]} -gt 0 ]]; then
+            echo "ERROR: Stage 'long_surf' requires 'long_seg' to have been run first for ALL time points."
+            echo "  Missing segmentation for: ${missing_long_seg[*]}"
+            exit 1
+          fi
         fi
         ;;
     esac
