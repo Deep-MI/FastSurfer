@@ -265,7 +265,7 @@ function check_stage_dependencies() {
           if [[ "$stage" == "long_seg" || "$stage" == "long_surf" ]]; then
             missing_long_inputs=()
             for tpid in "${tpids[@]}"; do
-              if [[ ! -f "$sd/long-inputs/$tpid/long_conform.nii.gz" ]]; then
+              if [[ ! -f "$sd/$tid/long-inputs/$tpid/long_conform.nii.gz" ]]; then
                 missing_long_inputs+=("$tpid")
               fi
             done
