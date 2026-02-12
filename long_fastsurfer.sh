@@ -240,10 +240,31 @@ function check_stage_dependencies() {
   for stage in "${run_stages[@]}"; do
     case $stage in
       template_seg|template_surf|long_seg|long_surf)
+        # Basic check: template directory and orig.mgz from 'prepare'
         if [[ ! -d "$sd/$tid" ]] || [[ ! -f "$sd/$tid/mri/orig.mgz" ]]; then
           echo "ERROR: Stage '$stage' requires 'prepare' to have been run first."
           echo "  Template directory $sd/$tid or $sd/$tid/mri/orig.mgz not found."
           exit 1
+        fi
+        # Additional check: template must be fully prepared for --base/--long runs
+        if [[ ! -f "$sd/$tid/base-tps.fastsurfer" ]]; then
+          echo "ERROR: Stage '$stage' requires 'prepare' to have been fully completed."
+          echo "  Template indicator file $sd/$tid/base-tps.fastsurfer not found."
+          exit 1
+        fi
+        # Long stages additionally require long-inputs for all time points
+        if [[ "$stage" == "long_seg" || "$stage" == "long_surf" ]]; then
+          missing_long_inputs=()
+          for tpid in "${tpids[@]}"; do
+            if [[ ! -f "$sd/long-inputs/$tpid/long_conform.nii.gz" ]]; then
+              missing_long_inputs+=("$tpid")
+            fi
+          done
+          if [[ ${#missing_long_inputs[@]} -gt 0 ]]; then
+            echo "ERROR: Stage '$stage' requires 'prepare' long-inputs for ALL time points."
+            echo "  Missing long-inputs for: ${missing_long_inputs[*]}"
+            exit 1
+          fi
         fi
         ;;
     esac
