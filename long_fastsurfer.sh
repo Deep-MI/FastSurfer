@@ -475,9 +475,6 @@ if should_run_stage "long_seg"; then
     log "Starting longitudinal segmentations, logs temporarily diverted to $long_seg_cmdf_log..."
     log "Output from this process will be delayed to when it has finished."
     log "======================================="
-    # at the end of the job below, the gpu can be released (for tight management of resources, run
-    # Surfaces in different jobs. Alternative, add a command to "$long_seg_cmdf" that releases the gpu or
-    # triggers the next "subject"
     #TQDM_DISABLE=1
     bash "$long_seg_cmdf" >> "$long_seg_cmdf_log" 2>&1 &
     long_seg_pid=$!
