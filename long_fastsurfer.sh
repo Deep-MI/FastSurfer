@@ -541,4 +541,5 @@ if should_run_stage "long_surf"; then
 fi
 
 log "======================================="
-log "Full longitudinal processing for $tid finished!"
+if should_run_stage "long_surf"; then what="Full"; else what="Stage(s) ${run_stages[*]}"; fi
+log "$what longitudinal processing for $tid finished!"
