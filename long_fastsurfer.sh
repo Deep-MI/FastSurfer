@@ -54,7 +54,7 @@ tid=""
 sd="$SUBJECTS_DIR"
 tpids=()
 t1s=()
-parallel=0
+parallel="false"
 LF=""
 brun_flags=()
 python="python3 -s" # avoid user-directory package inclusion
@@ -62,6 +62,7 @@ python="python3 -s" # avoid user-directory package inclusion
 # Stage control
 run_stages=("prepare" "template_seg" "template_surf" "long_seg" "long_surf")
 valid_stages=("prepare" "template_seg" "template_surf" "long_seg" "long_surf" "all")
+stage_specified="false"  # Track if user has specified any --stage flags
 
 
 function usage()
@@ -169,16 +170,22 @@ case $key in
   --tid) tid="$1" ; shift ;;
   --log) LF="$1" ; shift ;;
   --stage)
-    # Clear default if first --stage flag
-    if [[ ${#run_stages[@]} -eq 5 ]]; then run_stages=(); fi
     stage=$(echo "$1" | tr '[:upper:]' '[:lower:]')
     if [[ ! " ${valid_stages[*]} " =~ " ${stage} " ]]; then
       echo "ERROR: Invalid stage '$1'. Valid stages: ${valid_stages[*]}"
       exit 1
     fi
+
+    # Handle 'all' as a reset - clear any previous stages and set all stages
     if [[ "$stage" == "all" ]]; then
       run_stages=("prepare" "template_seg" "template_surf" "long_seg" "long_surf")
+      stage_specified="true"
     else
+      # Clear default stages only on first --stage flag (when stage_specified is "false")
+      if [[ "$stage_specified" == "false" ]]; then
+        run_stages=()
+        stage_specified="true"
+      fi
       run_stages+=("$stage")
     fi
     shift
@@ -198,7 +205,7 @@ case $key in
     done
     ;;
   --sd) sd="$1" ; export SUBJECTS_DIR="$1" ; shift  ;;
-  --parallel|--parallel_seg|--parallel_surf) parallel=1 ; brun_flags+=("$key" "$1") ; shift ;;
+  --parallel|--parallel_seg|--parallel_surf) parallel="true" ; brun_flags+=("$key" "$1") ; shift ;;
   --py) python="$1" ; shift ;;
   -h|--help) usage ; exit ;;
   --remove_suffix) echo "ERROR: The --remove_suffix option is not supported by long_prepare_template.sh" ; exit 1 ;;
@@ -420,7 +427,7 @@ if should_run_stage "template_surf"; then
           --surf_only --base --py "$python"
           "${POSITIONAL_FASTSURFER[@]}")
   # Only background template_surf when long_surf will also run (so it can wait for completion)
-  if [[ "$parallel" == "1" ]] && should_run_stage "long_surf"; then
+  if [[ "$parallel" == "true" ]] && should_run_stage "long_surf"; then
     base_surf_cmdf="$SUBJECTS_DIR/$tid/scripts/base_surf.cmdf"
     base_surf_cmdf_log="$SUBJECTS_DIR/$tid/scripts/base_surf.cmdf.log"
     {
@@ -456,7 +463,7 @@ if should_run_stage "long_seg"; then
         "${brun_flags[@]}" "${POSITIONAL_FASTSURFER[@]}")
 
   # Only background long_seg when long_surf will also run (so it can wait for completion)
-  if [[ "$parallel" == "1" ]] && should_run_stage "long_surf"; then
+  if [[ "$parallel" == "true" ]] && should_run_stage "long_surf"; then
     long_seg_cmdf="$SUBJECTS_DIR/$tid/scripts/long_seg.cmdf"
     long_seg_cmdf_log="$SUBJECTS_DIR/$tid/scripts/long_seg.cmdf.log"
     {
@@ -486,7 +493,7 @@ fi
 if should_run_stage "long_surf"; then
   cmda=("$FASTSURFER_HOME/brun_fastsurfer.sh" --subjects "${time_points[@]}" --sd "$sd" --surf_only --long "$tid"
         "${brun_flags[@]}" "${POSITIONAL_FASTSURFER[@]}")
-  if [[ "$parallel" == "1" ]] ; then
+  if [[ "$parallel" == "true" ]] ; then
     # Append the template surface and longitudinal segmentation logs, exit if either failed
     what_failed=()
     log "======================================="
