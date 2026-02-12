@@ -246,42 +246,34 @@ function should_run_stage() {
 function check_stage_dependencies() {
   # Check 'prepare' stage outputs once if any dependent stage needs it and prepare won't run
   if ! should_run_stage "prepare"; then
-    for stage in "${run_stages[@]}"; do
-      case $stage in
-        template_seg|template_surf|long_seg|long_surf)
-          # Basic checks: template directory and files from 'prepare'
-          if [[ ! -d "$sd/$tid" ]] || [[ ! -f "$sd/$tid/mri/orig.mgz" ]]; then
-            echo "ERROR: Stage '$stage' requires 'prepare' to have been run first."
-            echo "  Template directory $sd/$tid or $sd/$tid/mri/orig.mgz not found."
-            exit 1
-          fi
-          # Additional check: template must be fully prepared for --base/--long runs
-          if [[ ! -f "$sd/$tid/base-tps.fastsurfer" ]]; then
-            echo "ERROR: Stage '$stage' requires 'prepare' to have been fully completed."
-            echo "  Template indicator file $sd/$tid/base-tps.fastsurfer not found."
-            exit 1
-          fi
-          # Long stages additionally require long-inputs for all time points
-          if [[ "$stage" == "long_seg" || "$stage" == "long_surf" ]]; then
-            missing_long_inputs=()
-            for tpid in "${tpids[@]}"; do
-              if [[ ! -f "$sd/$tid/long-inputs/$tpid/long_conform.nii.gz" ]]; then
-                missing_long_inputs+=("$tpid")
-              fi
-            done
-            if [[ ${#missing_long_inputs[@]} -gt 0 ]]; then
-              echo "ERROR: Stage '$stage' requires 'prepare' long-inputs for ALL time points."
-              echo "  Missing long-inputs for: ${missing_long_inputs[*]}"
-              exit 1
-            fi
-          fi
-          # Only check once, then break
-          break
-          ;;
-      esac
-    done
+    # Basic checks: template directory and files from 'prepare'
+    if [[ ! -d "$sd/$tid" ]] || [[ ! -f "$sd/$tid/mri/orig.mgz" ]]; then
+      echo "ERROR: Stages require 'prepare' to have been run first."
+      echo "  Template directory $sd/$tid or $sd/$tid/mri/orig.mgz not found."
+      exit 1
+    fi
+    # Additional check: template must be fully prepared for --base/--long runs
+    if [[ ! -f "$sd/$tid/base-tps.fastsurfer" ]]; then
+      echo "ERROR: Stages require 'prepare' to have been fully completed."
+      echo "  Template indicator file $sd/$tid/base-tps.fastsurfer not found."
+      exit 1
+    fi
+    # Long stages additionally require long-inputs for all time points
+    if should_run_stage "long_seg" || should_run_stage "long_surf"; then
+      missing_long_inputs=()
+      for tpid in "${tpids[@]}"; do
+        if [[ ! -f "$sd/$tid/long-inputs/$tpid/long_conform.nii.gz" ]]; then
+          missing_long_inputs+=("$tpid")
+        fi
+      done
+      if [[ ${#missing_long_inputs[@]} -gt 0 ]]; then
+        echo "ERROR: Long stages require 'prepare' long-inputs for ALL time points."
+        echo "  Missing long-inputs for: ${missing_long_inputs[*]}"
+        exit 1
+      fi
+    fi
   fi
-
+  # Here template_seg and long_seg are fine to run
   # Check other stage dependencies
   for stage in "${run_stages[@]}"; do
     case $stage in
@@ -295,13 +287,6 @@ function check_stage_dependencies() {
         fi
         ;;
       long_surf)
-        # Only check for 'template_seg' outputs if 'template_seg' is NOT going to run
-        if ! should_run_stage "template_seg"; then
-          if [[ ! -f "$sd/$tid/mri/aparc.DKTatlas+aseg.deep.mgz" ]]; then
-            echo "ERROR: Stage 'long_surf' requires 'template_seg' to have been run first."
-            exit 1
-          fi
-        fi
         # Only check for 'template_surf' outputs if 'template_surf' is NOT going to run
         if ! should_run_stage "template_surf"; then
           if [[ ! -f "$sd/$tid/surf/lh.white" ]]; then
