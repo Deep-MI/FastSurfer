@@ -22,9 +22,9 @@ t1=""                 # Path and name of T1 input
 asegdkt_segfile=""    # Path and name of segmentation
 mask=""               # Path and name of the brainmask (defaults to $SUBJECTS_DIR/$SID/mri/mask.mgz)
 subject=""            # Subject name
-fstess="false"        # run mri_tesselate (FS way), if true = run mri_mc
-fsqsphere="false"     # run inflate1 and qsphere (FSway), if false run spectral projection
-fsaparc="false"       # run FS aparc (and cortical ribbon), if false map aparc from asegdkt_segfile
+fstess="false"        # if true: use FreeSurfer tessellation (mri_tesselate); if false: use mri_mc tessellation
+fsqsphere="false"     # if true: run FreeSurfer inflate1 + qsphere; if false: run FastSurfer spectral surface projection
+fsaparc="false"       # if true: run FreeSurfer aparc (and cortical ribbon); if false: map aparc from asegdkt_segfile
 fssurfreg="true"      # run FS surface registration to fsaverage, if false omit this step
 python="python3 -s"   # python version
 ParallelFlag="false"  # "true", if --parallel passed

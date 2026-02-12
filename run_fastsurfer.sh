@@ -81,8 +81,8 @@ allow_root=()
 version_and_quit=""
 warn_seg_only=()
 warn_base=()
-base=0                # flag for longitudinal template (base) run
-long=0                # flag for longitudinal time point run
+base="false"          # flag for longitudinal template (base) run
+long="false"          # flag for longitudinal time point run
 baseid=""             # baseid for logitudinal time point run
 
 function usage()
@@ -1263,7 +1263,7 @@ then
     cmd=($python "$cerebnetdir/run_prediction.py" --t1 "$t1" --asegdkt_segfile "$asegdkt_segfile" --seg_log "$seg_log"
          --conformed_name "$conformed_name" --cereb_segfile "$cereb_segfile" --async_io --batch_size "$batch_size"
          --viewagg_device "$viewagg" --device "$device" --threads "$threads_seg" "${cereb_flags[@]}")
-    # specify the subject dir $sd, if asegdkt_segfile explicitly starts with it
+    # specify the subject dir $sd, if cereb_segfile explicitly starts with it
     if [[ "$sd" == "${cereb_segfile:0:${#sd}}" ]] ; then cmd=("${cmd[@]}" --sd "$sd"); fi
     if [[ "$native_image" != "false" ]] ; then cmd+=(--orientation native --image_size fov --vox_size none) ; fi
     echo_quoted "${cmd[@]}" | tee -a "$seg_log"
