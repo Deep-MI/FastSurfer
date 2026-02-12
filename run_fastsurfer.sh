@@ -525,7 +525,8 @@ case $key in
   ##############################################################
   --base)
     base="true"
-    run_cc_module="false"
+    # for now, keep the cc running in base, as it is very fast and should not have side effects
+    # run_cc_module="false"
     run_cereb_module="false"
     run_hypvinn_module="false"
     surf_flags=("${surf_flags[@]}" "--base")
