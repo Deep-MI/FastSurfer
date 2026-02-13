@@ -67,7 +67,7 @@ class MessageBuffer:
     def forward_output(
         self,
         file: io.TextIOBase | None = None,
-        encoding: str | None = None,
+        encoding: str = "utf-8",
         out_prefix: str = "",
         err_prefix: str = "!",
     ):
@@ -78,7 +78,7 @@ class MessageBuffer:
         ----------
         file : IO.TextIO, optional
             The file or stream to which the output should be forwarded (defaults to stdout).
-        encoding : str, optional
+        encoding : str, default="utf-8"
             Charset to encode.
         out_prefix : str, default=""
             String to prefix lines from the stdout output.
@@ -245,7 +245,7 @@ class Popen(subprocess.Popen):
     def forward_output(
         self,
         file: io.TextIOBase | None = None,
-        encoding: str | None = None,
+        encoding: str = "utf-8",
         timeout: float | None = None,
         out_prefix: str = "",
         err_prefix: str = "!",
@@ -257,7 +257,7 @@ class Popen(subprocess.Popen):
         ----------
         file : IO.TextIO, optional
             The file or stream to which the output should be forwarded.
-        encoding : str, optional
+        encoding : str, default="utf-8"
             Charset to encode.
         timeout : float, optional
             Interval to let the child process, before returning to the parent (this) process.

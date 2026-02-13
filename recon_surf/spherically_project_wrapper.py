@@ -27,13 +27,20 @@ def setup_options():
     options : argparse.Namespace
         Namespace object holding options.
     """
+    from os import environ
     # Validation settings
     parser = argparse.ArgumentParser(description="Wrapper for spherical projection")
 
-    parser.add_argument("--hemi", type=str, help="Hemisphere to analyze.")
-    parser.add_argument("--sd", type=Path, help="Subjects directory, $SUBJECT_DIR.")
-    parser.add_argument("--subject", type=str, help="Name (ID) of subject.")
-    parser.add_argument("--threads", type=int, help="Number of threads to use.")
+    parser.add_argument("--hemi", choices=("lh", "rh"), help="Hemisphere to analyze.", required=True)
+    parser.add_argument(
+        "--sd",
+        type=Path,
+        help="Subjects directory $SUBJECTS_DIR.",
+        default=Path(environ.get("SUBJECTS_DIR", Path.cwd())),
+        required="SUBJECTS_DIR" not in environ,
+    )
+    parser.add_argument("--subject", type=str, help="Name (ID) of subject.", required=True)
+    parser.add_argument("--threads", type=int, help="Number of threads to use.", default=1)
 
     args = parser.parse_args()
     return args
