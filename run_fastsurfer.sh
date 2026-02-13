@@ -170,7 +170,7 @@ SEGMENTATION PIPELINE:
                             \$SUBJECTS_DIR/\$sid/mri/orig.mgz.
   --no_biasfield          Create a bias field corrected image and enable the
                             calculation of partial volume-corrected stats-files.
-  --norm_name             Name of the biasfield corrected image
+  --norm_name <nu.mgz>    Name of the biasfield corrected image
                             Default location:
                             \$SUBJECTS_DIR/\$sid/mri/orig_nu.mgz
   --tal_reg               Perform the talairach registration for eTIV estimates
@@ -324,6 +324,12 @@ Faber J*, Kuegler D*, Bahrami E*, et al. (*co-first). CerebNet: A fast and
  reliable deep-learning pipeline for detailed cerebellum sub-segmentation.
  NeuroImage 264 (2022), 119703.
  https://doi.org/10.1016/j.neuroimage.2022.119703
+
+For corpus callosum segmentation and analysis:
+Pollak C, Diers K, Estrada S, Kuegler D, Reuter M, FastSurfer-CC: A robust,
+ accurate, and comprehensive framework for corpus callosum morphometry,
+ pre-print on arXiv:
+ https://doi.org/10.48550/arXiv.2511.16471
 
 For hypothalamus sub-segemntation:
 Estrada S, Kuegler D, Bahrami E, Xu P, Mousa D, Breteler MMB, Aziz NA, Reuter M.
@@ -1179,12 +1185,15 @@ then
          "--threads" "$threads_seg" "--conformed_name" "$conformed_name" "--aseg_name" "$asegdkt_segfile"
          "--segmentation_in_orig" "$callosum_seg" "${cc_flags[@]}")
     # if we are trying to create the thickness image in a headless setting, wrap call in xvfb-run
+    echo_quoted "${cmd[@]}" | tee -a "$seg_log"
+    "${wrap[@]}" "${cmd[@]}" 2>&1 | tee -a "$seg_log"
+    exit_code=${PIPESTATUS[0]}
+    if [[ "$exit_code" != 0 ]] ; then
+      echo "ERROR: FastSurferCC corpus callosum analysis failed!" | tee -a "$seg_log"
+      exit "$exit_code"
+    fi
+    if [[ "$edits" == "true" ]] && [[ -f "$callosum_seg_manedit" ]] ; then callosum_seg="$callosum_seg_manedit" ; fi
     {
-      echo_quoted "${cmd[@]}"
-      "${wrap[@]}" "${cmd[@]}"
-      if [[ "${PIPESTATUS[0]}" != 0 ]] ; then echo "ERROR: FastSurferCC corpus callosum analysis failed!" ; exit 1 ; fi
-      if [[ "$edits" == "true" ]] && [[ -f "$callosum_seg_manedit" ]] ; then callosum_seg="$callosum_seg_manedit" ; fi
-
       # add CC into aparc.DKTatlas+aseg.deep.mgz and aseg.auto.mgz as mri_cc did before.
       cmd=($python "$CorpusCallosumDir/paint_cc_into_pred.py" -in_cc "$callosum_seg" -in_pred "$asegdkt_segfile"
            "-out" "$asegdkt_withcc_segfile" "-aseg" "$aseg_auto_segfile")
@@ -1219,14 +1228,15 @@ then
         )
         echo_quoted "${cmd[@]}"
         "${wrap[@]}" "${cmd[@]}"
-        if [[ "${PIPESTATUS[0]}" != 0 ]] ; then
-          echo "ERROR: asegdkt statsfile ($asegdkt_withcc_segfile) generation failed!" ; exit 1
+        exit_code=${PIPESTATUS[0]}
+        if [[ "$exit_code" != 0 ]] ; then
+          echo "ERROR: asegdkt statsfile ($asegdkt_withcc_segfile) generation failed!"
+          exit "$exit_code"
           # this will only terminate the subshell
         fi
       fi
     } 2>&1 | tee -a "$seg_log"
-    exit_code="${PIPESTATUS[0]}"
-    if [[ "$exit_code" != 0 ]]; then exit 1; fi # forward subshell exit to main script
+    if [[ "${PIPESTATUS[0]}" != 0 ]]; then exit "${PIPESTATUS[0]}"; fi # forward subshell exit to main script
 
     if [[ "$run_biasfield" == "true" ]]
     then
