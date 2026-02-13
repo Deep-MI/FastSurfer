@@ -261,9 +261,7 @@ LABEL org.opencontainers.image.authors="$AUTHOR" \
       org.opencontainers.image.description="This image contains the python virtual environment for the official FastSurfer docker image. The corresponding virtual environment is placed at /venv in the image." \
       org.opencontainers.image.base.name="$RUNTIME_BASE_IMAGE"
 
-ENV LANG=C.UTF-8 \
-    LC_NUMERIC=en_US.UTF-8 \
-    MPLCONFIGDIR=/tmp/matplotlib-config
+ENV MPLCONFIGDIR=/tmp/matplotlib-config
 
 SHELL ["/bin/bash", "-e", "-c"]
 
@@ -276,7 +274,10 @@ whippersnappy_egl_deps="libegl1 libgl1 libfontconfig1"
 apt-get install -y --no-install-recommends \
     $shell_deps \
     $freesurfer_deps \
-    $whippersnappy_egl_deps
+    $whippersnappy_egl_deps \
+    locales
+locale-gen en_US.UTF-8 C.UTF-8
+update-locale LANG=C.UTF-8 LC_NUMERIC=en_US.UTF-8
 apt clean
 rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 # create matplotlib config dir (in case someone starts this interactively)
@@ -296,6 +297,8 @@ ENV OS=Linux \
     PYTHONUNBUFFERED=0 \
     MPLCONFIGDIR=/tmp \
     XDG_CACHE_HOME=/tmp/xdgcache \
+    LANG=C.UTF-8 \
+    LC_NUMERIC=en_US.UTF-8 \
     PATH=/venv/bin:/opt/freesurfer/bin:$PATH \
     DO_NOT_SEARCH_FS_LICENSE_IN_FREESURFER_HOME="true"
 

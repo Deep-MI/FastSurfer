@@ -520,7 +520,7 @@ def docker_build_image(
             logger.warning(warn_msg)
             image_type = f"oci{dest}"
             if dry_run:
-                print(f"mkdir -p {Path(image_path).parent} && ", sep="")
+                print(f"mkdir -p {Path(image_path).parent} && ", end="")
             else:
                 Path(image_path).parent.mkdir(exist_ok=True)
             # importing after (bock docker image import as well as docker image load are not supported for images
@@ -558,9 +558,9 @@ def docker_build_image(
 
     if dry_run:
         extra_environment = [f"{k}={v}" for k, v in extra_env.items()]
-        print(" ".join(extra_environment + [docker_cmd] + args), sep="")
+        print(" ".join(extra_environment + [docker_cmd] + args), end="")
         if import_after_args:
-            print(" && " + " ".join([docker_cmd] + import_after_args), sep="")
+            print(" && " + " ".join([docker_cmd] + import_after_args), end="")
     else:
         env = dict(os.environ)
         env.update(extra_env)
@@ -613,7 +613,7 @@ def singularity_build_image(
         f"docker-daemon://{image_name}",
     ]
     if dry_run:
-        print(" ".join([" &&"] + args), sep="")
+        print(" ".join([" &&"] + args), end="")
     else:
         from FastSurferCNN.utils.run_tools import Popen
         with Popen(args,
@@ -687,6 +687,11 @@ def main(
     build_filename = fastsurfer_home / "tools" / "Docker" / "BUILD.info"
     if has_git():
         version_sections = "+git"
+        try:
+            repository_url = get_repository_url("HEAD")
+        except Exception as e:
+            logger.info(f"Could not get repository URL from git: {e.args[0]}")
+            repository_url = ""
     else:
         # try creating the build file without git info
         version_sections = ""
@@ -694,6 +699,7 @@ def main(
             "Failed to create the git_status section in the BUILD.info file. The resulting build file will not have "
             "valid git information, so the version command of FastSurfer in the image will not complete."
         )
+        repository_url = ""
 
     with open(build_filename, "w") as build_file, \
             open(fastsurfer_home / "pyproject.toml") as project_file:
@@ -709,28 +715,32 @@ def main(
     with open(build_filename) as build_file:
         build_info = parse_build_file(build_file)
 
+    if repository_url == "":
+        logger.info("Could not read upstream from git, defaulting to repository URL from pyproject.toml.")
+        remote_branch = "stable" if has_git() and build_info["git_branch"] == "stable" else "dev"
+        repository_url = f"{pyproject_repository_url}/tree/{remote_branch}"
+
+
     if has_git():
-        kwargs["build_arg"].extend([
-            f"GIT_HASH={build_info['git_hash']}",
-            f"REPOSITORY_URL={pyproject_repository_url}/tree/{build_info['git_branch']}",
-        ])
+        kwargs["build_arg"].append(f"GIT_HASH={build_info['git_hash']}")
         if build_info["git_branch"] == "stable":
             kwargs["build_arg"].append("DOC_URL=https://deep-mi.org/fastsurfer/stable")
-    else:
-        kwargs["build_arg"].append(f"REPOSITORY_URL={pyproject_repository_url}/tree/dev")
-    kwargs["build_arg"].append(f"FASTSURFER_VERSION={build_info['version_tag']}")
+    kwargs["build_arg"].extend([
+        f"FASTSURFER_VERSION={build_info['version_tag']}",
+        f"REPOSITORY_URL={repository_url}",
+    ])
     version_tag = build_info["version_tag"]
     image_prefix = ""
     if device != "cuda":
         image_prefix = f"{device}-"
     # image_tag is None or ""
     if not bool(image_tag):
-        image_tag = f"fastsurfer:{image_prefix}{version_tag}".replace("+", "_")
+        image_tag = f"fastsurfer:{image_prefix}v{version_tag}".replace("+", "_")
         logger.info(f"No image name/tag provided, auto-generated tag: {image_tag}")
 
     attestation = bool(keywords.get("attest"))
     if tag_dev:
-        kwargs["tag"] = f"fastsurfer:dev{image_prefix}"
+        kwargs["tag"] = f"fastsurfer:{image_prefix}dev"
     if keywords.get("image_path", False):
         kwargs["image_path"] = keywords["image_path"]
 
@@ -759,6 +769,43 @@ def main(
     except RuntimeError as e:
         return e.args[0]
     return 0
+
+
+def get_repository_url(branch: str = "HEAD") -> str | None:
+    """Get the repository URL of the current git repository.
+
+    Parameters
+    ----------
+    branch : str
+        The branch to get the repository URL for (e.g. "HEAD" for the current branch).
+
+    Returns
+    -------
+    str or None
+        If a remote is defined, the repository URL of the tracking remote repository, including the branch, else None.
+    """
+    from FastSurferCNN.utils.run_tools import Popen
+
+    process = Popen(["git", "branch", "--format=%(upstream:short)", "--list", branch], capture_output=True)
+    result = process.finish()
+    if result.retcode != 0:
+        logger.error(result.err_str())
+        raise RuntimeError("Could not get the remote of the current branch from git.")
+    remote_ref = result.out_str().strip()
+    if remote_ref == "":
+        # no remote branch defined, no repository URL can be determined
+        return None
+    remote, remote_branch = remote_ref.split("/", 1)
+    repository_process = Popen(["git", "remote", "get-url", remote], capture_output=True).finish()
+    if repository_process.retcode != 0:
+        logger.error(repository_process.err_str())
+        raise RuntimeError("Could not get the repository URL from git.")
+    repository_url = repository_process.out_str().strip()
+    if repository_url.endswith(".git"):
+        repository_url = repository_url[:-4]
+    if repository_url.startswith("git@"):
+        repository_url = "https://" + repository_url[4:].replace(":", "/")
+    return repository_url + "/tree/" + remote_branch
 
 
 def default_home() -> Path:
