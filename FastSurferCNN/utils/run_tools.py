@@ -284,7 +284,7 @@ class Popen(subprocess.Popen):
 
 
 class PyPopen(Popen):
-    def __init__(self, args: Sequence[str], *_args, **kwargs):
+    def __init__(self, args: Sequence[str], /, **kwargs):
         """
         Create a python process with same flags, and additional args.
 
@@ -292,7 +292,7 @@ class PyPopen(Popen):
         ----------
         args : Sequence[str]
             Arguments to python process.
-        additional arguments as in subprocess.Popen
+        additional keyword arguments as in subprocess.Popen
 
         See Also
         --------
@@ -318,5 +318,5 @@ class PyPopen(Popen):
         flags = "".join(k for k, v in all_flags.items() if getattr(sys.flags, v) == 1)
         flags = [] if len(flags) == 0 else ["-" + flags]
         super().__init__(
-            [sys.executable] + flags + list(args), *_args, **kwargs
+            [sys.executable] + flags + list(args), **kwargs
         )
