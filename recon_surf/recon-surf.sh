@@ -775,7 +775,7 @@ for hemi in lh rh ; do
       RunIt "$cmd" "$LF" "$CMDF"
     else
       # instead of mris_sphere, directly project to sphere with spectral approach equivalent to -qsphere (23sec)
-      cmda=("${binpath}spherically_project_wrapper.py" --hemi "$hemi" --sdir "$SUBJECTS_DIR" --subject "$subject")
+      cmda=("${binpath}spherically_project_wrapper.py" --hemi "$hemi" --sd "$SUBJECTS_DIR" --subject "$subject")
       run_it_cmdf "$LF" "$CMDF" $python "${cmda[@]}" --threads "$threads_hemi"
     fi
 
