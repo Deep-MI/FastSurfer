@@ -338,6 +338,18 @@ then
   exit 1
 fi
 
+# Check if the required aseg_auto file from the segmentation pipeline exists, which includes the corpus callosum
+# segmentation and is needed for the surface pipeline.
+aseg_auto="aseg.auto.mgz"
+if [[ ! -e "$SUBJECTS_DIR/$subject/mri/$aseg_auto" ]]
+then
+  echo "ERROR: The surface pipeline requires that the aseg segmentation including the corpus callosum is performed as"
+  echo "  a prerequisite. The corpus callosum segmentation and the transfer of the corpus callosum into the aseg"
+  echo "  is performed in FastSurfer's segmentation pipeline. However, \$SUBJECTS_DIR/\$SID/mri/$aseg_auto"
+  echo "  is missing. Please re-run FastSurfer's segmentation pipeline without the --no_asegdkt and --no_cc options."
+  exit 1
+fi
+
 # Check if running on an existing subject directory
 if [[ -f "$SUBJECTS_DIR/$subject/mri/wm.mgz" ]] || [[ -f "$SUBJECTS_DIR/$subject/mri/aparc.DKTatlas+aseg.orig.mgz" ]]
 then
@@ -615,55 +627,6 @@ else
   popd > /dev/null || (echo "Could not popd" ; exit 1 )
 fi
 
-
-# ============================= CC SEGMENTATION ============================================
-
-# here, we are only generating the "necessary" files for the pipeline to recon-surf pipeline to
-# complete, people should use the seg pipeline to get extended results.
-callosum_seg="callosum_seg_aseg_space.mgz"
-callosum_seg_manedit="$(add_file_suffix "$callosum_seg" "manedit")"
-aseg_auto="aseg.auto.mgz"
-CorpusCallosumDir="$FASTSURFER_HOME/CorpusCallosum"
-updated_cc_seg="false"
-if [[ ! -e "$mdir/$aseg_auto" ]] || [[ ! -e "$mdir/$callosum_seg" ]] || [[ "$edits" == "true" ]]
-then
-  {
-    echo " "
-    echo "============ Creating and adding CC Segmentation ============"
-    echo " "
-  } | tee -a "$LF"
-fi
-# here, in edits mode we also check, if the corpus callosum should be updated based on an updated aseg.nocc
-if [[ ! -e "$mdir/$callosum_seg" ]] || \
-  { [[ "$edits" == "true" ]] && [[ "$(date -r "$mdir/$aseg_nocc" "+%s")" -gt "$(date -r "$mdir/$callosum_seg" "+%s")" ]] ; }
-then
-  {
-    echo "Segmenting the corpus callosum, so mri/$aseg_nocc exists. If you are interested in detailed"
-    echo "  and extended analysis and statistics of the Corpus Callosum, use the corpus callosum pipeline"
-    echo "  of the segmentation pipeline (in run_fastsurfer.sh, i.e. run without --no_cc)."
-  }
-  updated_cc_seg="true"
-  # create aseg.auto including corpus callosum segmentation and 46 sec, requires norm.mgz
-  # Note: if original input segmentation already contains CC, this will exit with ERROR
-  # in the future maybe check and skip this step (and next)
-  cmda=($python "$CorpusCallosumDir/fastsurfer_cc.py" --sd "$SUBJECTS_DIR" --sid "$subject"
-        "--aseg_name" "$mdir/$aseg_nocc" "--segmentation_in_orig" "$mdir/$callosum_seg"
-        --threads "$threads"
-        # qc_snapshots are only defined by the seg_only pipeline
-        # limit the processing things to do here
-        --slice_selection "middle" --cc_measures "none" --cc_mid_measures "none" --surf "none"
-        --thickness_overlay "none")
-  run_it "$LF" "${cmda[@]}"
-fi
-# do not move below statement up, fastsurfer_cc.py uses the $callosum_seg variable
-if [[ "$edits" == "true" ]] && [[ -e "$mdir/$callosum_seg_manedit" ]] ; then callosum_seg="$callosum_seg_manedit" ; fi
-cmd_paint_cc_into_pred=($python "$CorpusCallosumDir/paint_cc_into_pred.py" -in_cc "$mdir/$callosum_seg" -in_pred)
-if [[ ! -e "$mdir/$aseg_auto" ]] || [[ "$updated_cc_seg" == "true" ]]
-then
-  # add CC into aseg.auto.mgz as mri_cc did before. Not sure where this is used.
-  cmda=("${cmd_paint_cc_into_pred[@]}" "$mdir/$aseg_nocc" "-out" "$mdir/$aseg_auto")
-  run_it "$LF" "${cmda[@]}"
-fi
 # ============================= FILLED =====================================================
 
 {

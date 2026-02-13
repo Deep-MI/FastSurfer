@@ -161,17 +161,21 @@ case $key in
   --tid) tid="$1" ; shift ;;
   --tpids) while [[ $# -gt 0 ]] && [[ $1 != -* ]] ; do tpids+=("$1") ; shift ; done ;;
   --t1s) while [[ $# -gt 0 ]] && [[ $1 != -* ]] ; do t1s+=("$1") ; shift ; done ;;
-  --sd) sd="$1" ; export SUBJECTS_DIR="$1" ; shift  ;;
+  --sd) export SUBJECTS_DIR="$1" ; shift  ;;
   # these flags are passed through to run_prediction.py
   --vox_size|--device|--viewagg_device|--conform_to_1mm_threshold) run_pred_flags+=("$key" "$1") ; shift ;;
   --threads|--threads_seg) run_pred_flags+=("--threads" "$1") ; shift ;;
   --batch) run_pred_flags+=("--batch_size" "$1") ; shift ;;
   # these known arguments get ignored
   --aseg_name|--conformed_name|--asegdkt_segfile|--brainmask_name|--seg_log|--qc_log|--parallel|--threads_surf) shift ;;
-  --no_cereb|--no_hypothal|--no_biasfield|--3t) shift ;;
-  --async_io) ;;
+  --norm_name|--reg_mode|--cereb_segfile) shift ;;
+  # no additional argument
+  --no_cc|--no_cereb|--no_hypothal|--no_biasfield|--3t|--edits|--async_io|--tal_reg|--allow_root|--qc_snap) ;;
   --fs_license) export FS_LICENSE="$1" ; shift ;;
-  --remove_suffix) echo "ERROR: The --remove_suffix option is not supported by long_prepare_template.sh" ; exit 1 ;;
+  --remove_suffix|--keepgeom|--native_image|--t2)
+    echo "ERROR: The $key option is not supported by long_prepare_template.sh"
+    exit 1
+    ;;
   -h|--help) usage ; exit ;;
   --py) python="$1" ; shift ;;
   *)    # unknown options also get ignored, but also print warnings
