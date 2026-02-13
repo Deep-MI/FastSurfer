@@ -476,7 +476,7 @@ FastSurfer is transitioning to sub-millimeter resolution support throughout the 
 <li><p>outputs a hypothalamic subsegmentation including 3rd ventricle, c. mammilare, fornix and optic tracts.</p></li>
 <li><p>a T1w image is highly recommended (<a class="reference internal" href="overview/intro.html"><span class="doc std std-ref">notes on input images</span></a>), supports high-res (up to 0.7mm, but experimental beyond that).</p></li>
 <li><p>allows the additional passing of a T2w image with <code class="docutils literal notranslate"><span class="pre">--t2</span> <span class="pre">&lt;path&gt;</span></code>, which will be registered to the T1w image (see <code class="docutils literal notranslate"><span class="pre">--reg_mode</span></code> option).</p></li>
-<li><p>calculates volume statistics corrected for partial volume effects based on the T1w image (skipped if <code class="docutils literal notranslate"><span class="pre">--no_bias_field</span></code> is passed).</p></li>
+<li><p>calculates volume statistics corrected for partial volume effects based on the T1w image (skipped if <code class="docutils literal notranslate"><span class="pre">--no_biasfield</span></code> is passed).</p></li>
 </ul>
 </li>
 </ol>
@@ -487,6 +487,7 @@ FastSurfer is transitioning to sub-millimeter resolution support throughout the 
 <li><p>approximately 60-90 minutes, <code class="docutils literal notranslate"><span class="pre">--surf_only</span></code> runs only <a class="reference internal" href="scripts/recon_surf.html"><span class="doc std std-ref">the surface part</span></a>.</p></li>
 <li><p>supports high-resolution images (up to 0.7mm, experimental beyond that).</p></li>
 <li><p>requires a FreeSurfer license file as it uses some FreeSurfer binaries internally.</p></li>
+<li><p>requires outputs of the <code class="docutils literal notranslate"><span class="pre">asegdkt</span></code> and the <code class="docutils literal notranslate"><span class="pre">cc</span></code> modules as a prerequisite (can be included in the same run).</p></li>
 </ul>
 </section>
 </section>
