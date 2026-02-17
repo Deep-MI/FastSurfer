@@ -436,7 +436,7 @@
 <span id="fastsurfercnn-utils-run-tools"></span><h1>FastSurferCNN.utils.run_tools<a class="headerlink" href="#module-FastSurferCNN.utils.run_tools" title="Link to this heading">¶</a></h1>
 <dl class="py class">
 <dt class="sig sig-object py" id="FastSurferCNN.utils.run_tools.MessageBuffer">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">FastSurferCNN.utils.run_tools.</span></span><span class="sig-name descname"><span class="pre">MessageBuffer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">out</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">b''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">err</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">b''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">retcode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">runtime</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//FastSurferCNN/utils/run_tools.py#L27-L65"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.utils.run_tools.MessageBuffer" title="Link to this definition">¶</a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">FastSurferCNN.utils.run_tools.</span></span><span class="sig-name descname"><span class="pre">MessageBuffer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">out</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">b''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">err</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">b''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">retcode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">runtime</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//FastSurferCNN/utils/run_tools.py#L27-L94"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.utils.run_tools.MessageBuffer" title="Link to this definition">¶</a></dt>
 <dd><p>MessageBuffer class.</p>
 <p class="rubric">Attributes</p>
 <div class="table-wrapper docutils container">
@@ -449,6 +449,15 @@
 </table>
 </div>
 <p class="rubric">Methods</p>
+<div class="table-wrapper autosummary longtable docutils container">
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#FastSurferCNN.utils.run_tools.MessageBuffer.forward_output" title="FastSurferCNN.utils.run_tools.MessageBuffer.forward_output"><code class="xref py py-obj docutils literal notranslate"><span class="pre">forward_output</span></code></a>([file, encoding, out_prefix, ...])</p></td>
+<td><p>Forward the content of this MessageBuffer to a file or stream.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
 <div class="table-wrapper docutils container">
 <table class="docutils align-default">
 <tbody>
@@ -461,11 +470,31 @@
 </tbody>
 </table>
 </div>
+<dl class="py method">
+<dt class="sig sig-object py" id="FastSurferCNN.utils.run_tools.MessageBuffer.forward_output">
+<span class="sig-name descname"><span class="pre">forward_output</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">encoding</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'utf-8'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">out_prefix</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">err_prefix</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'!'</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//FastSurferCNN/utils/run_tools.py#L67-L94"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.utils.run_tools.MessageBuffer.forward_output" title="Link to this definition">¶</a></dt>
+<dd><p>Forward the content of this MessageBuffer to a file or stream.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl>
+<dt><strong>file</strong><span class="classifier"><code class="xref py py-obj docutils literal notranslate"><span class="pre">IO.TextIO</span></code>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">optional</span></code></span></dt><dd><p>The file or stream to which the output should be forwarded (defaults to stdout).</p>
+</dd>
+<dt><strong>encoding</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a>, default=”utf-8”</span></dt><dd><p>Charset to encode.</p>
+</dd>
+<dt><strong>out_prefix</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a>, default=””</span></dt><dd><p>String to prefix lines from the stdout output.</p>
+</dd>
+<dt><strong>err_prefix</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a>, default=”!”</span></dt><dd><p>String to prefix lines from the stderr output.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
 </dd></dl>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="FastSurferCNN.utils.run_tools.Popen">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">FastSurferCNN.utils.run_tools.</span></span><span class="sig-name descname"><span class="pre">Popen</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//FastSurferCNN/utils/run_tools.py#L68-L254"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.utils.run_tools.Popen" title="Link to this definition">¶</a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">FastSurferCNN.utils.run_tools.</span></span><span class="sig-name descname"><span class="pre">Popen</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">/</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//FastSurferCNN/utils/run_tools.py#L97-L283"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.utils.run_tools.Popen" title="Link to this definition">¶</a></dt>
 <dd><p>Extension of subprocess.Popen for convenience.</p>
 <p class="rubric">Attributes</p>
 <div class="table-wrapper docutils container">
@@ -528,7 +557,7 @@
 </div>
 <dl class="py method">
 <dt class="sig sig-object py" id="FastSurferCNN.utils.run_tools.Popen.as_future">
-<span class="sig-name descname"><span class="pre">as_future</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pool</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//FastSurferCNN/utils/run_tools.py#L190-L211"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.utils.run_tools.Popen.as_future" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">as_future</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pool</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//FastSurferCNN/utils/run_tools.py#L219-L240"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.utils.run_tools.Popen.as_future" title="Link to this definition">¶</a></dt>
 <dd><p>Similar to <a class="reference internal" href="#FastSurferCNN.utils.run_tools.Popen.finish" title="FastSurferCNN.utils.run_tools.Popen.finish"><code class="xref py py-obj docutils literal notranslate"><span class="pre">finish</span></code></a> in its application, but as non-blocking Future.</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -557,7 +586,7 @@
 
 <dl class="py method">
 <dt class="sig sig-object py" id="FastSurferCNN.utils.run_tools.Popen.finish">
-<span class="sig-name descname"><span class="pre">finish</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//FastSurferCNN/utils/run_tools.py#L152-L188"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.utils.run_tools.Popen.finish" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">finish</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//FastSurferCNN/utils/run_tools.py#L181-L217"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.utils.run_tools.Popen.finish" title="Link to this definition">¶</a></dt>
 <dd><p><a class="reference internal" href="#FastSurferCNN.utils.run_tools.Popen.finish" title="FastSurferCNN.utils.run_tools.Popen.finish"><code class="xref py py-obj docutils literal notranslate"><span class="pre">finish</span></code></a>’s behavior is similar to <code class="xref py py-obj docutils literal notranslate"><span class="pre">subprocess.dry_run</span></code>.</p>
 <p><a class="reference internal" href="#FastSurferCNN.utils.run_tools.Popen.finish" title="FastSurferCNN.utils.run_tools.Popen.finish"><code class="xref py py-obj docutils literal notranslate"><span class="pre">finish</span></code></a> waits <code class="xref py py-obj docutils literal notranslate"><span class="pre">timeout</span></code> seconds, and forces termination after. By default,
 waits unlimited <code class="xref py py-obj docutils literal notranslate"><span class="pre">timeout=None</span></code>. In either case, all messages in stdout and
@@ -581,14 +610,14 @@ object.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="FastSurferCNN.utils.run_tools.Popen.forward_output">
-<span class="sig-name descname"><span class="pre">forward_output</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">encoding</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">out_prefix</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">err_prefix</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'!'</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//FastSurferCNN/utils/run_tools.py#L216-L254"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.utils.run_tools.Popen.forward_output" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">forward_output</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">encoding</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'utf-8'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">out_prefix</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">err_prefix</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'!'</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//FastSurferCNN/utils/run_tools.py#L245-L283"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.utils.run_tools.Popen.forward_output" title="Link to this definition">¶</a></dt>
 <dd><p>Forwards the stdout and stderr every timeout to file. Returns the full output as a MessageBuffer object.</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><dl>
 <dt><strong>file</strong><span class="classifier"><code class="xref py py-obj docutils literal notranslate"><span class="pre">IO.TextIO</span></code>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">optional</span></code></span></dt><dd><p>The file or stream to which the output should be forwarded.</p>
 </dd>
-<dt><strong>encoding</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">optional</span></code></span></dt><dd><p>Charset to encode.</p>
+<dt><strong>encoding</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a>, default=”utf-8”</span></dt><dd><p>Charset to encode.</p>
 </dd>
 <dt><strong>timeout</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">optional</span></code></span></dt><dd><p>Interval to let the child process, before returning to the parent (this) process.</p>
 </dd>
@@ -609,7 +638,7 @@ object.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="FastSurferCNN.utils.run_tools.Popen.messages">
-<span class="sig-name descname"><span class="pre">messages</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">timeout</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//FastSurferCNN/utils/run_tools.py#L78-L119"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.utils.run_tools.Popen.messages" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">messages</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">timeout</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//FastSurferCNN/utils/run_tools.py#L107-L148"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.utils.run_tools.Popen.messages" title="Link to this definition">¶</a></dt>
 <dd><dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><dl>
@@ -630,7 +659,7 @@ object.</p>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="FastSurferCNN.utils.run_tools.PyPopen">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">FastSurferCNN.utils.run_tools.</span></span><span class="sig-name descname"><span class="pre">PyPopen</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">_args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//FastSurferCNN/utils/run_tools.py#L257-L293"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.utils.run_tools.PyPopen" title="Link to this definition">¶</a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">FastSurferCNN.utils.run_tools.</span></span><span class="sig-name descname"><span class="pre">PyPopen</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">/</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//FastSurferCNN/utils/run_tools.py#L286-L322"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.utils.run_tools.PyPopen" title="Link to this definition">¶</a></dt>
 <dd><p class="rubric">Attributes</p>
 <div class="table-wrapper docutils container">
 <table class="docutils align-default">
@@ -756,7 +785,10 @@ object.</p>
           <div class="toc-tree">
             <ul>
 <li><a class="reference internal" href="#">FastSurferCNN.utils.run_tools</a><ul>
-<li><a class="reference internal" href="#FastSurferCNN.utils.run_tools.MessageBuffer"><code class="docutils literal notranslate"><span class="pre">MessageBuffer</span></code></a></li>
+<li><a class="reference internal" href="#FastSurferCNN.utils.run_tools.MessageBuffer"><code class="docutils literal notranslate"><span class="pre">MessageBuffer</span></code></a><ul>
+<li><a class="reference internal" href="#FastSurferCNN.utils.run_tools.MessageBuffer.forward_output"><code class="docutils literal notranslate"><span class="pre">MessageBuffer.forward_output()</span></code></a></li>
+</ul>
+</li>
 <li><a class="reference internal" href="#FastSurferCNN.utils.run_tools.Popen"><code class="docutils literal notranslate"><span class="pre">Popen</span></code></a><ul>
 <li><a class="reference internal" href="#FastSurferCNN.utils.run_tools.Popen.as_future"><code class="docutils literal notranslate"><span class="pre">Popen.as_future()</span></code></a></li>
 <li><a class="reference internal" href="#FastSurferCNN.utils.run_tools.Popen.finish"><code class="docutils literal notranslate"><span class="pre">Popen.finish()</span></code></a></li>
