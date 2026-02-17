@@ -27,13 +27,20 @@ def setup_options():
     options : argparse.Namespace
         Namespace object holding options.
     """
+    from os import environ
     # Validation settings
     parser = argparse.ArgumentParser(description="Wrapper for spherical projection")
 
-    parser.add_argument("--hemi", type=str, help="Hemisphere to analyze.")
-    parser.add_argument("--sdir", type=Path, help="Surface directory of subject.")
-    parser.add_argument("--subject", type=str, help="Name (ID) of subject.")
-    parser.add_argument("--threads", type=int, help="Number of threads to use.")
+    parser.add_argument("--hemi", choices=("lh", "rh"), help="Hemisphere to analyze.", required=True)
+    parser.add_argument(
+        "--sd",
+        type=Path,
+        help="Subjects directory $SUBJECTS_DIR.",
+        default=Path(environ.get("SUBJECTS_DIR", Path.cwd())),
+        required="SUBJECTS_DIR" not in environ,
+    )
+    parser.add_argument("--subject", type=str, help="Name (ID) of subject.", required=True)
+    parser.add_argument("--threads", type=int, help="Number of threads to use.", default=1)
 
     args = parser.parse_args()
     return args
@@ -56,8 +63,8 @@ if __name__ == "__main__":
 
         from recon_surf.spherically_project import spherically_project_surface
 
-        source_surface = opts.sdir / f"{opts.hemi}.smoothwm.nofix"
-        projected_surface = opts.sdir / f"{opts.hemi}.qsphere.nofix"
+        source_surface = opts.sd / opts.subject / "surf" / f"{opts.hemi}.smoothwm.nofix"
+        projected_surface = opts.sd / opts.subject / "surf" / f"{opts.hemi}.qsphere.nofix"
         print(f"Reading in surface: {source_surface} ...")
 
         # make sure the process has a username, so nibabel does not crash in write_geometry
@@ -88,6 +95,6 @@ if __name__ == "__main__":
             fallback += ("-threads", str(opts.threads), "-itkthreads", str(opts.threads))
 
         print(f"spherical_project.py failed.\nRunning fallback command: {' '.join(fallback)}")
-        process = Popen(fallback, env=dict(environ, SUBJECTS_DIR=str(opts.sdir)))
+        process = Popen(fallback, env=dict(environ, SUBJECTS_DIR=str(opts.sd)))
         done = process.forward_output(encoding="utf-8", timeout=None)
         sys.exit(done.retcode)

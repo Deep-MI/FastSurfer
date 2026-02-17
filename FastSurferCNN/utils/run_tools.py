@@ -64,6 +64,35 @@ class MessageBuffer:
     def err_str(self, encoding="utf-8"):
         return self.err.decode(encoding=encoding)
 
+    def forward_output(
+        self,
+        file: io.TextIOBase | None = None,
+        encoding: str = "utf-8",
+        out_prefix: str = "",
+        err_prefix: str = "!",
+    ):
+        """
+        Forward the content of this MessageBuffer to a file or stream.
+
+        Parameters
+        ----------
+        file : IO.TextIO, optional
+            The file or stream to which the output should be forwarded (defaults to stdout).
+        encoding : str, default="utf-8"
+            Charset to encode.
+        out_prefix : str, default=""
+            String to prefix lines from the stdout output.
+        err_prefix : str, default="!"
+            String to prefix lines from the stderr output.
+        """
+        if file is None:
+            from sys import stdout
+            file = stdout
+        for line in self.out_str(encoding=encoding).splitlines():
+            print(f"{out_prefix}{line}", file=file)
+        for line in self.err_str(encoding=encoding).splitlines():
+            print(f"{err_prefix}{line}", file=file)
+
 
 class Popen(subprocess.Popen):
     """
@@ -71,9 +100,9 @@ class Popen(subprocess.Popen):
     """
     _starttime: datetime | None = None
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, args, /, **kwargs):
         self._starttime = datetime.now()
-        super().__init__(*args, **kwargs)
+        super().__init__(args, **kwargs)
 
     def messages(self, timeout: float) -> Generator[MessageBuffer, None, None]:
         """
@@ -216,7 +245,7 @@ class Popen(subprocess.Popen):
     def forward_output(
         self,
         file: io.TextIOBase | None = None,
-        encoding: str | None = None,
+        encoding: str = "utf-8",
         timeout: float | None = None,
         out_prefix: str = "",
         err_prefix: str = "!",
@@ -228,7 +257,7 @@ class Popen(subprocess.Popen):
         ----------
         file : IO.TextIO, optional
             The file or stream to which the output should be forwarded.
-        encoding : str, optional
+        encoding : str, default="utf-8"
             Charset to encode.
         timeout : float, optional
             Interval to let the child process, before returning to the parent (this) process.
@@ -255,7 +284,7 @@ class Popen(subprocess.Popen):
 
 
 class PyPopen(Popen):
-    def __init__(self, args: Sequence[str], *_args, **kwargs):
+    def __init__(self, args: Sequence[str], /, **kwargs):
         """
         Create a python process with same flags, and additional args.
 
@@ -263,7 +292,7 @@ class PyPopen(Popen):
         ----------
         args : Sequence[str]
             Arguments to python process.
-        additional arguments as in subprocess.Popen
+        additional keyword arguments as in subprocess.Popen
 
         See Also
         --------
@@ -289,5 +318,5 @@ class PyPopen(Popen):
         flags = "".join(k for k, v in all_flags.items() if getattr(sys.flags, v) == 1)
         flags = [] if len(flags) == 0 else ["-" + flags]
         super().__init__(
-            [sys.executable] + flags + list(args), *_args, **kwargs
+            [sys.executable] + flags + list(args), **kwargs
         )
