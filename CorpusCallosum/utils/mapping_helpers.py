@@ -265,6 +265,7 @@ def apply_transform_to_volume(
     )
     if output_path is not None:
         logger.info(f"Saving transformed volume to {output_path}")
+        Path(output_path).parent.mkdir(parents=True, exist_ok=True)
         resampled_typecast = resampled.astype((header if header else orig_image).get_data_dtype())
         nib.save(nib.MGHImage(resampled_typecast, save_vox2ras, header), output_path)
     return resampled

@@ -19,10 +19,12 @@ from lapy import Solver, TriaMesh
 from lapy.diffgeo import compute_rotated_f
 from meshpy import triangle
 
+import FastSurferCNN.utils.logging as logging
 from CorpusCallosum.shape.curvature import compute_mean_curvature
 from CorpusCallosum.utils.types import ContourThickness, Points2dType
 from FastSurferCNN.utils.common import suppress_stdout
 
+logger = logging.get_logger(__name__)
 
 def set_contour_zero_idx(contour, idx, anterior_endpoint_idx, posterior_endpoint_idx):
     """Roll contour points to set a new zero index, while keeping track of CC endpoints.
@@ -281,7 +283,13 @@ def cc_thickness(
         fem = Solver(tria_asz)
         vfunc = fem.poisson(0, (bdr, dcond))
         midline_length: float
-        midline_equidistant_asz, midline_length = tria_asz.level_path(vfunc, level=0., n_points=n_points + 2)
+        try:
+            midline_equidistant_asz, midline_length = tria_asz.level_path(vfunc, level=0., n_points=n_points + 2)
+        except Exception as e:
+            logger.error(f"Failed to compute midline level path: {e}")
+            # If midline computation fails, we cannot proceed with thickness calculation
+            raise RuntimeError(f"Corpus callosum midline computation failed: {e}") from e
+
         midline_equidistant_contour_space: np.ndarray = midline_equidistant_asz[:, :2]
 
         gf = compute_rotated_f(tria_asz, vfunc)
@@ -300,7 +308,11 @@ def cc_thickness(
     contour_thickness = np.full(contour_2d.shape[0], np.nan)
     for current_level in level_of_rotated_laplace_contour_space[1:-1]:
         # levelpath starts at index zero
-        levelpath_asz, lvlpath_length, tria_idx = tria_asz.level_path(gf, current_level, get_tria_idx=True)
+        try:
+            levelpath_asz, lvlpath_length, tria_idx = tria_asz.level_path(gf, current_level, get_tria_idx=True)
+        except Exception as e:
+            logger.warning(f"Failed to compute level path at level {current_level}: {e}")
+            continue
 
         levelpaths_contour_space.append(levelpath_asz[:, :2])
         levelpath_lengths.append(lvlpath_length)

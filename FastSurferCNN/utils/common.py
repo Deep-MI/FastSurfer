@@ -255,10 +255,21 @@ class SubjectDirectory:
         Path
             The path to the file in the subject folder.
         """
-        if Path(filepath).is_absolute():
-            return Path(filepath)
-        else:
-            return self.subject_dir / self._id / filepath
+        path = Path(filepath)
+        if path.is_absolute():
+            return path
+
+        if not hasattr(self, "_id"):
+            return self.subject_dir / path
+
+        # If the path is already relative to the subject directory, return it as is
+        # (interpreted as relative to CWD)
+        subj_dir = self.subject_dir / self._id
+        try:
+            path.relative_to(subj_dir)
+            return path
+        except ValueError:
+            return subj_dir / path
 
     def filename_by_attribute(self, attr_name: str) -> Path:
         """

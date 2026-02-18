@@ -59,7 +59,7 @@ from CorpusCallosum.utils.mapping_helpers import (
     calc_mapping_to_standard_space,
     map_softlabels_to_orig,
 )
-from CorpusCallosum.utils.types import CCMeasuresDict, SliceSelection, SubdivisionMethod
+from CorpusCallosum.utils.types import SliceSelection, SubdivisionMethod
 from FastSurferCNN.data_loader.conform import conform, is_conform
 from FastSurferCNN.segstats import HelpFormatter
 from FastSurferCNN.utils import (
@@ -838,44 +838,62 @@ def main(
     # Create a temporary segmentation image with proper affine for enhanced postprocessing
     # Process slices based on selection mode
 
-    logger.info(f"Processing slices with selection mode: {slice_selection}")
-    slice_results, slice_io_futures, cc_contours = recon_cc_surf_measures_multi(
-        segmentation=cc_fn_seg_labels,
-        slice_selection=slice_selection,
-        upright_header=fsavg_header,
-        fsavg2midslab_vox2vox=fsavg2midslab_vox2vox,
-        fsavg_vox2ras=fsavg_vox2ras,
-        orig2fsavg_vox2vox=orig2fsavg_vox2vox,
-        midslices=midslices,
-        ac_coords_vox=ac_coords_vox,
-        pc_coords_vox=pc_coords_vox,
-        num_thickness_points=num_thickness_points,
-        subdivisions=subdivisions,
-        subdivision_method=cast(SubdivisionMethod, subdivision_method),
-        contour_smoothing=contour_smoothing,
-        subject_dir=sd,
-    )
-    io_futures.extend(slice_io_futures)
-
-    outer_contours = [slice_result["split_contours"][0] for slice_result in slice_results]
-
-    if len(outer_contours) > 1 and not check_area_changes(outer_contours):
-        logger.warning(
-            "Large area changes detected between consecutive slices, this is likely due to a segmentation error."
-        )
-
-    # Get middle slice result
-    middle_slice_result: CCMeasuresDict = slice_results[len(slice_results) // 2]
-    
-
-    # save segmentation labels, this
+    # save segmentation labels
     if sd.has_attribute("cc_segmentation"):
-        sd.filename_by_attribute("cc_segmentation").parent.mkdir(exist_ok=True, parents=True)
+        _cc_seg_path = sd.filename_by_attribute("cc_segmentation")
+        _cc_seg_path.parent.mkdir(exist_ok=True, parents=True)
+        logger.info(f"Saving CC segmentation to {_cc_seg_path}")
         io_futures.append(thread_executor().submit(
             nib.save,
             nib.MGHImage(cc_fn_seg_labels, fsaverage_midslab_vox2ras, orig.header),
-            sd.filename_by_attribute("cc_segmentation"),
+            _cc_seg_path,
         ))
+
+    logger.info(f"Processing slices with selection mode: {slice_selection}")
+    try:
+        slice_results, slice_io_futures, cc_contours = recon_cc_surf_measures_multi(
+            segmentation=cc_fn_seg_labels,
+            slice_selection=slice_selection,
+            upright_header=fsavg_header,
+            fsavg2midslab_vox2vox=fsavg2midslab_vox2vox,
+            fsavg_vox2ras=fsavg_vox2ras,
+            orig2fsavg_vox2vox=orig2fsavg_vox2vox,
+            midslices=midslices,
+            ac_coords_vox=ac_coords_vox,
+            pc_coords_vox=pc_coords_vox,
+            num_thickness_points=num_thickness_points,
+            subdivisions=subdivisions,
+            subdivision_method=cast(SubdivisionMethod, subdivision_method),
+            contour_smoothing=contour_smoothing,
+            subject_dir=sd,
+        )
+        io_futures.extend(slice_io_futures)
+    except Exception as e:
+        logger.error(f"CC morphometry analysis failed: {e}")
+        logger.exception(e)
+        # We continue to save what we have
+        slice_results = []
+        slice_io_futures = []
+        cc_contours = []
+
+    # Filter out None results for further processing
+    valid_slice_results = [r for r in slice_results if r is not None]
+    valid_cc_contours = [c for c in cc_contours if c is not None]
+
+    if not valid_slice_results:
+        logger.error("No valid CC morphometry results found for any slice.")
+    else:
+        outer_contours = [slice_result["split_contours"][0] for slice_result in valid_slice_results]
+
+        if len(outer_contours) > 1 and not check_area_changes(outer_contours):
+            logger.warning(
+                "Large area changes detected between consecutive slices, this is likely due to a segmentation error."
+            )
+
+    # Get middle slice result if available
+    middle_slice_idx = len(slice_results) // 2
+    middle_slice_result = slice_results[middle_slice_idx] if middle_slice_idx < len(slice_results) else None
+
     # map soft labels to original space (in parallel because this takes a while, and we only do it to save the labels)
     if sd.has_attribute("cc_orig_segfile"):
         if len(middle_slice_result["split_contours"]) <= 5:
@@ -902,12 +920,15 @@ def main(
     metrics: tuple[CCMeasures] = get_args(CCMeasures)
 
     # Record key metrics for middle slice
-    output_metrics_middle_slice = {metric: middle_slice_result[metric] for metric in metrics}
+    if middle_slice_result:
+        output_metrics_middle_slice = {metric: middle_slice_result[metric] for metric in metrics}
+    else:
+        output_metrics_middle_slice = {}
 
     # Create enhanced output dictionary with all slice results
     per_slice_output_dict = {
         "slices": [convert_numpy_to_json_serializable({metric: result[metric] for metric in metrics})
-                   for result in slice_results],
+                   if result else None for result in slice_results],
     }
 
     ########## Save outputs ##########
@@ -920,9 +941,9 @@ def main(
         )
     additional_metrics["cc_5mm_volume"] = cc_volume_voxel
 
-    if len(outer_contours) > 1:
+    if len(valid_cc_contours) > 1:
         logger.info(f"CC volume voxel: {cc_volume_voxel}")
-        cc_volume_contour = calculate_cc_volume_contour(cc_contours, width=5.0)
+        cc_volume_contour = calculate_cc_volume_contour(valid_cc_contours, width=5.0)
         logger.info(f"CC volume contour: {cc_volume_contour}")
         additional_metrics["cc_5mm_volume_pv_corrected"] = cc_volume_contour
 
@@ -974,13 +995,15 @@ def main(
             "incorrectly detected or contour creation may have failed"
         )
 
-    if sd.has_attribute("cc_mid_measures"):
+    if sd.has_attribute("cc_mid_measures") and middle_slice_result is not None:
         sd.filename_by_attribute('cc_mid_measures').parent.mkdir(exist_ok=True, parents=True)
         io_futures.append(thread_executor().submit(
             save_cc_measures_json,
             sd.filename_by_attribute('cc_mid_measures'),
             output_metrics_middle_slice | additional_metrics,
         ))
+    elif sd.has_attribute("cc_mid_measures"):
+        logger.warning("Midslice morphometry failed, skipping creation of midslice markers file.")
 
     if sd.has_attribute("cc_measures"):
         sd.filename_by_attribute("cc_measures").parent.mkdir(exist_ok=True, parents=True)
