@@ -265,11 +265,9 @@ class SubjectDirectory:
         # If the path is already relative to the subject directory, return it as is
         # (interpreted as relative to CWD)
         subj_dir = self.subject_dir / self._id
-        try:
-            path.relative_to(subj_dir)
-            return path
-        except ValueError:
-            return subj_dir / path
+        if (self.subject_dir / path).is_relative_to(subj_dir):
+            return self.subject_dir / path
+        return subj_dir / path
 
     def filename_by_attribute(self, attr_name: str) -> Path:
         """

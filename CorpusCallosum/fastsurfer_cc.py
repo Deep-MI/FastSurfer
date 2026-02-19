@@ -879,6 +879,8 @@ def main(
     # Filter out None results for further processing
     valid_slice_results = [r for r in slice_results if r is not None]
     valid_cc_contours = [c for c in cc_contours if c is not None]
+    outer_contours = []
+    cc_volume_contour = None
 
     if not valid_slice_results:
         logger.error("No valid CC morphometry results found for any slice.")
@@ -896,14 +898,17 @@ def main(
 
     # map soft labels to original space (in parallel because this takes a while, and we only do it to save the labels)
     if sd.has_attribute("cc_orig_segfile"):
-        if len(middle_slice_result["split_contours"]) <= 5:
+        if middle_slice_result is not None and len(middle_slice_result["split_contours"]) <= 5:
             cc_subseg_midslice = make_subdivision_mask(
                 (cc_fn_seg_labels.shape[1], cc_fn_seg_labels.shape[2]),
                 middle_slice_result["subdivision_lines"],
                 vox2ras=fsavg_vox2ras @ np.linalg.inv(fsavg2midslice_vox2vox)
             )
         else:
-            logger.warning("Too many subsegments for lookup table, skipping sub-division of output segmentation.")
+            if middle_slice_result is None:
+                logger.warning("No valid middle slice result found, skipping sub-division of output segmentation.")
+            else:
+                logger.warning("Too many subsegments for lookup table, skipping sub-division of output segmentation.")
             cc_subseg_midslice = None
         # if num_threads is not large enough (>1), this might be blocking ; serial_executor runs the function in submit
         executor = thread_executor() if get_num_threads() > 2 else serial_executor()
@@ -945,7 +950,8 @@ def main(
         logger.info(f"CC volume voxel: {cc_volume_voxel}")
         cc_volume_contour = calculate_cc_volume_contour(valid_cc_contours, width=5.0)
         logger.info(f"CC volume contour: {cc_volume_contour}")
-        additional_metrics["cc_5mm_volume_pv_corrected"] = cc_volume_contour
+
+    additional_metrics["cc_5mm_volume_pv_corrected"] = cc_volume_contour
 
     # get ac and pc in all spaces
     ac_coords_vox_3d, pc_coords_vox_3d = [np.hstack((0, c)) for c in (ac_coords_vox, pc_coords_vox)]
@@ -973,7 +979,7 @@ def main(
     additional_metrics["slice_selection"] = slice_selection
 
     # QC checks
-    if len(outer_contours) > 1:
+    if len(outer_contours) > 1 and cc_volume_contour is not None:
         max_vol = max(cc_volume_voxel, cc_volume_contour)
         if max_vol > 0 and abs(cc_volume_voxel - cc_volume_contour) / max_vol > 0.2:
             logger.warning(
@@ -1031,7 +1037,8 @@ def main(
     if sd.has_attribute("cc_orient_volume_lta"):
         sd.filename_by_attribute("cc_orient_volume_lta").parent.mkdir(exist_ok=True, parents=True)
         # save lta to standardized space (fsaverage + nodding + ac to center)
-        orig2standardized_ras2ras = fsavg_vox2ras @ np.linalg.inv(standardized2orig_vox2vox) @ np.linalg.inv(orig.affine)
+        orig2standardized_ras2ras = fsavg_vox2ras @ \
+            np.linalg.inv(standardized2orig_vox2vox) @ np.linalg.inv(orig.affine)
         logger.info(f"Saving LTA to standardized space: {sd.filename_by_attribute('cc_orient_volume_lta')}")
         io_futures.append(thread_executor().submit(
             write_lta,
