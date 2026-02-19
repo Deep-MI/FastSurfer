@@ -1009,7 +1009,7 @@ then
         cmd=($python "$fastsurfercnndir/reduce_to_aseg.py" -i "$asegdkt_segfile" -o "$aseg_segfile"
              --outmask "$mask_name" --fixwm)
         echo_quoted "${cmd[@]}" | tee -a "$seg_log"
-        "${cmd[@]}" | tee -a "$seg_log"
+        "${wrap[@]}" "${cmd[@]}" | tee -a "$seg_log"
         exit_code="${PIPESTATUS[0]}"
         if [[ "${exit_code}" != 0 ]]
         then
@@ -1275,7 +1275,7 @@ then
          --conformed_name "$conformed_name" --cereb_segfile "$cereb_segfile" --async_io --batch_size "$batch_size"
          --viewagg_device "$viewagg" --device "$device" --threads "$threads_seg" "${cereb_flags[@]}")
     # specify the subject dir $sd, if cereb_segfile explicitly starts with it
-    if [[ "$sd" == "${cereb_segfile:0:${#sd}}" ]] ; then cmd=("${cmd[@]}" --sd "$sd"); fi
+    if [[ "$sd" == "${cereb_segfile:0:${#sd}}" ]] ; then cmd+=(--sd "$sd"); fi
     if [[ "$native_image" != "false" ]] ; then cmd+=(--orientation native --image_size fov --vox_size none) ; fi
     echo_quoted "${cmd[@]}" | tee -a "$seg_log"
     "${wrap[@]}" "${cmd[@]}"  # no tee, directly logging to $seg_log

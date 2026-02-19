@@ -599,7 +599,7 @@ def main(
     softlabels_cc: str | Path | None = None,
     softlabels_fn: str | Path | None = None,
     softlabels_background: str | Path | None = None,
-) -> None:
+) -> Literal[0] | str:
     """Main pipeline function for corpus callosum analysis.
 
     This function performs the complete corpus callosum analysis pipeline including
@@ -660,6 +660,15 @@ def main(
         Path to save fornix soft labels.
     softlabels_background : str or Path, optional
         Path to save background soft labels.
+
+    Returns
+    -------
+    0 or str
+        0 if successful, otherwise an error message.
+
+    Raises
+    ------
+    This function does not follow the convention "main does not raise exceptions" yet.
 
     Notes
     -----
@@ -724,7 +733,7 @@ def main(
         sys.exit(1)
 
     #### setup variables
-    io_futures = []
+    futures = []
 
     # load models
     device = find_device(device)
@@ -772,7 +781,7 @@ def main(
     # start saving upright volume, this is the image in fsaverage space but not yet oriented via AC-PC
     if sd.has_attribute("upright_volume"):
         # upright == fsaverage-aligned
-        io_futures.append(
+        futures.append(
             thread_executor().submit(
                 apply_transform_to_volume,
                 orig,
@@ -833,7 +842,7 @@ def main(
     for i, (attr, name) in enumerate((("background",) * 2, ("cc", "Corpus Callosum"), ("fn", "Fornix"))):
         if sd.has_attribute(f"cc_softlabels_{attr}"):
             logger.info(f"Saving {name} softlabels to {sd.filename_by_attribute(f'cc_softlabels_{attr}')}")
-            io_futures.append(thread_executor().submit(
+            futures.append(thread_executor().submit(
                 nib.save,
                 nib.MGHImage(cc_fn_softlabels[..., i], fsaverage_midslab_vox2ras, orig.header),
                 sd.filename_by_attribute(f"cc_softlabels_{attr}"),
@@ -847,7 +856,7 @@ def main(
         _cc_seg_path = sd.filename_by_attribute("cc_segmentation")
         _cc_seg_path.parent.mkdir(exist_ok=True, parents=True)
         logger.info(f"Saving CC segmentation to {_cc_seg_path}")
-        io_futures.append(thread_executor().submit(
+        futures.append(thread_executor().submit(
             nib.save,
             nib.MGHImage(cc_fn_seg_labels, fsaverage_midslab_vox2ras, orig.header),
             _cc_seg_path,
@@ -871,7 +880,7 @@ def main(
             contour_smoothing=contour_smoothing,
             subject_dir=sd,
         )
-        io_futures.extend(slice_io_futures)
+        futures.extend(slice_io_futures)
     except Exception as e:
         logger.error(f"CC morphometry analysis failed: {e}")
         logger.exception(e)
@@ -924,7 +933,7 @@ def main(
             cc_subseg_midslice = None
         # if num_threads is not large enough (>1), this might be blocking ; serial_executor runs the function in submit
         executor = thread_executor() if get_num_threads() > 2 else serial_executor()
-        io_futures.append(executor.submit(
+        futures.append(executor.submit(
             map_softlabels_to_orig,
             cc_fn_softlabels=cc_fn_softlabels,
             orig=orig,
@@ -1026,7 +1035,7 @@ def main(
 
     if sd.has_attribute("cc_mid_measures") and middle_slice_result is not None:
         sd.filename_by_attribute('cc_mid_measures').parent.mkdir(exist_ok=True, parents=True)
-        io_futures.append(thread_executor().submit(
+        futures.append(thread_executor().submit(
             save_cc_measures_json,
             sd.filename_by_attribute('cc_mid_measures'),
             output_metrics_middle_slice | additional_metrics,
@@ -1034,7 +1043,7 @@ def main(
 
     if sd.has_attribute("cc_measures"):
         sd.filename_by_attribute("cc_measures").parent.mkdir(exist_ok=True, parents=True)
-        io_futures.append(thread_executor().submit(
+        futures.append(thread_executor().submit(
             save_cc_measures_json,
             sd.filename_by_attribute("cc_measures"),
             per_slice_output_dict | additional_metrics,
@@ -1045,7 +1054,7 @@ def main(
     if sd.has_attribute("upright_lta"):
         sd.filename_by_attribute("upright_lta").parent.mkdir(exist_ok=True, parents=True)
         logger.info(f"Saving LTA to fsaverage space: {sd.filename_by_attribute('upright_lta')}")
-        io_futures.append(thread_executor().submit(
+        futures.append(thread_executor().submit(
             write_lta,
             sd.filename_by_attribute("upright_lta"),
             orig2fsavg_ras2ras,
@@ -1061,7 +1070,7 @@ def main(
         fsavg2standardized_ras2ras = fsavg_vox2ras @ \
             np.linalg.inv(standardized2orig_vox2vox) @ np.linalg.inv(orig.affine)
         logger.info(f"Saving LTA to standardized space: {sd.filename_by_attribute('cc_orient_volume_lta')}")
-        io_futures.append(thread_executor().submit(
+        futures.append(thread_executor().submit(
             write_lta,
             sd.filename_by_attribute("cc_orient_volume_lta"),
             fsavg2standardized_ras2ras,
@@ -1072,14 +1081,20 @@ def main(
         ))
 
     # this waits for all io to finish
-    for fut in io_futures:
+    return_value: Literal[0] | str = 0
+    success_str = "completed successfully in"
+    for fut in futures:
         e = fut.exception()
         if e and isinstance(e, Exception):
             logger.exception(e)
+            success_str = "failed after"
+            if return_value == 0:
+                return_value = f"Error during saving outputs: {e}"
     shutdown_executors()
 
     duration = (perf_counter_ns() - start) / 1e9
-    logger.info(f"CorpusCallosum analysis pipeline completed successfully in {duration:.2f} seconds.")
+    logger.info(f"CorpusCallosum analysis pipeline {success_str} {duration:.2f} seconds.")
+    return return_value
 
 
 def init_mgh_header(header: nibabelHeader, header_dict: MGHHeaderDict) -> MGHHeader:
@@ -1117,12 +1132,14 @@ def save_cc_measures_json(cc_mid_measure_file: Path, metrics: dict[str, object])
 
 
 if __name__ == "__main__":
+    import sys
+
     options = options_parse()
 
     # Set up logging if verbose mode is enabled
     logging.setup_logging(None, options.verbose)  # Log to stdout only
 
-    main(
+    sys.exit(main(
         conf_name=options.conf_name,
         aseg_name=options.aseg_name,
         subject_dir=options.subject_dir,
@@ -1149,4 +1166,4 @@ if __name__ == "__main__":
         softlabels_cc=options.softlabels_cc,
         softlabels_fn=options.softlabels_fn,
         softlabels_background=options.softlabels_background,
-    )
+    ))
