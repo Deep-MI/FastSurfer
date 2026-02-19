@@ -89,8 +89,9 @@ def read_measure_file(path: Path) -> dict[str, MeasureTuple]:
 
     Returns
     -------
-    A dictionary of Measure keys to tuple of descriptors like
-    {'<key>': ('<name>', '<description>', <value>, '<unit>')}.
+    dict[str, MeasureTuple]
+        A dictionary of Measure key to tuple of descriptors like
+        ``{'<key>': ('<name>', '<description>', <value>, '<unit>')}``.
     """
     if not path.exists():
         raise OSError(f"Measures could not be imported from {path}, "
@@ -126,7 +127,8 @@ def read_volume_file(path: Path) -> ImageTuple:
 
     Returns
     -------
-    A tuple of nibabel image object and the data.
+    ImageTuple
+        A tuple of nibabel image object and the data.
     """
     try:
         import nibabel as nib
@@ -252,21 +254,22 @@ def mask_in_array(
 
     Parameters
     ----------
-    arr : ndarray of integer
+    arr : ndarray of int
         An array with data, most likely int.
     items : npt.ArrayLike
         Which elements of `arr` in arr should yield True.
-    max_index : integer, optional
+    max_index : int, optional
         The maximum value of `arr` and `items` for performance, uses maximum value if None.
 
     Returns
     -------
-    mask : np.ndarray of boolean
+    mask : np.ndarray of bool
         A binary array, true, where elements in `arr` are in `items`.
 
     See Also
     --------
     mask_not_in_array
+        Inverse mask, true where elements are not in `items`.
     """
     _items = np.asarray(items)
     if _items.size == 0:
@@ -298,21 +301,22 @@ def mask_not_in_array(
 
     Parameters
     ----------
-    arr : ndarray of integer
+    arr : ndarray of int
         An array with data, most likely int.
     items : npt.ArrayLike
         Which elements of `arr` in arr should yield False.
-    max_index : integer, optional
+    max_index : int, optional
         The maximum value of `arr` and `items` for performance, uses maximum value if None.
 
     Returns
     -------
-    mask : np.ndarray of boolean
+    mask : np.ndarray of bool
         A binary array, true, where elements in `arr` are not in `items`.
 
     See Also
     --------
     mask_in_array
+        Mask where elements are in `items`.
     """
     _items = np.asarray(items)
     if _items.size == 0:
@@ -351,17 +355,17 @@ def hemi_masks_from_aseg(
 
     Parameters
     ----------
-    arr : ndarray of integer
+    arr : ndarray of int
         An array with segmentation labels.
     window_size : int, default=7
         The size of the smoothing filter to use for left/right voting.
 
     Returns
     -------
-    mask_left : np.ndarray of boolean
+    mask_left : np.ndarray of bool
         A boolean array of the same shape as `arr`, where True indicates voxels that are more likely to belong to the
         left hemisphere.
-    mask_right : np.ndarray of boolean
+    mask_right : np.ndarray of bool
         A boolean array of the same shape as `arr`, where True indicates voxels that are more likely to belong to the
         right hemisphere.
 
@@ -516,7 +520,8 @@ class AbstractMeasure(metaclass=abc.ABCMeta):
 
         Returns
         -------
-        A help string describing the Measure settings.
+        str
+            A help string describing the Measure settings.
         """
         return f"{self.name}="
 
@@ -858,8 +863,9 @@ def format_classes(_classes: Iterable[int]) -> str:
 
     Returns
     -------
-    A string of sorted integers and integer ranges, '()' if iterable is empty, or just
-    the string conversion of _classes, if _classes is not an iterable.
+    str
+        A string of sorted integers and integer ranges, ``'()'`` if iterable is empty, or
+        just the string conversion of `_classes`, if `_classes` is not an iterable.
 
     Notes
     -----
@@ -1235,9 +1241,23 @@ class DerivedMeasure(AbstractMeasure):
 
     @property
     def read_subject_on_parents(self) -> Callable[[Path], bool]:
-        """read_subject_on_parents function hook property"""
-        if (self._measure_host is not None and
-                hasattr(self._measure_host, "read_subject_parents")):
+        """
+        Read/Update the measures from subject_dir for all parent measures.
+
+        The object may delegate the lookup to `measure_host`, the Manager class that caches measures, if it is provided.
+        This allows dependencies between measures and their automatic resolution.
+
+        Parameters
+        ----------
+        subject_dir : Path
+            Path to the directory of the subject_dir (often subject_dir/subject_id).
+
+        Returns
+        -------
+        bool
+            Whether there was an update in any of the parent measures.
+        """
+        if self._measure_host is not None and hasattr(self._measure_host, "read_subject_parents"):
             from functools import partial
             return partial(self._measure_host.read_subject_parents, self.parents)
         else:
@@ -1305,7 +1325,7 @@ class DerivedMeasure(AbstractMeasure):
         Returns
         -------
         float, None
-            voxel volume of the first parent
+            Voxel volume of the first parent.
         """
         _types = (VolumeMeasure, DerivedMeasure)
         _type = ImportedMeasure
@@ -1565,7 +1585,7 @@ class Manager(dict[str, AbstractMeasure]):
             Path to the default measurefile to import from (ImportedMeasure argument).
         read_file : ReadFileHook[dict[str, MeasureTuple]]
             Function handle to read and parse the file (argument to ImportedMeasure).
-        vox_vol: float, optional
+        vox_vol : float, optional
             The voxel volume to associate the measure with.
 
         Raises
@@ -1727,25 +1747,25 @@ class Manager(dict[str, AbstractMeasure]):
             measures: Iterable[AbstractMeasure],
             subject_dir: Path,
             blocking: bool = False,
-    ) -> True:
+    ) -> Literal[True]:
         """
-        Multi-threaded iteration through measures and application of read_subject, also
-        implementation for the read_subject_on_parents function hook. Guaranteed to
-        return
-        independent of state and thread availability to avoid a race condition.
+        Multi-threaded iteration through measures and application of read_subject, also implementation for the
+        read_subject_on_parents function hook. Guaranteed to return independent of state and thread availability to
+        avoid a race condition.
 
         Parameters
         ----------
         measures : Iterable[AbstractMeasure]
-            iterable of Measures to read
+            Iterable of Measures to read.
         subject_dir : Path
             Path to the subject directory (often subjects_dir/subject_id).
-        blocking : bool, optional
-            whether the execution should be parallel or not (default: False/parallel).
+        blocking : bool, default=False
+            Whether the execution should be parallel or not.
 
         Returns
         -------
-        True
+        bool
+            Always returns ``True``.
         """
 
         def _read(measure: AbstractMeasure) -> bool:
@@ -1755,19 +1775,18 @@ class Manager(dict[str, AbstractMeasure]):
         _update_context = set(
             filter(lambda m: m not in self.__update_context, measures)
         )
-        # __update_context is the structure that holds measures that have read_subject
-        # already called / submitted to the executor
+        # __update_context is the structure that holds measures that have read_subject already called / submitted to the
+        # executor
         self.__update_context.extend(_update_context)
         for x in _update_context:
-            # DerivedMeasure.read_subject calls Manager.read_subject_parents (this
-            # method) to read the data from dependent measures (through the callback
-            # DerivedMeasure.read_subject_on_parents, and DerivedMeasure.measure_host).
+            # DerivedMeasure.read_subject calls Manager.read_subject_parents (this method) to read the data from
+            # dependent measures (through the callback DerivedMeasure.read_subject_on_parents, and
+            # DerivedMeasure.measure_host).
             if blocking or isinstance(x, DerivedMeasure):
                 x.read_subject(subject_dir)
             else:
-                # calls read_subject on all measures, redundant io operations are
-                # handled/skipped through Manager.make_read_hook and the internal
-                # caching of files within the _cache attribute of Manager.
+                # calls read_subject on all measures, redundant io operations are handled/skipped through
+                # Manager.make_read_hook and the internal caching of files within the _cache attribute of Manager.
                 self._io_futures.append(thread_executor().submit(_read, x))
         return True
 
@@ -1778,12 +1797,13 @@ class Manager(dict[str, AbstractMeasure]):
         The '<option_list>' is optional and is similar to python parameters. It starts
         with numbered parameters, followed by key-value pairs.
         Examples are:
-        - 'Mask(mri/aseg.mgz)'
-          returns: ('BrainSeg', ['mri/aseg.mgz', 'classes=[2, 4]'])
-        - 'TotalGray(mri/aseg.mgz, classes=[2, 4])'
-          returns: ('BrainSeg', ['mri/aseg.mgz', 'classes=[2, 4]'])
-        - 'BrainSeg(segfile=mri/aseg.mgz, classes=[2, 4])'
-          returns: ('BrainSeg', ['segfile=mri/aseg.mgz', 'classes=[2, 4]'])
+
+        - ``'Mask(mri/aseg.mgz)'``
+          returns: ``('BrainSeg', ['mri/aseg.mgz', 'classes=[2, 4]'])``
+        - ``'TotalGray(mri/aseg.mgz, classes=[2, 4])'``
+          returns: ``('BrainSeg', ['mri/aseg.mgz', 'classes=[2, 4]'])``
+        - ``'BrainSeg(segfile=mri/aseg.mgz, classes=[2, 4])'``
+          returns: ``('BrainSeg', ['segfile=mri/aseg.mgz', 'classes=[2, 4]'])``
 
         Parameters
         ----------
@@ -1793,9 +1813,9 @@ class Manager(dict[str, AbstractMeasure]):
         Returns
         -------
         key : str
-            the name of the measure
+            The name of the measure.
         args : list[str]
-            a list of options
+            A list of options.
 
         Raises
         ------
@@ -1831,13 +1851,9 @@ class Manager(dict[str, AbstractMeasure]):
         Returns
         -------
         wrapped_func : ReadFileHook[T_BufferType]
-            The returned function takes a path and whether to wait for the io to finish.
-            file : Path
-                the path to the read from (path can be used for buffering)
-            blocking : bool, optional
-                do not return the data, do not wait for the io to finish, just preload
-                (default: False)
-            The function returns None or the output of the wrapped function.
+            The returned function takes two arguments: a the path to the ``file`` (cache) read and an optional
+            bool ``blocking`` argument (default: ``True``). If ``blocking=False``, the data is preloaded without waiting
+            and ``None`` is returned; otherwise the output of ``read_func`` is returned.
         """
 
         def read_wrapper(file: Path, blocking: bool = True) -> T_BufferType | None:
@@ -1850,7 +1866,7 @@ class Manager(dict[str, AbstractMeasure]):
                     out = thread_executor().submit(read_func, file)
                 self._cache[file] = out
             if not blocking:
-                return
+                return None
             elif isinstance(out, Future):
                 self._cache[file] = out = out.result()
             return out
@@ -1882,7 +1898,7 @@ class Manager(dict[str, AbstractMeasure]):
 
         Parameters
         ----------
-        file: TextIO, optional
+        file : TextIO, optional
             The file object to write to. If None, writes to stdout.
         """
         kwargs = {} if file is None else {"file": file}
@@ -1918,8 +1934,9 @@ class Manager(dict[str, AbstractMeasure]):
 
         Parameters
         ----------
-        fmt_func: callable, default=fmt_measure
+        fmt_func : callable, optional
             Function to format the key and a MeasureTuple object into a string.
+            Defaults to the function ``format_measure``.
 
         Returns
         -------
@@ -1990,52 +2007,55 @@ class Manager(dict[str, AbstractMeasure]):
         AbstractMeasure
             The Measure object initialized with default values.
 
+        Notes
+        -----
         Supported keys are:
-        - `lhSurfaceHoles`, `rhSurfaceHoles`, and `SurfaceHoles`
+
+        - ``lhSurfaceHoles``, ``rhSurfaceHoles``, and ``SurfaceHoles``
            The number of holes in the surfaces.
-        - `lhPialTotal`, and `rhPialTotal`
+        - ``lhPialTotal``, and ``rhPialTotal``
           The volume enclosed in the pial surfaces.
-        - `lhWhiteMatterVol`, and `rhWhiteMatterVol`
+        - ``lhWhiteMatterVol``, and ``rhWhiteMatterVol``
           The Volume of the white matter in the segmentation (incl. lateralized
           WM-hypo).
-        - `lhWhiteMatterTotal`, and `rhWhiteMatterTotal`
+        - ``lhWhiteMatterTotal``, and ``rhWhiteMatterTotal``
           The volume enclosed in the white matter surfaces.
-        - `lhCortex`, `rhCortex`, and `Cortex`
+        - ``lhCortex``, ``rhCortex``, and ``Cortex``
           The volume between the pial and the white matter surfaces.
-        - `CorpusCallosumVol`
+        - ``CorpusCallosumVol``
           The volume of the corpus callosum in the segmentation.
-        - `lhWM-hypointensities`, and `rhWM-hypointensities`
+        - ``lhWM-hypointensities``, and ``rhWM-hypointensities``
           The volume of unlateralized the white matter hypointensities in the
           segmentation, but lateralized by neighboring voxels
           (FreeSurfer uses talairach coordinates to re-lateralize).
-        - `lhCerebralWhiteMatter`, `rhCerebralWhiteMatter`, and `CerebralWhiteMatter`
+        - ``lhCerebralWhiteMatter``, ``rhCerebralWhiteMatter``, and ``CerebralWhiteMatter``
           The volume of the cerebral white matter in the segmentation (including corpus
           callosum split evenly into left and right and white matter and WM-hypo).
-        - `CerebellarGM`
+        - ``CerebellarGM``
           The volume of the cerbellar gray matter in the segmentation.
-        - `CerebellarWM`
+        - ``CerebellarWM``
           The volume of the cerbellar white matter in the segmentation.
-        - `SubCortGray`
+        - ``SubCortGray``
           The volume of the subcortical gray matter in the segmentation.
-        - `TotalGray`
+        - ``TotalGray``
           The total gray matter volume in the segmentation.
-        - `TFFC`
+        - ``TFFC``
           The volume of the 3rd-5th ventricles and CSF in the segmentation.
-        - `VentricleChoroidVol`
+        - ``VentricleChoroidVol``
           The volume of the choroid plexus and inferiar and lateral ventricles and CSF.
-        - `BrainSeg`
+        - ``BrainSeg``
           The volume of all brain structures in the segmentation.
-        - `BrainSegNotVent`, and `BrainSegNotVentSurf`
+        - ``BrainSegNotVent``, and ``BrainSegNotVentSurf``
           The brain segmentation volume without ventricles.
-        - `Cerebellum`
+        - ``Cerebellum``
           The total cerebellar volume.
-        - `SupraTentorial`, `SupraTentorialNotVent`, and `SupraTentorialNotVentVox`
+        - ``SupraTentorial``, ``SupraTentorialNotVent``, and ``SupraTentorialNotVentVox``
           The supratentorial brain volume/voxel count (without centricles and CSF).
-        - `Mask`
+        - ``Mask``
           The volume of the brain mask.
-        - `EstimatedTotalIntraCranialVol`
+        - ``EstimatedTotalIntraCranialVol``
           The eTIV estimate (via talairach registration).
-        - `BrainSegVol-to-eTIV`, and `MaskVol-to-eTIV`
+        - ``BrainSegVol-to-eTIV``, and ``MaskVol-to-eTIV``
           The ratios of the brain segmentation volume and the mask volume with respect
           to the eTIV estimate.
         """
@@ -2512,7 +2532,7 @@ class Manager(dict[str, AbstractMeasure]):
 
         Parameters
         ----------
-        brainvol_statsfile: Path
+        brainvol_statsfile : Path
             The file to write the measures to.
 
         Raises

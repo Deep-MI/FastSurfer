@@ -78,8 +78,7 @@ def options_parse():
     Returns
     -------
     options
-        object holding options
-
+        Object holding options.
     """
     parser = optparse.OptionParser(
         version="$Id: spherically_project,v 1.1 2017/01/30 20:42:08 ltirrell Exp $",
@@ -114,18 +113,18 @@ def tria_spherical_project(
     Parameters
     ----------
     tria : TriaMesh
-        Triangle Mesh
-    flow_iter : int
-        Mean curv flow iterations (3 should be enough). Defaults to 3
-    debug : bool
-        Whether to print EV info to the file debug.ev. Defaults to False
-    use_cholmod : bool
-        Try to use the Cholesky decomposition from the cholmod. Defaults to True
+        Triangle Mesh.
+    flow_iter : int, default=3
+        Mean curv flow iterations (3 should be enough).
+    debug : bool, default=False
+        Whether to print EV info to the file debug.ev.
+    use_cholmod : bool, default=True
+        Try to use the Cholesky decomposition from the cholmod.
 
     Returns
     -------
-    trianew
-        Triangle Mesh spherically projected
+    triamesh
+        Triangle Mesh spherically projected.
 
     """
     if not tria.is_closed():
@@ -312,11 +311,11 @@ def spherically_project_surface(
     Parameters
     ----------
     insurf : Path, str
-        Path to input surface file
+        Path to input surface file.
     outsurf : Path, str
-        Path to output surface file
-    use_cholmod : bool
-        Try to use the Cholesky decomposition from the cholmod. Defaults to True
+        Path to output surface file.
+    use_cholmod : bool, default=True
+        Try to use the Cholesky decomposition from the cholmod.
 
     """
     surf = fs.read_geometry(insurf, read_metadata=True)

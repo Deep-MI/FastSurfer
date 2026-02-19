@@ -17,6 +17,8 @@ import matplotlib.pyplot as plt
 import nibabel as nib
 import numpy as np
 
+from FastSurferCNN.utils.common import update_docstring
+
 #from FastSurferCNN.utils.parser_defaults import FASTSURFER_ROOT
 from HypVINN.config.hypvinn_files import HYPVINN_LUT
 
@@ -42,6 +44,7 @@ def remove_values_from_list(the_list, val):
     return [value for value in the_list if value != val]
 
 
+@update_docstring(HYPVINN_LUT=HYPVINN_LUT)
 def get_lut(lookup_table_path: Path = HYPVINN_LUT):
     """
     Retrieve a color lookup table (LUT) from a file.
@@ -50,12 +53,12 @@ def get_lut(lookup_table_path: Path = HYPVINN_LUT):
 
     Parameters
     ----------
-    lookup_table_path: Path, defaults to local LUT"
+    lookup_table_path : Path, default="{HYPVINN_LUT}"
         The path to the file from which the LUT will be constructed.
 
     Returns
     -------
-    lut: OrderedDict
+    lut : OrderedDict
         The constructed LUT as an ordered dictionary.
     """
     from collections import OrderedDict
@@ -71,6 +74,7 @@ def get_lut(lookup_table_path: Path = HYPVINN_LUT):
     return lut
 
 
+@update_docstring(HYPVINN_LUT=HYPVINN_LUT)
 def map_hyposeg2label(hyposeg: np.ndarray, lut_file: Path = HYPVINN_LUT):
     """
     Map a HypVINN segmentation to a continuous label space using a lookup table.
@@ -79,7 +83,7 @@ def map_hyposeg2label(hyposeg: np.ndarray, lut_file: Path = HYPVINN_LUT):
     ----------
     hyposeg : np.ndarray
         The original segmentation map.
-    lut_file : Path, defaults to local LUT"
+    lut_file : Path, default="{HYPVINN_LUT}"
         The path to the lookup table file.
 
     Returns
@@ -239,6 +243,7 @@ def select_index_to_plot(hyposeg, slice_step=2):
     return sorted(idx)
 
 
+@update_docstring(HYPVINN_LUT=HYPVINN_LUT)
 def plot_qc_images(
         subject_qc_dir: Path,
         orig_path: Path,
@@ -259,7 +264,7 @@ def plot_qc_images(
         The path to the predicted image.
     padd : int, default=45
         The padding value for cropping the images and segmentations.
-    lut_file : Path, defaults to local LUT"
+    lut_file : Path, default="{HYPVINN_LUT}"
         The path to the lookup table file.
     slice_step : int, default=2
         The step size for selecting indices from the predicted segmentation.

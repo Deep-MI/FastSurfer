@@ -251,7 +251,7 @@ def get_clean_labels(segmentation: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
 
     Parameters
     ----------
-    segmentation: np.ndarray
+    segmentation : np.ndarray
         The segmentation mask.
 
     Returns

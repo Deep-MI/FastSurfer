@@ -26,6 +26,7 @@ def get_config(args):
     ----------
     args : object
         The arguments object.
+
     Returns
     -------
     cfg : yacs.config.CfgNode
