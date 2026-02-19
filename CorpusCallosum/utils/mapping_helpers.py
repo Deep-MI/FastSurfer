@@ -134,7 +134,7 @@ def apply_transform_to_pt(pts: Vector3d | Polygon3dType, T: AffineMatrix4x4, inv
 
 
 def calc_mapping_to_standard_space(
-    orig: nibabelImage,
+    target_shape: Shape3d,
     ac_coords_3d: Vector3d,
     pc_coords_3d: Vector3d,
     orig_fsaverage_vox2vox: AffineMatrix4x4,
@@ -143,8 +143,8 @@ def calc_mapping_to_standard_space(
 
     Parameters
     ----------
-    orig : nibabelImage
-        Original image.
+    target_shape : Shape3d
+        Shape of the target standardized volume.
     ac_coords_3d : np.ndarray
         AC coordinates in 3D space.
     pc_coords_3d : np.ndarray
@@ -165,7 +165,7 @@ def calc_mapping_to_standard_space(
     pc_coords_orig : Vector3d
         PC coordinates in original space.
     """
-    image_center = np.array(orig.shape) / 2
+    image_center = np.array(target_shape) / 2
 
     # correct nodding
     nod_correct_2d = correct_nodding(ac_coords_3d[1:3], pc_coords_3d[1:3])

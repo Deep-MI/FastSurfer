@@ -737,10 +737,10 @@ def main(
     _aseg_fut = thread_executor().submit(nib.load, sd.filename_by_attribute("aseg_name"))
     orig = cast(nibabelImage, nib.load(sd.conf_name))
 
-    # check that the image is conformed, i.e. isotropic 1mm voxels, 256^3 size, LIA orientation
-    if not is_conform(orig, vox_size=None, img_size=None, orientation=None):
+    # check that the image is conformed, i.e. LIA orientation
+    if not is_conform(orig, vox_size=None, img_size=None, orientation="lia"):
         logger.info("Internally conforming orig to soft-LIA.")
-        orig = conform(orig, vox_size=None, img_size=None, orientation=None)
+        orig = conform(orig, vox_size=None, img_size=None, orientation="lia")
 
     # 5 mm around the midplane (guaranteed to be aligned RAS by as_closest_canonical)
     vox_size_ras: tuple[float, float, float] = nib.as_closest_canonical(orig).header.get_zooms()
@@ -954,7 +954,7 @@ def main(
         (ac_coords_vox_3d, pc_coords_vox_3d),
     )
     standardized2orig_vox2vox, ac_coords_standardized, pc_coords_standardized, ac_coords_orig, pc_coords_orig = (
-        calc_mapping_to_standard_space(orig, ac_coords_3d, pc_coords_3d, orig2fsavg_vox2vox)
+        calc_mapping_to_standard_space(fsavg_header["dims"][:3], ac_coords_3d, pc_coords_3d, orig2fsavg_vox2vox)
     )
 
     # write output dict as csv
@@ -1031,7 +1031,7 @@ def main(
     if sd.has_attribute("cc_orient_volume_lta"):
         sd.filename_by_attribute("cc_orient_volume_lta").parent.mkdir(exist_ok=True, parents=True)
         # save lta to standardized space (fsaverage + nodding + ac to center)
-        orig2standardized_ras2ras = orig.affine @ np.linalg.inv(standardized2orig_vox2vox) @ np.linalg.inv(orig.affine)
+        orig2standardized_ras2ras = fsavg_vox2ras @ np.linalg.inv(standardized2orig_vox2vox) @ np.linalg.inv(orig.affine)
         logger.info(f"Saving LTA to standardized space: {sd.filename_by_attribute('cc_orient_volume_lta')}")
         io_futures.append(thread_executor().submit(
             write_lta,
@@ -1039,8 +1039,8 @@ def main(
             orig2standardized_ras2ras,
             sd.conf_name,
             orig.header,
-            sd.conf_name,
-            orig.header,
+            "standardized",
+            fsavg_header,
         ))
 
     # this waits for all io to finish
