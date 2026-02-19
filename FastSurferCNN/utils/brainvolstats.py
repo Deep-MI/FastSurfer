@@ -64,6 +64,7 @@ ASEG_RIGHT_CLASSES = (41, 42, 43, 44, 46, 47, 49, 50, 51, 52, 53, 54, 58, 60, 62
 
 
 class ReadFileHook(Protocol[T_BufferType]):
+    """Protocol for a buffered file-reading hook returned by :meth:`Manager.make_read_hook`."""
 
     @overload
     def __call__(self, file: Path, blocking: Literal[True] = True) -> T_BufferType: ...
@@ -75,6 +76,7 @@ class ReadFileHook(Protocol[T_BufferType]):
 
 
 class _DefaultFloat(float):
+    """A float subclass used as a sentinel for an uninitialised default voxel volume."""
     pass
 
 
@@ -404,32 +406,50 @@ class AbstractMeasure(metaclass=abc.ABCMeta):
     __PATTERN = re.compile("^([^\\s=]+)\\s*=\\s*(\\S.*)$")
 
     def __init__(self, name: str, description: str, unit: str):
+        """
+        Initialise the Measure with name, description and unit strings.
+
+        Parameters
+        ----------
+        name : str
+            Short name of the measure (used as key in stats files).
+        description : str
+            Human-readable description of the measure.
+        unit : str
+            Unit string, e.g. ``'mm^3'`` or ``'unitless'``.
+        """
         self._name: str = name
         self._description: str = description
         self._unit: str = unit
         self._subject_dir: Path | None = None
 
     def as_tuple(self) -> MeasureTuple:
+        """Return the measure as a :data:`MeasureTuple` ``(name, description, value, unit)``."""
         return self._name, self._description, self(), self.unit
 
     @property
     def name(self) -> str:
+        """The short name of the measure."""
         return self._name
 
     @property
     def description(self) -> str:
+        """The human-readable description of the measure."""
         return self._description
 
     @property
     def unit(self) -> str:
+        """The unit string of the measure, e.g. ``'mm^3'`` or ``'unitless'``."""
         return self._unit
 
     @property
     def subject_dir(self) -> Path:
+        """The subject directory last passed to :meth:`read_subject`, or ``None``."""
         return self._subject_dir
 
     @abc.abstractmethod
     def __call__(self) -> int | float:
+        """Compute and return the value of the measure."""
         ...
 
     def read_subject(self, subject_dir: Path) -> bool:
@@ -453,6 +473,7 @@ class AbstractMeasure(metaclass=abc.ABCMeta):
 
     @abc.abstractmethod
     def _parsable_args(self) -> list[str]:
+        """Return the ordered list of argument names accepted by :meth:`set_args`."""
         ...
 
     def set_args(self, **kwargs: str) -> None:
@@ -527,6 +548,7 @@ class AbstractMeasure(metaclass=abc.ABCMeta):
 
     @abc.abstractmethod
     def __str__(self) -> str:
+        """Return a developer-readable string representation of the Measure."""
         ...
 
 
@@ -560,6 +582,14 @@ class Measure(AbstractMeasure, Generic[T_BufferType], metaclass=abc.ABCMeta):
     __PATTERN = re.compile("^([^\\s=]*file)\\s*=\\s*(\\S.*)$")
 
     def __call__(self) -> int | float:
+        """
+        Return the cached computed value, re-computing if the subject has changed.
+
+        Returns
+        -------
+        int | float
+            The value of the measure.
+        """
         token = str(self._subject_dir)
         if self.__buffer is None or self.__token != token:
             self.__token = token
@@ -568,6 +598,7 @@ class Measure(AbstractMeasure, Generic[T_BufferType], metaclass=abc.ABCMeta):
 
     @abc.abstractmethod
     def _compute(self) -> int | float:
+        """Compute the actual value of the measure from buffered data."""
         ...
 
     def __init__(
@@ -578,6 +609,23 @@ class Measure(AbstractMeasure, Generic[T_BufferType], metaclass=abc.ABCMeta):
             unit: str,
             read_hook: ReadFileHook[T_BufferType],
     ):
+        """
+        Initialise the Measure.
+
+        Parameters
+        ----------
+        file : Path
+            Path to the data file, relative to the subject directory or absolute.
+        name : str
+            Short name of the measure.
+        description : str
+            Human-readable description of the measure.
+        unit : str
+            Unit string, e.g. ``'mm^3'`` or ``'unitless'``.
+        read_hook : ReadFileHook[T_BufferType]
+            Callable that reads the file and returns the buffer, typically created by
+            :meth:`Manager.make_read_hook`.
+        """
         self._file = file
         self._callback = read_hook
         self._data: T_BufferType | None = None
@@ -585,23 +633,44 @@ class Measure(AbstractMeasure, Generic[T_BufferType], metaclass=abc.ABCMeta):
         super().__init__(name, description, unit)
 
     def _load_error(self, name: str = "data") -> RuntimeError:
+        """
+        Build a RuntimeError reporting that buffered data named `name` is unavailable.
+
+        Parameters
+        ----------
+        name : str, optional
+            The label for the missing data (default: ``'data'``).
+
+        Returns
+        -------
+        RuntimeError
+            An error stating that `name` is not available for this measure.
+        """
         return RuntimeError(
             f"The '{name}' is not available for {self.name} ({type(self).__name__}), "
             f"maybe the subject has not been loaded or the cache been invalidated."
         )
 
     def _filename(self) -> Path:
+        """
+        Return the absolute path to the data file for the current subject.
+
+        Returns
+        -------
+        Path
+            ``subject_dir / file``.
+        """
         return self._subject_dir / self._file
 
     def read_subject(self, subject_dir: Path) -> bool:
         """
         Perform IO required to compute/fill the Measure. Delegates file reading to
-        read_hook (set in __init__).
+        read_hook (set in ``__init__``).
 
         Parameters
         ----------
         subject_dir : Path
-            Path to the directory of the subject_dir (often subject_dir/subject_id).
+            Path to the directory of the subject (often ``subjects_dir/subject_id``).
 
         Returns
         -------
@@ -618,14 +687,26 @@ class Measure(AbstractMeasure, Generic[T_BufferType], metaclass=abc.ABCMeta):
         return False
 
     def _parsable_args(self) -> list[str]:
+        """Return ``['file']`` as the single parsable argument name."""
         return ["file"]
 
     def set_args(self, file: str | None = None, **kwargs: str) -> None:
+        """
+        Optionally update the file path and delegate remaining kwargs to the parent.
+
+        Parameters
+        ----------
+        file : str, optional
+            New path for the data file.
+        **kwargs : str
+            Additional keyword arguments forwarded to :meth:`AbstractMeasure.set_args`.
+        """
         if file is not None:
             self._file = Path(file)
         return super().set_args(**kwargs)
 
     def __str__(self) -> str:
+        """Return a string of the form ``ClassName(file=<path>)``."""
         return f"{type(self).__name__}(file={self._file})"
 
 
@@ -647,6 +728,27 @@ class ImportedMeasure(Measure[dict[str, MeasureTuple]]):
             read_file: ReadFileHook[dict[str, MeasureTuple]] | None = None,
             vox_vol: float | None = None,
     ):
+        """
+        Initialize the ImportedMeasure object.
+
+        Parameters
+        ----------
+        key : str
+            Key identifying the measure entry in the stats file.
+        measurefile : Path
+            Path to the stats file to import from (absolute or relative to subject_dir).
+        name : str, optional
+            Short display name; overwritten from file on first compute (default: ``'N/A'``).
+        description : str, optional
+            Description text; overwritten from file on first compute (default: ``'N/A'``).
+        unit : str, optional
+            Unit string; overwritten from file on first compute (default: ``'unitless'``).
+        read_file : ReadFileHook[dict[str, MeasureTuple]], optional
+            Custom file-reading hook; defaults to :func:`read_measure_file` wrapped by
+            :meth:`Manager.make_read_hook`.
+        vox_vol : float, optional
+            Voxel volume in mm³ to associate with this measure.
+        """
         self._key: str = key
         super().__init__(
             measurefile,
@@ -659,12 +761,19 @@ class ImportedMeasure(Measure[dict[str, MeasureTuple]]):
 
     def _compute(self) -> int | float:
         """
-        Will also update the name, description and unit from the strings in the file.
+        Compute the measure value by looking up ``key`` in the buffered file data.
+
+        Also updates ``name``, ``description``, and ``unit`` from the file entry.
 
         Returns
         -------
         value : int | float
-            value of the measure (as read from the file)
+            Value of the measure as read from the file.
+
+        Raises
+        ------
+        KeyError
+            If ``key`` is not found in the file.
         """
         try:
             self._name, self._description, out, self._unit = self._data[self._key]
@@ -673,6 +782,7 @@ class ImportedMeasure(Measure[dict[str, MeasureTuple]]):
         return out
 
     def _parsable_args(self) -> list[str]:
+        """Return ``['key', 'measurefile']`` as the parsable argument names."""
         return ["key", "measurefile"]
 
     def set_args(
@@ -681,6 +791,18 @@ class ImportedMeasure(Measure[dict[str, MeasureTuple]]):
             measurefile: str | None = None,
             **kwargs: str,
     ) -> None:
+        """
+        Optionally update ``key`` and/or ``measurefile`` and delegate to the parent.
+
+        Parameters
+        ----------
+        key : str, optional
+            New key to look up in the stats file.
+        measurefile : str, optional
+            New path to the stats file.
+        **kwargs : str
+            Additional keyword arguments forwarded to :meth:`Measure.set_args`.
+        """
         if measurefile is not None:
             kwargs["file"] = measurefile
         if key is not None:
@@ -688,9 +810,11 @@ class ImportedMeasure(Measure[dict[str, MeasureTuple]]):
         return super().set_args(**kwargs)
 
     def help(self) -> str:
+        """Return a help string indicating where the measure is imported from."""
         return super().help() + f" imported from {self._file}"
 
     def __str__(self) -> str:
+        """Return ``ImportedMeasure(key=<key>, measurefile=<path>)``."""
         return f"ImportedMeasure(key={self._key}, measurefile={self._file})"
 
     def assert_measurefile_absolute(self):
@@ -727,9 +851,30 @@ class ImportedMeasure(Measure[dict[str, MeasureTuple]]):
         return self._vox_vol
 
     def set_vox_vol(self, value: float):
+        """
+        Set the voxel volume.
+
+        Parameters
+        ----------
+        value : float
+            Voxel volume in mm³.
+        """
         self._vox_vol = value
 
     def read_subject(self, subject_dir: Path) -> bool:
+        """
+        Read the stats file and update the voxel volume if present.
+
+        Parameters
+        ----------
+        subject_dir : Path
+            Path to the subject directory.
+
+        Returns
+        -------
+        bool
+            Whether the data was updated.
+        """
         if super().read_subject(subject_dir):
             vox_vol_tup = self._data.get("vox_vol", None)
             if isinstance(vox_vol_tup, tuple) and len(vox_vol_tup) > 2:
@@ -740,7 +885,7 @@ class ImportedMeasure(Measure[dict[str, MeasureTuple]]):
 
 class SurfaceMeasure(Measure["lapy.TriaMesh"], metaclass=abc.ABCMeta):
     """
-    Class to implement default Surface io.
+    Class to implement default surface IO and shared surface-measure initialization.
     """
 
     read_file = staticmethod(read_mesh_file)
@@ -753,6 +898,22 @@ class SurfaceMeasure(Measure["lapy.TriaMesh"], metaclass=abc.ABCMeta):
             unit: UnitString,
             read_mesh: ReadFileHook["lapy.TriaMesh"] | None = None,
     ):
+        """
+        Initialize the SurfaceMeasure.
+
+        Parameters
+        ----------
+        surface_file : Path
+            Path to the surface file (absolute or relative to subject_dir).
+        name : str
+            Short display name of the measure.
+        description : str
+            Human-readable description of the measure.
+        unit : str
+            Unit string, e.g. ``'unitless'`` or ``'mm^3'``.
+        read_mesh : ReadFileHook[lapy.TriaMesh], optional
+            Custom file-reading hook; defaults to :func:`read_mesh_file` wrapped by :meth:`Manager.make_read_hook`.
+        """
         super().__init__(
             surface_file,
             name,
@@ -762,34 +923,64 @@ class SurfaceMeasure(Measure["lapy.TriaMesh"], metaclass=abc.ABCMeta):
         )
 
     def __str__(self) -> str:
+        """Return ``ClassName(surface_file=<path>)``."""
         return f"{type(self).__name__}(surface_file={self._file})"
 
     def _parsable_args(self) -> list[str]:
+        """Return ``['surface_file']`` as the parsable argument name."""
         return ["surface_file"]
 
     def set_args(self, surface_file: str | None = None, **kwargs: str) -> None:
+        """
+        Optionally update the surface file path and delegate to the parent.
+
+        Parameters
+        ----------
+        surface_file : str, optional
+            New path for the surface file.
+        **kwargs : str
+            Additional keyword arguments forwarded to :meth:`Measure.set_args`.
+        """
         if surface_file is not None:
             kwargs["file"] = surface_file
         return super().set_args(**kwargs)
 
 
 class SurfaceHoles(SurfaceMeasure):
-    """Class to compute surfaces holes for surfaces."""
+    """Measure computing the number of topological holes of a surface."""
 
     def _compute(self) -> int:
+        """
+        Compute the number of holes from the Euler characteristic.
+
+        Returns
+        -------
+        int
+            Number of topological holes: ``1 - euler / 2``.
+        """
         return int(1 - self._data.euler() / 2)
 
     def help(self) -> str:
+        """Return a help string indicating the source surface file."""
         return super().help() + f"surface holes from {self._file}"
 
 
 class SurfaceVolume(SurfaceMeasure):
-    """Class to compute surface volume for surfaces."""
+    """Measure computing the enclosed volume of a closed surface mesh."""
 
     def _compute(self) -> float:
+        """
+        Compute the enclosed volume of the surface.
+
+        Returns
+        -------
+        float
+            Enclosed volume in mm³.
+        """
         return self._data.volume()
 
     def help(self) -> str:
+        """Return a help string indicating the source surface file."""
         return super().help() + f"volume from {self._file}"
 
 
@@ -805,6 +996,25 @@ class PVMeasure(AbstractMeasure):
             description: str,
             unit: Literal["mm^3"] = "mm^3",
     ):
+        """
+        Initialize the PVMeasure.
+
+        Parameters
+        ----------
+        classes : ClassesType
+            Label classes to include in the partial-volume computation.
+        name : str
+            Short display name of the measure.
+        description : str
+            Human-readable description of the measure.
+        unit : str, optional
+            Must be ``'mm^3'`` (default).
+
+        Raises
+        ------
+        ValueError
+            If ``unit`` is not ``'mm^3'``.
+        """
         if unit != "mm^3":
             raise ValueError("unit must be mm^3 for PVMeasure!")
         self._classes = classes
@@ -814,19 +1024,57 @@ class PVMeasure(AbstractMeasure):
 
     @property
     def vox_vol(self) -> float:
+        """Voxel volume in mm³ used to convert voxel counts to physical volume."""
         return self._vox_vol
 
     @vox_vol.setter
     def vox_vol(self, v: float):
+        """
+        Set the voxel volume.
+
+        Parameters
+        ----------
+        v : float
+            Voxel volume in mm³.
+        """
         self._vox_vol = v
 
     def labels(self) -> list[int]:
+        """
+        Return the list of segmentation label classes for this measure.
+
+        Returns
+        -------
+        list[int]
+            The label indices.
+        """
         return list(self._classes)
 
     def update_data(self, value: "pd.Series"):
+        """
+        Store the PV result row from the segmentation stats DataFrame.
+
+        Parameters
+        ----------
+        value : pd.Series
+            A row from the PV stats DataFrame containing at least ``'NVoxels'`` and ``'Volume_mm3'`` columns.
+        """
         self._pv_value = value
 
     def __call__(self) -> float:
+        """
+        Return the partial-volume corrected measure value.
+
+        Returns
+        -------
+        float
+            Volume in mm³ (or voxel count if ``unit == 'unitless'``).
+
+        Raises
+        ------
+        RuntimeError
+            If :meth:`update_data` has not been called yet.
+        """
         if self._pv_value is None:
             raise RuntimeError(
                 f"The partial volume of {self._name} has not been updated in the "
@@ -836,17 +1084,30 @@ class PVMeasure(AbstractMeasure):
         return self._pv_value[col].item()
 
     def _parsable_args(self) -> list[str]:
+        """Return ``['classes']`` as the parsable argument name."""
         return ["classes"]
 
     def set_args(self, classes: str | None = None, **kwargs: str) -> None:
+        """
+        Optionally update the classes and delegate to the parent.
+
+        Parameters
+        ----------
+        classes : str, optional
+            Space-separated list of integer label classes.
+        **kwargs : str
+            Additional keyword arguments forwarded to :meth:`AbstractMeasure.set_args`.
+        """
         if classes is not None:
             self._classes = classes
         return super().set_args(**kwargs)
 
     def __str__(self) -> str:
+        """Return ``PVMeasure(classes=[...]``."""
         return f"PVMeasure(classes={list(self._classes)})"
 
     def help(self) -> str:
+        """Return a help string describing the PV label classes."""
         help_str = f"partial volume of {format_classes(self._classes)} in seg file"
         return super().help() + help_str
 
@@ -892,7 +1153,7 @@ def format_classes(_classes: Iterable[int]) -> str:
 
 class VolumeMeasure(Measure[ImageTuple]):
     """
-    Counts Voxels belonging to a class or condition.
+    Counts voxels belonging to a class (or condition expression) in a segmentation volume.
     """
 
     read_file = staticmethod(read_volume_file)
@@ -906,6 +1167,30 @@ class VolumeMeasure(Measure[ImageTuple]):
             unit: UnitString = "unitless",
             read_file: ReadFileHook[ImageTuple] | None = None,
     ):
+        """
+        Initialize the VolumeMeasure.
+
+        Parameters
+        ----------
+        segfile : Path
+            Path to the segmentation file (absolute or relative to subject_dir).
+        classes_or_cond : ClassesOrCondType
+            Either an iterable of integer label classes, or a callable ``(arr) -> mask``.
+        name : str
+            Short display name of the measure.
+        description : str
+            Human-readable description of the measure.
+        unit : str, optional
+            ``'unitless'`` (voxel count) or ``'mm^3'`` (default: ``'unitless'``).
+        read_file : ReadFileHook[ImageTuple], optional
+            Custom file-reading hook; defaults to :func:`read_volume_file` wrapped by
+            :meth:`Manager.make_read_hook`.
+
+        Raises
+        ------
+        ValueError
+            If ``classes_or_cond`` is an empty sequence or ``unit`` is invalid.
+        """
         if callable(classes_or_cond):
             self._classes: ClassesType | None = None
             self._cond: CondType = classes_or_cond
@@ -921,19 +1206,52 @@ class VolumeMeasure(Measure[ImageTuple]):
                          self.read_file if read_file is None else read_file)
 
     def get_vox_vol(self) -> float:
+        """
+        Return the voxel volume from the image header.
+
+        Returns
+        -------
+        float
+            Product of the voxel zooms in mm³.
+        """
         return np.prod(self._data[0].header.get_zooms()).item()
 
     def _compute(self) -> int | float:
+        """
+        Count voxels satisfying the condition, optionally scaled by voxel volume.
+
+        Returns
+        -------
+        int | float
+            Voxel count (``unit == 'unitless'``) or volume in mm³.
+
+        Raises
+        ------
+        RuntimeError
+            If the buffered data is not a 2-tuple ``(image, array)``.
+        """
         if not isinstance(self._data, tuple) or len(self._data) != 2:
             raise self._load_error("data")
         vox_vol = 1 if self._unit == "unitless" else self.get_vox_vol()
         return np.sum(self._cond(self._data[1]), dtype=int).item() * vox_vol
 
     def _parsable_args(self) -> list[str]:
+        """Return ``['segfile', 'classes']`` as the parsable argument names."""
         return ["segfile", "classes"]
 
     def _set_classes(self, classes: str | None, attr_name: str, cond_name: str) -> None:
-        """Helper method for set_args."""
+        """
+        Parse a whitespace-separated class string and update the class and condition attrs.
+
+        Parameters
+        ----------
+        classes : str, optional
+            Whitespace-separated list of integer label classes.
+        attr_name : str
+            Name of the attribute to store the parsed class list on ``self``.
+        cond_name : str
+            Name of the attribute to store the updated condition callable on ``self``.
+        """
         if classes is not None:
             from functools import partial
             _classes = re.split("\\s+", classes.lstrip("[ ").rstrip("] "))
@@ -947,31 +1265,72 @@ class VolumeMeasure(Measure[ImageTuple]):
             classes: str | None = None,
             **kwargs: str,
     ) -> None:
+        """
+        Optionally update the segmentation file and/or classes, then delegate to parent.
+
+        Parameters
+        ----------
+        segfile : str, optional
+            New path for the segmentation file.
+        classes : str, optional
+            Whitespace-separated list of integer label classes.
+        **kwargs : str
+            Additional keyword arguments forwarded to :meth:`Measure.set_args`.
+        """
         if segfile is not None:
             kwargs["file"] = segfile
         self._set_classes(classes, "_classes", "_cond")
         return super().set_args(**kwargs)
 
     def __str__(self) -> str:
+        """Return ``ClassName(segfile=<path>, <classes/cond>)``."""
         return f"{type(self).__name__}(segfile={self._file}, {self._param_string()})"
 
     def help(self) -> str:
+        """Return a help string describing the classes/condition and source file."""
         return f"{self._name}={self._param_help()} in {self._file}"
 
     def _param_help(self, prefix: str = ""):
-        """Helper method for format classes and cond."""
+        """
+        Return a human-readable description of the classes or condition.
+
+        Parameters
+        ----------
+        prefix : str, optional
+            Prefix string prepended to the class/condition label (default: ``''``).
+
+        Returns
+        -------
+        str
+            Either ``'<prefix>cond=<func>'`` or the formatted class range string.
+        """
         cond = getattr(self, prefix + "_cond")
         classes = getattr(self, prefix + "_classes")
         return prefix + (f"cond={cond}" if classes is None else format_classes(classes))
 
     def _param_string(self, prefix: str = ""):
-        """Helper method to convert classes and cond to string."""
+        """
+        Return a ``repr``-style string of the classes or condition.
+
+        Parameters
+        ----------
+        prefix : str, optional
+            Prefix string prepended to the label (default: ``''``).
+
+        Returns
+        -------
+        str
+            Either ``'<prefix>cond=<func>'`` or ``'<prefix>classes=[...]'``.
+        """
         cond = getattr(self, prefix + "_cond")
         classes = getattr(self, prefix + "_classes")
         return prefix + (f"cond={cond}" if classes is None else f"classes={classes}")
 
 
 class MaskMeasure(VolumeMeasure):
+    """
+    A :class:`VolumeMeasure` that thresholds a continuous mask image to produce a binary mask.
+    """
 
     def __init__(
             self,
@@ -980,29 +1339,44 @@ class MaskMeasure(VolumeMeasure):
             description: str,
             unit: UnitString = "unitless",
             threshold: float = 0.5,
-            # sign: MaskSign = "abs", frame: int = 0,
-            # erode: int = 0, invert: bool = False,
             read_file: ReadFileHook[ImageTuple] | None = None,
     ):
+        """
+        Initialize the MaskMeasure.
+
+        Parameters
+        ----------
+        maskfile : Path
+            Path to the mask image file (absolute or relative to subject_dir).
+        name : str
+            Short display name of the measure.
+        description : str
+            Human-readable description of the measure.
+        unit : str, optional
+            ``'unitless'`` (voxel count) or ``'mm^3'`` (default: ``'unitless'``).
+        threshold : float, optional
+            Voxels with value strictly above this threshold are counted (default: ``0.5``).
+        read_file : ReadFileHook[ImageTuple], optional
+            Custom file-reading hook; defaults to :func:`read_volume_file` wrapped by :meth:`Manager.make_read_hook`.
+        """
         self._threshold: float = threshold
-        # self._sign: MaskSign = sign
-        # self._invert: bool = invert
-        # self._frame: int = frame
-        # self._erode: int = erode
         super().__init__(maskfile, self.mask, name, description, unit, read_file)
 
     def mask(self, data: np.ndarray[ShapeType, np.dtype[np.number]]) -> np.ndarray[ShapeType, np.dtype[np.bool_]]:
-        """Generates a mask from data similar to mri_binarize + erosion."""
-        # if self._sign == "abs":
-        #     data = np.abs(data)
-        # elif self._sign == "neg":
-        #     data = -data
+        """
+        Generate a binary mask by thresholding ``data``.
+
+        Parameters
+        ----------
+        data : np.ndarray
+            Input array (e.g. mask or probability image).
+
+        Returns
+        -------
+        np.ndarray
+            Boolean array, ``True`` where ``data > threshold``.
+        """
         out = np.greater(data, self._threshold)
-        # if self._invert:
-        #     out = np.logical_not(out)
-        # if self._erode != 0:
-        #     from scipy.ndimage import binary_erosion
-        #     binary_erosion(out, iterations=self._erode, output=out)
         return out
 
     def set_args(
@@ -1011,6 +1385,18 @@ class MaskMeasure(VolumeMeasure):
             threshold: float | None = None,
             **kwargs: str,
     ) -> None:
+        """
+        Optionally update the mask file and/or threshold, then delegate to parent.
+
+        Parameters
+        ----------
+        maskfile : Path, optional
+            New path for the mask file.
+        threshold : float, optional
+            New threshold value.
+        **kwargs : str
+            Additional keyword arguments forwarded to :meth:`VolumeMeasure.set_args`.
+        """
         if threshold is not None:
             self._threshold = float(threshold)
         if maskfile is not None:
@@ -1018,14 +1404,17 @@ class MaskMeasure(VolumeMeasure):
         return super().set_args(**kwargs)
 
     def _parsable_args(self) -> list[str]:
+        """Return ``['maskfile', 'threshold']`` as the parsable argument names."""
         return ["maskfile", "threshold"]
 
     def __str__(self) -> str:
+        """Return ``MaskMeasure(maskfile=<path>, threshold=<val>)``."""
         return (
             f"{type(self).__name__}(maskfile={self._file}, threshold={self._threshold})"
         )
 
     def _param_help(self, prefix: str = ""):
+        """Return a help string describing the threshold condition."""
         return f"voxel > {self._threshold}"
 
 
@@ -1034,6 +1423,10 @@ ParentsTuple = tuple[float, AnyMeasure]
 
 
 class TransformMeasure(Measure, metaclass=abc.ABCMeta):
+    """
+    Abstract base class for measures derived from an affine transform file (LTA or XFM).
+    """
+
     read_file = staticmethod(read_transform_file)
 
     def __init__(
@@ -1044,6 +1437,22 @@ class TransformMeasure(Measure, metaclass=abc.ABCMeta):
             unit: str,
             read_lta: ReadFileHook["npt.NDArray[float]"] | None = None,
     ):
+        """
+        Initialize the TransformMeasure.
+
+        Parameters
+        ----------
+        lta_file : Path
+            Path to the LTA or XFM transform file.
+        name : str
+            Short display name of the measure.
+        description : str
+            Human-readable description of the measure.
+        unit : str
+            Unit string of the resulting measure value.
+        read_lta : ReadFileHook[npt.NDArray[float]], optional
+            Custom file-reading hook; defaults to :func:`read_transform_file` wrapped by :meth:`Manager.make_read_hook`.
+        """
         super().__init__(
             lta_file,
             name,
@@ -1053,14 +1462,26 @@ class TransformMeasure(Measure, metaclass=abc.ABCMeta):
         )
 
     def _parsable_args(self) -> list[str]:
+        """Return ``['lta_file']`` as the parsable argument name."""
         return ["lta_file"]
 
     def set_args(self, lta_file: str | None = None, **kwargs: str) -> None:
+        """
+        Optionally update the LTA file path and delegate to the parent.
+
+        Parameters
+        ----------
+        lta_file : str, optional
+            New path for the LTA or XFM transform file.
+        **kwargs : str
+            Additional keyword arguments forwarded to :meth:`Measure.set_args`.
+        """
         if lta_file is not None:
             kwargs["file"] = lta_file
         return super().set_args(**kwargs)
 
     def __str__(self) -> str:
+        """Return ``ClassName(lta_file=<path>)``."""
         return f"{type(self).__name__}(lta_file={self._file})"
 
 
@@ -1084,6 +1505,24 @@ class ETIVMeasure(TransformMeasure):
             read_lta: ReadFileHook["LTADict"] | None = None,
             etiv_scale_factor: float | None = None,
     ):
+        """
+        Initialize the ETIVMeasure.
+
+        Parameters
+        ----------
+        lta_file : Path
+            Path to the Talairach LTA file.
+        name : str
+            Short display name of the measure.
+        description : str
+            Human-readable description of the measure.
+        unit : str
+            Unit string (typically ``'mm^3'``).
+        read_lta : ReadFileHook[LTADict], optional
+            Custom file-reading hook; defaults to :func:`read_transform_file` wrapped by :meth:`Manager.make_read_hook`.
+        etiv_scale_factor : float, optional
+            FreeSurfer eTIV scale factor in mm³; defaults to ``1948106.0`` (1948.106 cm³ × 10³ mm³/cm³).
+        """
         if etiv_scale_factor is None:
             self._etiv_scale_factor = 1948106.  # 1948.106 cm^3 * 1e3 mm^3/cm^3
         else:
@@ -1091,25 +1530,51 @@ class ETIVMeasure(TransformMeasure):
         super().__init__(lta_file, name, description, unit, read_lta)
 
     def _parsable_args(self) -> list[str]:
+        """Return ``['lta_file', 'etiv_scale_factor']`` as the parsable argument names."""
         return super()._parsable_args() + ["etiv_scale_factor"]
 
     def set_args(self, etiv_scale_factor: str | None = None, **kwargs: str) -> None:
+        """
+        Optionally update the eTIV scale factor and delegate to the parent.
+
+        Parameters
+        ----------
+        etiv_scale_factor : str, optional
+            New eTIV scale factor (will be cast to ``float``).
+        **kwargs : str
+            Additional keyword arguments forwarded to :meth:`TransformMeasure.set_args`.
+        """
         if etiv_scale_factor is not None:
             self._etiv_scale_factor = float(etiv_scale_factor)
         return super().set_args(**kwargs)
 
     def _compute(self) -> float:
+        """
+        Compute eTIV as ``etiv_scale_factor / det(transform)``.
+
+        Returns
+        -------
+        float
+            Estimated total intracranial volume in mm³.
+        """
         # this scale factor is a fixed number derived by freesurfer
         return self._etiv_scale_factor / np.linalg.det(self._data).item()
 
     def help(self) -> str:
+        """Return a help string indicating the LTA file used."""
         return super().help() + f"eTIV from {self._file}"
 
     def __str__(self) -> str:
+        """Return ``ETIVMeasure(lta_file=<path>, etiv_scale_factor=<val>)``."""
         return f"{super().__str__()[:-1]}, etiv_scale_factor={self._etiv_scale_factor})"
 
 
 class DerivedMeasure(AbstractMeasure):
+    """
+    A Measure whose value is derived arithmetically from one or more parent Measures.
+
+    Supports three aggregation operations: ``'sum'``, ``'ratio'``, and ``'by_vox_vol'``.
+    """
 
     def __init__(
             self,
@@ -1218,12 +1683,26 @@ class DerivedMeasure(AbstractMeasure):
             return super().unit
 
     def invalid_len_ratio(self) -> RuntimeError:
-        return RuntimeError(f"Invalid number of parents ({len(self._parents)}) for "
-                            f"operation 'ratio'.")
+        """
+        Return a RuntimeError for an invalid number of parents for the ``'ratio'`` operation.
+
+        Returns
+        -------
+        RuntimeError
+            Error message including the actual parent count.
+        """
+        return RuntimeError(f"Invalid number of parents ({len(self._parents)}) for operation 'ratio'.")
 
     def invalid_len_vox_vol(self) -> RuntimeError:
-        return RuntimeError(f"Invalid number of parents ({len(self._parents)}) for "
-                            f"operation 'by_vox_vol'.")
+        """
+        Return a RuntimeError for an invalid number of parents for ``'by_vox_vol'``.
+
+        Returns
+        -------
+        RuntimeError
+            Error message including the actual parent count.
+        """
+        return RuntimeError(f"Invalid number of parents ({len(self._parents)}) for operation 'by_vox_vol'.")
 
     @property
     def parents(self) -> Iterable[AbstractMeasure]:
@@ -1231,12 +1710,31 @@ class DerivedMeasure(AbstractMeasure):
         return (p for _, p in self.parents_items())
 
     def parents_items(self) -> Iterable[tuple[float, AbstractMeasure]]:
-        """Iterable of the measures this measure depends on."""
+        """
+        Iterate over ``(factor, measure)`` pairs for all parent measures.
+
+        Returns
+        -------
+        Iterable[tuple[float, AbstractMeasure]]
+            Each item is ``(weight, measure)`` where ``weight`` scales the measure value.
+        """
         return ((f, self._measure_host[p] if isinstance(p, str) else p)
                 for f, p in self._parents)
 
     def __read_subject(self, subject_dir: Path) -> bool:
-        """Default implementation for the read_subject_on_parents function hook."""
+        """
+        Default implementation of the :attr:`read_subject_on_parents` hook.
+
+        Parameters
+        ----------
+        subject_dir : Path
+            Path to the subject directory.
+
+        Returns
+        -------
+        bool
+            Whether any parent measure was updated.
+        """
         return any(m.read_subject(subject_dir) for m in self.parents)
 
     @property
@@ -1289,7 +1787,18 @@ class DerivedMeasure(AbstractMeasure):
 
     def __call__(self) -> int | float:
         """
-        Compute dependent measures and accumulate them according to the operation.
+        Aggregate the parent measure values using the configured operation.
+
+        Returns
+        -------
+        int, float
+            The aggregated measure value.
+
+        Raises
+        ------
+        RuntimeError
+            If the number of parents is incompatible with the operation, or the voxel volume is unavailable for
+            ``'by_vox_vol'``.
         """
         factor_value = [(s, m()) for s, m in self.parents_items()]
         isint = all(isinstance(v, int) for _, v in factor_value)
@@ -1341,6 +1850,7 @@ class DerivedMeasure(AbstractMeasure):
         return fallback
 
     def _parsable_args(self) -> list[str]:
+        """Return ``['parents', 'operation']`` as the parsable argument names."""
         return ["parents", "operation"]
 
     def set_args(
@@ -1349,6 +1859,23 @@ class DerivedMeasure(AbstractMeasure):
             operation: str | None = None,
             **kwargs: str,
     ) -> None:
+        """
+        Optionally update parents and/or operation string, then delegate to parent.
+
+        Parameters
+        ----------
+        parents : str, optional
+            Bracket-enclosed, comma-separated list of measure keys (with optional float weight prefix).
+        operation : str, optional
+            One of ``'sum'``, ``'ratio'``, or ``'by_vox_vol'``.
+        **kwargs : str
+            Additional keyword arguments forwarded to :meth:`AbstractMeasure.set_args`.
+
+        Raises
+        ------
+        ValueError
+            If ``operation`` is not a valid :data:`DerivedAggOperation`.
+        """
         if parents is not None:
             pat = re.compile("^(\\d+\\.?\\d*\\s+)?(\\s.*)")
             stripped = parents.lstrip("[ ").rstrip("] ")
@@ -1369,9 +1896,11 @@ class DerivedMeasure(AbstractMeasure):
         return super().set_args(**kwargs)
 
     def __str__(self) -> str:
+        """Return ``DerivedMeasure(parents=<list>, operation=<op>)``."""
         return f"DerivedMeasure(parents={self._parents}, operation={self._operation})"
 
     def help(self) -> str:
+        """Return a human-readable formula string for the derived measure."""
         sign = {True: "+", False: "-"}
 
         def format_factor(f: float) -> str:
@@ -1409,10 +1938,44 @@ class VoxelClassGenerator(Protocol):
             description: str,
             unit: str,
     ) -> PVMeasure | VolumeMeasure:
+        """
+        Create a voxel-based Measure for the given label classes.
+
+        Parameters
+        ----------
+        classes : Sequence[int]
+            Label classes to include in the measure.
+        name : str
+            Short display name of the measure.
+        description : str
+            Human-readable description of the measure.
+        unit : str
+            Unit string, e.g. ``'mm^3'`` or ``'unitless'``.
+
+        Returns
+        -------
+        PVMeasure | VolumeMeasure
+            A newly created voxel-based measure object.
+        """
         ...
 
 
 def format_measure(key: str, data: MeasureTuple) -> str:
+    """
+    Format a single measure entry as a ``# Measure`` stats-file line.
+
+    Parameters
+    ----------
+    key : str
+        The measure key.
+    data : MeasureTuple
+        A tuple of ``(name, description, value, unit)``.
+
+    Returns
+    -------
+    str
+        A formatted string ``'# Measure <key>, <name>, <description>, <value>, <unit>'``.
+    """
     value = data[2] if isinstance(data[2], int) else f"{data[2]:.6f}"
     return f"# Measure {key}, {data[0]}, {data[1]}, {value}, {data[3]}"
 
@@ -1563,7 +2126,13 @@ class Manager(dict[str, AbstractMeasure]):
 
     def instantiate_measures(self, measures: Iterable[AbstractMeasure]) -> None:
         """
-        Make sure all measures that dependent on `measures` are instantiated.
+        Recursively ensure all measures that ``measures`` depend on are instantiated.
+
+        Parameters
+        ----------
+        measures : Iterable[AbstractMeasure]
+            The measures to check; :class:`DerivedMeasure` parents are visited
+            recursively.
         """
         for measure in list(measures):
             if isinstance(measure, DerivedMeasure):
@@ -1614,7 +2183,17 @@ class Manager(dict[str, AbstractMeasure]):
             self,
             measure_string: str,
     ) -> None:
-        """Add a computed measure from the measure_string definition."""
+        """
+        Add a computed measure from the measure-string definition.
+
+        If a measure with the same key was previously added as imported, it is replaced by the computed version. Parsed
+        arguments override the default configuration.
+
+        Parameters
+        ----------
+        measure_string : str
+            Measure name, optionally with parameters in the format ``'<name>(<param_list>)'``.
+        """
         # currently also extracts args, this maybe should be removed for simpler code
         key, args = self.extract_key_args(measure_string)
         # also overwrite prior definition
@@ -2394,7 +2973,13 @@ class Manager(dict[str, AbstractMeasure]):
 
     def __iter__(self) -> list[AbstractMeasure]:
         """
-        Iterate through all measures that are exported directly or indirectly.
+        Iterate through all measures that are exported directly or through dependencies.
+
+        Returns
+        -------
+        list[AbstractMeasure]
+            Flat list of all measures reachable from the exported measures, including the parent measures of any
+            :class:`DerivedMeasure`.
         """
 
         out = [self[name] for name in self._exported_measures]
