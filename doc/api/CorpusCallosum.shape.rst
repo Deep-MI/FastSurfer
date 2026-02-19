@@ -6,10 +6,11 @@ CorpusCallosum.shape
 .. autosummary::
     :toctree: generated/
 
-    postprocessing
+    contour
+    curvature
+    endpoint_heuristic
     mesh
     metrics
-    thickness
+    postprocessing
     subsegment_contour
-    endpoint_heuristic
-    contour
+    thickness

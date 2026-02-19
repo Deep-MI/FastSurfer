@@ -26,9 +26,9 @@ from pathlib import Path
 
 import nibabel as nib
 import numpy as np
-from read_write import calc_ras_centroids_from_seg, convert_numpy_to_json_serializable
 
 import FastSurferCNN.utils.logging as logging
+from CorpusCallosum.data.read_write import calc_ras_centroids_from_seg, convert_numpy_to_json_serializable
 
 logger = logging.get_logger(__name__)
 
