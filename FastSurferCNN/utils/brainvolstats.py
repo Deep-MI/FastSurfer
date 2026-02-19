@@ -2356,13 +2356,13 @@ class Manager(dict[str, AbstractMeasure]):
         The '<option_list>' is optional and is similar to python parameters. It starts with numbered parameters,
         followed by key-value pairs.
 
-        Examples are:
-        - ``'Mask(mri/aseg.mgz)'``
-          returns: ``('BrainSeg', ['mri/aseg.mgz', 'classes=[2, 4]'])``
-        - ``'TotalGray(mri/aseg.mgz, classes=[2, 4])'``
-          returns: ``('BrainSeg', ['mri/aseg.mgz', 'classes=[2, 4]'])``
-        - ``'BrainSeg(segfile=mri/aseg.mgz, classes=[2, 4])'``
-          returns: ``('BrainSeg', ['segfile=mri/aseg.mgz', 'classes=[2, 4]'])``
+        Examples:
+        ``'Mask(mri/aseg.mgz)'``
+        returns: ``('Mask', ['mri/aseg.mgz', 'classes=[2, 4]'])``
+        ``'TotalGray(mri/aseg.mgz, classes=[2, 4])'``
+        returns: ``('TotalGray', ['mri/aseg.mgz', 'classes=[2, 4]'])``
+        ``'BrainSeg(segfile=mri/aseg.mgz, classes=[2, 4])'``
+        returns: ``('BrainSeg', ['segfile=mri/aseg.mgz', 'classes=[2, 4]'])``
 
         Parameters
         ----------
@@ -2410,9 +2410,9 @@ class Manager(dict[str, AbstractMeasure]):
         Returns
         -------
         wrapped_func : ReadFileHook[T_BufferType]
-            The returned function takes two arguments: a the path to the ``file`` (cache) read and an optional
-            bool ``blocking`` argument (default: ``True``). If ``blocking=False``, the data is preloaded without waiting
-            and ``None`` is returned; otherwise the output of ``read_func`` is returned.
+            The returned function takes two arguments: the path to the ``file`` (cache) read and an optional bool
+            ``blocking`` argument (default: ``True``). If ``blocking=False``, the data is preloaded without waiting and
+            ``None`` is returned; otherwise the output of ``read_func`` is returned.
         """
 
         def read_wrapper(file: Path, blocking: bool = True) -> T_BufferType | None:
@@ -2568,53 +2568,50 @@ class Manager(dict[str, AbstractMeasure]):
         Notes
         -----
         Supported keys are:
-        - ``lhSurfaceHoles``, ``rhSurfaceHoles``, and ``SurfaceHoles``
-           The number of holes in the surfaces.
-        - ``lhPialTotal``, and ``rhPialTotal``
-          The volume enclosed in the pial surfaces.
-        - ``lhWhiteMatterVol``, and ``rhWhiteMatterVol``
-          The Volume of the white matter in the segmentation (incl. lateralized
-          WM-hypo).
-        - ``lhWhiteMatterTotal``, and ``rhWhiteMatterTotal``
-          The volume enclosed in the white matter surfaces.
-        - ``lhCortex``, ``rhCortex``, and ``Cortex``
-          The volume between the pial and the white matter surfaces.
-        - ``CorpusCallosumVol``
-          The volume of the corpus callosum in the segmentation.
-        - ``lhWM-hypointensities``, and ``rhWM-hypointensities``
-          The volume of unlateralized the white matter hypointensities in the
-          segmentation, but lateralized by neighboring voxels
-          (FreeSurfer uses talairach coordinates to re-lateralize).
-        - ``lhCerebralWhiteMatter``, ``rhCerebralWhiteMatter``, and ``CerebralWhiteMatter``
-          The volume of the cerebral white matter in the segmentation (including corpus
-          callosum split evenly into left and right and white matter and WM-hypo).
-        - ``CerebellarGM``
-          The volume of the cerbellar gray matter in the segmentation.
-        - ``CerebellarWM``
-          The volume of the cerbellar white matter in the segmentation.
-        - ``SubCortGray``
-          The volume of the subcortical gray matter in the segmentation.
-        - ``TotalGray``
-          The total gray matter volume in the segmentation.
-        - ``TFFC``
-          The volume of the 3rd-5th ventricles and CSF in the segmentation.
-        - ``VentricleChoroidVol``
-          The volume of the choroid plexus and inferiar and lateral ventricles and CSF.
-        - ``BrainSeg``
-          The volume of all brain structures in the segmentation.
-        - ``BrainSegNotVent``, and ``BrainSegNotVentSurf``
-          The brain segmentation volume without ventricles.
-        - ``Cerebellum``
-          The total cerebellar volume.
-        - ``SupraTentorial``, ``SupraTentorialNotVent``, and ``SupraTentorialNotVentVox``
-          The supratentorial brain volume/voxel count (without centricles and CSF).
-        - ``Mask``
-          The volume of the brain mask.
-        - ``EstimatedTotalIntraCranialVol``
-          The eTIV estimate (via talairach registration).
-        - ``BrainSegVol-to-eTIV``, and ``MaskVol-to-eTIV``
-          The ratios of the brain segmentation volume and the mask volume with respect
-          to the eTIV estimate.
+        ``lhSurfaceHoles``, ``rhSurfaceHoles``, and ``SurfaceHoles``
+        The number of holes in the surfaces.
+        ``lhPialTotal``, and ``rhPialTotal``
+        The volume enclosed in the pial surfaces.
+        ``lhWhiteMatterVol``, and ``rhWhiteMatterVol``
+        The Volume of the white matter in the segmentation (incl. lateralized WM-hypo).
+        ``lhWhiteMatterTotal``, and ``rhWhiteMatterTotal``
+        The volume enclosed in the white matter surfaces.
+        ``lhCortex``, ``rhCortex``, and ``Cortex``
+        The volume between the pial and the white matter surfaces.
+        ``CorpusCallosumVol``
+        The volume of the corpus callosum in the segmentation.
+        ``lhWM-hypointensities``, and ``rhWM-hypointensities``
+        The volume of unlateralized the white matter hypointensities in the segmentation, but lateralized by neighboring
+        voxels (FreeSurfer uses talairach coordinates to re-lateralize).
+        ``lhCerebralWhiteMatter``, ``rhCerebralWhiteMatter``, and ``CerebralWhiteMatter``
+        The volume of the cerebral white matter in the segmentation (including corpus callosum split evenly into left
+        and right and white matter and WM-hypo).
+        ``CerebellarGM``
+        The volume of the cerbellar gray matter in the segmentation.
+        ``CerebellarWM``
+        The volume of the cerbellar white matter in the segmentation.
+        ``SubCortGray``
+        The volume of the subcortical gray matter in the segmentation.
+        ``TotalGray``
+        The total gray matter volume in the segmentation.
+        ``TFFC``
+        The volume of the 3rd-5th ventricles and CSF in the segmentation.
+        ``VentricleChoroidVol``
+        The volume of the choroid plexus and inferiar and lateral ventricles and CSF.
+        ``BrainSeg``
+        The volume of all brain structures in the segmentation.
+        ``BrainSegNotVent``, and ``BrainSegNotVentSurf``
+        The brain segmentation volume without ventricles.
+        ``Cerebellum``
+        The total cerebellar volume.
+        ``SupraTentorial``, ``SupraTentorialNotVent``, and ``SupraTentorialNotVentVox``
+        The supratentorial brain volume/voxel count (without centricles and CSF).
+        ``Mask``
+        The volume of the brain mask.
+        ``EstimatedTotalIntraCranialVol``
+        The eTIV estimate (via talairach registration).
+        ``BrainSegVol-to-eTIV``, and ``MaskVol-to-eTIV``
+        The ratios of the brain segmentation volume and the mask volume with respect to the eTIV estimate.
         """
 
         hemi = key[:2]

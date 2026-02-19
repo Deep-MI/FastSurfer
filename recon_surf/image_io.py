@@ -18,7 +18,7 @@
 
 # IMPORTS
 import sys
-from typing import Any, Literal, cast, overload
+from typing import Literal, cast, overload
 
 import nibabel as nib
 import numpy as np
@@ -111,7 +111,7 @@ def sitk_from_mgh(img: nib.MGHImage) -> sitk.Image:
 def readITKimage(
         filename: str,
         vox_type: int | None = None,
-        with_header: Literal[False] = False
+        return_header: Literal[False] = False
 ) -> sitk.Image:
     ...
 
@@ -120,8 +120,8 @@ def readITKimage(
 def readITKimage(
         filename: str,
         vox_type: int | None = None,
-        with_header: Literal[True] = True
-) -> tuple[sitk.Image, Any]:
+        return_header: Literal[True] = True
+) -> tuple[sitk.Image, nibabelHeader]:
     ...
 
 
