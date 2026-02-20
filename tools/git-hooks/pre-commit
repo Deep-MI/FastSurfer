@@ -59,6 +59,14 @@ else
 	uv run --extra style codespell --check-filenames --check-hidden --context 3 \
 	  --skip "$skip_files" --ignore-words ./.codespellignore
 
+  # if this is a valid git repository and the doc/api/generated or doc-build folder exists, clean them before sphinx-doc
+  if [[ -d ".git" ]] && [[ -n "$(which git)" ]] && git --git-dir=.git branch --show-current 2>/dev/null >/dev/null \
+     && { [[ -d "doc/api/generated" ]] || [[ -d "doc-build" ]]; }
+  then
+    echo "INFO: pre-commit hook: cleaning doc/api/generated and doc-build folder"
+    if [[ -d "doc/api/generated" ]] ; then rm -rf doc/api/generated/* ; fi
+    if [[ -d "doc-build" ]] ; then rm -rf doc/api/generated/* doc-build/* ; fi
+  fi
 	echo "INFO: pre-commit hook: Build sphinx-doc"
 	uv run --extra doc sphinx-build -j auto -WT --keep-going doc ./doc-build
 fi
