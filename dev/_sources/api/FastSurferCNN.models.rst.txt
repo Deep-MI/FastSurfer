@@ -10,5 +10,6 @@ FastSurferCNN.models
     interpolation_layer
     losses
     networks
+    optimizer
     sub_module
 

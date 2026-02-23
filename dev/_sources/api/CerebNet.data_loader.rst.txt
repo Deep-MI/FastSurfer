@@ -1,5 +1,5 @@
-CerebNet.dataloader
-===================
+CerebNet.data_loader
+====================
 
 
 .. currentmodule:: CerebNet.data_loader

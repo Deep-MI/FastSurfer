@@ -12,7 +12,7 @@ FastSurfer API
     FastSurferCNN.models.rst
     FastSurferCNN.utils.rst
     CerebNet.rst
-    CerebNet.dataloader.rst
+    CerebNet.data_loader.rst
     CerebNet.datasets.rst
     CerebNet.models.rst
     CerebNet.utils.rst

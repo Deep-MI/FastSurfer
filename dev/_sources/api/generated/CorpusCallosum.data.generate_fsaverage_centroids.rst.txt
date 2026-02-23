@@ -1,0 +1,5 @@
+﻿CorpusCallosum.data.generate_fsaverage_centroids
+================================================
+
+.. automodule:: CorpusCallosum.data.generate_fsaverage_centroids
+    :members:

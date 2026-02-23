@@ -8,4 +8,5 @@ CorpusCallosum.data
 
     constants
     fsaverage_cc_template
+    generate_fsaverage_centroids
     read_write

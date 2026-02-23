@@ -1,0 +1,5 @@
+﻿FastSurferCNN.mri_segstats
+==========================
+
+.. automodule:: FastSurferCNN.mri_segstats
+    :members:

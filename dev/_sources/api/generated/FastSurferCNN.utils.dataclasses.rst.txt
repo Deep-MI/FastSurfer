@@ -1,0 +1,5 @@
+﻿FastSurferCNN.utils.dataclasses
+===============================
+
+.. automodule:: FastSurferCNN.utils.dataclasses
+    :members:
