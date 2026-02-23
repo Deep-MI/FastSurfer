@@ -96,7 +96,7 @@ def field(
         kw_only: bool = False,
 ) -> _T:
     """
-    Extends :py:`dataclasses.field` to adds `help` and `flags` to the metadata.
+    Extends :func:`dataclasses.field` to add `help` and `flags` to the metadata.
 
     Parameters
     ----------
@@ -107,11 +107,13 @@ def field(
 
     Returns
     -------
-    When used in dataclasses, returns .
+    Field
+        A dataclass Field object with the extended metadata.
 
     See Also
     --------
-    :py:func:`dataclasses.field`
+    dataclasses.field
+        The standard dataclass field function.
     """
     if isinstance(metadata, Mapping):
         metadata = dict(metadata)
@@ -154,7 +156,8 @@ def get_field(dc, fieldname: str) -> Field | None:
 
     See Also
     --------
-    :py:`dataclasses.fields`
+    dataclasses.fields
+        Return a tuple of Field objects for the dataclass.
     """
     for field in fields(dc):
         if field.name == fieldname:

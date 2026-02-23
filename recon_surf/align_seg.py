@@ -382,12 +382,12 @@ if __name__ == "__main__":
 
     print(f"\nreading src {options.srcseg}")
     srcseg, srcheader = iio.readITKimage(
-        options.srcseg, sitk.sitkInt16, with_header=True
+        options.srcseg, sitk.sitkInt16, return_header=True
     )
     if options.trgseg is not None:
         print(f"reading trg {options.trgseg} ...")
         trgseg, trgheader = iio.readITKimage(
-            options.trgseg, sitk.sitkInt16, with_header=True
+            options.trgseg, sitk.sitkInt16, return_header=True
         )
         # register segmentations:
         T = align_seg_centroids(srcseg, trgseg, affine=options.affine)

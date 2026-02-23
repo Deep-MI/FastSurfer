@@ -194,7 +194,7 @@ class Trainer:
         Returns
         -------
         int, float, ndarray
-            median miou [value].
+            Median mean IOU value.
         """
         logger.info(f"Evaluating model at epoch {epoch}")
         self.model.eval()
