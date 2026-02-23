@@ -14,7 +14,7 @@ This job checks out the repository using the `actions/checkout@v2` action.
 ### Prepare Job
 This job sets up the necessary environments for the workflow. It depends on the successful completion of the `checkout` job. The environments set up in this job include:
 
-- Python 3.10, using the `actions/setup-python@v3` action.
+- Python 3.10, using the `astral-sh/setup-uv@v5` action.
 - Go, using the `actions/setup-go@v5` action with version `1.13.1`.
 - Singularity, using the `eWaterCycle/setup-singularity@v7` action with version `3.8.3`.
 

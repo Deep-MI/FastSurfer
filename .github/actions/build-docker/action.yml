@@ -2,6 +2,8 @@
 # selected branch and crates a docker image in an artifact (fastsurfer-<github-sha>-docker)
 # The build artifact includes the image in docker-image.tar and the name of the image in image_name.env
 
+# This action requires an existing uv installation!
+
 name: 'Build a FastSurfer docker image'
 author: 'David Kuegler'
 description: 'Build a FastSurfer image'
@@ -53,8 +55,8 @@ runs:
           v="$(bash $bashopts "$FASTSURFER_HOME/run_fastsurfer.sh" --version --py python)"
           image_name="fastsurfer:cpu-${v/+/_}"
         fi
-        if [[ -z "$(which python)" ]] ; then echo "ERROR: Cannot find python!" ; fi
-        cmd=(python "$FASTSURFER_HOME/tools/Docker/build.py" --device cpu --tag "$image_name" --target "${{ inputs.target }}")
+        if [[ -z "$(uv run python -c 'import sys; print(sys.executable)' 2>/dev/null)" ]] ; then echo "ERROR: Cannot find python!" ; fi
+        cmd=(uv run python "$FASTSURFER_HOME/tools/Docker/build.py" --device cpu --tag "$image_name" --target "${{ inputs.target }}")
         if [[ "${{ inputs.freesurfer-build-image }}" != "rebuild" ]] ; then 
           cmd+=(--freesurfer_build_image "${{ inputs.freesurfer-build-image }}")
         fi
