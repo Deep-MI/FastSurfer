@@ -458,7 +458,7 @@
 <span id="corpuscallosum-segmentation-segmentation-postprocessing"></span><h1>CorpusCallosum.segmentation.segmentation_postprocessing<a class="headerlink" href="#module-CorpusCallosum.segmentation.segmentation_postprocessing" title="Link to this heading">¶</a></h1>
 <dl class="py function">
 <dt class="sig sig-object py" id="CorpusCallosum.segmentation.segmentation_postprocessing.clean_cc_segmentation">
-<span class="sig-prename descclassname"><span class="pre">CorpusCallosum.segmentation.segmentation_postprocessing.</span></span><span class="sig-name descname"><span class="pre">clean_cc_segmentation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">seg_arr</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_connection_distance</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">3.0</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//CorpusCallosum/segmentation/segmentation_postprocessing.py#L431-L464"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CorpusCallosum.segmentation.segmentation_postprocessing.clean_cc_segmentation" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">CorpusCallosum.segmentation.segmentation_postprocessing.</span></span><span class="sig-name descname"><span class="pre">clean_cc_segmentation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">seg_arr</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_connection_distance</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">3.0</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//CorpusCallosum/segmentation/segmentation_postprocessing.py#L429-L462"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CorpusCallosum.segmentation.segmentation_postprocessing.clean_cc_segmentation" title="Link to this definition">¶</a></dt>
 <dd><p>Clean corpus callosum segmentation by removing non-connected components.</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -541,7 +541,7 @@ the maximum distance in any dimension as the number of steps.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="CorpusCallosum.segmentation.segmentation_postprocessing.extract_largest_connected_component">
-<span class="sig-prename descclassname"><span class="pre">CorpusCallosum.segmentation.segmentation_postprocessing.</span></span><span class="sig-name descname"><span class="pre">extract_largest_connected_component</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">seg_arr</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_connection_distance</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">3.0</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//CorpusCallosum/segmentation/segmentation_postprocessing.py#L375-L428"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CorpusCallosum.segmentation.segmentation_postprocessing.extract_largest_connected_component" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">CorpusCallosum.segmentation.segmentation_postprocessing.</span></span><span class="sig-name descname"><span class="pre">extract_largest_connected_component</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">seg_arr</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_connection_distance</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">3.0</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//CorpusCallosum/segmentation/segmentation_postprocessing.py#L373-L426"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CorpusCallosum.segmentation.segmentation_postprocessing.extract_largest_connected_component" title="Link to this definition">¶</a></dt>
 <dd><p>Get the largest connected component from a binary segmentation array.</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -625,12 +625,11 @@ between the two boundaries.</p>
 </dd></dl>
 
 <dl class="py function">
-<dt class="sig sig-object py" id="CorpusCallosum.segmentation.segmentation_postprocessing.get_cc_volume_voxel">
-<span class="sig-prename descclassname"><span class="pre">CorpusCallosum.segmentation.segmentation_postprocessing.</span></span><span class="sig-name descname"><span class="pre">get_cc_volume_voxel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">desired_width_mm</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cc_mask</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">voxel_size</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//CorpusCallosum/segmentation/segmentation_postprocessing.py#L294-L371"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CorpusCallosum.segmentation.segmentation_postprocessing.get_cc_volume_voxel" title="Link to this definition">¶</a></dt>
-<dd><p>Calculate the volume of the corpus callosum in cubic millimeters.</p>
-<p>This function calculates the volume of the corpus callosum (CC) in cubic millimeters.
-If the CC width is larger than desired_width_mm, the voxels on the edges are calculated as
-partial volumes to achieve the desired width.</p>
+<dt class="sig sig-object py" id="CorpusCallosum.segmentation.segmentation_postprocessing.get_cc_num_voxel">
+<span class="sig-prename descclassname"><span class="pre">CorpusCallosum.segmentation.segmentation_postprocessing.</span></span><span class="sig-name descname"><span class="pre">get_cc_num_voxel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">desired_width_mm</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cc_mask</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">voxel_size</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//CorpusCallosum/segmentation/segmentation_postprocessing.py#L294-L369"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CorpusCallosum.segmentation.segmentation_postprocessing.get_cc_num_voxel" title="Link to this definition">¶</a></dt>
+<dd><p>Calculate the voxel count of the corpus callosum.</p>
+<p>This function calculates the voxel count of the corpus callosum (CC). If the CC width is larger than
+desired_width_mm, voxels on the edges only contribute partially to the count to achieve the desired width.</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><dl>
@@ -644,15 +643,15 @@ partial volumes to achieve the desired width.</p>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><dl class="simple">
-<dt><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a></dt><dd><p>Volume of the CC in cubic millimeters.</p>
+<dt><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a></dt><dd><p>Voxel count of the CC (with partial voxels to achieve with <code class="xref py py-obj docutils literal notranslate"><span class="pre">desired_width_mm</span></code>).</p>
 </dd>
 </dl>
 </dd>
 <dt class="field-odd">Raises<span class="colon">:</span></dt>
 <dd class="field-odd"><dl class="simple">
-<dt><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.14)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ValueError</span></code></a></dt><dd><p>If CC width is smaller than desired width</p>
+<dt><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.14)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ValueError</span></code></a></dt><dd><p>If CC width is smaller than desired width.</p>
 </dd>
-<dt><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#AssertionError" title="(in Python v3.14)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">AssertionError</span></code></a></dt><dd><p>If CC mask doesn’t have odd number of voxels in x dimension</p>
+<dt><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#AssertionError" title="(in Python v3.14)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">AssertionError</span></code></a></dt><dd><p>If CC mask doesn’t have odd number of voxels in x dimension.</p>
 </dd>
 </dl>
 </dd>
@@ -731,7 +730,7 @@ partial volumes to achieve the desired width.</p>
 <li><a class="reference internal" href="#CorpusCallosum.segmentation.segmentation_postprocessing.extract_largest_connected_component"><code class="docutils literal notranslate"><span class="pre">extract_largest_connected_component()</span></code></a></li>
 <li><a class="reference internal" href="#CorpusCallosum.segmentation.segmentation_postprocessing.find_component_boundaries"><code class="docutils literal notranslate"><span class="pre">find_component_boundaries()</span></code></a></li>
 <li><a class="reference internal" href="#CorpusCallosum.segmentation.segmentation_postprocessing.find_minimal_connection_path"><code class="docutils literal notranslate"><span class="pre">find_minimal_connection_path()</span></code></a></li>
-<li><a class="reference internal" href="#CorpusCallosum.segmentation.segmentation_postprocessing.get_cc_volume_voxel"><code class="docutils literal notranslate"><span class="pre">get_cc_volume_voxel()</span></code></a></li>
+<li><a class="reference internal" href="#CorpusCallosum.segmentation.segmentation_postprocessing.get_cc_num_voxel"><code class="docutils literal notranslate"><span class="pre">get_cc_num_voxel()</span></code></a></li>
 </ul>
 </li>
 </ul>

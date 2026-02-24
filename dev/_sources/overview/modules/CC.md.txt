@@ -40,9 +40,9 @@ This file contains measurements from the middle sagittal slice and includes:
 - `thickness`: Average corpus callosum thickness (mm)
 - `thickness_profile`: Thickness profile (mm) of the corpus callosum slice (100 thickness values by default, listed from anterior to posterior CC ends)
 
-#### **Volume Measurements (when multiple slices processed):**
-- `cc_5mm_volume`: Total CC volume within 5mm slab using voxel counting (mm³)
-- `cc_5mm_volume_pv_corrected`: Volume with partial volume correction using CC contours (mm³)
+#### **Volume Measurements:**
+- `cc_num_voxel`: Segmentation-based (masks) CC voxel count within a 5mm slab around the midsagittal plane (partial voxels at the edges are weighted to achieve exactly 5mm width). Multiply by `voxel_volume` to get the volume in mm³.
+- `cc_volume`: Surface-based (contour) CC volume estimate in mm³, computed from the CC contours across all valid slices assuming 5mm slab width. Only reliable when `cc_num_failed_slices` is 0. `null` if fewer than 2 contour slices processed successfully.
 
 #### **Anatomical Landmarks:**
 All anatomical landmarks are given image voxel coordinates (LIA orientation)
@@ -59,6 +59,8 @@ This file contains comprehensive per-slice analysis when using `--slice_selectio
 #### **Global Parameters:**
 - `slices_in_segmentation`: Total number of slices in the segmentation volume
 - `voxel_size`: Voxel dimensions [x, y, z] in mm
+- `voxel_volume`: Volume of a single voxel in mm³
+- `cc_num_failed_slices`: Number of slices for which surface processing failed
 - `subdivision_method`: Method used for anatomical subdivision
 - `num_thickness_points`: Number of points used for thickness estimation
 - `subdivision_ratios`: Subdivision fractions used for regional analysis

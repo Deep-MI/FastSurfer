@@ -504,11 +504,11 @@ Advanced options, like custom subdivision schemes and quality control are descri
 <li><p><code class="docutils literal notranslate"><span class="pre">thickness_profile</span></code>: Thickness profile (mm) of the corpus callosum slice (100 thickness values by default, listed from anterior to posterior CC ends)</p></li>
 </ul>
 </section>
-<section id="volume-measurements-when-multiple-slices-processed">
-<h4><strong>Volume Measurements (when multiple slices processed):</strong><a class="headerlink" href="#volume-measurements-when-multiple-slices-processed" title="Link to this heading">¶</a></h4>
+<section id="volume-measurements">
+<h4><strong>Volume Measurements:</strong><a class="headerlink" href="#volume-measurements" title="Link to this heading">¶</a></h4>
 <ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">cc_5mm_volume</span></code>: Total CC volume within 5mm slab using voxel counting (mm³)</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">cc_5mm_volume_pv_corrected</span></code>: Volume with partial volume correction using CC contours (mm³)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">cc_num_voxel</span></code>: Segmentation-based (masks) CC voxel count within a 5mm slab around the midsagittal plane (partial voxels at the edges are weighted to achieve exactly 5mm width). Multiply by <code class="docutils literal notranslate"><span class="pre">voxel_volume</span></code> to get the volume in mm³.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">cc_volume</span></code>: Surface-based (contour) CC volume estimate in mm³, computed from the CC contours across all valid slices assuming 5mm slab width. Only reliable when <code class="docutils literal notranslate"><span class="pre">cc_num_failed_slices</span></code> is 0. <code class="docutils literal notranslate"><span class="pre">null</span></code> if fewer than 2 contour slices processed successfully.</p></li>
 </ul>
 </section>
 <section id="anatomical-landmarks">
@@ -532,6 +532,8 @@ Advanced options, like custom subdivision schemes and quality control are descri
 <ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">slices_in_segmentation</span></code>: Total number of slices in the segmentation volume</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">voxel_size</span></code>: Voxel dimensions [x, y, z] in mm</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">voxel_volume</span></code>: Volume of a single voxel in mm³</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">cc_num_failed_slices</span></code>: Number of slices for which surface processing failed</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">subdivision_method</span></code>: Method used for anatomical subdivision</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">num_thickness_points</span></code>: Number of points used for thickness estimation</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">subdivision_ratios</span></code>: Subdivision fractions used for regional analysis</p></li>
@@ -615,7 +617,7 @@ Advanced options, like custom subdivision schemes and quality control are descri
 <li><a class="reference internal" href="#shape-measurements-single-values"><strong>Shape Measurements (single values):</strong></a></li>
 <li><a class="reference internal" href="#subdivisions"><strong>Subdivisions</strong></a></li>
 <li><a class="reference internal" href="#thickness-analysis"><strong>Thickness Analysis:</strong></a></li>
-<li><a class="reference internal" href="#volume-measurements-when-multiple-slices-processed"><strong>Volume Measurements (when multiple slices processed):</strong></a></li>
+<li><a class="reference internal" href="#volume-measurements"><strong>Volume Measurements:</strong></a></li>
 <li><a class="reference internal" href="#anatomical-landmarks"><strong>Anatomical Landmarks:</strong></a></li>
 </ul>
 </li>
