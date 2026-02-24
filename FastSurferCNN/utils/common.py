@@ -248,15 +248,23 @@ class SubjectDirectory:
         Parameters
         ----------
         filepath : str, Path
-            Absolute to the file or name of the file.
+            The path to the file; either absolute or relative. Absolute paths are as is, while relative paths are
+            interpreted as relative to the subject folder (subject_dir / id).
 
         Returns
         -------
         Path
             The path to the file in the subject folder.
+
+        Raises
+        ------
+        ValueError
+            If the filepath is relative but id is not set.
         """
         if Path(filepath).is_absolute():
             return Path(filepath)
+        elif not hasattr(self, "_id"):
+            raise ValueError(f"Cannot resolve relative filepath '{filepath}' because subject id is not set.")
         else:
             return self.subject_dir / self._id / filepath
 

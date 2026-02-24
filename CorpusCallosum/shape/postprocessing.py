@@ -140,6 +140,8 @@ def recon_cc_surf_measures_multi(
         List of background IO processes.
     list of CCContour
         List of CC contours.
+    int
+        Number of failed slices.
     """
     slice_cc_measures: list[CCMeasuresDict] = []
     io_futures = []
@@ -188,19 +190,36 @@ def recon_cc_surf_measures_multi(
     run = thread_executor().submit
     wants_output = subject_dir.has_attribute
     output_path = subject_dir.filename_by_attribute
-    slice_iterator = zip(slices_to_recon, per_slice_vox2ras, per_slice_recon, strict=True)
+
+    def _zip_failed(it_idx, it_affine, it_result):
+        """Zip slice indices, affines, and results, logging errors for failed slices."""
+        _sentinel = object()
+        for idx, affine in zip(it_idx, it_affine, strict=True):
+            try:
+                result = next(it_result, _sentinel)
+            except Exception as e:
+                logger.error(f"Processing slice {idx} failed: {e}")
+                logger.exception(e)
+                yield idx, affine, (None, None)
+                continue
+            if result is _sentinel:
+                logger.error("Number of items in idx and affine did not match results")
+                return
+            yield idx, affine, result
+
+    slice_iterator = _zip_failed(slices_to_recon, per_slice_vox2ras, iter(per_slice_recon))
     for i, (slice_idx, this_slice_vox2ras, _results) in enumerate(slice_iterator):
         progress = f" ({i+1} of {num_slices})" if num_slices > 1 else ""
-        logger.info(f"Calculating CC measurements for slice {slice_idx+1}{progress}")
         # unpack values from _results
-        cc_measures: CCMeasuresDict = _results[0]
-        _contour: CCContour = _results[1]
+        cc_measures: CCMeasuresDict | None = _results[0]
+        _contour: CCContour | None = _results[1]
 
+        if cc_measures is None or _contour is None:
+            logger.warning(f"Calculating CC measurements for slice {slice_idx+1}{progress} failed")
+            continue
+
+        logger.info(f"Calculating CC measurements for slice {slice_idx+1}{progress}")
         cc_contours.append(_contour)
-        if cc_measures is None:
-            # this should not happen, but just in case
-            logger.warning(f"Slice index {slice_idx+1}{progress} returned result `None`")
-
         slice_cc_measures.append(cc_measures)
         is_debug = logger.getEffectiveLevel() <= logging.DEBUG
         is_midslice = i == num_slices // 2
@@ -301,7 +320,7 @@ def recon_cc_surf_measures_multi(
             logger.error("Error: No valid slices were found for postprocessing")
             raise ValueError("No valid slices were found for postprocessing")
 
-    return slice_cc_measures, io_futures, cc_contours
+    return slice_cc_measures, io_futures, cc_contours, num_slices - len(cc_contours)
 
 
 def _resample_thickness(contour: CCContour) -> CCContour:
@@ -412,7 +431,7 @@ def recon_cc_surf_measure(
     Returns
     -------
     measures : CCMeasuresDict
-        Dictionary containing measurements if successful.
+        Dictionary containing measurements.
     contour : CCContour
         The contour object containing points, thickness values, and endpoint indices.
 

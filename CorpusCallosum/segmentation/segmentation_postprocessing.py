@@ -291,16 +291,15 @@ def connect_nearby_components(seg_arr: ArrayType, max_connection_distance: float
     return connected_seg
 
 
-def get_cc_volume_voxel(
+def get_cc_num_voxel(
     desired_width_mm: int,
     cc_mask: Mask3d,
     voxel_size: tuple[float, float, float],
 ) -> float:
-    """Calculate the volume of the corpus callosum in cubic millimeters.
+    """Calculate the voxel count of the corpus callosum.
 
-    This function calculates the volume of the corpus callosum (CC) in cubic millimeters.
-    If the CC width is larger than desired_width_mm, the voxels on the edges are calculated as
-    partial volumes to achieve the desired width.
+    This function calculates the voxel count of the corpus callosum (CC). If the CC width is larger than
+    desired_width_mm, voxels on the edges only contribute partially to the count to achieve the desired width.
 
     Parameters
     ----------
@@ -314,14 +313,14 @@ def get_cc_volume_voxel(
     Returns
     -------
     float
-        Volume of the CC in cubic millimeters.
+        Voxel count of the CC (with partial voxels to achieve with `desired_width_mm`).
 
     Raises
     ------
     ValueError
-        If CC width is smaller than desired width
+        If CC width is smaller than desired width.
     AssertionError
-        If CC mask doesn't have odd number of voxels in x dimension
+        If CC mask doesn't have odd number of voxels in x dimension.
 
     Notes
     -----
@@ -342,14 +341,13 @@ def get_cc_volume_voxel(
     assert width_vox % 2 == 1, f"CC mask must have odd number of voxels in x dimension, but has {width_vox}"
 
     # Calculate voxel volume
-    voxel_volume: float = np.prod(voxel_size, dtype=float)
     lateral_voxel_size: float = voxel_size[0]
 
     # we are in LIA, so 0 is L/R resolution
     width_mm = width_vox * lateral_voxel_size
 
     if width_mm == desired_width_mm:
-        return np.sum(cropped_mask) * voxel_volume
+        return np.sum(cropped_mask)
     elif width_mm > desired_width_mm:
         # remainder on the left/right side of the CC mask
         desired_width_vox = desired_width_mm / lateral_voxel_size
@@ -363,10 +361,10 @@ def get_cc_volume_voxel(
                              f"desired_width_vox: {desired_width_vox}, width_vox: {width_vox}, "
                              f"desired_width_mm: {desired_width_mm}, voxel size (lateral): {lateral_voxel_size} mm")
 
-        left_partial_volume = np.sum(cropped_mask[0]) * voxel_volume * fraction_of_voxel_at_edge
-        right_partial_volume = np.sum(cropped_mask[-1]) * voxel_volume * fraction_of_voxel_at_edge
-        center_volume = np.sum(cropped_mask[1:-1]) * voxel_volume
-        return left_partial_volume + right_partial_volume + center_volume
+        left_partial_count = np.sum(cropped_mask[0]) * fraction_of_voxel_at_edge
+        right_partial_count = np.sum(cropped_mask[-1]) * fraction_of_voxel_at_edge
+        center_count = np.sum(cropped_mask[1:-1])
+        return left_partial_count + right_partial_count + center_count
     else:
         raise ValueError(f"Width of CC segmentation is smaller than desired width: {width_mm} < {desired_width_mm}")
 
