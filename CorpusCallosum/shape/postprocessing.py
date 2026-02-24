@@ -140,6 +140,8 @@ def recon_cc_surf_measures_multi(
         List of background IO processes.
     list of CCContour
         List of CC contours.
+    int
+        Number of failed slices.
     """
     slice_cc_measures: list[CCMeasuresDict] = []
     io_futures = []
@@ -188,7 +190,24 @@ def recon_cc_surf_measures_multi(
     run = thread_executor().submit
     wants_output = subject_dir.has_attribute
     output_path = subject_dir.filename_by_attribute
-    slice_iterator = zip(slices_to_recon, per_slice_vox2ras, per_slice_recon, strict=True)
+
+    def _zip_failed(it_idx, it_affine, it_result):
+        """Zip slice indices, affines, and results, logging errors for failed slices."""
+        _sentinel = object()
+        for idx, affine in zip(it_idx, it_affine, strict=True):
+            try:
+                result = next(it_result, _sentinel)
+            except Exception as e:
+                logger.error(f"Processing slice {idx} failed: {e}")
+                logger.exception(e)
+                yield idx, affine, (None, None)
+                continue
+            if result is _sentinel:
+                logger.error("Number of items in idx and affine did not match results")
+                return
+            yield idx, affine, result
+
+    slice_iterator = _zip_failed(slices_to_recon, per_slice_vox2ras, iter(per_slice_recon))
     for i, (slice_idx, this_slice_vox2ras, _results) in enumerate(slice_iterator):
         progress = f" ({i+1} of {num_slices})" if num_slices > 1 else ""
         # unpack values from _results
@@ -197,7 +216,6 @@ def recon_cc_surf_measures_multi(
 
         if cc_measures is None or _contour is None:
             logger.warning(f"Calculating CC measurements for slice {slice_idx+1}{progress} failed")
-            slice_cc_measures.append(None)
             continue
 
         logger.info(f"Calculating CC measurements for slice {slice_idx+1}{progress}")
@@ -302,7 +320,7 @@ def recon_cc_surf_measures_multi(
             logger.error("Error: No valid slices were found for postprocessing")
             raise ValueError("No valid slices were found for postprocessing")
 
-    return slice_cc_measures, io_futures, cc_contours
+    return slice_cc_measures, io_futures, cc_contours, num_slices - len(cc_contours)
 
 
 def _resample_thickness(contour: CCContour) -> CCContour:
@@ -386,7 +404,7 @@ def recon_cc_surf_measure(
     subdivisions: list[float],
     subdivision_method: SubdivisionMethod,
     contour_smoothing: int,
-) -> tuple[CCMeasuresDict | None, CCContour | None]:
+) -> tuple[CCMeasuresDict, CCContour]:
     """Reconstruct surfaces and compute measures for a single slice for the corpus callosum.
 
     Parameters
@@ -412,10 +430,10 @@ def recon_cc_surf_measure(
 
     Returns
     -------
-    measures : CCMeasuresDict or None
-        Dictionary containing measurements if successful, else None.
-    contour : CCContour or None
-        The contour object containing points, thickness values, and endpoint indices, else None.
+    measures : CCMeasuresDict
+        Dictionary containing measurements.
+    contour : CCContour
+        The contour object containing points, thickness values, and endpoint indices.
 
     Raises
     ------
@@ -431,87 +449,82 @@ def recon_cc_surf_measure(
     4. Computes shape metrics and subdivisions.
     5. Generates visualization data.
     """
-    try:
-        cc_mask_slice: Mask2d = np.equal(segmentation[slice_idx], CC_LABEL)
-        if not np.any(cc_mask_slice):
-            logger.warning(f"No CC found in slice {slice_idx}")
-            return None, None
-        # clean up cc mask
-        cc_mask = connect_diagonally_connected_components(cc_mask_slice)
-        # create a CCContour from the cc_mask and transform to RAS coordinates
-        # - R coordinate is stored in _contour.z_position
-        # - AS coordinates are stored in _contour.points
-        _contour = CCContour.from_mask_and_acpc(
-            cc_mask, ac_coords_vox, pc_coords_vox,
-            slice_vox2ras=slice_lia_vox2midslice_ras, contour_smoothing=contour_smoothing,
-        )
+    cc_mask_slice: Mask2d = np.equal(segmentation[slice_idx], CC_LABEL)
+    if not np.any(cc_mask_slice):
+        raise ValueError(f"No CC found in slice {slice_idx}")
+    # clean up cc mask
+    cc_mask = connect_diagonally_connected_components(cc_mask_slice)
+    # create a CCContour from the cc_mask and transform to RAS coordinates
+    # - R coordinate is stored in _contour.z_position
+    # - AS coordinates are stored in _contour.points
+    _contour = CCContour.from_mask_and_acpc(
+        cc_mask, ac_coords_vox, pc_coords_vox,
+        slice_vox2ras=slice_lia_vox2midslice_ras, contour_smoothing=contour_smoothing,
+    )
 
-        levelpaths, thickness, midline_len, midline_equi, contour_with_thickness, endpoint_idxs, curvature = \
-            _contour.create_levelpaths(num_thickness_points, inplace=True)
+    levelpaths, thickness, midline_len, midline_equi, contour_with_thickness, endpoint_idxs, curvature = \
+        _contour.create_levelpaths(num_thickness_points, inplace=True)
 
-        contour_as = _contour.points.T
-        # thickness values in contour_with_thickness is not equally sampled, different shape
-        # to compute length of paths: diff between consecutive points (N-1, 2) => norm (N-1,) => sum (1,)
-        thickness_profile = np.stack([np.sum(np.linalg.norm(np.diff(x[:, :2], axis=0), axis=1)) for x in levelpaths])
+    contour_as = _contour.points.T
+    # thickness values in contour_with_thickness is not equally sampled, different shape
+    # to compute length of paths: diff between consecutive points (N-1, 2) => norm (N-1,) => sum (1,)
+    thickness_profile = np.stack([np.sum(np.linalg.norm(np.diff(x[:, :2], axis=0), axis=1)) for x in levelpaths])
 
-        acpc_contour_coords_as = contour_as[:, list(endpoint_idxs)].T
-        contour_in_acpc_space, ac_pt_acpc, pc_pt_acpc, rotate_back_acpc = transform_to_acpc_standard(
-            contour_as,
-            *acpc_contour_coords_as,
-        )
-        cc_index = calculate_cc_index(contour_in_acpc_space)
+    acpc_contour_coords_as = contour_as[:, list(endpoint_idxs)].T
+    contour_in_acpc_space, ac_pt_acpc, pc_pt_acpc, rotate_back_acpc = transform_to_acpc_standard(
+        contour_as,
+        *acpc_contour_coords_as,
+    )
+    cc_index = calculate_cc_index(contour_in_acpc_space)
 
-        # Apply different subdivision methods based on user choice
-        split_contours: ContourList
-        subdivision_lines: list[Points2dType]
-        split_points_midline: np.ndarray | None = None
+    # Apply different subdivision methods based on user choice
+    split_contours: ContourList
+    subdivision_lines: list[Points2dType]
+    split_points_midline: np.ndarray | None = None
 
-        # Transform midline to ACPC space for subdivision
-        midline_acpc, _, _, _ = transform_to_acpc_standard(
-            midline_equi.T,
-            *acpc_contour_coords_as,
-        )
+    # Transform midline to ACPC space for subdivision
+    midline_acpc, _, _, _ = transform_to_acpc_standard(
+        midline_equi.T,
+        *acpc_contour_coords_as,
+    )
 
-        areas, split_contours, split_points_midline, subdivision_lines = subdivide_contour(
-            midline_acpc.T, subdivisions, ac_pt_acpc, contour_in_acpc_space, subdivision_method
-        )
+    areas, split_contours, split_points_midline, subdivision_lines = subdivide_contour(
+        midline_acpc.T, subdivisions, ac_pt_acpc, contour_in_acpc_space, subdivision_method
+    )
 
-        total_area = _contour.area
-        total_perimeter = np.sum(_contour.get_contour_edge_lengths())
-        circularity = 4 * np.pi * total_area / (total_perimeter**2)
+    total_area = _contour.area
+    total_perimeter = np.sum(_contour.get_contour_edge_lengths())
+    circularity = 4 * np.pi * total_area / (total_perimeter**2)
 
-        # Transform split contours back to original space (from ACPC to RAS)
-        split_contours = [rotate_back_acpc(split_contour) for split_contour in split_contours]
-        subdivision_lines = [rotate_back_acpc(line.T).T for line in subdivision_lines]
-        split_points_midline = rotate_back_acpc(np.asarray(split_points_midline).T).T
+    # Transform split contours back to original space (from ACPC to RAS)
+    split_contours = [rotate_back_acpc(split_contour) for split_contour in split_contours]
+    subdivision_lines = [rotate_back_acpc(line.T).T for line in subdivision_lines]
+    split_points_midline = rotate_back_acpc(np.asarray(split_points_midline).T).T
 
-        # Calculate curvature metrics
-        curvature, curvature_body, curvature_subsegments = calculate_curvature_metrics(
-            midline_equi, split_points=split_points_midline
-        )
+    # Calculate curvature metrics
+    curvature, curvature_body, curvature_subsegments = calculate_curvature_metrics(
+        midline_equi, split_points=split_points_midline
+    )
 
-        measures: CCMeasuresDict = {
-            "cc_index": cc_index,
-            "circularity": circularity,
-            "areas": np.asarray(areas),
-            "midline_length": midline_len,
-            "thickness": thickness,
-            "curvature": curvature,
-            "curvature_subsegments": curvature_subsegments,
-            "curvature_body": curvature_body,
-            "thickness_profile": thickness_profile,
-            "total_area": total_area,
-            "total_perimeter": total_perimeter,
-            "split_contours": split_contours,
-            "subdivision_lines": subdivision_lines,
-            "midline_equidistant": midline_equi,
-            "levelpaths": levelpaths,
-            "slice_index": slice_idx
-        }
-        return measures, _contour
-    except Exception as e:
-        logger.error(f"Error in CC morphometry for slice {slice_idx}: {e}")
-        return None, None
+    measures: CCMeasuresDict = {
+        "cc_index": cc_index,
+        "circularity": circularity,
+        "areas": np.asarray(areas),
+        "midline_length": midline_len,
+        "thickness": thickness,
+        "curvature": curvature,
+        "curvature_subsegments": curvature_subsegments,
+        "curvature_body": curvature_body,
+        "thickness_profile": thickness_profile,
+        "total_area": total_area,
+        "total_perimeter": total_perimeter,
+        "split_contours": split_contours,
+        "subdivision_lines": subdivision_lines,
+        "midline_equidistant": midline_equi,
+        "levelpaths": levelpaths,
+        "slice_index": slice_idx
+    }
+    return measures, _contour
 
 
 def test_left_of_line(
