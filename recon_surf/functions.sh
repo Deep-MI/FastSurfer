@@ -161,7 +161,7 @@ function RunBatchJobs()
 
   # wait till all processes have finished
   local unsuccessful=()
-  for i in $(seq "${#PIDS}")
+  for i in $(seq "${#PIDS[@]}")
   do
     echo "Waiting for PID ${PIDS[i-1]} of (${PIDS[*]}) to complete..."
     wait "${PIDS[i-1]}"
