@@ -690,8 +690,6 @@ def main(
     """
     start = perf_counter_ns()
 
-    import sys
-
     if subdivisions is None:
         subdivisions = [1 / 6, 1 / 2, 2 / 3, 3 / 4]
 
@@ -729,8 +727,9 @@ def main(
 
     # Validate subdivision fractions
     if any(i < 0 or i > 1 for i in subdivisions):
-        logger.error(f"Subdivision fractions must be between 0 and 1, but got: {subdivisions}")
-        sys.exit(1)
+        error_message = f"Subdivision fractions must be between 0 and 1, but got: {subdivisions}"
+        logger.error(error_message)
+        return error_message
 
     #### setup variables
     futures = []
@@ -752,8 +751,9 @@ def main(
         logger.info("Robust rescaling of input intensities.")
         orig = conform(orig, vox_size=None, img_size=None, orientation=None)
         if not np.allclose(_orig_affine, orig.affine):
-            logger.error("Conforming the image should not change the affine, but it did!")
-            sys.exit(1)
+            error_message = "Conforming the image should not change the affine, but it did!"
+            logger.error(error_message)
+            return error_message
 
     # 5 mm around the midplane (guaranteed to be aligned RAS by as_closest_canonical)
     vox_size_ras: tuple[float, float, float] = nib.as_closest_canonical(orig).header.get_zooms()
@@ -771,8 +771,9 @@ def main(
     aseg_img = cast(nibabelImage, _aseg_fut.result())
 
     if not np.allclose(aseg_img.affine, orig.affine):
-        logger.error("Input MRI and segmentation are not aligned! Please check your input files.")
-        sys.exit(1)
+        error_message = "Input MRI and segmentation are not aligned! Please check your input files."
+        logger.error(error_message)
+        return error_message
 
     logger.info("Performing centroid registration to fsaverage space")
     orig2fsavg_vox2vox, orig2fsavg_ras2ras, fsavg_vox2ras, _fsavg_header_dict = register_centroids_to_fsavg(aseg_img)
