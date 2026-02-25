@@ -11,7 +11,11 @@ CorpusCallosum: fastsurfer_cc.py
 
 .. include:: ../../CorpusCallosum/README.md
    :parser: fix_links.parser
-   :start-line: 1
+   :start-line: 2
+
+Full command-line interface
+---------------------------
+The following section provides a detailed overview of the command-line interface for the FastSurfer-CC pipeline, including all available flags and options.
 
 .. argparse::
    :module: CorpusCallosum.fastsurfer_cc
@@ -21,9 +25,9 @@ CorpusCallosum: fastsurfer_cc.py
 Quality Control
 ---------------
 The pipeline can produce a dedicated quality control image, showing the CC contour, AC/PC landmarks and thickness estimation.
-For this use the --qc_image flag.
-Additionally, the surface outputs, e.g. --thickness_image, can be used to visualize the CC thickness and also inform quality control.
-Finally, to confirm the alignment of the CC on the mid-sagittal plane, we can output the upright volume with --upright_volume flag.
+For this use the ``--qc_image`` flag.
+Additionally, the surface outputs, e.g. ``--thickness_image``, can be used to visualize the CC thickness and also inform quality control.
+Finally, to confirm the alignment of the CC on the mid-sagittal plane, we can output the upright volume with ``--upright_volume`` flag.
 In this image the mid-sagittal plane is at voxel coordinate 128 in the LR direction.
 
 An example call with all quality control outputs is:
@@ -36,7 +40,7 @@ An example call with all quality control outputs is:
 
 Custom Subdivision Schemes
 --------------------------
-The pipeline supports custom subdivision schemes for the corpus callosum with the --subdivisions flag.
+The pipeline supports custom subdivision schemes for the corpus callosum with the ``--subdivisions`` flag.
 The fractions are relative to the total length of the corpus callosum (midline length).
 The default is to use the shape-based subdivision scheme (recommended) and the Hofer-Frahms convention.
 
