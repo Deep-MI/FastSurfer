@@ -27,7 +27,7 @@ from scipy.ndimage import gaussian_filter1d
 import FastSurferCNN.utils.logging as logging
 from CorpusCallosum.shape.contour import CCContour
 from CorpusCallosum.shape.thickness import make_mesh_from_contour
-from FastSurferCNN.utils import AffineMatrix4x4, nibabelImage
+from FastSurferCNN.utils import AffineMatrix4x4, nibabelHeader, nibabelImage
 from FastSurferCNN.utils.common import suppress_stdout, update_docstring
 
 try:
@@ -478,11 +478,12 @@ class CCMesh(lapy.TriaMesh):
             - -8 degrees around z-axis
         3. Adds a small translation for better centering
         """
+        from whippersnappy.gl.views import ViewType, get_view_matrix
 
         if not HAS_PYRR:
             raise ImportError("Pyrr not installed, install pyrr with `pip install pyrr`.")
 
-        viewLeft = np.array([[0, 0, -1, 0], [-1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 0, 1]])  # left w top up // right
+        viewLeft = get_view_matrix(ViewType.LEFT)  # left w top up // right
         transl = Matrix44.from_translation((0, 0, 0.4))
         viewmat = transl * viewLeft
 
@@ -503,9 +504,7 @@ class CCMesh(lapy.TriaMesh):
     def snap_cc_picture(
         self,
         output_path: Path | str,
-        fssurf_file: Path | str | None = None,
-        overlay_file: Path | str | None = None,
-        ref_image: Path | str | nibabelImage | None = None,
+        ref_header: Path | str | nibabelHeader | None = None,
     ) -> None:
         """Snap a picture of the corpus callosum mesh.
 
@@ -513,32 +512,17 @@ class CCMesh(lapy.TriaMesh):
         ----------
         output_path : Path, str
             Path where to save the snapshot image.
-        fssurf_file : Path, str, optional
-            Path to a FreeSurfer surface file to use for the snapshot.
-            If None, the mesh is saved to a temporary file.
-        overlay_file : Path, str, optional
-            Path to a FreeSurfer overlay file to use for the snapshot.
-            If None, the mesh is saved to a temporary file.
-        ref_image : Path, str, nibabelImage, optional
+        ref_header : Path, str, nibabelImage, optional
             Path to reference image to use for tkr creation. If None, ignores the file for saving.
 
         Raises
         ------
         Warning
             If the mesh has no faces and cannot create a snapshot.
-
-        Notes
-        -----
-        The function:
-        1. Creates temporary files for mesh and overlay data if needed.
-        2. Uses whippersnappy to create a snapshot with:
-        - Custom view matrix for standard orientation.
-        - Ambient lighting and colorbar settings.
-        - Thickness overlay if available.
-        3. Cleans up temporary files after use.
         """
+        from packaging.version import parse
         try:
-            from whippersnappy import snap1
+            import whippersnappy
         except ImportError as e:
             # whippersnappy not installed
             raise ImportError(
@@ -546,56 +530,44 @@ class CCMesh(lapy.TriaMesh):
                 f"Please install {e.name}!",
                 name=e.name, path=e.path
             ) from None
-        self.__make_parent_folder(output_path)
+        from nibabel.affines import apply_affine
+
+        if parse(whippersnappy.__version__) < parse("2.1.0"):
+            raise ImportError(
+                f"The snap_cc_picture method of CCMesh requires whippersnappy>=2.1, but version "
+                f"{whippersnappy.__version__} is installed. Please upgrade whippersnappy to version 2.1 or higher!",
+                name="whippersnappy", path=None
+            )
         # Skip snapshot if there are no faces
         if len(self.t) == 0:
             logger.warning("Cannot create snapshot - no faces in mesh")
             return
 
-        # create temp file
-        if fssurf_file:
-            fssurf_file = Path(fssurf_file)
-        else:
-            fssurf_file = tempfile.NamedTemporaryFile(suffix=".fssurf", delete=True).name
-        
-        ref_image_arg = str(ref_image) if isinstance(ref_image, (Path, str)) else ref_image
-        self.write_fssurf(fssurf_file, image=ref_image_arg)
+        self.__make_parent_folder(output_path)
 
-        if overlay_file:
-            overlay_file = Path(overlay_file)
+        if ref_header is not None:
+            v = apply_affine(ref_header.get_vox2ras_tkr(), self.v)
         else:
-            overlay_file = tempfile.NamedTemporaryFile(suffix=".w", delete=True).name
-        # Write thickness values in FreeSurfer '*.w' overlay format
-        self.write_morph_data(overlay_file)
-        
-        try:
-            with suppress_stdout():
-                snap1(
-                    fssurf_file,
-                    overlay=overlay_file,
-                    view=None,
-                    viewmat=self.__create_cc_viewmat(),
-                    width=3 * 500,
-                    height=3 * 300,
-                    outpath=output_path,
-                    ambient=0.6,
-                    colorbar_scale=0.5,
-                    colorbar_y=0.88,
-                    colorbar_x=0.19,
-                    brain_scale=2.1,
-                    fthresh=0,
-                    caption="Corpus Callosum thickness (mm)",
-                    caption_y=0.85,
-                    caption_x=0.17,
-                    caption_scale=0.5,
-                )
-        except Exception as e:
-            raise e from None
-
-        if fssurf_file and hasattr(fssurf_file, "close"):
-            fssurf_file.close()
-        if overlay_file and hasattr(overlay_file, "close"):
-            overlay_file.close()
+            v = self.v
+        whippersnappy.snap1(
+            mesh=(v, self.t),
+            overlay=self.mesh_vertex_colors,
+            view=None,
+            viewmat=self.__create_cc_viewmat(),
+            width=3 * 500,
+            height=3 * 300,
+            outpath=str(output_path),
+            ambient=0.6,
+            colorbar_scale=0.5,
+            colorbar_y=0.88,
+            colorbar_x=0.19,
+            brain_scale=2.1,
+            fthresh=0,
+            caption="Corpus Callosum thickness (mm)",
+            caption_y=0.85,
+            caption_x=0.17,
+            caption_scale=0.5,
+        )
 
     def smooth_(self, iterations: int = 1) -> None:
         """Smooth the mesh while preserving the z-coordinates.
@@ -665,7 +637,7 @@ class CCMesh(lapy.TriaMesh):
         return new_object
 
     @update_docstring(parent_doc=TriaMesh.write_fssurf.__doc__)
-    def write_fssurf(self, filename: Path | str, image: str | nibabelImage | None = None) -> None:
+    def write_fssurf(self, filename: Path | str, image: str | nibabelImage | nibabelHeader | None = None) -> None:
         """{parent_doc}
         Also creates parent directory if needed before writing the file.
         """

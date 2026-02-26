@@ -272,7 +272,7 @@ def recon_cc_surf_measures_multi(
             logger.info(f"Saving vtk file to {vtk_file_path}")
             io_futures.append(run(cc_mesh.write_vtk, vtk_file_path))
 
-        if wants_output("cc_thickness_overlay") and not wants_output("cc_thickness_image"):
+        if wants_output("cc_thickness_overlay"):
             overlay_file_path = output_path("cc_thickness_overlay")
             logger.info(f"Saving overlay file to {overlay_file_path}")
             io_futures.append(run(cc_mesh.write_morph_data, overlay_file_path))
@@ -284,36 +284,23 @@ def recon_cc_surf_measures_multi(
             # the mesh is generated in upright coordinates, so we need to also transform to orig coordinates
             # Mesh is fsavg_midplane (RAS); we need to transform to voxel coordinates
             # fsavg ras is also on the midslice, so this is fine and we multiply in the IA and SP offsets
-            cc_mesh = cc_mesh.to_vox_coordinates(mesh_ras2vox=np.linalg.inv(fsavg_vox2ras @ orig2fsavg_vox2vox))
-            cc_surf_generated = False
-            if wants_output("cc_thickness_image"):
-                # this will also write overlay and surface
-                thickness_image_path = output_path("cc_thickness_image")
-                logger.info(f"Saving thickness image to {thickness_image_path}")
-                kwargs = {
-                    "fssurf_file": output_path("cc_surf") if wants_output("cc_surf") else None,
-                    "overlay_file": output_path("cc_thickness_overlay")
-                                    if wants_output("cc_thickness_overlay") else None,
-                    "ref_image": upright_img,
-                }
-                try:
-                    cc_mesh.snap_cc_picture(thickness_image_path, **kwargs)
-                    cc_surf_generated = True
-                except (ImportError, ModuleNotFoundError) as e:
-                    logger.error(
-                        "The thickness image was not generated because whippersnappy is not installed."
-                    )
-                    logger.exception(e)
-                except Exception as e:
-                    logger.error(
-                        "The thickness image was not generated (see below). Please ensure that EGL "
-                        "libraries (libegl1) are available for headless rendering."
-                    )
-                    logger.exception(e)
-            if not cc_surf_generated and wants_output("cc_surf"):
+            cc_mesh_orig = cc_mesh.to_vox_coordinates(mesh_ras2vox=np.linalg.inv(fsavg_vox2ras @ orig2fsavg_vox2vox))
+            if wants_output("cc_surf"):
                 surf_file_path = output_path("cc_surf")
                 logger.info(f"Saving surf file to {surf_file_path}")
-                io_futures.append(run(cc_mesh.write_fssurf, str(surf_file_path), image=upright_img))
+                io_futures.append(run(cc_mesh_orig.write_fssurf, surf_file_path, image=upright_header))
+
+            if wants_output("cc_thickness_image"):
+                thickness_image_path = output_path("cc_thickness_image")
+                logger.info(f"Saving thickness image to {thickness_image_path}")
+                try:
+                    cc_mesh_orig.snap_cc_picture(thickness_image_path, ref_header=upright_header)
+                except Exception as e:
+                    logger.error(
+                        "Generation of the thickness image failed (see below). Please ensure that whippersnappy and "
+                        "(for headless rendering) EGL libraries (libegl1) are available."
+                    )
+                    logger.exception(e)
 
         if not slice_cc_measures:
             logger.error("Error: No valid slices were found for postprocessing")
