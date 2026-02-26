@@ -764,6 +764,41 @@ then
   fi
 fi
 
+# Check if --thickness_image is in cc_flags and whippersnappy version is >= 2.1
+if [[ "$run_seg_pipeline" == "true" ]] && [[ "$run_cc_module" == "true" ]] && \
+   [[ "${cc_flags[*]}" == *"--thickness_image"* ]]
+then
+  # Check if whippersnappy is installed and version is >= 2.1
+  whippersnappy_check=$($python -c "
+try:
+    import whippersnappy as wspy
+    from packaging.version import parse
+    print('OK' if parse(wspy.__version__) >= parse('2.1') else ('OLD_VERSION:' + wspy.__version__))
+except ImportError:
+    print('NOT_INSTALLED')
+except Exception as e:
+    print('ERROR:' + str(e))
+" 2>&1)
+
+  if [[ "$whippersnappy_check" != "OK" ]]
+  then
+    if [[ "$whippersnappy_check" == "NOT_INSTALLED" ]]
+    then
+      echo "ERROR: The --qc_snap flag requires the 'whippersnappy' package (version >= 2.1) to generate the qc"
+      echo "  thickness image, but whippersnappy is not installed in your Python environment."
+    elif [[ "$whippersnappy_check" == OLD_VERSION:* ]]
+    then
+      installed_version="${whippersnappy_check#OLD_VERSION:}"
+      echo "ERROR: The --qc_snap flag requires whippersnappy version >= 2.1 to generate the qc thickness image,"
+      echo "  but you only have version $installed_version installed."
+    else
+      echo "ERROR: Failed to check whippersnappy installation: $whippersnappy_check"
+    fi
+    echo "  Please install or upgrade whippersnappy with one of the following commands:"
+    echo "    pip install 'whippersnappy>=2.1'"
+    exit 1
+  fi
+fi
 
 if [[ "$run_surf_pipeline" == "true" ]] && [[ "$native_image" != "false" ]]
 then
