@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import tempfile
 from pathlib import Path
 from typing import TypeVar
 
@@ -28,7 +27,7 @@ import FastSurferCNN.utils.logging as logging
 from CorpusCallosum.shape.contour import CCContour
 from CorpusCallosum.shape.thickness import make_mesh_from_contour
 from FastSurferCNN.utils import AffineMatrix4x4, nibabelHeader, nibabelImage
-from FastSurferCNN.utils.common import suppress_stdout, update_docstring
+from FastSurferCNN.utils.common import update_docstring
 
 try:
     from pyrr import Matrix44

@@ -278,9 +278,6 @@ def recon_cc_surf_measures_multi(
             io_futures.append(run(cc_mesh.write_morph_data, overlay_file_path))
 
         if any(wants_output(f"cc_{n}") for n in ("thickness_image", "surf")):
-            import nibabel as nib
-            up_data: Image3d[np.uint8] = np.empty(upright_header["dims"][:3], dtype=upright_header.get_data_dtype())
-            upright_img = nib.MGHImage(up_data, fsavg_vox2ras, upright_header)
             # the mesh is generated in upright coordinates, so we need to also transform to orig coordinates
             # Mesh is fsavg_midplane (RAS); we need to transform to voxel coordinates
             # fsavg ras is also on the midslice, so this is fine and we multiply in the IA and SP offsets
