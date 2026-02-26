@@ -764,34 +764,6 @@ then
   fi
 fi
 
-maybe_xvfb=()
-# check if we are running on a headless system (CC QC needs a (virtual) display that support OpenGL)
-if [[ "$run_seg_pipeline" == "true" ]] && [[ "$run_cc_module" == "true" ]] && \
-   [[ "${cc_flags[*]}" =~ --thickness_image ]]
-then
-  # if we have xvfb-run, we can use it to provide a virtual display
-  if [[ -n "$(which xvfb-run)" ]] ; then maybe_xvfb=("xvfb-run" "-a") ; fi
-
-  # try loading opengl, if this is successful we are fine
-  py_opengltest="import sys ; import glfw ; import whippersnappy.core ; sys.exit(1-glfw.init())"
-  opengl_error_message="$("${maybe_xvfb[@]}" $python -c "$py_opengltest" 2>&1 > /dev/null)"
-  exit_code="$?"
-  if [[ "$exit_code" != "0" ]]
-  then
-    # if we cannot import OpenGL or whippersnappy, its an environment installation issue
-    if [[ "$opengl_error_message" =~ "ModuleNotFoundError" ]] || [[ "$opengl_error_message" =~ "ImportError" ]]
-    then
-      echo "WARNING: The --qc_snap option of the corpus callosum module requires the Python packages PyOpenGL, glfw and"
-      echo "  whippersnappy to be installed, but python could not import those three. Please install them and their"
-      echo "  dependencies via 'pip install pyopengl glfw whippersnappy'."
-    else
-      echo "WARNING: The --qc_snap option of the corpus callosum module requires OpenGL support, but we could not"
-      echo "  create OpenGL handles. For Linux headless systems, you may install xvfb-run to provide a virtual display."
-    fi
-    echo "  FastSurfer will not fail due to the unavailability of OpenGL, but some QC snapshots (rendered thickness"
-    echo "  image) will not be created."
-  fi
-fi
 
 if [[ "$run_surf_pipeline" == "true" ]] && [[ "$native_image" != "false" ]]
 then
@@ -1181,10 +1153,9 @@ then
     # note: callosum manedit currently only affects inpainting and not internal FastSurferCC processing (surfaces etc)
     callosum_seg_manedit="$(add_file_suffix "$callosum_seg" "manedit")"
     # generate callosum segmentation, mesh, shape and downstream measure files
-    cmd=("${maybe_xvfb[@]}" $python "$CorpusCallosumDir/fastsurfer_cc.py" --sd "$sd" --sid "$subject"
+    cmd=($python "$CorpusCallosumDir/fastsurfer_cc.py" --sd "$sd" --sid "$subject"
          "--threads" "$threads_seg" "--conformed_name" "$conformed_name" "--aseg_name" "$asegdkt_segfile"
          "--segmentation_in_orig" "$callosum_seg" "${cc_flags[@]}")
-    # if we are trying to create the thickness image in a headless setting, wrap call in xvfb-run
     echo_quoted "${cmd[@]}" | tee -a "$seg_log"
     "${wrap[@]}" "${cmd[@]}" 2>&1 | tee -a "$seg_log"
     exit_code=${PIPESTATUS[0]}

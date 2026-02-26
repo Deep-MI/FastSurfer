@@ -39,7 +39,7 @@ def make_parser() -> argparse.ArgumentParser:
             "cc_mesh.vtk - VTK mesh file format "
             "cc_mesh.fssurf - FreeSurfer surface file "
             "cc_mesh_overlay.curv - FreeSurfer curvature overlay file "
-            "cc_mesh_snap.png - Screenshot/snapshot of the 3D mesh (requires whippersnappy>=1.3.1)",
+            "cc_mesh_snap.png - Screenshot/snapshot of the 3D mesh (requires whippersnappy>=2.1)",
         metavar="OUTPUT_DIR"
     )
     parser.add_argument(
@@ -232,8 +232,9 @@ def main(
         cc_mesh.snap_cc_picture(str(output_dir / "cc_mesh_snap.png"))
         logger.info(f"Writing 3D snapshot image to {output_dir / 'cc_mesh_snap.png'}")
     except RuntimeError:
-        logger.warning("The cc_visualization script requires whippersnappy>=1.3.1 to makes screenshots, install with "
-                "`pip install whippersnappy>=1.3.1` !")
+        logger.warning("The cc_visualization script requires whippersnappy>=2.1 to makes screenshots, install with "
+                       "`pip install whippersnappy>=2.1` !")
+        raise
     return 0
 
 if __name__ == "__main__":

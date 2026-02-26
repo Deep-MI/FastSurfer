@@ -301,14 +301,13 @@ def recon_cc_surf_measures_multi(
                     cc_surf_generated = True
                 except (ImportError, ModuleNotFoundError) as e:
                     logger.error(
-                        "The thickness image was not generated because whippersnappy, glfw or OpenGL are not installed."
+                        "The thickness image was not generated because whippersnappy is not installed."
                     )
                     logger.exception(e)
                 except Exception as e:
                     logger.error(
-                        "The thickness image was not generated (see below). On headless Linux systems or if the "
-                        "x-server cannot/should not be accessed due to other reasons, xvfb-run may be used to provide "
-                        "a virtual framebuffer for offscreen rendering."
+                        "The thickness image was not generated (see below). Please ensure that EGL "
+                        "libraries (libegl1) are available for headless rendering."
                     )
                     logger.exception(e)
             if not cc_surf_generated and wants_output("cc_surf"):

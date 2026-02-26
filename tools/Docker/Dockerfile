@@ -272,11 +272,11 @@ RUN <<EOF
 apt-get update
 shell_deps="time bc"
 freesurfer_deps="gawk libgomp1 libquadmath0 tcsh"
-whippersnappy_opengl_deps="xvfb  libglib2.0-0 libxkbcommon-x11-0 libgl1 libegl1 libfontconfig1 libdbus-1-3"
+whippersnappy_egl_deps="libegl1 libgl1 libfontconfig1"
 apt-get install -y --no-install-recommends \
     $shell_deps \
     $freesurfer_deps \
-    $whippersnappy_opengl_deps
+    $whippersnappy_egl_deps
 apt clean
 rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 # create matplotlib config dir (in case someone starts this interactively)
@@ -335,9 +335,17 @@ ENTRYPOINT ["/fastsurfer/tools/Docker/entrypoint.sh","/fastsurfer/run_fastsurfer
 CMD ["--help"]
 
 FROM runtime AS runtime_cuda
+# parse DEVICE to extract the CUDA version, this is needed to correctly initialize NVIDIA_REQUIRE_CUDA below
+# Note, here 'cuda' defaults to 12.8
+ARG CUDA_VERSION__0=${DEVICE/cu11/11.}
+ARG CUDA_VERSION__1=${CUDA_VERSION__0/cu12/12.}
+ARG CUDA_VERSION__2=${CUDA_VERSION__1/cu13/13.}
+ARG CUDA_VERSION__3=${CUDA_VERSION__2/cu14/14.}
+ARG CUDA_VERSION__4=${CUDA_VERSION__3/cuda/12.8}
+
 # to support AWS docker images, see Issue #352
 # https://sarus.readthedocs.io/en/stable/user/custom-cuda-images.html#controlling-the-nvidia-container-runtime
 
 ENV NVIDIA_VISIBLE_DEVICES=all \
-    NVIDIA_DRIVER_CAPABILITIES=compute,utility \
-    NVIDIA_REQUIRE_CUDA="cuda>=8.0"
+    NVIDIA_DRIVER_CAPABILITIES=all \
+    NVIDIA_REQUIRE_CUDA="cuda>=${CUDA_VERSION__4}"

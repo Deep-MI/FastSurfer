@@ -538,9 +538,7 @@ class CCMesh(lapy.TriaMesh):
         3. Cleans up temporary files after use.
         """
         try:
-            # Dummy import of OpenCL to ensure it's available for whippersnappy
-            import OpenGL.GL  # noqa: F401
-            from whippersnappy.core import snap1
+            from whippersnappy import snap1
         except ImportError as e:
             # whippersnappy not installed
             raise ImportError(
@@ -548,13 +546,6 @@ class CCMesh(lapy.TriaMesh):
                 f"Please install {e.name}!",
                 name=e.name, path=e.path
             ) from None
-        except Exception as e:
-            # Catch all other types of errors,
-            raise RuntimeError(
-                "Could not import OpenGL or whippersnappy. The snap_cc_picture method of CCMesh requires OpenGL and "
-                "whippersnappy to render the QC thickness image. On headless servers, this also requires a virtual "
-                "framebuffer like xvfb.",
-            ) from e
         self.__make_parent_folder(output_path)
         # Skip snapshot if there are no faces
         if len(self.t) == 0:
@@ -581,7 +572,7 @@ class CCMesh(lapy.TriaMesh):
             with suppress_stdout():
                 snap1(
                     fssurf_file,
-                    overlaypath=overlay_file,
+                    overlay=overlay_file,
                     view=None,
                     viewmat=self.__create_cc_viewmat(),
                     width=3 * 500,
