@@ -461,8 +461,7 @@
 <p>We recommend to run FastSurfer-CC with the standard <code class="xref py py-obj docutils literal notranslate"><span class="pre">run_fastsurfer.sh</span></code> interfaces (see <a class="reference internal" href="index.html"><span class="doc">Scripts</span></a>)!</p>
 <p>This is an expert documentation for of FastSurfer CC, which can be run independently with the advanced interface provided here. However, the FastSurfer segmentation is still required as input.</p>
 </div>
-<p>========================
-FastSurfer-CC is a deep learning-based pipeline for automated segmentation, analysis, and shape analysis of the corpus callosum in brain MRI scans.
+<p>FastSurfer-CC is a deep learning-based pipeline for automated segmentation, analysis, and shape analysis of the corpus callosum in brain MRI scans.
 Also segments the fornix, localizes the anterior and posterior commissure (AC and PC) and standardizes the orientation of the brain.</p>
 <p>The documentation is split into three files, please refer to:</p>
 <ul class="simple">
@@ -477,6 +476,9 @@ Also segments the fornix, localizes the anterior and posterior commissure (AC an
 </div>
 <p>Gives all standard outputs. The corpus callosum morphometry can be found at <code class="docutils literal notranslate"><span class="pre">stats/callosum.CC.midslice.json</span></code> including 100 thickness measurements and the areas of sub-segments.</p>
 </section>
+<section id="full-command-line-interface">
+<h2>Full command-line interface<a class="headerlink" href="#full-command-line-interface" title="Link to this heading">¶</a></h2>
+<p>The following section provides a detailed overview of the command-line interface for the FastSurfer-CC pipeline, including all available flags and options.</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">usage</span><span class="p">:</span> <span class="n">fastsurfer_cc</span><span class="o">.</span><span class="n">py</span> <span class="p">[</span><span class="o">-</span><span class="n">h</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">v</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">sd</span> <span class="n">OUT_DIR</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">sid</span> <span class="n">SID</span><span class="p">]</span>
                         <span class="p">[</span><span class="o">--</span><span class="n">conformed_name</span> <span class="n">CONF_NAME</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">aseg_name</span> <span class="n">ASEG_NAME</span><span class="p">]</span>
                         <span class="p">[</span><span class="o">--</span><span class="n">device</span> <span class="n">DEVICE</span><span class="p">]</span>
@@ -504,7 +506,7 @@ Also segments the fornix, localizes the anterior and posterior commissure (AC an
 </pre></div>
 </div>
 <section id="CorpusCallosum.fastsurfer_cc-make_parser-named-arguments">
-<h2>Named Arguments<a class="headerlink" href="#CorpusCallosum.fastsurfer_cc-make_parser-named-arguments" title="Link to this heading">¶</a></h2>
+<h3>Named Arguments<a class="headerlink" href="#CorpusCallosum.fastsurfer_cc-make_parser-named-arguments" title="Link to this heading">¶</a></h3>
 <dl class="option-list">
 <dt><kbd>-v, --verbose</kbd></dt>
 <dd><p>Enable verbose (pass twice for debug-output).</p>
@@ -552,7 +554,7 @@ Also segments the fornix, localizes the anterior and posterior commissure (AC an
 </dl>
 </section>
 <section id="CorpusCallosum.fastsurfer_cc-make_parser-advanced-options">
-<h2>Advanced options<a class="headerlink" href="#CorpusCallosum.fastsurfer_cc-make_parser-advanced-options" title="Link to this heading">¶</a></h2>
+<h3>Advanced options<a class="headerlink" href="#CorpusCallosum.fastsurfer_cc-make_parser-advanced-options" title="Link to this heading">¶</a></h3>
 <p>Custom output paths, useful if no standard case directory is used. Relative paths are always relative to the subject_dir defined via –sd and –sid!</p>
 <dl class="option-list">
 <dt><kbd>--threads</kbd></dt>
@@ -620,12 +622,13 @@ Also segments the fornix, localizes the anterior and posterior commissure (AC an
 </dd>
 </dl>
 </section>
+</section>
 <section id="quality-control">
 <h2>Quality Control<a class="headerlink" href="#quality-control" title="Link to this heading">¶</a></h2>
 <p>The pipeline can produce a dedicated quality control image, showing the CC contour, AC/PC landmarks and thickness estimation.
-For this use the –qc_image flag.
-Additionally, the surface outputs, e.g. –thickness_image, can be used to visualize the CC thickness and also inform quality control.
-Finally, to confirm the alignment of the CC on the mid-sagittal plane, we can output the upright volume with –upright_volume flag.
+For this use the <code class="docutils literal notranslate"><span class="pre">--qc_image</span></code> flag.
+Additionally, the surface outputs, e.g. <code class="docutils literal notranslate"><span class="pre">--thickness_image</span></code>, can be used to visualize the CC thickness and also inform quality control.
+Finally, to confirm the alignment of the CC on the mid-sagittal plane, we can output the upright volume with <code class="docutils literal notranslate"><span class="pre">--upright_volume</span></code> flag.
 In this image the mid-sagittal plane is at voxel coordinate 128 in the LR direction.</p>
 <p>An example call with all quality control outputs is:
 .. code-block:: bash</p>
@@ -638,7 +641,7 @@ In this image the mid-sagittal plane is at voxel coordinate 128 in the LR direct
 </section>
 <section id="custom-subdivision-schemes">
 <h2>Custom Subdivision Schemes<a class="headerlink" href="#custom-subdivision-schemes" title="Link to this heading">¶</a></h2>
-<p>The pipeline supports custom subdivision schemes for the corpus callosum with the –subdivisions flag.
+<p>The pipeline supports custom subdivision schemes for the corpus callosum with the <code class="docutils literal notranslate"><span class="pre">--subdivisions</span></code> flag.
 The fractions are relative to the total length of the corpus callosum (midline length).
 The default is to use the shape-based subdivision scheme (recommended) and the Hofer-Frahms convention.</p>
 <p>We can, for example divide the CC into 4 equal parts with the shape-based subdivision scheme:</p>
@@ -758,8 +761,11 @@ python3<span class="w"> </span>fastsurfer_cc.py<span class="w"> </span>--sd<span
             <ul>
 <li><a class="reference internal" href="#">CorpusCallosum: fastsurfer_cc.py</a><ul>
 <li><a class="reference internal" href="#quickstart">Quickstart</a></li>
+<li><a class="reference internal" href="#full-command-line-interface">Full command-line interface</a><ul>
 <li><a class="reference internal" href="#CorpusCallosum.fastsurfer_cc-make_parser-named-arguments">Named Arguments</a></li>
 <li><a class="reference internal" href="#CorpusCallosum.fastsurfer_cc-make_parser-advanced-options">Advanced options</a></li>
+</ul>
+</li>
 <li><a class="reference internal" href="#quality-control">Quality Control</a></li>
 <li><a class="reference internal" href="#custom-subdivision-schemes">Custom Subdivision Schemes</a></li>
 <li><a class="reference internal" href="#analysis-modes">Analysis Modes</a><ul>
