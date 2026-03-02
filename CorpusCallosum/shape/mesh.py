@@ -477,7 +477,7 @@ class CCMesh(lapy.TriaMesh):
             - -8 degrees around z-axis
         3. Adds a small translation for better centering
         """
-        from whippersnappy.gl.views import ViewType, get_view_matrix
+        from whippersnappy import ViewType, get_view_matrix
 
         if not HAS_PYRR:
             raise ImportError("Pyrr not installed, install pyrr with `pip install pyrr`.")
@@ -511,12 +511,14 @@ class CCMesh(lapy.TriaMesh):
         ----------
         output_path : Path, str
             Path where to save the snapshot image.
-        ref_header : Path, str, nibabelImage, optional
-            Path to reference image to use for tkr creation. If None, ignores the file for saving.
+        ref_header : Path, str, nibabelHeader, optional
+            Path to reference image header to use for tkr creation. If None, ignores the file for saving.
 
         Raises
         ------
-        Warning
+        ImportError
+            If whippersnappy is not installed or if the version is too old.
+        ValueError
             If the mesh has no faces and cannot create a snapshot.
         """
         from packaging.version import parse
@@ -539,20 +541,26 @@ class CCMesh(lapy.TriaMesh):
             )
         # Skip snapshot if there are no faces
         if len(self.t) == 0:
-            logger.warning("Cannot create snapshot - no faces in mesh")
-            return
+            raise ValueError("Cannot create snapshot - no faces in mesh")
 
         self.__make_parent_folder(output_path)
 
-        if ref_header is not None:
-            v = apply_affine(ref_header.get_vox2ras_tkr(), self.v)
-        else:
+        if ref_header is None:
             v = self.v
+        else:
+            from nibabel.freesurfer.mghformat import MGHHeader
+
+            # if header is a file, load its header from the file
+            if isinstance(ref_header, (str, Path)):
+                ref_header = nib.load(ref_header).header
+            # if header is not already an MGHHeader, convert it to MGHHeader, so we have the get_vox2ras_tkr function
+            mgh_header = ref_header if isinstance(ref_header, MGHHeader) else MGHHeader.from_header(ref_header)
+            v = apply_affine(mgh_header.get_vox2ras_tkr(), self.v)
+
         whippersnappy.snap1(
             mesh=(v, self.t),
             overlay=self.mesh_vertex_colors,
-            view=None,
-            viewmat=self.__create_cc_viewmat(),
+            view=self.__create_cc_viewmat(),
             width=3 * 500,
             height=3 * 300,
             outpath=str(output_path),
@@ -560,7 +568,7 @@ class CCMesh(lapy.TriaMesh):
             colorbar_scale=0.5,
             colorbar_y=0.88,
             colorbar_x=0.19,
-            brain_scale=2.1,
+            scale=2.1,
             fthresh=0,
             caption="Corpus Callosum thickness (mm)",
             caption_y=0.85,

@@ -5,11 +5,11 @@ from typing import Literal
 
 import nibabel as nib
 import numpy as np
-from nibabel.affines import apply_affine
 
 from CorpusCallosum.data.fsaverage_cc_template import load_fsaverage_cc_template
 from CorpusCallosum.shape.contour import CCContour
 from CorpusCallosum.shape.mesh import CCMesh
+from FastSurferCNN.utils import AffineMatrix4x4
 from FastSurferCNN.utils.logging import get_logger, setup_logging
 from FastSurferCNN.utils.lta import read_lta
 
@@ -221,8 +221,8 @@ def main(
     # we need to get the upright image header, which is the same as cc_up.lta applied to orig.
     elif Path(template_dir / "mri/orig.mgz").exists() and Path(template_dir / "mri/transforms/cc_up.lta").exists():
         image = nib.load(template_dir / "mri" / "orig.mgz")
-        lta_mat = read_lta(template_dir / "mri/transforms/cc_up.lta")["lta"]
-        image.affine = apply_affine(lta_mat, image.affine)
+        lta_mat: AffineMatrix4x4 = read_lta(template_dir / "mri/transforms/cc_up.lta")["lta"]
+        image.affine = lta_mat @ image.affine
         header = image.header
     else:
         header = None
@@ -245,7 +245,7 @@ def main(
     try:
         cc_mesh.snap_cc_picture(str(output_dir / "cc_mesh_snap.png"), ref_header=header)
         logger.info(f"Writing 3D snapshot image to {output_dir / 'cc_mesh_snap.png'}")
-    except RuntimeError:
+    except Exception:
         logger.warning("The cc_visualization script requires whippersnappy>=2.1 to makes screenshots, install with "
                        "`pip install whippersnappy>=2.1` !")
         raise
