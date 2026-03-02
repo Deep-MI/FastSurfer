@@ -1,6 +1,6 @@
 
 # set the binpath variable
-if [[ -z "$FASTSURFER_HOME" ]] ; then binpath="$( cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )/"
+if [[ -z "$FASTSURFER_HOME" ]] ; then binpath="$( cd -- "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 ; pwd -P )/"
 else binpath="$FASTSURFER_HOME/recon_surf/"
 fi
 export binpath
