@@ -937,14 +937,14 @@ def main(args: argparse.Namespace) -> Literal[0] | str:
         extra_header=lines,
         **write_kwargs,
     )
-    print(f"Partial volume stats for {dataframe.shape[0]} labels written to "
-          f"{segstatsfile}.")
+    logger = logging.getLogger(__name__)
+    logger.info(f"Partial volume stats for {dataframe.shape[0]} labels written to {segstatsfile}.")
     duration = (perf_counter_ns() - start) / 1e9
-    print(f"Calculation took {duration:.2f} seconds using up to {get_num_threads()} threads.")
+    logger.info(f"Calculation took {duration:.2f} seconds using up to {get_num_threads()} threads.")
 
     for _io_fut in _io_futures:
         if (e := _io_fut.exception()) is not None:
-            logging.getLogger(__name__).exception(e)
+            logger.exception(e)
 
     return 0
 
