@@ -214,24 +214,22 @@ def calculate_cc_index(cc_contour: np.ndarray, plot: bool = False) -> float:
     cc_index = (anterior_thickness + posterior_thickness + middle_thickness) / ap_distance
 
     if plot:
-        import matplotlib
         import matplotlib.pyplot as plt
-        curr_backend = matplotlib.get_backend()
-        plt.switch_backend("qtagg")
 
-        fig, ax = plt.subplots(figsize=(8, 6))
-        plot_cc_index_calculation(
-            ax,
-            cc_contour,
-            anterior_idx,
-            posterior_idx,
-            ap_intersections,
-            middle_intersections,
-            midpoint,
-        )
-        ax.legend()
-        plt.show()
-        plt.switch_backend(curr_backend)
+        from FastSurferCNN.utils.plotting import backend
+        with backend("qtagg"):
+            fig, ax = plt.subplots(figsize=(8, 6))
+            plot_cc_index_calculation(
+                ax,
+                cc_contour,
+                anterior_idx,
+                posterior_idx,
+                ap_intersections,
+                middle_intersections,
+                midpoint,
+            )
+            ax.legend()
+            plt.show()
 
     return cc_index
 

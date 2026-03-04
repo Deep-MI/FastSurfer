@@ -265,29 +265,29 @@ def connect_nearby_components(seg_arr: ArrayType, max_connection_distance: float
 
     # Plot components for debugging
     if plot:
-        import matplotlib
         import matplotlib.pyplot as plt
-        curr_backend = matplotlib.get_backend()
-        plt.switch_backend("qtagg")
-        n_components = len(component_sizes)
-        fig, axes = plt.subplots(1, n_components + 1, figsize=(5*(n_components + 1), 5))
-        if n_components == 1:
-            axes = [axes]
-        # Plot each component in a different color
-        for i, (comp_id, comp_size) in enumerate(component_sizes):
-            component_mask = labels_cc == comp_id
-            axes[i].imshow(component_mask[component_mask.shape[0]//2], cmap='gray')
-            axes[i].set_title(f'Component {comp_id}\nSize: {comp_size}')
-            axes[i].axis('off')
-        
-        # Plot the connected segmentation
-        axes[-1].imshow(connected_seg[connected_seg.shape[0]//2], cmap='gray')
-        axes[-1].set_title('Connected Segmentation')
-        axes[-1].axis('off')
-        plt.tight_layout()
-        plt.show()
-        plt.switch_backend(curr_backend)
-    
+
+        from FastSurferCNN.utils.plotting import backend
+
+        with backend("qtagg"):
+            n_components = len(component_sizes)
+            fig, axes = plt.subplots(1, n_components + 1, figsize=(5*(n_components + 1), 5))
+            if n_components == 1:
+                axes = [axes]
+            # Plot each component in a different color
+            for i, (comp_id, comp_size) in enumerate(component_sizes):
+                component_mask = labels_cc == comp_id
+                axes[i].imshow(component_mask[component_mask.shape[0]//2], cmap='gray')
+                axes[i].set_title(f'Component {comp_id}\nSize: {comp_size}')
+                axes[i].axis('off')
+
+            # Plot the connected segmentation
+            axes[-1].imshow(connected_seg[connected_seg.shape[0]//2], cmap='gray')
+            axes[-1].set_title('Connected Segmentation')
+            axes[-1].axis('off')
+            plt.tight_layout()
+            plt.show()
+
     return connected_seg
 
 

@@ -18,11 +18,8 @@ import nibabel as nib
 import numpy as np
 
 from FastSurferCNN.utils.common import update_docstring
-
-#from FastSurferCNN.utils.parser_defaults import FASTSURFER_ROOT
+from FastSurferCNN.utils.plotting import backend
 from HypVINN.config.hypvinn_files import HYPVINN_LUT
-
-#_doc_HYPVINN_LUT = os.path.relpath(HYPVINN_LUT, FASTSURFER_ROOT)
 
 
 def remove_values_from_list(the_list, val):
@@ -250,7 +247,8 @@ def plot_qc_images(
         prediction_path: Path,
         padd: int = 45,
         lut_file: Path = HYPVINN_LUT,
-        slice_step: int = 2):
+        slice_step: int = 2,
+) -> None:
     """
     Plot the quality control images for the subject.
 
@@ -290,39 +288,28 @@ def plot_qc_images(
     hypo_seg, cmap = map_hyposeg2label(hyposeg=mod_pred, lut_file=lut_file)
 
     if len(idx) > 0:
-
         crop_image = mod_image[idx, :, :]
-
         crop_seg = hypo_seg[idx, :, :]
-
-        cm = ndimage.center_of_mass(crop_seg > 0)
-
-        cm = np.asarray(cm).astype(int)
-
-        crop_image = crop_image[:, cm[1] - padd:cm[1] + padd, cm[2] - padd:cm[2] + padd]
-        crop_seg = crop_seg[:, cm[1] - padd:cm[1] + padd, cm[2] - padd:cm[2] + padd]
-
+        center_of_mass = np.asarray(ndimage.center_of_mass(crop_seg > 0), dtype=int)
     else:
         depth = hypo_seg.shape[0] // 2
         crop_image = mod_image[depth - 8:depth + 8, :, :]
         crop_seg = hypo_seg[depth - 8:depth + 8, :, :]
 
-        cm = [crop_image.shape[0] // 2, crop_image.shape[1] // 2, crop_image.shape[2] // 2]
-        cm = np.array(cm).astype(int)
+        center_of_mass = np.asarray([0, crop_image.shape[1] // 2, crop_image.shape[2] // 2], dtype=int)
 
-        crop_image = crop_image[:, cm[1] - padd:cm[1] + padd, cm[2] - padd:cm[2] + padd]
-        crop_seg = crop_seg[:, cm[1] - padd:cm[1] + padd, cm[2] - padd:cm[2] + padd]
+    com_indexer = (slice(None),) + tuple(slice(com - padd, com + padd) for com in center_of_mass[1:3])
 
-    crop_image = np.rot90(np.flip(crop_image, axis=0), k=-1, axes=(1, 2))
-    crop_seg = np.rot90(np.flip(crop_seg, axis=0), k=-1, axes=(1, 2))
+    def _data_around_com(data):
+        return np.rot90(np.flip(data[com_indexer], axis=0), k=-1, axes=(1, 2))
 
-    fig = plot_coronal_predictions(
-        cmap=cmap,
-        images_batch=crop_image,
-        pred_batch=crop_seg,
-        img_per_row=crop_image.shape[0],
-    )
+    with backend('agg'):
+        fig = plot_coronal_predictions(
+            cmap=cmap,
+            images_batch=_data_around_com(crop_image),
+            pred_batch=_data_around_com(crop_seg),
+            img_per_row=crop_image.shape[0],
+        )
 
-    fig.savefig(subject_qc_dir / HYPVINN_QC_IMAGE_NAME, transparent=False)
-
-    plt.close(fig)
+        fig.savefig(subject_qc_dir / HYPVINN_QC_IMAGE_NAME, transparent=False)
+        plt.close(fig)

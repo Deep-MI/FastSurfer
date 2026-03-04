@@ -23,16 +23,15 @@ from numpy import typing as npt
 
 if TYPE_CHECKING:
     import yacs.config
-    from nibabel.filebasedimages import FileBasedHeader
 
-from FastSurferCNN.utils import PLANES, Plane, logging, parser_defaults
+from FastSurferCNN.utils import PLANES, Plane, logging, nibabelHeader, parser_defaults
 from FastSurferCNN.utils.checkpoint import (
     get_checkpoints,
     get_config_file,
     load_checkpoint_config_defaults,
 )
 from FastSurferCNN.utils.common import update_docstring
-from FastSurferCNN.utils.parallel import SerialExecutor
+from FastSurferCNN.utils.parallel import SerialExecutor, thread_executor
 from HypVINN.config.hypvinn_files import HYPVINN_MASK_NAME, HYPVINN_SEG_NAME
 from HypVINN.data_loader.data_utils import hypo_map_label2subseg, rescale_image
 from HypVINN.inference import Inference
@@ -212,9 +211,9 @@ def main(
     int, str
         0, if successful, an error message describing the cause for the failure otherwise.
     """
-    from concurrent.futures import Future, ProcessPoolExecutor
+    from concurrent.futures import Future
 
-    pool = ProcessPoolExecutor(threads) if threads != 1 else SerialExecutor()
+    pool = thread_executor() if threads != 1 else SerialExecutor()
     prep_tasks: dict[str, Future] = {}
 
     # mapped freesurfer orig input name to the hypvinn t1 name
@@ -336,7 +335,7 @@ def main(
             ras_affine=affine,
             ras_header=header,
             subject_dir=subject_dir,
-            seg_file=hypo_segfile,
+            seg_file=Path(hypo_segfile),
             mask_file=hypo_maskfile,
             save_mask=True,
         )
@@ -346,10 +345,7 @@ def main(
                 plot_qc_images,
                 subject_qc_dir=subject_dir / "qc_snapshots",
                 orig_path=orig_path,
-                prediction_path=Path(subject_dir / "mri" /hypo_segfile),
-            )
-            qc_future.add_done_callback(
-                lambda x: logger.info(f"QC snapshots saved in {x.result()} seconds."),
+                prediction_path=subject_dir / "mri" / hypo_segfile,
             )
         else:
             qc_future = None
@@ -357,27 +353,30 @@ def main(
         logger.info("Computing stats")
         return_value = compute_stats(
             orig_path=orig_path,
-            prediction_path=Path(subject_dir / "mri" /hypo_segfile),
+            prediction_path=subject_dir / "mri" / hypo_segfile,
             stats_dir=subject_dir / "stats",
             threads=threads,
         )
         if return_value != 0:
+            # if not 0, return_value is a string describing the error
             logger.error(return_value)
 
-        logger.info(
-            f"Processing segmentation finished in {time() - seg:0.4f} seconds."
-        )
+        logger.info(f"Processing segmentation finished in {time() - seg:0.4f} seconds.")
     except (FileNotFoundError, RuntimeError) as e:
         logger.info(f"Failed Evaluation on {subject_name}:")
         logger.exception(e)
     else:
         if qc_future:
             # finish qc
-            qc_future.result()
+            if e := qc_future.exception():
+                logger.error(f"Failed to create qc snapshots for {subject_name}:")
+                logger.exception(e)
+            else:
+                logger.info(f"QC snapshots saved in {qc_future.result()} seconds.")
 
-        logger.info(
-            f"Processing whole pipeline finished in {time() - start:.4f} seconds."
-        )
+        logger.info(f"Processing whole pipeline finished in {time() - start:.4f} seconds.")
+
+        return 0
 
 
 def prepare_checkpoints(ckpt_ax, ckpt_cor, ckpt_sag):
@@ -409,7 +408,7 @@ def load_volumes(
 ) -> tuple[
     ModalityDict,
     npt.NDArray[float],
-    "FileBasedHeader",
+    "nibabelHeader",
     tuple[float, float, float],
     tuple[int, int, int],
 ]:
@@ -455,7 +454,7 @@ def load_volumes(
     t1_zoom = ()
     t2_zoom = ()
     affine: npt.NDArray[float] = np.ndarray([0])
-    header: FileBasedHeader | None = None
+    header: nibabelHeader | None = None
     zoom: tuple[float, float, float] = (0.0, 0.0, 0.0)
     size: tuple[int, ...] = (0, 0, 0)
 

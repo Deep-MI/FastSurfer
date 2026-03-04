@@ -31,6 +31,7 @@ __all__ = [
     "misc",
     "nibabelImage",
     "nibabelHeader",
+    "noop_context",
     "parser_defaults",
     "parallel",
     "Plane",
@@ -48,6 +49,7 @@ __all__ = [
     "Vector3d",
 ]
 
+from contextlib import contextmanager
 from typing import Literal, TypeVar
 
 # there are very few cases, when we do not need nibabel in any "full script" so always
@@ -92,3 +94,8 @@ Mask2d = ndarray[Shape2d, dtype[bool_]]
 Mask3d = ndarray[Shape3d, dtype[bool_]]
 Mask4d = ndarray[Shape4d, dtype[bool_]]
 RotationMatrix3x3 = ndarray[tuple[Literal[3], Literal[3]], dtype[float64]]
+
+@contextmanager
+def noop_context():
+    """A no-op context manager that does nothing."""
+    yield
