@@ -14,7 +14,7 @@
 
 from pathlib import Path
 
-import matplotlib.pyplot as plt
+import matplotlib.axes
 import nibabel as nib
 import numpy as np
 
@@ -23,7 +23,7 @@ from FastSurferCNN.utils import AffineMatrix4x4, Image3d, Vector2d, noop_context
 
 
 def plot_standardized_space(
-    ax_row: list[plt.Axes], 
+    ax_row: list[matplotlib.axes.Axes],
     vol: np.ndarray, 
     ac_coords: np.ndarray, 
     pc_coords: np.ndarray
@@ -32,7 +32,7 @@ def plot_standardized_space(
 
     Parameters
     ----------
-    ax_row : list[plt.Axes]
+    ax_row : list[matplotlib.axes.Axes]
         Row of axes to plot on (should be length 3).
     vol : np.ndarray
         Volume data to visualize.
@@ -124,6 +124,7 @@ def visualize_coordinate_spaces(
     3. standardized image space
     as a single image named 'ac_pc_spaces.png' in `output_dir`.
     """
+    from matplotlib import pyplot as plt
     fig, ax = plt.subplots(3, 3, figsize=(12, 12))
 
     # Original space (Column 0)
@@ -211,6 +212,9 @@ def plot_contours(
     num_plots = 1 + int(has_first_plot)
 
     with _backend_context():
+        # import here to have the correct backend set for non-GUI environments
+        from matplotlib import pyplot as plt
+
         fig, ax = plt.subplots(1, num_plots, sharex=True, sharey=True, figsize=(15, 10))
 
         # NOTE: For all plots imshow shows y inverted

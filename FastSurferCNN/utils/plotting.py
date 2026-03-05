@@ -14,6 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import logging
 from contextlib import contextmanager
 
 
@@ -39,4 +40,12 @@ def backend(backend: str):
         matplotlib.use(backend, force=True)
         yield
     finally:
-        matplotlib.use(original_backend, force=True)
+        try:
+            matplotlib.use(original_backend, force=True)
+        except Exception as e:
+            logger = logging.getLogger(__name__)
+            logger.warning(f"Failed switching back to the original matplotlib backend {original_backend}: "
+                           f"{', '.join(map(str, e.args))}")
+            # Fall back to a safe non-interactive backend if the original one cannot be restored in the current
+            # environment.
+            matplotlib.use("Agg", force=True)

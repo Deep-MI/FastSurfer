@@ -764,8 +764,7 @@ def main(args: argparse.Namespace) -> Literal[0] | str:
     read_lut = manager.make_read_hook(read_classes_from_lut)
     if lut_file := getattr(args, "lut", None):
         read_lut(lut_file, blocking=False)
-    # load these files in different threads to avoid waiting on IO
-    # (not parallel due to GIL though)
+    # load these files in different threads to avoid waiting on IO (not parallel due to GIL though)
     load_image = manager.make_read_hook(read_volume_file)
     preload_image = partial(load_image, blocking=False)
     preload_image(segfile)

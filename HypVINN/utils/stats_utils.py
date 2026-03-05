@@ -19,7 +19,6 @@ def compute_stats(
         orig_path: Path,
         prediction_path: Path,
         stats_dir: Path,
-        threads: int,
 ) -> int | str:
     """
     Compute statistics for the segmentation results.
@@ -32,8 +31,6 @@ def compute_stats(
         The path to the predicted segmentation.
     stats_dir : Path
         The directory for storing the statistics.
-    threads : int
-        The number of threads to be used.
 
     Returns
     -------
@@ -45,6 +42,11 @@ def compute_stats(
     ------
     RuntimeError
         If the main function from FastSurferCNN.segstats fails to run.
+
+    Notes
+    -----
+    The underlying segstats will read the number of threads from the global variable set via
+    `FastSurfer.utils.parallel.set_num_threads`.
     """
     from collections import namedtuple
 
@@ -67,7 +69,7 @@ def compute_stats(
     args.ids = labels
     args.merged_labels = []
     args.robust = None
-    args.threads = threads
+    # the threads argument no longer works, this is handled globally via set_num_threads and get_num_threads
     args.patch_size = 32
     args.device = "auto"
     args.lut = FASTSURFER_ROOT / "FastSurferCNN/config/FreeSurferColorLUT.txt"

@@ -13,7 +13,6 @@
 # limitations under the License.
 from pathlib import Path
 
-import matplotlib.pyplot as plt
 import nibabel as nib
 import numpy as np
 
@@ -312,4 +311,3 @@ def plot_qc_images(
         )
 
         fig.savefig(subject_qc_dir / HYPVINN_QC_IMAGE_NAME, transparent=False)
-        plt.close(fig)
