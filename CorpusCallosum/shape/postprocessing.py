@@ -592,14 +592,13 @@ def make_subdivision_mask(
     # Use only as many labels as needed based on the number of subdivisions
     # Number of regions = number of division lines + 1
     num_labels_needed = len(subdivision_lines) + 1
-    cc_labels_posterior_to_anterior = SUBSEGMENT_LABELS[:num_labels_needed]
+    cc_labels_anterior_to_posterior = SUBSEGMENT_LABELS[:num_labels_needed][::-1]
 
     # Initialize with first segment label
-    subdivision_mask = np.full(slice_shape, cc_labels_posterior_to_anterior[0], dtype=np.int32)
-
+    subdivision_mask = np.full(slice_shape, cc_labels_anterior_to_posterior[0], dtype=np.int32)
     # Process each subdivision line, subdivision_lines has for each division line the two points that are on the
     # contour and divide the subsegments
-    for label, segment_points in zip(cc_labels_posterior_to_anterior[1:], subdivision_lines, strict=True):
+    for label, segment_points in zip(cc_labels_anterior_to_posterior[1:], subdivision_lines, strict=True):
         # line_start and line_end are the intersection points of the CC subsegmentation boundary and the contour line
         line_start, line_end = segment_points
 
@@ -617,14 +616,14 @@ def make_subdivision_mask(
             from FastSurferCNN.utils.plotting import backend
             with backend("qtagg"):
                 plt.figure(figsize=(10, 8))
-                plt.imshow(subdivision_mask, cmap='tab10')
+                plkwargs = {f"v{op}": getattr(np, op)(cc_labels_anterior_to_posterior) for op in ("min", "max")}
+                plt.imshow(subdivision_mask, cmap='tab10', **plkwargs)
                 plt.colorbar(label='Subdivision')
                 plt.title('CC Subdivision Mask')
                 plt.xlabel('X')
                 plt.ylabel('Y')
                 plt.tight_layout()
                 plt.show()
-
     return subdivision_mask
 
 

@@ -119,11 +119,9 @@ def reduce_to_aseg(data_inseg: np.ndarray[ShapeType, _TDType]) -> np.ndarray[Sha
         The reduced segmentation.
     """
     LOGGER.info("Reducing to aseg ...")
-    # replace 2000... with 42
-    data_inseg[data_inseg >= 2000] = 42
-    # replace 1000... with 3
-    data_inseg[data_inseg >= 1000] = 3
-    return data_inseg
+    cortical_fill = np.full_like(data_inseg, 3)
+    cortical_fill[data_inseg >= 2000] = 42
+    return np.where(data_inseg >= 1000, cortical_fill, data_inseg)
 
 
 def create_mask(aseg_data: np.ndarray[ShapeType, _TDType], dnum: int, enum: int) \
