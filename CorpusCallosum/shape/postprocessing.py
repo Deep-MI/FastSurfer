@@ -629,19 +629,19 @@ def make_subdivision_mask(
         subdivision_mask[points_left_of_line] = label
         
         if plot: # interactive debug plot
-            import matplotlib
             import matplotlib.pyplot as plt
-            curr_backend = matplotlib.get_backend()
-            plt.switch_backend("qtagg")
-            plt.figure(figsize=(10, 8))
-            plt.imshow(subdivision_mask, cmap='tab10')
-            plt.colorbar(label='Subdivision')
-            plt.title('CC Subdivision Mask')
-            plt.xlabel('X')
-            plt.ylabel('Y')
-            plt.tight_layout()
-            plt.show()
-            plt.switch_backend(curr_backend)
+
+            from FastSurferCNN.utils.plotting import backend
+            with backend("qtagg"):
+                plt.figure(figsize=(10, 8))
+                plt.imshow(subdivision_mask, cmap='tab10')
+                plt.colorbar(label='Subdivision')
+                plt.title('CC Subdivision Mask')
+                plt.xlabel('X')
+                plt.ylabel('Y')
+                plt.tight_layout()
+                plt.show()
+
     return subdivision_mask
 
 

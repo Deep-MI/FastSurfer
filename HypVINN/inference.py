@@ -52,7 +52,6 @@ class Inference:
     def __init__(
             self,
             cfg,
-            threads: int = -1,
             async_io: bool = False,
             device: str = "auto",
             viewagg_device: str = "auto",
@@ -68,8 +67,6 @@ class Inference:
         ----------
         cfg : yacs.config.CfgNode
             The configuration node containing the parameters for the model.
-        threads : int, optional
-            The number of threads to use. Default is -1, which uses all available threads.
         async_io : bool, optional
             Whether to use asynchronous IO. Default is False.
         device : str, optional
@@ -77,8 +74,9 @@ class Inference:
         viewagg_device : str, optional
             The device to use for view aggregation. Can be 'auto', 'cpu', or 'cuda'. Default is 'auto'.
         """
-        self._threads = threads
-        torch.set_num_threads(self._threads)
+        from FastSurferCNN.utils.parallel import get_num_threads
+
+        torch.set_num_threads(get_num_threads())
         self._async_io = async_io
 
         # Set random seed from configs.

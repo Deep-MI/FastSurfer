@@ -205,25 +205,24 @@ def find_cc_endpoints(
     pc_startpoint_idx = np.argmin(np.linalg.norm(contour - posterior_anchor_2d[:, None], axis=0))
 
     if plot: # interactive debug plot of contour, ac, pc and endpoints
-        import matplotlib
         import matplotlib.pyplot as plt
-        curr_backend = matplotlib.get_backend()
-        plt.switch_backend("qtagg")
-        plt.figure(figsize=(10, 8))
-        plt.plot(contour[0, :], contour[1, :], 'b-', label='CC Contour', linewidth=2)
-        plt.plot(ac_2d[0], ac_2d[1], 'go', markersize=10, label='AC')
-        plt.plot(pc_2d[0], pc_2d[1], 'ro', markersize=10, label='PC')
-        plt.plot(anterior_anchor_2d[0], anterior_anchor_2d[1], 'g^', markersize=10, label='Anterior Anchor')
-        plt.plot(posterior_anchor_2d[0], posterior_anchor_2d[1], 'r^', markersize=10, label='Posterior Anchor')
-        plt.plot(contour[0, ac_startpoint_idx], contour[1, ac_startpoint_idx], 'g*', markersize=15, label='AC Endpoint')
-        plt.plot(contour[0, pc_startpoint_idx], contour[1, pc_startpoint_idx], 'r*', markersize=15, label='PC Endpoint')
-        plt.xlabel('A-S (mm)')
-        plt.ylabel('I-S (mm)')
-        plt.title('CC Contour with Endpoints')
-        plt.legend()
-        plt.axis('equal')
-        plt.grid(True, alpha=0.3)
-        plt.show()
-        plt.switch_backend(curr_backend)
+
+        from FastSurferCNN.utils.plotting import backend
+        with backend("qtagg"):
+            plt.figure(figsize=(10, 8))
+            plt.plot(contour[0, :], contour[1, :], 'b-', label='CC Contour', linewidth=2)
+            plt.plot(*ac_2d[0:2], 'go', markersize=10, label='AC')
+            plt.plot(*pc_2d[0:2], 'ro', markersize=10, label='PC')
+            plt.plot(*anterior_anchor_2d[0:2], 'g^', markersize=10, label='Anterior Anchor')
+            plt.plot(*posterior_anchor_2d[0:2], 'r^', markersize=10, label='Posterior Anchor')
+            plt.plot(*contour[0:2, ac_startpoint_idx], 'g*', markersize=15, label='AC Endpoint')
+            plt.plot(*contour[0:2, pc_startpoint_idx], 'r*', markersize=15, label='PC Endpoint')
+            plt.xlabel('A-S (mm)')
+            plt.ylabel('I-S (mm)')
+            plt.title('CC Contour with Endpoints')
+            plt.legend()
+            plt.axis('equal')
+            plt.grid(True, alpha=0.3)
+            plt.show()
 
     return ac_startpoint_idx, pc_startpoint_idx

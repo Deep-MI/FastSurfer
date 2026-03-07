@@ -23,16 +23,15 @@ from numpy import typing as npt
 
 if TYPE_CHECKING:
     import yacs.config
-    from nibabel.filebasedimages import FileBasedHeader
 
-from FastSurferCNN.utils import PLANES, Plane, logging, parser_defaults
+from FastSurferCNN.utils import PLANES, Plane, logging, nibabelHeader, parser_defaults
 from FastSurferCNN.utils.checkpoint import (
     get_checkpoints,
     get_config_file,
     load_checkpoint_config_defaults,
 )
 from FastSurferCNN.utils.common import update_docstring
-from FastSurferCNN.utils.parallel import SerialExecutor
+from FastSurferCNN.utils.parallel import get_num_threads, thread_executor
 from HypVINN.config.hypvinn_files import HYPVINN_MASK_NAME, HYPVINN_SEG_NAME
 from HypVINN.data_loader.data_utils import hypo_map_label2subseg, rescale_image
 from HypVINN.inference import Inference
@@ -157,7 +156,6 @@ def main(
         hypo_maskfile: str = HYPVINN_MASK_NAME,
         qc_snapshots: bool = False,
         reg_mode: Literal["coreg", "robust", "none"] = "coreg",
-        threads: int = -1,
         batch_size: int = 1,
         async_io: bool = False,
         device: str = "auto",
@@ -189,32 +187,29 @@ def main(
     cfg_sag : Path
         The path to the sagittal configuration file.
     hypo_segfile : str, default="{HYPVINN_SEG_NAME}"
-        The name of the hypothalamus segmentation file. Default is {HYPVINN_SEG_NAME}.
+        The name of the hypothalamus segmentation file.
     hypo_maskfile : str, default="{HYPVINN_MASK_NAME}"
-        The name of the hypothalamus mask file. Default is {HYPVINN_MASK_NAME}.
-    qc_snapshots : bool, optional
-        Whether to create QC snapshots. Default is False.
+        The name of the hypothalamus mask file.
+    qc_snapshots : bool, default=False
+        Whether to create QC snapshots.
     reg_mode : "coreg", "robust", "none", default="coreg"
-        The registration mode to use. Default is "coreg".
-    threads : int, default=-1
-        The number of threads to use. Default is -1, which uses all available threads.
+        The registration mode to use.
     batch_size : int, default=1
-        The batch size to use. Default is 1.
+        The batch size to use.
     async_io : bool, default=False
-        Whether to use asynchronous I/O. Default is False.
+        Whether to use asynchronous I/O.
     device : str, default="auto"
-        The device to use. Default is "auto", which automatically selects the device.
+        The device to use. "auto" automatically selects the device.
     viewagg_device : str, default="auto"
-        The view aggregation device to use. Default is "auto", which automatically selects the device.
+        The view aggregation device to use. "auto" automatically selects the device.
 
     Returns
     -------
     int, str
         0, if successful, an error message describing the cause for the failure otherwise.
     """
-    from concurrent.futures import Future, ProcessPoolExecutor
+    from concurrent.futures import Future
 
-    pool = ProcessPoolExecutor(threads) if threads != 1 else SerialExecutor()
     prep_tasks: dict[str, Future] = {}
 
     # mapped freesurfer orig input name to the hypvinn t1 name
@@ -225,7 +220,7 @@ def main(
     start = time()
     try:
         # Set up logging
-        prep_tasks["cp"] = pool.submit(prepare_checkpoints, ckpt_ax, ckpt_cor, ckpt_sag)
+        prep_tasks["cp"] = thread_executor().submit(prepare_checkpoints, ckpt_ax, ckpt_cor, ckpt_sag)
 
         kwargs = {}
         if t1_path is not None:
@@ -242,7 +237,7 @@ def main(
                 f"available."
             )
 
-        # Create output directory if it does not already exist.
+        # Create the output directory if it does not already exist.
         create_expand_output_directory(subject_dir, qc_snapshots)
         logger.info(f"Running HypVINN segmentation pipeline on subject {sid}")
         logger.info(f"Output will be stored in: {subject_dir}")
@@ -254,12 +249,12 @@ def main(
             # Note, that t1_path and t2_path are guaranteed to be not None via
             # get_hypvinn_mode, which only returns t1t2, if t1 and t2 exist.
             # hypvinn_preproc returns the path to the t2 that is registered to the t1
-            prep_tasks["reg"] = pool.submit(
+            prep_tasks["reg"] = thread_executor().submit(
                 hypvinn_preproc,
                 mode,
                 reg_mode,
                 subject_dir=Path(subject_dir),
-                threads=threads,
+                threads=get_num_threads(),
                 **kwargs,
             )
 
@@ -288,13 +283,12 @@ def main(
         if "reg" in prep_tasks:
             t2_path = prep_tasks["reg"].result()
             kwargs["t2_path"] = t2_path
-        prep_tasks["load"] = pool.submit(load_volumes, mode=mode, **kwargs)
+        prep_tasks["load"] = thread_executor().submit(load_volumes, mode=mode, **kwargs)
 
         # Set up model
         model = Inference(
             cfg=cfg_fin,
             async_io=async_io,
-            threads=threads,
             viewagg_device=viewagg_device,
             device=device,
         )
@@ -336,20 +330,17 @@ def main(
             ras_affine=affine,
             ras_header=header,
             subject_dir=subject_dir,
-            seg_file=hypo_segfile,
+            seg_file=Path(hypo_segfile),
             mask_file=hypo_maskfile,
             save_mask=True,
         )
         logger.info(f"Prediction successfully saved in {time_needed} seconds.")
         if qc_snapshots:
-            qc_future: Future | None = pool.submit(
+            qc_future: Future | None = thread_executor().submit(
                 plot_qc_images,
                 subject_qc_dir=subject_dir / "qc_snapshots",
                 orig_path=orig_path,
-                prediction_path=Path(subject_dir / "mri" /hypo_segfile),
-            )
-            qc_future.add_done_callback(
-                lambda x: logger.info(f"QC snapshots saved in {x.result()} seconds."),
+                prediction_path=subject_dir / "mri" / hypo_segfile,
             )
         else:
             qc_future = None
@@ -357,30 +348,36 @@ def main(
         logger.info("Computing stats")
         return_value = compute_stats(
             orig_path=orig_path,
-            prediction_path=Path(subject_dir / "mri" /hypo_segfile),
+            prediction_path=subject_dir / "mri" / hypo_segfile,
             stats_dir=subject_dir / "stats",
-            threads=threads,
         )
         if return_value != 0:
+            # if not 0, return_value is a string describing the error
             logger.error(return_value)
 
-        logger.info(
-            f"Processing segmentation finished in {time() - seg:0.4f} seconds."
-        )
+        logger.info(f"Processing segmentation finished in {time() - seg:0.4f} seconds.")
     except (FileNotFoundError, RuntimeError) as e:
         logger.info(f"Failed Evaluation on {subject_name}:")
         logger.exception(e)
+
+        return f"HypVINN segmentation pipeline failed with {type(e).__name__}: {'; '.join(map(str, e.args))}."
     else:
         if qc_future:
             # finish qc
-            qc_future.result()
+            if e := qc_future.exception():
+                logger.warning(f"Failed to create qc snapshots for {subject_name}:")
+                logger.exception(e)
 
-        logger.info(
-            f"Processing whole pipeline finished in {time() - start:.4f} seconds."
-        )
+                # Note that a failure of qc image generation is only a warning for the whole hypothalamus segmentation.
+            else:
+                logger.info(f"QC snapshots saved in {qc_future.result()} seconds.")
+
+        logger.info(f"Processing whole pipeline finished in {time() - start:.4f} seconds.")
+
+        return return_value
 
 
-def prepare_checkpoints(ckpt_ax, ckpt_cor, ckpt_sag):
+def prepare_checkpoints(ckpt_ax: str | Path, ckpt_cor: str | Path, ckpt_sag: str | Path)  -> None:
     """
     Prepare the checkpoints for the Hypothalamus Segmentation model.
 
@@ -389,11 +386,11 @@ def prepare_checkpoints(ckpt_ax, ckpt_cor, ckpt_sag):
 
     Parameters
     ----------
-    ckpt_ax : str
+    ckpt_ax : str, Path
         The path to the axial checkpoint file.
-    ckpt_cor : str
+    ckpt_cor : str. Path
         The path to the coronal checkpoint file.
-    ckpt_sag : str
+    ckpt_sag : str, Path
         The path to the sagittal checkpoint file.
     """
     logger.info("Checking or downloading default checkpoints ...")
@@ -409,7 +406,7 @@ def load_volumes(
 ) -> tuple[
     ModalityDict,
     npt.NDArray[float],
-    "FileBasedHeader",
+    "nibabelHeader",
     tuple[float, float, float],
     tuple[int, int, int],
 ]:
@@ -455,7 +452,7 @@ def load_volumes(
     t1_zoom = ()
     t2_zoom = ()
     affine: npt.NDArray[float] = np.ndarray([0])
-    header: FileBasedHeader | None = None
+    header: nibabelHeader | None = None
     zoom: tuple[float, float, float] = (0.0, 0.0, 0.0)
     size: tuple[int, ...] = (0, 0, 0)
 

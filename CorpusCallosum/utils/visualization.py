@@ -14,17 +14,16 @@
 
 from pathlib import Path
 
-import matplotlib
-import matplotlib.pyplot as plt
+import matplotlib.axes
 import nibabel as nib
 import numpy as np
 
 from CorpusCallosum.utils.types import ContourList, Polygon2dType
-from FastSurferCNN.utils import AffineMatrix4x4, Image3d, Vector2d
+from FastSurferCNN.utils import AffineMatrix4x4, Image3d, Vector2d, noop_context
 
 
 def plot_standardized_space(
-    ax_row: list[plt.Axes], 
+    ax_row: list[matplotlib.axes.Axes],
     vol: np.ndarray, 
     ac_coords: np.ndarray, 
     pc_coords: np.ndarray
@@ -33,7 +32,7 @@ def plot_standardized_space(
 
     Parameters
     ----------
-    ax_row : list[plt.Axes]
+    ax_row : list[matplotlib.axes.Axes]
         Row of axes to plot on (should be length 3).
     vol : np.ndarray
         Volume data to visualize.
@@ -125,6 +124,7 @@ def visualize_coordinate_spaces(
     3. standardized image space
     as a single image named 'ac_pc_spaces.png' in `output_dir`.
     """
+    from matplotlib import pyplot as plt
     fig, ax = plt.subplots(3, 3, figsize=(12, 12))
 
     # Original space (Column 0)
@@ -193,11 +193,12 @@ def plot_contours(
 
     from nibabel.affines import apply_affine
 
+    from FastSurferCNN.utils.plotting import backend
+
     if vox2ras is None and None in (split_contours, midline_equidistant, levelpaths):
         raise ValueError("vox_size must be provided if split_contours, midline_equidistant, or levelpaths are given.")
     
-    if output_path is not None:
-        matplotlib.use('Agg')  # Use non-GUI backend
+    _backend_context = noop_context if output_path is None else partial(backend, 'agg')  # Use non-GUI backend
 
     # convert vox_size from LIA to AS
     ras2vox = partial(apply_affine, np.linalg.inv(vox2ras)[1:, 1:])
@@ -210,50 +211,54 @@ def plot_contours(
     has_first_plot = not (len(_split_contours) == 0 and ac_coords_vox is None and pc_coords_vox is None)
     num_plots = 1 + int(has_first_plot)
 
-    fig, ax = plt.subplots(1, num_plots, sharex=True, sharey=True, figsize=(15, 10))
+    with _backend_context():
+        # import here to have the correct backend set for non-GUI environments
+        from matplotlib import pyplot as plt
 
-    # NOTE: For all plots imshow shows y inverted
-    current_plot = 0
+        fig, ax = plt.subplots(1, num_plots, sharex=True, sharey=True, figsize=(15, 10))
 
-    if _split_contours:
-        reference_contour = _split_contours[-1]
+        # NOTE: For all plots imshow shows y inverted
+        current_plot = 0
 
-    # This visualization uses voxel coordinates in fsaverage space...
-    if has_first_plot:
-        ax[current_plot].imshow(slice_or_slab[slice_or_slab.shape[0] // 2], cmap="gray")
-        ax[current_plot].set_title(title)
-    if _split_contours:
-        for this_contour in _split_contours:
-            ax[current_plot].fill(this_contour[1, :], this_contour[0, :], color="steelblue", alpha=0.25)
-            kwargs = {"color": "mediumblue", "linewidth": 0.7, "linestyle": "solid"}
-            ax[current_plot].plot(this_contour[1, :], this_contour[0, :], **kwargs)
-    if ac_coords_vox is not None:
-        ax[current_plot].scatter(ac_coords_vox[1], ac_coords_vox[0], color="red", marker="x")
-    if pc_coords_vox is not None:
-        ax[current_plot].scatter(pc_coords_vox[1], pc_coords_vox[0], color="blue", marker="x")
-    current_plot += int(has_first_plot)
-
-    ax[current_plot].imshow(slice_or_slab[slice_or_slab.shape[0] // 2], cmap="gray")
-    for this_path in _levelpaths:
-        ax[current_plot].plot(this_path[:, 1], this_path[:, 0], color="brown", linewidth=0.8)
-    ax[current_plot].set_title("Midline & Levelpaths")
-    if _midline_equi.shape[0] > 0:
-        ax[current_plot].plot(_midline_equi[:, 1], _midline_equi[:, 0], color="red")
-    if _split_contours:
-        ax[current_plot].plot(reference_contour[1, :], reference_contour[0, :], color="red", linewidth=0.5)
-
-    padding = 30
-    for a in ax.flatten():
-        a.set_aspect("equal", adjustable="box")
-        a.axis("off")
         if _split_contours:
-            # get bounding box of contours
-            a.set_xlim(reference_contour[1, :].min() - padding, reference_contour[1, :].max() + padding)
-            a.set_ylim((reference_contour[0, :]).max() + padding, (reference_contour[0, :]).min() - padding)
+            reference_contour = _split_contours[-1]
 
-    if output_path is None:
-        return plt.show()
-    for _output_path in (output_path if isinstance(output_path, (list, tuple)) else [output_path]):
-        Path(_output_path).parent.mkdir(parents=True, exist_ok=True)
-        fig.savefig(_output_path, dpi=300, bbox_inches="tight")
+        # This visualization uses voxel coordinates in fsaverage space...
+        if has_first_plot:
+            ax[current_plot].imshow(slice_or_slab[slice_or_slab.shape[0] // 2], cmap="gray")
+            ax[current_plot].set_title(title)
+        if _split_contours:
+            for this_contour in _split_contours:
+                ax[current_plot].fill(this_contour[1, :], this_contour[0, :], color="steelblue", alpha=0.25)
+                kwargs = {"color": "mediumblue", "linewidth": 0.7, "linestyle": "solid"}
+                ax[current_plot].plot(this_contour[1, :], this_contour[0, :], **kwargs)
+        if ac_coords_vox is not None:
+            ax[current_plot].scatter(ac_coords_vox[1], ac_coords_vox[0], color="red", marker="x")
+        if pc_coords_vox is not None:
+            ax[current_plot].scatter(pc_coords_vox[1], pc_coords_vox[0], color="blue", marker="x")
+        current_plot += int(has_first_plot)
+
+        ax[current_plot].imshow(slice_or_slab[slice_or_slab.shape[0] // 2], cmap="gray")
+        for this_path in _levelpaths:
+            ax[current_plot].plot(this_path[:, 1], this_path[:, 0], color="brown", linewidth=0.8)
+        ax[current_plot].set_title("Midline & Levelpaths")
+        if _midline_equi.shape[0] > 0:
+            ax[current_plot].plot(_midline_equi[:, 1], _midline_equi[:, 0], color="red")
+        if _split_contours:
+            ax[current_plot].plot(reference_contour[1, :], reference_contour[0, :], color="red", linewidth=0.5)
+
+        padding = 30
+        for a in ax.flatten():
+            a.set_aspect("equal", adjustable="box")
+            a.axis("off")
+            if _split_contours:
+                # get bounding box of contours
+                a.set_xlim(reference_contour[1, :].min() - padding, reference_contour[1, :].max() + padding)
+                a.set_ylim((reference_contour[0, :]).max() + padding, (reference_contour[0, :]).min() - padding)
+
+        if output_path is None:
+            return plt.show()
+        for _output_path in (output_path if isinstance(output_path, (list, tuple)) else [output_path]):
+            Path(_output_path).parent.mkdir(parents=True, exist_ok=True)
+            fig.savefig(_output_path, dpi=300, bbox_inches="tight")
     return None
