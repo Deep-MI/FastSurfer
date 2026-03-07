@@ -458,7 +458,7 @@
 <span id="hypvinn-utils-stats-utils"></span><h1>HypVINN.utils.stats_utils<a class="headerlink" href="#module-HypVINN.utils.stats_utils" title="Link to this heading">¶</a></h1>
 <dl class="py function">
 <dt class="sig sig-object py" id="HypVINN.utils.stats_utils.compute_stats">
-<span class="sig-prename descclassname"><span class="pre">HypVINN.utils.stats_utils.</span></span><span class="sig-name descname"><span class="pre">compute_stats</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">orig_path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">prediction_path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stats_dir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">threads</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//HypVINN/utils/stats_utils.py#L18-L74"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#HypVINN.utils.stats_utils.compute_stats" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">HypVINN.utils.stats_utils.</span></span><span class="sig-name descname"><span class="pre">compute_stats</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">orig_path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">prediction_path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stats_dir</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//HypVINN/utils/stats_utils.py#L18-L76"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#HypVINN.utils.stats_utils.compute_stats" title="Link to this definition">¶</a></dt>
 <dd><p>Compute statistics for the segmentation results.</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -468,8 +468,6 @@
 <dt><strong>prediction_path</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.14)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Path</span></code></a></span></dt><dd><p>The path to the predicted segmentation.</p>
 </dd>
 <dt><strong>stats_dir</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.14)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Path</span></code></a></span></dt><dd><p>The directory for storing the statistics.</p>
-</dd>
-<dt><strong>threads</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">int</span></code></a></span></dt><dd><p>The number of threads to be used.</p>
 </dd>
 </dl>
 </dd>
@@ -487,6 +485,9 @@ Exit code. Returns 0 upon successful execution.</p>
 </dl>
 </dd>
 </dl>
+<p class="rubric">Notes</p>
+<p>The underlying segstats will read the number of threads from the global variable set via
+<code class="xref py py-obj docutils literal notranslate"><span class="pre">FastSurfer.utils.parallel.set_num_threads</span></code>.</p>
 </dd></dl>
 
 </section>
