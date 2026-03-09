@@ -272,49 +272,32 @@ def recon_cc_surf_measures_multi(
             logger.info(f"Saving vtk file to {vtk_file_path}")
             io_futures.append(run(cc_mesh.write_vtk, vtk_file_path))
 
-        if wants_output("cc_thickness_overlay") and not wants_output("cc_thickness_image"):
+        if wants_output("cc_thickness_overlay"):
             overlay_file_path = output_path("cc_thickness_overlay")
             logger.info(f"Saving overlay file to {overlay_file_path}")
             io_futures.append(run(cc_mesh.write_morph_data, overlay_file_path))
 
         if any(wants_output(f"cc_{n}") for n in ("thickness_image", "surf")):
-            import nibabel as nib
-            up_data: Image3d[np.uint8] = np.empty(upright_header["dims"][:3], dtype=upright_header.get_data_dtype())
-            upright_img = nib.MGHImage(up_data, fsavg_vox2ras, upright_header)
             # the mesh is generated in upright coordinates, so we need to also transform to orig coordinates
             # Mesh is fsavg_midplane (RAS); we need to transform to voxel coordinates
             # fsavg ras is also on the midslice, so this is fine and we multiply in the IA and SP offsets
-            cc_mesh = cc_mesh.to_vox_coordinates(mesh_ras2vox=np.linalg.inv(fsavg_vox2ras @ orig2fsavg_vox2vox))
-            cc_surf_generated = False
-            if wants_output("cc_thickness_image"):
-                # this will also write overlay and surface
-                thickness_image_path = output_path("cc_thickness_image")
-                logger.info(f"Saving thickness image to {thickness_image_path}")
-                kwargs = {
-                    "fssurf_file": output_path("cc_surf") if wants_output("cc_surf") else None,
-                    "overlay_file": output_path("cc_thickness_overlay")
-                                    if wants_output("cc_thickness_overlay") else None,
-                    "ref_image": upright_img,
-                }
-                try:
-                    cc_mesh.snap_cc_picture(thickness_image_path, **kwargs)
-                    cc_surf_generated = True
-                except (ImportError, ModuleNotFoundError) as e:
-                    logger.error(
-                        "The thickness image was not generated because whippersnappy, glfw or OpenGL are not installed."
-                    )
-                    logger.exception(e)
-                except Exception as e:
-                    logger.error(
-                        "The thickness image was not generated (see below). On headless Linux systems or if the "
-                        "x-server cannot/should not be accessed due to other reasons, xvfb-run may be used to provide "
-                        "a virtual framebuffer for offscreen rendering."
-                    )
-                    logger.exception(e)
-            if not cc_surf_generated and wants_output("cc_surf"):
+            cc_mesh_orig = cc_mesh.to_vox_coordinates(mesh_ras2vox=np.linalg.inv(fsavg_vox2ras @ orig2fsavg_vox2vox))
+            if wants_output("cc_surf"):
                 surf_file_path = output_path("cc_surf")
                 logger.info(f"Saving surf file to {surf_file_path}")
-                io_futures.append(run(cc_mesh.write_fssurf, str(surf_file_path), image=upright_img))
+                io_futures.append(run(cc_mesh_orig.write_fssurf, surf_file_path, image=upright_header))
+
+            if wants_output("cc_thickness_image"):
+                thickness_image_path = output_path("cc_thickness_image")
+                logger.info(f"Saving thickness image to {thickness_image_path}")
+                try:
+                    cc_mesh_orig.snap_cc_picture(thickness_image_path, ref_header=upright_header)
+                except Exception as e:
+                    logger.error(
+                        "Generation of the thickness image failed (see below). Please ensure that whippersnappy and "
+                        "(for headless rendering) EGL libraries (libegl1) are available."
+                    )
+                    logger.exception(e)
 
         if not slice_cc_measures:
             logger.error("Error: No valid slices were found for postprocessing")
@@ -609,14 +592,13 @@ def make_subdivision_mask(
     # Use only as many labels as needed based on the number of subdivisions
     # Number of regions = number of division lines + 1
     num_labels_needed = len(subdivision_lines) + 1
-    cc_labels_posterior_to_anterior = SUBSEGMENT_LABELS[:num_labels_needed]
+    cc_labels_anterior_to_posterior = SUBSEGMENT_LABELS[:num_labels_needed][::-1]
 
     # Initialize with first segment label
-    subdivision_mask = np.full(slice_shape, cc_labels_posterior_to_anterior[0], dtype=np.int32)
-
+    subdivision_mask = np.full(slice_shape, cc_labels_anterior_to_posterior[0], dtype=np.int32)
     # Process each subdivision line, subdivision_lines has for each division line the two points that are on the
     # contour and divide the subsegments
-    for label, segment_points in zip(cc_labels_posterior_to_anterior[1:], subdivision_lines, strict=True):
+    for label, segment_points in zip(cc_labels_anterior_to_posterior[1:], subdivision_lines, strict=True):
         # line_start and line_end are the intersection points of the CC subsegmentation boundary and the contour line
         line_start, line_end = segment_points
 
@@ -634,14 +616,14 @@ def make_subdivision_mask(
             from FastSurferCNN.utils.plotting import backend
             with backend("qtagg"):
                 plt.figure(figsize=(10, 8))
-                plt.imshow(subdivision_mask, cmap='tab10')
+                plkwargs = {f"v{op}": getattr(np, op)(cc_labels_anterior_to_posterior) for op in ("min", "max")}
+                plt.imshow(subdivision_mask, cmap='tab10', **plkwargs)
                 plt.colorbar(label='Subdivision')
                 plt.title('CC Subdivision Mask')
                 plt.xlabel('X')
                 plt.ylabel('Y')
                 plt.tight_layout()
                 plt.show()
-
     return subdivision_mask
 
 

@@ -60,7 +60,7 @@ dependencies = [
 
 [project.optional-dependencies]
 qc  = [
-    'whippersnappy>=1.3.1',
+    'whippersnappy>=2.1',
 ]
 doc = [
     'fastsurfer[qc]',

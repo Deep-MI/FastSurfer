@@ -3,12 +3,15 @@ import sys
 from pathlib import Path
 from typing import Literal
 
+import nibabel as nib
 import numpy as np
 
 from CorpusCallosum.data.fsaverage_cc_template import load_fsaverage_cc_template
 from CorpusCallosum.shape.contour import CCContour
 from CorpusCallosum.shape.mesh import CCMesh
+from FastSurferCNN.utils import AffineMatrix4x4
 from FastSurferCNN.utils.logging import get_logger, setup_logging
+from FastSurferCNN.utils.lta import read_lta
 
 logger = get_logger(__name__)
 
@@ -39,7 +42,7 @@ def make_parser() -> argparse.ArgumentParser:
             "cc_mesh.vtk - VTK mesh file format "
             "cc_mesh.fssurf - FreeSurfer surface file "
             "cc_mesh_overlay.curv - FreeSurfer curvature overlay file "
-            "cc_mesh_snap.png - Screenshot/snapshot of the 3D mesh (requires whippersnappy>=1.3.1)",
+            "cc_mesh_snap.png - Screenshot/snapshot of the 3D mesh (requires whippersnappy>=2.1)",
         metavar="OUTPUT_DIR"
     )
     parser.add_argument(
@@ -213,6 +216,17 @@ def main(
     # 3D visualization
     cc_mesh = CCMesh.from_contours(contours, smooth=0)
 
+    if Path(output_dir / "mri" / "upright.mgz").exists():
+        header = nib.load(output_dir / "mri" / "upright.mgz").header
+    # we need to get the upright image header, which is the same as cc_up.lta applied to orig.
+    elif Path(template_dir / "mri/orig.mgz").exists() and Path(template_dir / "mri/transforms/cc_up.lta").exists():
+        image = nib.load(template_dir / "mri" / "orig.mgz")
+        lta_mat: AffineMatrix4x4 = read_lta(template_dir / "mri/transforms/cc_up.lta")["lta"]
+        image.affine = lta_mat @ image.affine
+        header = image.header
+    else:
+        header = None
+
     plot_kwargs = dict(
         colormap=colormap,
         color_range=color_range,
@@ -225,15 +239,16 @@ def main(
     logger.info(f"Writing vtk file to {output_dir / 'cc_mesh.vtk'}")
     cc_mesh.write_vtk(str(output_dir / "cc_mesh.vtk"))
     logger.info(f"Writing freesurfer surface file to {output_dir / 'cc_mesh.fssurf'}")
-    cc_mesh.write_fssurf(str(output_dir / "cc_mesh.fssurf"))
+    cc_mesh.write_fssurf(str(output_dir / "cc_mesh.fssurf"), image=header)
     logger.info(f"Writing freesurfer overlay file to {output_dir / 'cc_mesh_overlay.curv'}")
     cc_mesh.write_morph_data(str(output_dir / "cc_mesh_overlay.curv"))
     try:
-        cc_mesh.snap_cc_picture(str(output_dir / "cc_mesh_snap.png"))
+        cc_mesh.snap_cc_picture(str(output_dir / "cc_mesh_snap.png"), ref_header=header)
         logger.info(f"Writing 3D snapshot image to {output_dir / 'cc_mesh_snap.png'}")
-    except RuntimeError:
-        logger.warning("The cc_visualization script requires whippersnappy>=1.3.1 to makes screenshots, install with "
-                "`pip install whippersnappy>=1.3.1` !")
+    except Exception:
+        logger.warning("The cc_visualization script requires whippersnappy>=2.1 to makes screenshots, install with "
+                       "`pip install whippersnappy>=2.1` !")
+        raise
     return 0
 
 if __name__ == "__main__":
