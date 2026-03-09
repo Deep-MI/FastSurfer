@@ -458,13 +458,13 @@
 <span id="corpuscallosum-paint-cc-into-pred"></span><h1>CorpusCallosum.paint_cc_into_pred<a class="headerlink" href="#module-CorpusCallosum.paint_cc_into_pred" title="Link to this heading">¶</a></h1>
 <dl class="py function">
 <dt class="sig sig-object py" id="CorpusCallosum.paint_cc_into_pred.argument_parse">
-<span class="sig-prename descclassname"><span class="pre">CorpusCallosum.paint_cc_into_pred.</span></span><span class="sig-name descname"><span class="pre">argument_parse</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//CorpusCallosum/paint_cc_into_pred.py#L62-L72"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CorpusCallosum.paint_cc_into_pred.argument_parse" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">CorpusCallosum.paint_cc_into_pred.</span></span><span class="sig-name descname"><span class="pre">argument_parse</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//CorpusCallosum/paint_cc_into_pred.py#L60-L70"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CorpusCallosum.paint_cc_into_pred.argument_parse" title="Link to this definition">¶</a></dt>
 <dd><p>Create a command line interface and return command line options.</p>
 </dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="CorpusCallosum.paint_cc_into_pred.correct_wm_ventricles">
-<span class="sig-prename descclassname"><span class="pre">CorpusCallosum.paint_cc_into_pred.</span></span><span class="sig-name descname"><span class="pre">correct_wm_ventricles</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">aseg_cc</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fornix_mask</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">voxel_size</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">close_gap_size_mm</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">3.0</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//CorpusCallosum/paint_cc_into_pred.py#L335-L392"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CorpusCallosum.paint_cc_into_pred.correct_wm_ventricles" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">CorpusCallosum.paint_cc_into_pred.</span></span><span class="sig-name descname"><span class="pre">correct_wm_ventricles</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">aseg_cc</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fornix_mask</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">voxel_size</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">close_gap_size_mm</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">3.0</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//CorpusCallosum/paint_cc_into_pred.py#L330-L390"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CorpusCallosum.paint_cc_into_pred.correct_wm_ventricles" title="Link to this definition">¶</a></dt>
 <dd><p>Fill small gaps between corpus callosum, ventricles, and background.</p>
 <p>This function performs two gap-filling operations:
 1. Fills WM and background gaps between CC and ventricles with ventricle labels
@@ -474,9 +474,9 @@ in this function as they have been removed from the processing pipeline.</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><dl>
-<dt><strong>aseg_cc</strong><span class="classifier"><code class="xref py py-obj docutils literal notranslate"><span class="pre">npt.NDArray</span></code>[<code class="xref py py-obj docutils literal notranslate"><span class="pre">np.int_</span></code>]</span></dt><dd><p>Aseg segmentation with CC already painted in.</p>
+<dt><strong>aseg_cc</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.4)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></span></dt><dd><p>Aseg segmentation with CC already painted in.</p>
 </dd>
-<dt><strong>fornix_mask</strong><span class="classifier"><code class="xref py py-obj docutils literal notranslate"><span class="pre">npt.NDArray</span></code>[<code class="xref py py-obj docutils literal notranslate"><span class="pre">np.bool_</span></code>]</span></dt><dd><p>Mask of the fornix. Not currently used (kept for interface compatibility).</p>
+<dt><strong>fornix_mask</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.4)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></span></dt><dd><p>Mask of the fornix. Not currently used (kept for interface compatibility).</p>
 </dd>
 <dt><strong>voxel_size</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">tuple</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a>]</span></dt><dd><p>Voxel size of the aseg image in mm.</p>
 </dd>
@@ -486,7 +486,7 @@ in this function as they have been removed from the processing pipeline.</p>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><dl class="simple">
-<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">npt.NDArray</span></code>[<code class="xref py py-obj docutils literal notranslate"><span class="pre">np.int_</span></code>]</dt><dd><p>Corrected segmentation map with filled gaps.</p>
+<dt><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.4)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></dt><dd><p>Corrected segmentation map with filled gaps.</p>
 </dd>
 </dl>
 </dd>
@@ -495,27 +495,24 @@ in this function as they have been removed from the processing pipeline.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="CorpusCallosum.paint_cc_into_pred.paint_in_cc">
-<span class="sig-prename descclassname"><span class="pre">CorpusCallosum.paint_cc_into_pred.</span></span><span class="sig-name descname"><span class="pre">paint_in_cc</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pred</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">aseg_cc</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//CorpusCallosum/paint_cc_into_pred.py#L113-L146"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CorpusCallosum.paint_cc_into_pred.paint_in_cc" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">CorpusCallosum.paint_cc_into_pred.</span></span><span class="sig-name descname"><span class="pre">paint_in_cc</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pred</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">aseg_cc</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//CorpusCallosum/paint_cc_into_pred.py#L111-L141"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CorpusCallosum.paint_cc_into_pred.paint_in_cc" title="Link to this definition">¶</a></dt>
 <dd><p>Paint corpus callosum segmentation into aseg+dkt segmentation map.</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><dl>
-<dt><strong>pred</strong><span class="classifier"><code class="xref py py-obj docutils literal notranslate"><span class="pre">npt.NDArray</span></code>[<code class="xref py py-obj docutils literal notranslate"><span class="pre">np.int_</span></code>]</span></dt><dd><p>Deep-learning segmentation map.</p>
+<dt><strong>pred</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.4)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></span></dt><dd><p>Deep-learning segmentation map.</p>
 </dd>
-<dt><strong>aseg_cc</strong><span class="classifier"><code class="xref py py-obj docutils literal notranslate"><span class="pre">npt.NDArray</span></code>[<code class="xref py py-obj docutils literal notranslate"><span class="pre">np.int_</span></code>]</span></dt><dd><p>Aseg segmentation with CC.</p>
+<dt><strong>aseg_cc</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.4)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></span></dt><dd><p>Aseg segmentation with CC.</p>
 </dd>
 </dl>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><dl class="simple">
-<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">npt.NDArray</span></code>[<code class="xref py py-obj docutils literal notranslate"><span class="pre">np.int_</span></code>]</dt><dd><p>Segmentation map with added CC.</p>
+<dt><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.4)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></dt><dd><p>Segmentation map with added CC.</p>
 </dd>
 </dl>
 </dd>
 </dl>
-<p class="rubric">Notes</p>
-<p>This function modifies the original array and does not create a copy.
-The CC labels (251-255) from aseg_cc are copied into pred.</p>
 </dd></dl>
 
 </section>
