@@ -31,7 +31,7 @@ from FastSurferCNN.utils.checkpoint import (
     load_checkpoint_config_defaults,
 )
 from FastSurferCNN.utils.common import update_docstring
-from FastSurferCNN.utils.parallel import get_num_threads, thread_executor
+from FastSurferCNN.utils.parallel import get_num_threads, set_num_threads, thread_executor
 from HypVINN.config.hypvinn_files import HYPVINN_MASK_NAME, HYPVINN_SEG_NAME
 from HypVINN.data_loader.data_utils import hypo_map_label2subseg, rescale_image
 from HypVINN.inference import Inference
@@ -155,6 +155,7 @@ def main(
         hypo_segfile: str = HYPVINN_SEG_NAME,
         hypo_maskfile: str = HYPVINN_MASK_NAME,
         qc_snapshots: bool = False,
+        threads: int | None = None,
         reg_mode: Literal["coreg", "robust", "none"] = "coreg",
         batch_size: int = 1,
         async_io: bool = False,
@@ -192,6 +193,8 @@ def main(
         The name of the hypothalamus mask file.
     qc_snapshots : bool, default=False
         Whether to create QC snapshots.
+    threads : int, optional
+        If not None, updates the FastSurfer global setting in `FastSurfer.utils.parallel`.
     reg_mode : "coreg", "robust", "none", default="coreg"
         The registration mode to use.
     batch_size : int, default=1
@@ -208,6 +211,9 @@ def main(
     int, str
         0, if successful, an error message describing the cause for the failure otherwise.
     """
+    if threads is not None and threads > 1:
+        set_num_threads(threads)
+
     from concurrent.futures import Future
 
     prep_tasks: dict[str, Future] = {}
