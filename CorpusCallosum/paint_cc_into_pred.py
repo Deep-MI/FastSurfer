@@ -369,23 +369,18 @@ def correct_wm_ventricles(
     
     # Get background mask
     background_mask = aseg_cc == 0
-    print(np.unique(corrected_pred))
-
     # 1. Fill gaps between CC and ventricles (replace WM and background with ventricle labels)
     _fill_gaps_between_structures_(
         corrected_pred, cc_mask, ventricle_mask, voxel_size, close_gap_size_mm,
         fillable_labels={0, 2, 41},  # background and WM
         description="between CC and ventricles (WM/background → ventricle)"
     )
-    print(np.unique(corrected_pred))
-
     # 2. Fill WM gaps between CC and background (replace WM with background)
     _fill_gaps_between_structures_(
         corrected_pred, cc_mask, background_mask, voxel_size, close_gap_size_mm,
         fillable_labels={2, 41},  # only WM
         description="between CC and background (WM → background)"
     )
-    print(np.unique(corrected_pred))
 
     return corrected_pred
 
