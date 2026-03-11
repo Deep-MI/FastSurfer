@@ -14,7 +14,8 @@
 
 
 # IMPORTS
-import optparse
+import argparse
+import logging
 import sys
 from typing import cast
 
@@ -22,8 +23,12 @@ import nibabel as nib
 import numpy as np
 from skimage.morphology import binary_dilation
 
+from FastSurferCNN.utils import ShapeType
+
+logger = logging.getLogger(__name__)
+
 HELPTEXT = """
-Script to perform quick qualtiy checks for the input segmentation to identify gross errors.
+Script to perform quick quality checks for the input segmentation to identify gross errors.
 
 USAGE:
 quick_qc.py --asegdkt_segfile <aparc+aseg.mgz>
@@ -40,36 +45,37 @@ VENT_LABELS = {
 BG_LABEL = 0
 
 
-def options_parse():
+def make_parser() -> argparse.ArgumentParser:
     """
-    Command line option parser.
+    Create the argument parser for quick_qc.
 
     Returns
     -------
-    options
-        Object holding options.
+    argparse.ArgumentParser
+        The argument parser object.
     """
-    parser = optparse.OptionParser(
-        version="$Id: quick_qc,v 1.0 2022/09/28 11:34:08 mreuter Exp $", usage=HELPTEXT
+    parser = argparse.ArgumentParser(
+        description=HELPTEXT,
     )
-    parser.add_option(
+    parser.add_argument(
         "--asegdkt_segfile",
         "--aparc_aseg_segfile",
         dest="asegdkt_segfile",
         help="Input aparc+aseg segmentation to be checked",
+        required=True,
     )
+    parser.add_argument(
+        "--verbose",
+        "-v",
+        action="count",
+        default=0,
+        help="Increase output verbosity (can be used twice times for DEBUG output)",
+    )
+    parser.add_argument("--version", action="version", version="%(prog)s 1.0 2022/09/28 11:34:08 mreuter Exp $")
+    return parser
 
-    (options, args) = parser.parse_args()
 
-    if options.asegdkt_segfile is None:
-        sys.exit(
-            "ERROR: Please specify input segmentation --asegdkt_segfile <filename>"
-        )
-
-    return options
-
-
-def check_volume(asegdkt_segfile:np.ndarray, voxvol: float, thres: float = 0.70):
+def check_volume(asegdkt_segfile: np.ndarray, voxvol: float, thres: float = 0.70) -> bool:
     """
     Check if total volume is bigger or smaller than threshold.
 
@@ -80,32 +86,29 @@ def check_volume(asegdkt_segfile:np.ndarray, voxvol: float, thres: float = 0.70)
     voxvol : float
         The volume of a voxel.
     thres : float, default=0.7
-        The threshold for the total volume (Default value = 0.70).
+        The threshold for the total volume.
 
     Returns
     -------
     bool
-        Whether or not total volume is bigger or smaller than threshold.
+        Whether or not total volume is bigger than the threshold `thres`.
     """
-    print("Checking total volume ...")
+    logger.debug("Checking total volume ...")
     mask = asegdkt_segfile > 0
     total_vol = np.sum(mask) * voxvol / 1000000
-    print(f"Voxel size in mm3: {voxvol}")
-    print(f"Total segmentation volume in liter: {np.round(total_vol, 2)}")
-    if total_vol < thres:
-        return False
-
-    return True
+    logger.debug(f"Voxel size in mm3: {voxvol}")
+    logger.info(f"Total segmentation volume in liter: {np.round(total_vol, 2)}")
+    return bool(total_vol > thres)
 
 
 def get_region_bg_intersection_mask(
-    seg_array, region_labels=VENT_LABELS, bg_label=BG_LABEL
+        seg_array: np.ndarray[ShapeType, np.dtype[np.integer]],
+        region_labels: dict[str, int] = VENT_LABELS, bg_label = BG_LABEL,
 ):
     """
     Return a mask of the intersection between the voxels of a given region and background voxels.
 
-    This is obtained by dilating the region by 1 voxel and computing the intersection with the
-    background mask.
+    This is obtained by dilating the region by 1 voxel and computing the intersection with the background mask.
 
     The region can be defined by passing in the region_labels dict.
 
@@ -115,7 +118,7 @@ def get_region_bg_intersection_mask(
         Segmentation array.
     region_labels : dict, default=<dict VENT_LABELS>
         Dictionary whose values correspond to the desired region's labels (see Note).
-    bg_label : int,  default as in <BG_LABEL>
+    bg_label : int, default=<BG_LABEL>
         Label id of the background.
 
     Returns
@@ -126,32 +129,22 @@ def get_region_bg_intersection_mask(
     Notes
     -----
     VENT_LABELS is a dictionary containing labels for four regions related to the ventricles:
-    "Left-Lateral-Ventricle", "Right-Lateral-Ventricle", "Left-choroid-plexus", 
-    "Right-choroid-plexus" along with their corresponding integer label values 
-    (see also FreeSurferColorLUT.txt).
+    "Left-Lateral-Ventricle", "Right-Lateral-Ventricle", "Left-choroid-plexus", "Right-choroid-plexus"
+    along with their corresponding integer label values (see also FreeSurferColorLUT.txt).
     """
-    region_array = seg_array.copy()
-    conditions = np.all(
-        np.array([(region_array != value) for value in region_labels.values()]), axis=0
-    )
-    region_array[conditions] = 0
-    region_array[region_array != 0] = 1
+    from FastSurferCNN.utils.brainvolstats import mask_in_array
 
-    bg_array = seg_array.copy()
-    bg_array[bg_array != bg_label] = -1.0
-    bg_array[bg_array == bg_label] = 1
-    bg_array[bg_array != 1] = 0
-
+    region_array = mask_in_array(seg_array, list(region_labels.values()))
     region_array_dilated = binary_dilation(region_array)
 
-    bg_intersect = np.bitwise_and(
-        region_array_dilated.astype(int), bg_array.astype(int)
-    )
-
-    return bg_intersect
+    bg_array = (seg_array == bg_label)
+    return np.logical_and(bg_array, region_array_dilated)
 
 
-def get_ventricle_bg_intersection_volume(seg_array, voxvol):
+def get_ventricle_bg_intersection_volume(
+        seg_array: np.ndarray[ShapeType, np.dtype[np.integer]],
+        voxvol: float,
+) -> float:
     """
     Return a volume estimate for the intersection of ventricle voxels with background voxels.
 
@@ -175,26 +168,25 @@ def get_ventricle_bg_intersection_volume(seg_array, voxvol):
 
 if __name__ == "__main__":
     from FastSurferCNN.utils import nibabelImage
+    from FastSurferCNN.utils.logging import setup_logging
 
-    # Command Line options are error checking done here
-    options = options_parse()
-    print(f"Reading in aparc+aseg: {options.asegdkt_segfile} ...")
+    parser = make_parser()
+    options = parser.parse_args()
+
+    # default configuration of the logger, only stdout, no logfile
+    setup_logging(log_level=options.verbose)
+
+    logger.info(f"Reading in aparc+aseg: {options.asegdkt_segfile} ...")
     inseg = cast(nibabelImage, nib.load(options.asegdkt_segfile))
     inseg_data = np.asanyarray(inseg.dataobj)
-    inseg_header = inseg.header
-    inseg_voxvol = np.prod(inseg_header.get_zooms())
+    inseg_voxvol = float(np.prod(inseg.header.get_zooms()))
 
     # Ventricle-BG intersection volume check:
-    print("Estimating ventricle-background intersection volume...")
-    print(
-        f"Ventricle-background intersection volume in mm3:" \
-        f" {get_ventricle_bg_intersection_volume(inseg_data, inseg_voxvol):.2f}"
-    )
+    logger.debug("Estimating ventricle-background intersection volume...")
+    ventricle_volume = get_ventricle_bg_intersection_volume(inseg_data, inseg_voxvol)
+    logger.info(f"Ventricle-background intersection volume in mm3: {ventricle_volume :.2f}")
 
     # Total volume check:
     if not check_volume(inseg_data, inseg_voxvol):
-        print(
-            "WARNING: Total segmentation volume is very small. Segmentation may be "
-            "corrupted! Please check."
-        )
+        logger.warning("Total segmentation volume is very small. Segmentation may be corrupted! Please check!")
     sys.exit(0)
