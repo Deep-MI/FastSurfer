@@ -225,15 +225,16 @@ function check_allow_root()
 
 function softlink_or_copy()
 {
+  # Creates a symlink at file pointing to target; if that fails, for example because symlinks are not supported by the
+  # file system, copy the file instead. The baseline call is `ln -sf $1 $2 >> $3`.
   # params
-  # 1: file
-  # 2: target
+  # 1: link target (or file copy source) -> path to target of link / absolute or relative but relative to **file**!!
+  # 2: link (or file copy destination) -> path to link file / absolute or relative to cwd
   # 3: logfile
   # 4: cmdf
-  local LF="$3"
-  local ln_cmd=(ln -sf "$1" "$2")
-  local cp_cmd=(cp "$1" "$2")
+  local LF="$3" link_tgt_cp_src="$1" link_cp_dest="$2"
   if [[ $# -lt 3 ]] || [[ -z "$LF" ]] ; then echo "WARNING: Parameter 3 of softlink_or_copy missing!" ; fi
+  local ln_cmd=(ln -sf "$link_tgt_cp_src" "$link_cp_dest")
   if [[ $# -eq 4 ]]
   then
     local CMDF=$4
@@ -242,8 +243,12 @@ function softlink_or_copy()
       echo "$timecmd $(echo_quoted "${ln_cmd[@]}")"
       echo "if [[ \${PIPESTATUS[0]} != 0 ]]"
       echo "then"
-      echo "  echo $(echo_quoted "${cp_cmd[@]}")"
-      echo "  $timecmd $(echo_quoted "${cp_cmd[@]}")"
+      if [[ "$link_tgt_cp_src" != /* ]] ; then # relative path, defined with respect to $link_cp_dest
+        echo "dest=\$(dirname $(echo_quoted "$link_cp_dest"))/$(echo_quoted "$link_tgt_cp_src#"))"
+      else echo "dest=$(echo_quoted "$link_cp_dest")"
+      fi
+      echo "  echo \"cp $(echo_quoted "$link_tgt_cp_src") \\\"\$dest\\\"\""
+      echo "  $timecmd cp $(echo_quoted "$link_tgt_cp_src") \"\$dest\""
       echo "  if [[ \${PIPESTATUS[0]} != 0 ]] ; then exit 1 ; fi"
       echo "fi"
     } | tee -a "$CMDF"
@@ -253,13 +258,28 @@ function softlink_or_copy()
       $timecmd "${ln_cmd[@]}" 2>&1
       if [[ "${PIPESTATUS[0]}" != 0 ]]
       then
-        echo_quoted "${cp_cmd[@]}"
-        $timecmd "${cp_cmd[@]}" 2>&1
+        if [[ "$link_tgt_cp_src" != /* ]] ; then link_tgt_cp_src="$(dirname "$2")/$link_tgt_cp_src" ; fi # relative path
+        echo_quoted "cp" "$link_tgt_cp_src" "$link_cp_dest"
+        $timecmd "cp" "$link_tgt_cp_src" "$link_cp_dest" 2>&1
         if [[ "${PIPESTATUS[0]}" != 0 ]] ; then exit 1 ; fi
       fi
     } | tee -a "$LF"
     if [[ "${PIPESTATUS[0]}" != 0 ]]; then exit 1; fi # forward subshell exit to main script
   fi
+}
+
+function relative_to()
+{
+  # Generate a relative path from $2 to $3, so `ln -s $(relative_to python /path/src /path/target) /path/src` is valid.
+  # params
+  # python executable
+  # base to compute path from, must be the folder (no double quotes!)
+  # target to compute path to (no double quotes!)
+  script=('import sys'
+          'from pathlib import Path'
+          'base, target = sys.argv[sys.argv.index("-c")+1:]'
+          'print(Path(target).relative_to(Path(base).parent, walk_up=True))')
+  $1 -c "$(printf "%s\n" "${script[@]}")" "$2" "$3"
 }
 
 function echo_quoted()
