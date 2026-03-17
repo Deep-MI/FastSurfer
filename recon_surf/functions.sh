@@ -244,11 +244,12 @@ function softlink_or_copy()
       echo "if [[ \${PIPESTATUS[0]} != 0 ]]"
       echo "then"
       if [[ "$link_tgt_cp_src" != /* ]] ; then # relative path, defined with respect to $link_cp_dest
-        echo "dest=\$(dirname $(echo_quoted "$link_cp_dest"))/$(echo_quoted "$link_tgt_cp_src#"))"
-      else echo "dest=$(echo_quoted "$link_cp_dest")"
+        echo "  src=\$(dirname $(echo_quoted "$link_cp_dest"))/$(echo_quoted "$link_tgt_cp_src")"
+      else
+        echo "  src=$(echo_quoted "$link_tgt_cp_src")"
       fi
-      echo "  echo \"cp $(echo_quoted "$link_tgt_cp_src") \\\"\$dest\\\"\""
-      echo "  $timecmd cp $(echo_quoted "$link_tgt_cp_src") \"\$dest\""
+      echo "  echo \"cp \\\"\$src\\\" $(echo_quoted "$link_cp_dest")\""
+      echo "  $timecmd cp \"\$src\" $(echo_quoted "$link_cp_dest")"
       echo "  if [[ \${PIPESTATUS[0]} != 0 ]] ; then exit 1 ; fi"
       echo "fi"
     } | tee -a "$CMDF"
@@ -272,13 +273,12 @@ function relative_to()
 {
   # Generate a relative path from $2 to $3, so `ln -s $(relative_to python /path/src /path/target) /path/src` is valid.
   # params
-  # python executable
-  # base to compute path from, must be the folder (no double quotes!)
-  # target to compute path to (no double quotes!)
-  script=('import sys'
-          'from pathlib import Path'
+  # $1: python executable
+  # $2: base path whose directory is used as the starting point (e.g., the link path; start dir is dirname($2))
+  # $3: target path to compute the relative path to (normal shell quoting is allowed)
+  script=('import sys, os'
           'base, target = sys.argv[sys.argv.index("-c")+1:]'
-          'print(Path(target).relative_to(Path(base).parent, walk_up=True))')
+          'print(os.path.relpath(target, start=os.path.dirname(base)))')
   $1 -c "$(printf "%s\n" "${script[@]}")" "$2" "$3"
 }
 
