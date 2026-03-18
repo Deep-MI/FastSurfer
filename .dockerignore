@@ -13,9 +13,10 @@
 /Tutorial
 /uv.lock
 /venv
+/tools/debug-helpers
 /tools/Docker/Dockerfile*
-/tools/macos_build
-/tools/git-hooks
 /tools/export_pip-r.sh
+/tools/git-hooks
+/tools/macos_build
 /srun_fastsurfer.sh
 /requirements*.txt
