@@ -1102,7 +1102,13 @@ then
         exit 1
       fi
       # create a symlink of the stats file for the old file name
-      softlink_or_copy "$asegdkt_vinn_statsfile" "$asegdkt_statsfile" "$seg_log"
+      # at this point, $asegdkt_vinn_statsfile might be an absolute path, which causes problems in containers, so make
+      # the path relative, if both statsfiles are in $subject_dir (which will be almost always).
+      if [[ "$asegdkt_vinn_statsfile" == "$subject_dir/"* ]] && [[ "$asegdkt_statsfile" == "$subject_dir/"* ]]
+      then asegdkt_vinn_statsfile_=$(relative_to "$python" "$asegdkt_statsfile" "$asegdkt_vinn_statsfile")
+      else asegdkt_vinn_statsfile_=$asegdkt_vinn_statsfile
+      fi
+      softlink_or_copy "$asegdkt_vinn_statsfile_" "$asegdkt_statsfile" "$seg_log"
       # create the aseg only statsfile
       mask_name_manedit=$(add_file_suffix "$mask_name" "manedit")
       if [[ -e "$mask_name_manedit" ]] ; then mask_name="$mask_name_manedit" ; fi
