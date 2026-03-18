@@ -120,9 +120,9 @@ function run_it_cmdf()
   shift
   shift
   local cmd
-  cmd="$(echo_quoted "$@" | tee -a "$LF")"
+  cmd="$(echo_quoted "$@")"
   printf -v tmp %q "$cmd"
-  echo "echo $tmp" | tee -a "$CMDF"
+  echo "echo $tmp" >> "$CMDF"
   echo "$timecmd $cmd" | tee -a "$CMDF"
   echo "if [[ \${PIPESTATUS[0]} != 0 ]] ; then exit 1 ; fi" >> "$CMDF"
 }
