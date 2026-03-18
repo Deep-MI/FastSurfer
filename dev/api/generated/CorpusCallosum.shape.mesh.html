@@ -504,17 +504,23 @@ contours.</p>
 <tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">construct_adj_dir_tidx</span></code>()</p></td>
 <td><p>Construct directed adjacency matrix (edge graph) of triangle mesh.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">curvature</span></code>([smoothit])</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">critical_points</span></code>(vfunc)</p></td>
+<td><p>Compute critical points (extrema and saddles) of a function on mesh vertices.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">curvature</span></code>([smoothit])</p></td>
 <td><p>Compute various curvature values at vertices.</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">curvature_tria</span></code>([smoothit])</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">curvature_tria</span></code>([smoothit])</p></td>
 <td><p>Compute min and max curvature and directions on triangle faces.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">edges</span></code>([with_boundary])</p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">edges</span></code>([with_boundary])</p></td>
 <td><p>Compute vertices and adjacent triangle ids for each edge.</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">euler</span></code>()</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">euler</span></code>()</p></td>
 <td><p>Compute the Euler Characteristic.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">extract_level_paths</span></code>(vfunc, level[, eps])</p></td>
+<td><p>Extract level set paths as Polygon objects with triangle/edge metadata.</p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="#CorpusCallosum.shape.mesh.CCMesh.from_contours" title="CorpusCallosum.shape.mesh.CCMesh.from_contours"><code class="xref py py-obj docutils literal notranslate"><span class="pre">from_contours</span></code></a>(contours[, lr_center, closed, ...])</p></td>
 <td><p>Create a surface mesh by triangulating between consecutive contours.</p></td>
@@ -528,44 +534,50 @@ contours.</p>
 <tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">is_2d</span></code>()</p></td>
 <td><p>Check if the mesh was created with 2D vertices.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">is_closed</span></code>()</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">is_boundary</span></code>()</p></td>
+<td><p>Check which vertices are on the boundary.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">is_closed</span></code>()</p></td>
 <td><p>Check if triangle mesh is closed (no boundary edges).</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">is_manifold</span></code>()</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">is_manifold</span></code>()</p></td>
 <td><p>Check if triangle mesh is manifold (no edges with &gt;2 triangles).</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">is_oriented</span></code>()</p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">is_oriented</span></code>()</p></td>
 <td><p>Check if triangle mesh is oriented.</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">keep_largest_connected_component_</span></code>([clean])</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">keep_largest_connected_component_</span></code>([clean])</p></td>
 <td><p>Keep only the largest connected component of the mesh.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">level_length</span></code>(vfunc, level)</p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">level_length</span></code>(vfunc, level)</p></td>
 <td><p>Compute the length of level sets.</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">level_path</span></code>(vfunc, level[, get_tria_idx, ...])</p></td>
-<td><p>Extract levelset of vfunc at a specific level as a path of 3D points.</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">level_path</span></code>(vfunc, level[, get_tria_idx, ...])</p></td>
+<td><p>Extract a single level set path as an array of 3D points.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">map_tfunc_to_vfunc</span></code>(tfunc[, weighted])</p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">map_tfunc_to_vfunc</span></code>(tfunc[, weighted])</p></td>
 <td><p>Map triangle function to vertices by attributing 1/3 to each vertex.</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">map_vfunc_to_tfunc</span></code>(vfunc)</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">map_vfunc_to_tfunc</span></code>(vfunc)</p></td>
 <td><p>Map vertex function to triangles by averaging vertex values.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">normal_offset_</span></code>(d)</p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">normal_offset_</span></code>(d)</p></td>
 <td><p>Move vertices along their normals by distance d.</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">normalize_</span></code>()</p></td>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">normalize_</span></code>()</p></td>
 <td><p>Normalize TriaMesh to unit surface area and centroid at the origin.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">orient_</span></code>()</p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">orient_</span></code>()</p></td>
 <td><p>Re-orient triangles of manifold mesh to be consistent.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#CorpusCallosum.shape.mesh.CCMesh.plot_mesh" title="CorpusCallosum.shape.mesh.CCMesh.plot_mesh"><code class="xref py py-obj docutils literal notranslate"><span class="pre">plot_mesh</span></code></a>([output_path, colormap, ...])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#CorpusCallosum.shape.mesh.CCMesh.plot_mesh" title="CorpusCallosum.shape.mesh.CCMesh.plot_mesh"><code class="xref py py-obj docutils literal notranslate"><span class="pre">plot_mesh</span></code></a>([output_path, colormap, ...])</p></td>
 <td><p>Plot the mesh using Plotly for better performance and interactivity.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">read_fssurf</span></code>(filename)</p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">read_fssurf</span></code>(filename)</p></td>
 <td><p>Load triangle mesh from FreeSurfer surface geometry file.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">read_gifti</span></code>(filename)</p></td>
+<td><p>Load triangle mesh from a GIFTI surface file.</p></td>
 </tr>
 <tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">read_off</span></code>(filename)</p></td>
 <td><p>Load triangle mesh from OFF txt file.</p></td>
@@ -621,10 +633,13 @@ contours.</p>
 <tr class="row-odd"><td><p><a class="reference internal" href="#CorpusCallosum.shape.mesh.CCMesh.write_fssurf" title="CorpusCallosum.shape.mesh.CCMesh.write_fssurf"><code class="xref py py-obj docutils literal notranslate"><span class="pre">write_fssurf</span></code></a>(filename[, image])</p></td>
 <td><p>Save as Freesurfer Surface Geometry file (wrap Nibabel).</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#CorpusCallosum.shape.mesh.CCMesh.write_morph_data" title="CorpusCallosum.shape.mesh.CCMesh.write_morph_data"><code class="xref py py-obj docutils literal notranslate"><span class="pre">write_morph_data</span></code></a>(filename)</p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">write_gifti</span></code>(filename)</p></td>
+<td><p>Save mesh as a GIFTI surface file.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#CorpusCallosum.shape.mesh.CCMesh.write_morph_data" title="CorpusCallosum.shape.mesh.CCMesh.write_morph_data"><code class="xref py py-obj docutils literal notranslate"><span class="pre">write_morph_data</span></code></a>(filename)</p></td>
 <td><p>Write the thickness values as a FreeSurfer overlay file.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">write_vtk</span></code>(filename)</p></td>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">write_vtk</span></code>(filename)</p></td>
 <td><p>Save mesh as VTK file.</p></td>
 </tr>
 </tbody>
@@ -785,18 +800,27 @@ Options:
 <dd class="field-odd"><dl>
 <dt><strong>filename</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a></span></dt><dd><p>Filename to save to.</p>
 </dd>
-<dt><strong>image</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.14)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">object</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">None</span></code></a></span></dt><dd><p>Path to image, nibabel image object, or image header. If specified, the vertices
-are assumed to be in voxel coordinates and are converted to surface RAS (tkr)
-coordinates before saving. The expected order of coordinates is (x, y, z)
-matching the image voxel indices in nibabel.</p>
+<dt><strong>image</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.14)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">object</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">None</span></code></a></span></dt><dd><p>Path to image, nibabel image object, or image header. If specified, volume_info
+will be extracted from the image header, and by default, vertices are assumed to
+be in voxel coordinates and will be converted to surface RAS (tkr) before saving.
+The expected order of coordinates is (x, y, z) matching the image voxel indices
+in nibabel.</p>
+</dd>
+<dt><strong>coords_are_voxels</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">bool</span></code></a> or <a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">None</span></code></a>, default=None</span></dt><dd><p>Specifies whether vertices are in voxel coordinates. If None (default), the
+behavior is inferred: when image is provided, vertices are assumed to be in
+voxel space and converted to surface RAS; when image is not provided, vertices
+are assumed to already be in surface RAS. Set explicitly to True to force
+conversion (requires image), or False to skip conversion even when image is
+provided (only extracts volume_info).</p>
 </dd>
 </dl>
 </dd>
 <dt class="field-even">Raises<span class="colon">:</span></dt>
 <dd class="field-even"><dl class="simple">
-<dt><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#IOError" title="(in Python v3.14)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">IOError</span></code></a></dt><dd><p>If file cannot be written.</p>
+<dt><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.14)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ValueError</span></code></a></dt><dd><p>If coords_are_voxels is explicitly True but image is None.
+If image header cannot be processed.</p>
 </dd>
-<dt><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.14)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ValueError</span></code></a></dt><dd><p>If image header cannot be processed.</p>
+<dt><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#IOError" title="(in Python v3.14)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">IOError</span></code></a></dt><dd><p>If file cannot be written.</p>
 </dd>
 </dl>
 </dd>
