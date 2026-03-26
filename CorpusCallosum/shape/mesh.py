@@ -655,6 +655,14 @@ class CCMesh(lapy.TriaMesh):
         self.__make_parent_folder(filename)
         return super().write_fssurf(filename, image=image)
 
+    @update_docstring(parent_doc=TriaMesh.write_vtk.__doc__)
+    def write_vtk(self, filename: Path | str) -> None:
+        """{parent_doc}
+        Also creates parent directory if needed before writing the file.
+        """
+        self.__make_parent_folder(filename)
+        return super().write_vtk(filename)
+
     def write_morph_data(self, filename: Path | str) -> None:
         """Write the thickness values as a FreeSurfer overlay file.
 

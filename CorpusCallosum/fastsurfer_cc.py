@@ -44,6 +44,10 @@ from CorpusCallosum.data.read_write import (
     load_fsaverage_data,
 )
 from CorpusCallosum.localization import inference as localization_inference
+from CorpusCallosum.midplane_refinement import (
+    refine_midplane_with_distance_maps,
+    resample_segmentation_to_fsavg,
+)
 from CorpusCallosum.segmentation import inference as segmentation_inference
 from CorpusCallosum.segmentation import segmentation_postprocessing
 from CorpusCallosum.shape.contour import calculate_volume as calculate_cc_volume_contour
@@ -251,6 +255,36 @@ def make_parser() -> argparse.ArgumentParser:
         default=DEFAULT_OUTPUT_PATHS["orient_volume_lta"],
     )
     advanced.add_argument(
+        "--midplane_distance_map",
+        type=path_or_none,
+        help="Output path for the fsaverage-space left-right distance-difference volume used for midplane fitting.",
+        default=None,
+    )
+    advanced.add_argument(
+        "--midplane_fit_mask",
+        type=path_or_none,
+        help="Output path for the fsaverage-space candidate mask used for midplane fitting.",
+        default=None,
+    )
+    advanced.add_argument(
+        "--midplane_left_hemi_mask",
+        type=path_or_none,
+        help="Output path for the cleaned left-hemisphere mask used for the distance map.",
+        default=None,
+    )
+    advanced.add_argument(
+        "--midplane_right_hemi_mask",
+        type=path_or_none,
+        help="Output path for the cleaned right-hemisphere mask used for the distance map.",
+        default=None,
+    )
+    advanced.add_argument(
+        "--midplane_upright_aseg",
+        type=path_or_none,
+        help="Output path for the fsaverage-space transformed segmentation used to derive the midplane masks.",
+        default=None,
+    )
+    advanced.add_argument(
         "--qc_image",
         type=path_or_none,
         help="Output path for QC visualization image.",
@@ -390,6 +424,200 @@ def options_parse() -> argparse.Namespace:
             print(f"WARNING: Not writing '{_warnings_paths}', because --sd and --sid are not specified and "
                   f"its paths are relative.")
     return args
+
+
+def _prepare_lr_pair_labels(seg_data: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+    """Create matched left/right label-id arrays from a FreeSurfer-style segmentation."""
+    labels = np.unique(seg_data.astype(np.int32))
+    labels = labels[labels > 0]
+    label_set = set(labels.tolist())
+
+    left_ids = []
+    right_ids = []
+    for left_label in labels:
+        right_label = left_label + 1000
+        if right_label in label_set:
+            left_ids.append(int(left_label))
+            right_ids.append(int(right_label))
+
+    if not left_ids and 2 in label_set and 41 in label_set:
+        left_ids.append(2)
+        right_ids.append(41)
+
+    return np.asarray(left_ids, dtype=np.int32), np.asarray(right_ids, dtype=np.int32)
+
+
+def _score_midline_shift(
+    seg_in_fsavg: np.ndarray,
+    left_ids: np.ndarray,
+    right_ids: np.ndarray,
+    base_middle_vox: float,
+    shift_vox: int,
+    max_pairs_per_slice: int = 64,
+) -> tuple[float, int]:
+    """Score a left-right shift candidate using mirrored anatomy close to the midline."""
+    if left_ids.size == 0 or right_ids.size == 0:
+        return float("inf"), 0
+
+    x_mid = int(np.round(base_middle_vox + shift_vox))
+    if x_mid <= 1 or x_mid >= seg_in_fsavg.shape[0] - 2:
+        return float("inf"), 0
+
+    slab_half = 12
+    x0 = max(0, x_mid - slab_half)
+    x1 = min(seg_in_fsavg.shape[0], x_mid + slab_half + 1)
+    slab = seg_in_fsavg[x0:x1]
+
+    left_mask = np.isin(slab, left_ids)
+    right_mask = np.isin(slab, right_ids)
+    if not left_mask.any() or not right_mask.any():
+        return float("inf"), 0
+
+    distances: list[float] = []
+    for z_idx in range(slab.shape[2]):
+        left_slice = left_mask[:, :, z_idx]
+        right_slice = right_mask[:, :, z_idx]
+        if not left_slice.any() or not right_slice.any():
+            continue
+
+        right_x, right_y = np.where(right_slice)
+        if right_x.size == 0:
+            continue
+
+        if right_x.size > max_pairs_per_slice:
+            sample_idx = np.linspace(0, right_x.size - 1, max_pairs_per_slice).astype(int)
+            right_x = right_x[sample_idx]
+            right_y = right_y[sample_idx]
+
+        for rx, ry in zip(right_x, right_y, strict=False):
+            mirror_x = int(np.clip(2 * (x_mid - x0) - rx, 0, slab.shape[0] - 1))
+            left_row = left_slice[mirror_x]
+            if not left_row.any():
+                continue
+            left_y = np.where(left_row)[0]
+            distances.append(float(np.min(np.abs(left_y - ry))))
+
+    if not distances:
+        return float("inf"), 0
+
+    return float(np.median(distances)), len(distances)
+
+
+def refine_midline_lr_shift(
+    orig2fsavg_vox2vox: AffineMatrix4x4,
+    aseg_nib: nibabelImage,
+    fsavg_shape: Shape3d,
+    base_middle_vox: float,
+    max_shift_vox: int = 6,
+    step_vox: int = 1,
+) -> tuple[AffineMatrix4x4, int, float, dict[str, object]]:
+    """Refine the fsaverage alignment by a small left-right shift around the midsagittal plane."""
+    if max_shift_vox < 0 or step_vox <= 0:
+        return orig2fsavg_vox2vox, 0, float("inf"), {}
+
+    seg_data = np.asarray(aseg_nib.dataobj).astype(np.int32)
+    left_ids, right_ids = _prepare_lr_pair_labels(seg_data)
+    if left_ids.size == 0:
+        logger.warning("Midline refinement skipped: no left/right label pairs found.")
+        return orig2fsavg_vox2vox, 0, float("inf"), {}
+
+    seg_fsavg = affine_transform(
+        seg_data,
+        np.linalg.inv(orig2fsavg_vox2vox),
+        output_shape=fsavg_shape,
+        order=0,
+        mode="constant",
+        cval=0,
+        prefilter=False,
+    ).astype(np.int32)
+
+    candidate_scores: list[dict[str, int | float | None]] = []
+    zero_shift_score = float("inf")
+    zero_shift_support = 0
+    best_shift = 0
+    best_adjusted_score = float("inf")
+    best_raw_score = float("inf")
+    best_support = 0
+    shift_penalty = 0.25
+    min_improvement = 0.5
+    min_support = 32
+
+    for shift in range(-max_shift_vox, max_shift_vox + 1, step_vox):
+        raw_score, support = _score_midline_shift(
+            seg_fsavg,
+            left_ids,
+            right_ids,
+            base_middle_vox=base_middle_vox,
+            shift_vox=-shift,
+        )
+        adjusted_score = raw_score + shift_penalty * abs(shift)
+        candidate_scores.append({
+            "shift_vox": int(shift),
+            "raw_score": float(raw_score) if np.isfinite(raw_score) else None,
+            "adjusted_score": float(adjusted_score) if np.isfinite(adjusted_score) else None,
+            "support": int(support),
+        })
+        if shift == 0:
+            zero_shift_score = raw_score
+            zero_shift_support = support
+        if adjusted_score < best_adjusted_score:
+            best_adjusted_score = adjusted_score
+            best_raw_score = raw_score
+            best_shift = shift
+            best_support = support
+
+    diagnostics: dict[str, object] = {
+        "candidate_scores": candidate_scores,
+        "zero_shift_score": float(zero_shift_score) if np.isfinite(zero_shift_score) else None,
+        "zero_shift_support": int(zero_shift_support),
+        "selected_shift_raw_score": float(best_raw_score) if np.isfinite(best_raw_score) else None,
+        "selected_shift_adjusted_score": float(best_adjusted_score) if np.isfinite(best_adjusted_score) else None,
+        "selected_shift_support": int(best_support),
+        "shift_penalty": shift_penalty,
+        "min_improvement": min_improvement,
+        "min_support": min_support,
+    }
+
+    at_boundary = abs(best_shift) == max_shift_vox
+    insufficient_support = best_support < min_support
+    no_baseline = not np.isfinite(zero_shift_score)
+    small_improvement = (
+        np.isfinite(best_raw_score)
+        and np.isfinite(zero_shift_score)
+        and (zero_shift_score - best_raw_score) < min_improvement
+    )
+    reject_shift = (
+        best_shift == 0
+        or not np.isfinite(best_raw_score)
+        or at_boundary
+        or insufficient_support
+        or (not no_baseline and small_improvement)
+    )
+
+    diagnostics["rejected_boundary_shift"] = at_boundary
+    diagnostics["rejected_low_support"] = insufficient_support
+    diagnostics["rejected_small_improvement"] = (not no_baseline and small_improvement)
+
+    if reject_shift:
+        logger.info(
+            "Midline refinement applied no LR correction (best_shift=%d, raw_score=%s, zero_score=%s, support=%d).",
+            best_shift,
+            f"{best_raw_score:.3f}" if np.isfinite(best_raw_score) else "inf",
+            f"{zero_shift_score:.3f}" if np.isfinite(zero_shift_score) else "inf",
+            best_support,
+        )
+        return orig2fsavg_vox2vox, 0, zero_shift_score, diagnostics
+
+    updated_transform = offset_affine([best_shift, 0, 0]) @ orig2fsavg_vox2vox
+    logger.info(
+        "Midline refinement applied %+d vox LR correction in fsaverage space "
+        "(raw_score=%.3f, zero_score=%.3f, support=%d).",
+        best_shift,
+        best_raw_score,
+        zero_shift_score,
+        best_support,
+    )
+    return updated_transform, best_shift, best_raw_score, diagnostics
 
 
 def register_centroids_to_fsavg(aseg_nib: nibabelImage) \
@@ -589,6 +817,11 @@ def main(
     cc_mid_measures: str | Path | None = None,
     upright_lta: str | Path | None = None,
     orient_volume_lta: str | Path | None = None,
+    midplane_distance_map: str | Path | None = None,
+    midplane_fit_mask: str | Path | None = None,
+    midplane_left_hemi_mask: str | Path | None = None,
+    midplane_right_hemi_mask: str | Path | None = None,
+    midplane_upright_aseg: str | Path | None = None,
     cc_surf: str | Path | None = None,
     cc_thickness_overlay: str | Path | None = None,
     cc_html: str | Path | None = None,
@@ -713,6 +946,11 @@ def main(
         cc_mid_measures=cc_mid_measures,
         upright_lta=upright_lta,
         cc_orient_volume_lta=orient_volume_lta,
+        cc_midplane_distance_map=midplane_distance_map,
+        cc_midplane_fit_mask=midplane_fit_mask,
+        cc_midplane_left_hemi_mask=midplane_left_hemi_mask,
+        cc_midplane_right_hemi_mask=midplane_right_hemi_mask,
+        cc_midplane_upright_aseg=midplane_upright_aseg,
         cc_surf=cc_surf,
         cc_thickness_overlay=cc_thickness_overlay,
         cc_html=cc_html,
@@ -777,7 +1015,64 @@ def main(
 
     logger.info("Performing centroid registration to fsaverage space")
     orig2fsavg_vox2vox, orig2fsavg_ras2ras, fsavg_vox2ras, _fsavg_header_dict = register_centroids_to_fsavg(aseg_img)
+    midplane_refinement = refine_midplane_with_distance_maps(
+        orig2fsavg_vox2vox=orig2fsavg_vox2vox,
+        aseg_nib=aseg_img,
+        fsavg_shape=tuple(_fsavg_header_dict["dims"]),
+        base_middle_vox=float(FSAVERAGE_MIDDLE) / float(vox_size[0]),
+    )
+    orig2fsavg_vox2vox = midplane_refinement.updated_vox2vox
+    midline_shift_vox = midplane_refinement.center_shift_vox
+    midline_shift_diagnostics = midplane_refinement.diagnostics
+    orig2fsavg_ras2ras = fsavg_vox2ras @ orig2fsavg_vox2vox @ np.linalg.inv(orig.affine)
     fsavg_header = init_mgh_header(orig.header, _fsavg_header_dict)
+    midplane_upright_aseg_data = resample_segmentation_to_fsavg(
+        np.asarray(aseg_img.dataobj),
+        orig2fsavg_vox2vox,
+        tuple(_fsavg_header_dict["dims"]),
+    )
+
+    if sd.has_attribute("cc_midplane_distance_map"):
+        distance_map_path = sd.filename_by_attribute("cc_midplane_distance_map")
+        distance_map_path.parent.mkdir(exist_ok=True, parents=True)
+        futures.append(thread_executor().submit(
+            nib.save,
+            nib.MGHImage(midplane_refinement.debug_volumes.distance_diff.astype(np.float32),
+                         fsavg_vox2ras, orig.header),
+            distance_map_path,
+        ))
+    if sd.has_attribute("cc_midplane_fit_mask"):
+        fit_mask_path = sd.filename_by_attribute("cc_midplane_fit_mask")
+        fit_mask_path.parent.mkdir(exist_ok=True, parents=True)
+        futures.append(thread_executor().submit(
+            nib.save,
+            nib.MGHImage(midplane_refinement.debug_volumes.candidate_mask.astype(np.uint8), fsavg_vox2ras, orig.header),
+            fit_mask_path,
+        ))
+    if sd.has_attribute("cc_midplane_left_hemi_mask"):
+        left_hemi_mask_path = sd.filename_by_attribute("cc_midplane_left_hemi_mask")
+        left_hemi_mask_path.parent.mkdir(exist_ok=True, parents=True)
+        futures.append(thread_executor().submit(
+            nib.save,
+            nib.MGHImage(midplane_refinement.debug_volumes.left_mask.astype(np.uint8), fsavg_vox2ras, orig.header),
+            left_hemi_mask_path,
+        ))
+    if sd.has_attribute("cc_midplane_right_hemi_mask"):
+        right_hemi_mask_path = sd.filename_by_attribute("cc_midplane_right_hemi_mask")
+        right_hemi_mask_path.parent.mkdir(exist_ok=True, parents=True)
+        futures.append(thread_executor().submit(
+            nib.save,
+            nib.MGHImage(midplane_refinement.debug_volumes.right_mask.astype(np.uint8), fsavg_vox2ras, orig.header),
+            right_hemi_mask_path,
+        ))
+    if sd.has_attribute("cc_midplane_upright_aseg"):
+        upright_aseg_path = sd.filename_by_attribute("cc_midplane_upright_aseg")
+        upright_aseg_path.parent.mkdir(exist_ok=True, parents=True)
+        futures.append(thread_executor().submit(
+            nib.save,
+            nib.MGHImage(midplane_upright_aseg_data.astype(np.int32), fsavg_vox2ras, orig.header),
+            upright_aseg_path,
+        ))
 
     # start saving upright volume, this is the image in fsaverage space but not yet oriented via AC-PC
     if sd.has_attribute("upright_volume"):
@@ -1009,6 +1304,8 @@ def main(
     additional_metrics["subdivision_ratios"] = subdivisions
     additional_metrics["contour_smoothing"] = contour_smoothing
     additional_metrics["slice_selection"] = slice_selection
+    additional_metrics["midline_refine_shift_vox"] = int(midline_shift_vox)
+    additional_metrics["midline_refine_diagnostics"] = midline_shift_diagnostics
 
     # QC checks
     if len(outer_contours) > 1 and cc_volume_contour is not None:
@@ -1157,6 +1454,11 @@ if __name__ == "__main__":
         cc_mid_measures=options.cc_mid_measures,
         upright_lta=options.upright_lta,
         orient_volume_lta=options.orient_volume_lta,
+        midplane_distance_map=options.midplane_distance_map,
+        midplane_fit_mask=options.midplane_fit_mask,
+        midplane_left_hemi_mask=options.midplane_left_hemi_mask,
+        midplane_right_hemi_mask=options.midplane_right_hemi_mask,
+        midplane_upright_aseg=options.midplane_upright_aseg,
         cc_surf=options.cc_surf,
         cc_thickness_overlay=options.thickness_overlay,
         cc_html=options.cc_html,
