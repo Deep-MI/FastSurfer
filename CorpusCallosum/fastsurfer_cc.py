@@ -285,6 +285,14 @@ def make_parser() -> argparse.ArgumentParser:
         default=None,
     )
     advanced.add_argument(
+        "--midplane_method",
+        choices=["none", "lr_shift", "distance_map"],
+        default="distance_map",
+        help="Midsagittal plane refinement method. 'none': no refinement (baseline); "
+             "'lr_shift': 1D integer-voxel shift by scoring left-right label-pair mirroring; "
+             "'distance_map': 3D plane fit from hemisphere distance transforms (default).",
+    )
+    advanced.add_argument(
         "--qc_image",
         type=path_or_none,
         help="Output path for QC visualization image.",
@@ -822,6 +830,7 @@ def main(
     midplane_left_hemi_mask: str | Path | None = None,
     midplane_right_hemi_mask: str | Path | None = None,
     midplane_upright_aseg: str | Path | None = None,
+    midplane_method: str = "distance_map",
     cc_surf: str | Path | None = None,
     cc_thickness_overlay: str | Path | None = None,
     cc_html: str | Path | None = None,
@@ -1015,54 +1024,69 @@ def main(
 
     logger.info("Performing centroid registration to fsaverage space")
     orig2fsavg_vox2vox, orig2fsavg_ras2ras, fsavg_vox2ras, _fsavg_header_dict = register_centroids_to_fsavg(aseg_img)
-    midplane_refinement = refine_midplane_with_distance_maps(
-        orig2fsavg_vox2vox=orig2fsavg_vox2vox,
-        aseg_nib=aseg_img,
-        fsavg_shape=tuple(_fsavg_header_dict["dims"]),
-        base_middle_vox=float(FSAVERAGE_MIDDLE) / float(vox_size[0]),
-    )
-    orig2fsavg_vox2vox = midplane_refinement.updated_vox2vox
-    midline_shift_vox = midplane_refinement.center_shift_vox
-    midline_shift_diagnostics = midplane_refinement.diagnostics
+    _fsavg_shape = tuple(_fsavg_header_dict["dims"])
+    _base_middle_vox = float(FSAVERAGE_MIDDLE) / float(vox_size[0])
+    dm_result = None
+    if midplane_method == "distance_map":
+        dm_result = refine_midplane_with_distance_maps(
+            orig2fsavg_vox2vox=orig2fsavg_vox2vox,
+            aseg_nib=aseg_img,
+            fsavg_shape=_fsavg_shape,
+            base_middle_vox=_base_middle_vox,
+        )
+        orig2fsavg_vox2vox = dm_result.updated_vox2vox
+        midline_shift_vox = dm_result.center_shift_vox
+        midline_shift_diagnostics = dm_result.diagnostics
+    elif midplane_method == "lr_shift":
+        orig2fsavg_vox2vox, _lr_shift, _, midline_shift_diagnostics = refine_midline_lr_shift(
+            orig2fsavg_vox2vox=orig2fsavg_vox2vox,
+            aseg_nib=aseg_img,
+            fsavg_shape=_fsavg_shape,
+            base_middle_vox=_base_middle_vox,
+        )
+        midline_shift_vox = float(_lr_shift)
+    else:  # "none"
+        midline_shift_vox = 0.0
+        midline_shift_diagnostics = {}
     orig2fsavg_ras2ras = fsavg_vox2ras @ orig2fsavg_vox2vox @ np.linalg.inv(orig.affine)
     fsavg_header = init_mgh_header(orig.header, _fsavg_header_dict)
     midplane_upright_aseg_data = resample_segmentation_to_fsavg(
         np.asarray(aseg_img.dataobj),
         orig2fsavg_vox2vox,
-        tuple(_fsavg_header_dict["dims"]),
+        _fsavg_shape,
     )
 
-    if sd.has_attribute("cc_midplane_distance_map"):
+    if dm_result is not None and sd.has_attribute("cc_midplane_distance_map"):
         distance_map_path = sd.filename_by_attribute("cc_midplane_distance_map")
         distance_map_path.parent.mkdir(exist_ok=True, parents=True)
         futures.append(thread_executor().submit(
             nib.save,
-            nib.MGHImage(midplane_refinement.debug_volumes.distance_diff.astype(np.float32),
+            nib.MGHImage(dm_result.debug_volumes.distance_diff.astype(np.float32),
                          fsavg_vox2ras, orig.header),
             distance_map_path,
         ))
-    if sd.has_attribute("cc_midplane_fit_mask"):
+    if dm_result is not None and sd.has_attribute("cc_midplane_fit_mask"):
         fit_mask_path = sd.filename_by_attribute("cc_midplane_fit_mask")
         fit_mask_path.parent.mkdir(exist_ok=True, parents=True)
         futures.append(thread_executor().submit(
             nib.save,
-            nib.MGHImage(midplane_refinement.debug_volumes.candidate_mask.astype(np.uint8), fsavg_vox2ras, orig.header),
+            nib.MGHImage(dm_result.debug_volumes.candidate_mask.astype(np.uint8), fsavg_vox2ras, orig.header),
             fit_mask_path,
         ))
-    if sd.has_attribute("cc_midplane_left_hemi_mask"):
+    if dm_result is not None and sd.has_attribute("cc_midplane_left_hemi_mask"):
         left_hemi_mask_path = sd.filename_by_attribute("cc_midplane_left_hemi_mask")
         left_hemi_mask_path.parent.mkdir(exist_ok=True, parents=True)
         futures.append(thread_executor().submit(
             nib.save,
-            nib.MGHImage(midplane_refinement.debug_volumes.left_mask.astype(np.uint8), fsavg_vox2ras, orig.header),
+            nib.MGHImage(dm_result.debug_volumes.left_mask.astype(np.uint8), fsavg_vox2ras, orig.header),
             left_hemi_mask_path,
         ))
-    if sd.has_attribute("cc_midplane_right_hemi_mask"):
+    if dm_result is not None and sd.has_attribute("cc_midplane_right_hemi_mask"):
         right_hemi_mask_path = sd.filename_by_attribute("cc_midplane_right_hemi_mask")
         right_hemi_mask_path.parent.mkdir(exist_ok=True, parents=True)
         futures.append(thread_executor().submit(
             nib.save,
-            nib.MGHImage(midplane_refinement.debug_volumes.right_mask.astype(np.uint8), fsavg_vox2ras, orig.header),
+            nib.MGHImage(dm_result.debug_volumes.right_mask.astype(np.uint8), fsavg_vox2ras, orig.header),
             right_hemi_mask_path,
         ))
     if sd.has_attribute("cc_midplane_upright_aseg"):
@@ -1459,6 +1483,7 @@ if __name__ == "__main__":
         midplane_left_hemi_mask=options.midplane_left_hemi_mask,
         midplane_right_hemi_mask=options.midplane_right_hemi_mask,
         midplane_upright_aseg=options.midplane_upright_aseg,
+        midplane_method=options.midplane_method,
         cc_surf=options.cc_surf,
         cc_thickness_overlay=options.thickness_overlay,
         cc_html=options.cc_html,
