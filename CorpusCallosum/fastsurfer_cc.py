@@ -110,7 +110,7 @@ class ArgumentDefaultsHelpFormatter(HelpFormatter):
         """
         help = action.help
         if help is None:
-            help = ''
+            help = ""
 
         if "%(default)" not in help and not getattr(action, "required", False):
             if action.default is not argparse.SUPPRESS and not getattr(action.default, "DO_NOT_PRINT_DEFAULT", False):
@@ -154,33 +154,31 @@ def make_parser() -> argparse.ArgumentParser:
 
     def _set_help_sid(action):
         action.help = "The subject id to use."
+
     modify_argument(parser, "--sid", _set_help_sid)
 
     parser.add_argument(
-        "--num_thickness_points",
-        type=int,
-        default=100,
-        help="Number of points for thickness estimation."
+        "--num_thickness_points", type=int, default=100, help="Number of points for thickness estimation."
     )
     parser.add_argument(
         "--subdivisions",
         type=float,
-        nargs='*',
+        nargs="*",
         metavar="FRAC",
         default=_FixFloatFormattingList([1 / 6, 1 / 2, 2 / 3, 3 / 4], ".3f"),
         help="List of subdivision fractions for the corpus callosum subsegmentation."
-          "The method allows for an arbitrary number of fractions."
-          "By default it uses following Hofer-Frahms convention."
+        "The method allows for an arbitrary number of fractions."
+        "By default it uses following Hofer-Frahms convention.",
     )
     parser.add_argument(
         "--subdivision_method",
         default=_do_not_print("shape"),
         help="Method for contour subdivision. Options: <br>"
-             "- shape (default): Intercallosal subdivision perpendicular to intercallosal line, <br>"
-             "- vertical: orthogonal to the most anterior and posterior points in the AC/PC standardized CC contour, "
-             "<br>"
-             "- angular: subdivision based on equally spaced angles, as proposed by Hampel and colleagues, <br>"
-             "- eigenvector: primary direction, same as FreeSurfers mri_cc.",
+        "- shape (default): Intercallosal subdivision perpendicular to intercallosal line, <br>"
+        "- vertical: orthogonal to the most anterior and posterior points in the AC/PC standardized CC contour, "
+        "<br>"
+        "- angular: subdivision based on equally spaced angles, as proposed by Hampel and colleagues, <br>"
+        "- eigenvector: primary direction, same as FreeSurfers mri_cc.",
         choices=["shape", "vertical", "angular", "eigenvector"],
     )
     parser.add_argument(
@@ -188,12 +186,14 @@ def make_parser() -> argparse.ArgumentParser:
         type=int,
         default=5,
         help="Gaussian sigma for smoothing during contour detection. Higher values mean a smoother CC outline, at the "
-             "cost of precision.",
+        "cost of precision.",
     )
+
     def _slice_selection(a: str) -> SliceSelection:
         if (b := a.lower()) in ("middle", "all"):
             return b
         return int(a)
+
     parser.add_argument(
         "--slice_selection",
         type=_slice_selection,
@@ -206,11 +206,12 @@ def make_parser() -> argparse.ArgumentParser:
     advanced = parser.add_argument_group(
         title="Advanced options",
         description="Custom output paths, useful if no standard case directory is used. Relative paths are always "
-                    "relative to the subject_dir defined via --sd and --sid!",
+        "relative to the subject_dir defined via --sd and --sid!",
     )
     add_arguments(advanced, ["threads"])
     advanced.add_argument(
-        "--segmentation", "--seg",
+        "--segmentation",
+        "--seg",
         type=path_or_none,
         help="Output path for corpus callosum and fornix segmentation output.",
         default=Path(DEFAULT_OUTPUT_PATHS["segmentation"]),
@@ -237,7 +238,7 @@ def make_parser() -> argparse.ArgumentParser:
         "--upright_lta",
         type=path_or_none,
         help="Output path for upright LTA transform. This makes sure the midplane is at 128 in LR direction, "
-             "but no nodding correction is applied.",
+        "but no nodding correction is applied.",
         default=DEFAULT_OUTPUT_PATHS["upright_lta"],
     )
     advanced.add_argument(
@@ -250,8 +251,8 @@ def make_parser() -> argparse.ArgumentParser:
         "--orient_volume_lta",
         type=path_or_none,
         help="Output path for orientation volume LTA transform. This makes sure the midplane is the volume center, "
-             "the anterior and posterior commisures are on the coordinate line, and the posterior commissure is "
-             "at the origin - standardizing the head position.",
+        "the anterior and posterior commisures are on the coordinate line, and the posterior commissure is "
+        "at the origin - standardizing the head position.",
         default=DEFAULT_OUTPUT_PATHS["orient_volume_lta"],
     )
     advanced.add_argument(
@@ -287,10 +288,10 @@ def make_parser() -> argparse.ArgumentParser:
     advanced.add_argument(
         "--midplane_method",
         choices=["none", "lr_shift", "distance_map"],
-        default="distance_map",
+        default="lr_shift",
         help="Midsagittal plane refinement method. 'none': no refinement (baseline); "
-             "'lr_shift': 1D integer-voxel shift by scoring left-right label-pair mirroring; "
-             "'distance_map': 3D plane fit from hemisphere distance transforms (default).",
+        "'lr_shift': 1D integer-voxel shift by scoring left-right label-pair mirroring (default); "
+        "'distance_map': 3D plane fit from hemisphere distance transforms.",
     )
     advanced.add_argument(
         "--qc_image",
@@ -302,7 +303,7 @@ def make_parser() -> argparse.ArgumentParser:
         "--save_template_dir",
         type=path_or_none,
         help="Directory path where to save contours.txt and thickness_values.txt files. These files can be used to "
-             "visualize the CC shape and volume with the cc_visualization.py script.",
+        "visualize the CC shape and volume with the cc_visualization.py script.",
         default=None,
     )
     advanced.add_argument(
@@ -316,18 +317,19 @@ def make_parser() -> argparse.ArgumentParser:
         dest="cc_surf",
         type=path_or_none,
         help="Output path for surf file for visualization in freeview, use --save_template_dir and contours.txt to "
-             "obtain source CC contours.",
+        "obtain source CC contours.",
         default=DEFAULT_OUTPUT_PATHS["cc_surf"],
     )
     advanced.add_argument(
         "--thickness_overlay",
         type=path_or_none,
         help="Output path for corpus callosum thickness overlay file for visualization in freeview, use "
-             "--save_template_dir and thickness_values.txt to obtain source CC thickness values.",
+        "--save_template_dir and thickness_values.txt to obtain source CC thickness values.",
         default=DEFAULT_OUTPUT_PATHS["cc_thickness_overlay"],
     )
     advanced.add_argument(
-        "--cc_interactive_html", "--cc_html",
+        "--cc_interactive_html",
+        "--cc_html",
         dest="cc_html",
         type=path_or_none,
         help="Output path to the corpus callosum interactive 3D visualization HTML file.",
@@ -337,28 +339,28 @@ def make_parser() -> argparse.ArgumentParser:
         "--cc_surf_vtk",
         type=path_or_none,
         help=f"Output path for vtk file, showing the CC 3D mesh for visualization, use --save_template_dir and "
-             f"contours.txt to obtain source CC contours. Example: {DEFAULT_OUTPUT_PATHS['cc_surf_vtk']}.",
+        f"contours.txt to obtain source CC contours. Example: {DEFAULT_OUTPUT_PATHS['cc_surf_vtk']}.",
         default=None,
     )
     advanced.add_argument(
         "--softlabels_cc",
         type=path_or_none,
         help=f"Output path for corpus callosum softlabels, which contains the soft labels of each voxel. "
-             f"Example: {DEFAULT_OUTPUT_PATHS['softlabels_cc']}.",
+        f"Example: {DEFAULT_OUTPUT_PATHS['softlabels_cc']}.",
         default=None,
     )
     advanced.add_argument(
         "--softlabels_fn",
         type=path_or_none,
         help=f"Output path for fornix softlabels, which contains the soft labels of each voxel. "
-             f"Example: {DEFAULT_OUTPUT_PATHS['softlabels_fn']}.",
+        f"Example: {DEFAULT_OUTPUT_PATHS['softlabels_fn']}.",
         default=None,
     )
     advanced.add_argument(
         "--softlabels_background",
         type=path_or_none,
         help=f"Output path for background softlabels, which contains the probability of each voxel. "
-             f"Example: {DEFAULT_OUTPUT_PATHS['softlabels_background']}.",
+        f"Example: {DEFAULT_OUTPUT_PATHS['softlabels_background']}.",
         default=None,
     )
     ############ END OF OUTPUT PATHS ############
@@ -371,8 +373,8 @@ def options_parse() -> argparse.Namespace:
     args = parser.parse_args()
 
     # Reconstruct subject_dir from sd and sid (but sd might be stored as out_dir by parser_defaults)
-    sd_value = getattr(args, 'out_dir', None)
-    if sd_value and hasattr(args, 'sid') and args.sid:
+    sd_value = getattr(args, "out_dir", None)
+    if sd_value and hasattr(args, "sid") and args.sid:
         args.subject_dir = Path(sd_value) / args.sid
     else:
         args.subject_dir = None
@@ -380,19 +382,19 @@ def options_parse() -> argparse.Namespace:
     # Validation logic: must use either directory approach (--sd + --sid) OR file approach (--conf_name + --aseg_name)
     if sd_value:
         # Using directory approach - make sure sid was also provided
-        if not (hasattr(args, 'sid') and args.sid):
+        if not (hasattr(args, "sid") and args.sid):
             parser.error("When using --sd, you must also provide --sid.")
-    elif hasattr(args, 'sid') and args.sid:
+    elif hasattr(args, "sid") and args.sid:
         # If sid is provided without sd, that's an error
         if not sd_value:
             parser.error("When using --sid, you must also provide --sd.")
-    elif hasattr(args, 'conf_name') and args.conf_name:
+    elif hasattr(args, "conf_name") and args.conf_name:
         # Using file approach - make sure aseg_name was also provided
-        if not (hasattr(args, 'aseg_name') and args.aseg_name):
+        if not (hasattr(args, "aseg_name") and args.aseg_name):
             parser.error("When using --conf_name, you must also provide --aseg_name.")
-    elif hasattr(args, 'aseg_name') and args.aseg_name:
+    elif hasattr(args, "aseg_name") and args.aseg_name:
         # If aseg_name is provided without conf_name, that's an error
-        if not (hasattr(args, 'conf_name') and args.conf_name):
+        if not (hasattr(args, "conf_name") and args.conf_name):
             parser.error("When using --aseg_name, you must also provide --conf_name.")
     else:
         parser.error("You must specify either --sd and --sid OR both --conf_name and --aseg_name.")
@@ -415,9 +417,22 @@ def options_parse() -> argparse.Namespace:
                     f"absolute! But the argument passed to {arg} was {path}, i.e. not absolute."
                 )
 
-        all_paths = ("segmentation", "segmentation_in_orig", "cc_measures", "upright_lta", "orient_volume_lta",
-                     "cc_surf", "softlabels_cc", "softlabels_fn", "softlabels_background", "cc_mid_measures",
-                     "thickness_overlay", "qc_image", "thickness_image", "cc_html")
+        all_paths = (
+            "segmentation",
+            "segmentation_in_orig",
+            "cc_measures",
+            "upright_lta",
+            "orient_volume_lta",
+            "cc_surf",
+            "softlabels_cc",
+            "softlabels_fn",
+            "softlabels_background",
+            "cc_mid_measures",
+            "thickness_overlay",
+            "qc_image",
+            "thickness_image",
+            "cc_html",
+        )
 
         warnings_paths = []
         # Create parent directories for all output paths
@@ -429,28 +444,39 @@ def options_parse() -> argparse.Namespace:
                 setattr(args, path_name, None)
         if warnings_paths:
             _warnings_paths = "' '".join(warnings_paths)
-            print(f"WARNING: Not writing '{_warnings_paths}', because --sd and --sid are not specified and "
-                  f"its paths are relative.")
+            print(
+                f"WARNING: Not writing '{_warnings_paths}', because --sd and --sid are not specified and "
+                f"its paths are relative."
+            )
     return args
+
+
+# Standard FreeSurfer aseg left/right label pairs.
+_ASEG_LR_PAIRS: tuple[tuple[int, int], ...] = (
+    (2, 41),  # Cerebral-White-Matter
+    (3, 42),  # Cerebral-Cortex
+    (4, 43),  # Lateral-Ventricle
+    (5, 44),  # Inf-Lat-Vent
+    (7, 46),  # Cerebellum-White-Matter
+    (8, 47),  # Cerebellum-Cortex
+    (10, 49),  # Thalamus
+    (11, 50),  # Caudate
+    (12, 51),  # Putamen
+    (13, 52),  # Pallidum
+    (17, 53),  # Hippocampus
+    (18, 54),  # Amygdala
+    (26, 58),  # Accumbens-area
+    (28, 60),  # VentralDC
+)
 
 
 def _prepare_lr_pair_labels(seg_data: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
     """Create matched left/right label-id arrays from a FreeSurfer-style segmentation."""
-    labels = np.unique(seg_data.astype(np.int32))
-    labels = labels[labels > 0]
-    label_set = set(labels.tolist())
+    label_set = set(np.unique(seg_data.astype(np.int32)).tolist())
+    label_set.discard(0)
 
-    left_ids = []
-    right_ids = []
-    for left_label in labels:
-        right_label = left_label + 1000
-        if right_label in label_set:
-            left_ids.append(int(left_label))
-            right_ids.append(int(right_label))
-
-    if not left_ids and 2 in label_set and 41 in label_set:
-        left_ids.append(2)
-        right_ids.append(41)
+    left_ids = [lbl for lbl, r in _ASEG_LR_PAIRS if lbl in label_set and r in label_set]
+    right_ids = [r for lbl, r in _ASEG_LR_PAIRS if lbl in label_set and r in label_set]
 
     return np.asarray(left_ids, dtype=np.int32), np.asarray(right_ids, dtype=np.int32)
 
@@ -513,7 +539,7 @@ def _score_midline_shift(
 
 def refine_midline_lr_shift(
     orig2fsavg_vox2vox: AffineMatrix4x4,
-    aseg_nib: nibabelImage,
+    aseg_data: np.ndarray,
     fsavg_shape: Shape3d,
     base_middle_vox: float,
     max_shift_vox: int = 6,
@@ -523,21 +549,13 @@ def refine_midline_lr_shift(
     if max_shift_vox < 0 or step_vox <= 0:
         return orig2fsavg_vox2vox, 0, float("inf"), {}
 
-    seg_data = np.asarray(aseg_nib.dataobj).astype(np.int32)
+    seg_data = aseg_data.astype(np.int32)
     left_ids, right_ids = _prepare_lr_pair_labels(seg_data)
     if left_ids.size == 0:
         logger.warning("Midline refinement skipped: no left/right label pairs found.")
         return orig2fsavg_vox2vox, 0, float("inf"), {}
 
-    seg_fsavg = affine_transform(
-        seg_data,
-        np.linalg.inv(orig2fsavg_vox2vox),
-        output_shape=fsavg_shape,
-        order=0,
-        mode="constant",
-        cval=0,
-        prefilter=False,
-    ).astype(np.int32)
+    seg_fsavg = resample_segmentation_to_fsavg(seg_data, orig2fsavg_vox2vox, fsavg_shape)
 
     candidate_scores: list[dict[str, int | float | None]] = []
     zero_shift_score = float("inf")
@@ -559,12 +577,14 @@ def refine_midline_lr_shift(
             shift_vox=-shift,
         )
         adjusted_score = raw_score + shift_penalty * abs(shift)
-        candidate_scores.append({
-            "shift_vox": int(shift),
-            "raw_score": float(raw_score) if np.isfinite(raw_score) else None,
-            "adjusted_score": float(adjusted_score) if np.isfinite(adjusted_score) else None,
-            "support": int(support),
-        })
+        candidate_scores.append(
+            {
+                "shift_vox": int(shift),
+                "raw_score": float(raw_score) if np.isfinite(raw_score) else None,
+                "adjusted_score": float(adjusted_score) if np.isfinite(adjusted_score) else None,
+                "support": int(support),
+            }
+        )
         if shift == 0:
             zero_shift_score = raw_score
             zero_shift_support = support
@@ -602,9 +622,10 @@ def refine_midline_lr_shift(
         or (not no_baseline and small_improvement)
     )
 
+    diagnostics["no_baseline"] = no_baseline
     diagnostics["rejected_boundary_shift"] = at_boundary
     diagnostics["rejected_low_support"] = insufficient_support
-    diagnostics["rejected_small_improvement"] = (not no_baseline and small_improvement)
+    diagnostics["rejected_small_improvement"] = not no_baseline and small_improvement
 
     if reject_shift:
         logger.info(
@@ -628,8 +649,9 @@ def refine_midline_lr_shift(
     return updated_transform, best_shift, best_raw_score, diagnostics
 
 
-def register_centroids_to_fsavg(aseg_nib: nibabelImage) \
-        -> tuple[AffineMatrix4x4, AffineMatrix4x4, AffineMatrix4x4, MGHHeaderDict]:
+def register_centroids_to_fsavg(
+    aseg_nib: nibabelImage,
+) -> tuple[AffineMatrix4x4, AffineMatrix4x4, AffineMatrix4x4, MGHHeaderDict]:
     """Perform centroid-based registration between subject and fsaverage space.
 
     Computes a rigid transformation between the subject's segmentation and fsaverage space
@@ -678,7 +700,7 @@ def register_centroids_to_fsavg(aseg_nib: nibabelImage) \
     resolution_trans: AffineMatrix4x4 = np.diagflat(np.append(aseg_zooms_ras[[0, 2, 1]], [1])).astype(float)
 
     fsaverage_vox2ras, fsavg_header = fsaverage_data_future.result()
-    fsavg_header["delta"] = aseg_zooms_ras[[0, 2, 1]] # vox sizes in lia
+    fsavg_header["delta"] = aseg_zooms_ras[[0, 2, 1]]  # vox sizes in lia
     # fsavg_hires_vox2ras translation should be 128 always (independent of resolution)
     fsavg_hires_vox2ras: AffineMatrix4x4 = np.concatenate(
         [(resolution_trans @ fsaverage_vox2ras)[:, :3], fsaverage_vox2ras[:, 3:4]],
@@ -729,16 +751,16 @@ def localize_ac_pc(
         PC voxel coordinates with shape (2,) containing its [y,x] positions.
     """
     num_slices_to_analyze = resample_shape[0]
-    resample_shape = (num_slices_to_analyze + 2,) + resample_shape[1:] # 2 for context slices
+    resample_shape = (num_slices_to_analyze + 2,) + resample_shape[1:]  # 2 for context slices
     _midslices_fut = thread_executor().submit(
         affine_transform,
         orig_data,
-        np.linalg.inv(orig2midslice_vox2vox), # inverse is required for affine_transform
+        np.linalg.inv(orig2midslice_vox2vox),  # inverse is required for affine_transform
         output_shape=resample_shape,
-        order=2, # unclear, why this is not order=3
+        order=2,  # unclear, why this is not order=3
         mode="constant",
         cval=0,
-        prefilter=True, # unclear, why we are using a smoothing filter here
+        prefilter=True,  # unclear, why we are using a smoothing filter here
     )
 
     # get center of third ventricle from aseg and map to fsaverage space (voxel coordinates)
@@ -748,7 +770,9 @@ def localize_ac_pc(
 
     # get 5 mm of slices with 3 slices per inference (cropping num_slices_to_analyze + 2 slices around the center)
     ac_coords, pc_coords = localization_inference.run_inference_on_slice(
-        model_localization, _midslices_fut.result(), third_ventricle_center_vox[1:],
+        model_localization,
+        _midslices_fut.result(),
+        third_ventricle_center_vox[1:],
     )
 
     return ac_coords, pc_coords
@@ -830,7 +854,7 @@ def main(
     midplane_left_hemi_mask: str | Path | None = None,
     midplane_right_hemi_mask: str | Path | None = None,
     midplane_upright_aseg: str | Path | None = None,
-    midplane_method: str = "distance_map",
+    midplane_method: str = "lr_shift",
     cc_surf: str | Path | None = None,
     cc_thickness_overlay: str | Path | None = None,
     cc_html: str | Path | None = None,
@@ -1027,10 +1051,11 @@ def main(
     _fsavg_shape = tuple(_fsavg_header_dict["dims"])
     _base_middle_vox = float(FSAVERAGE_MIDDLE) / float(vox_size[0])
     dm_result = None
+    _aseg_data = np.asarray(aseg_img.dataobj)
     if midplane_method == "distance_map":
         dm_result = refine_midplane_with_distance_maps(
             orig2fsavg_vox2vox=orig2fsavg_vox2vox,
-            aseg_nib=aseg_img,
+            aseg_data=_aseg_data,
             fsavg_shape=_fsavg_shape,
             base_middle_vox=_base_middle_vox,
         )
@@ -1040,7 +1065,7 @@ def main(
     elif midplane_method == "lr_shift":
         orig2fsavg_vox2vox, _lr_shift, _, midline_shift_diagnostics = refine_midline_lr_shift(
             orig2fsavg_vox2vox=orig2fsavg_vox2vox,
-            aseg_nib=aseg_img,
+            aseg_data=_aseg_data,
             fsavg_shape=_fsavg_shape,
             base_middle_vox=_base_middle_vox,
         )
@@ -1059,44 +1084,53 @@ def main(
     if dm_result is not None and sd.has_attribute("cc_midplane_distance_map"):
         distance_map_path = sd.filename_by_attribute("cc_midplane_distance_map")
         distance_map_path.parent.mkdir(exist_ok=True, parents=True)
-        futures.append(thread_executor().submit(
-            nib.save,
-            nib.MGHImage(dm_result.debug_volumes.distance_diff.astype(np.float32),
-                         fsavg_vox2ras, orig.header),
-            distance_map_path,
-        ))
+        futures.append(
+            thread_executor().submit(
+                nib.save,
+                nib.MGHImage(dm_result.debug_volumes.distance_diff.astype(np.float32), fsavg_vox2ras, orig.header),
+                distance_map_path,
+            )
+        )
     if dm_result is not None and sd.has_attribute("cc_midplane_fit_mask"):
         fit_mask_path = sd.filename_by_attribute("cc_midplane_fit_mask")
         fit_mask_path.parent.mkdir(exist_ok=True, parents=True)
-        futures.append(thread_executor().submit(
-            nib.save,
-            nib.MGHImage(dm_result.debug_volumes.candidate_mask.astype(np.uint8), fsavg_vox2ras, orig.header),
-            fit_mask_path,
-        ))
+        futures.append(
+            thread_executor().submit(
+                nib.save,
+                nib.MGHImage(dm_result.debug_volumes.candidate_mask.astype(np.uint8), fsavg_vox2ras, orig.header),
+                fit_mask_path,
+            )
+        )
     if dm_result is not None and sd.has_attribute("cc_midplane_left_hemi_mask"):
         left_hemi_mask_path = sd.filename_by_attribute("cc_midplane_left_hemi_mask")
         left_hemi_mask_path.parent.mkdir(exist_ok=True, parents=True)
-        futures.append(thread_executor().submit(
-            nib.save,
-            nib.MGHImage(dm_result.debug_volumes.left_mask.astype(np.uint8), fsavg_vox2ras, orig.header),
-            left_hemi_mask_path,
-        ))
+        futures.append(
+            thread_executor().submit(
+                nib.save,
+                nib.MGHImage(dm_result.debug_volumes.left_mask.astype(np.uint8), fsavg_vox2ras, orig.header),
+                left_hemi_mask_path,
+            )
+        )
     if dm_result is not None and sd.has_attribute("cc_midplane_right_hemi_mask"):
         right_hemi_mask_path = sd.filename_by_attribute("cc_midplane_right_hemi_mask")
         right_hemi_mask_path.parent.mkdir(exist_ok=True, parents=True)
-        futures.append(thread_executor().submit(
-            nib.save,
-            nib.MGHImage(dm_result.debug_volumes.right_mask.astype(np.uint8), fsavg_vox2ras, orig.header),
-            right_hemi_mask_path,
-        ))
+        futures.append(
+            thread_executor().submit(
+                nib.save,
+                nib.MGHImage(dm_result.debug_volumes.right_mask.astype(np.uint8), fsavg_vox2ras, orig.header),
+                right_hemi_mask_path,
+            )
+        )
     if sd.has_attribute("cc_midplane_upright_aseg"):
         upright_aseg_path = sd.filename_by_attribute("cc_midplane_upright_aseg")
         upright_aseg_path.parent.mkdir(exist_ok=True, parents=True)
-        futures.append(thread_executor().submit(
-            nib.save,
-            nib.MGHImage(midplane_upright_aseg_data.astype(np.int32), fsavg_vox2ras, orig.header),
-            upright_aseg_path,
-        ))
+        futures.append(
+            thread_executor().submit(
+                nib.save,
+                nib.MGHImage(midplane_upright_aseg_data.astype(np.int32), fsavg_vox2ras, orig.header),
+                upright_aseg_path,
+            )
+        )
 
     # start saving upright volume, this is the image in fsaverage space but not yet oriented via AC-PC
     if sd.has_attribute("upright_volume"):
@@ -1126,7 +1160,6 @@ def main(
     fsavg2midslab_vox2vox = offset_affine([slices_to_analyze // 2, 0, 0]) @ fsavg2midslice_vox2vox
     fsaverage_midslab_vox2ras: AffineMatrix4x4 = fsavg_vox2ras @ np.linalg.inv(fsavg2midslab_vox2vox)
 
-
     #### do localization and segmentation inference
     logger.info("Starting AC/PC localization")
     target_shape: tuple[int, int, int] = (slices_to_analyze, fsavg_header["dims"][1], fsavg_header["dims"][2])
@@ -1143,12 +1176,14 @@ def main(
     target_shape: Shape3d = (slices_to_analyze + num_context, fsavg_header["dims"][1], fsavg_header["dims"][2])
     midslices: Image3d = affine_transform(
         np.asarray(orig.dataobj),
-        np.linalg.inv(_orig2midslab_vox2vox(additional_context=num_context)), # inverse is required for affine_transform
+        np.linalg.inv(
+            _orig2midslab_vox2vox(additional_context=num_context)
+        ),  # inverse is required for affine_transform
         output_shape=target_shape,
-        order=2, # @ClePol unclear, why this is not order=3
+        order=2,  # @ClePol unclear, why this is not order=3
         mode="constant",
         cval=0,
-        prefilter=True, # unclear, why we are using a smoothing filter here
+        prefilter=True,  # unclear, why we are using a smoothing filter here
     )
     cc_fn_seg_labels, cc_fn_softlabels = segment_cc(
         midslices,
@@ -1162,11 +1197,13 @@ def main(
     for i, (attr, name) in enumerate((("background",) * 2, ("cc", "Corpus Callosum"), ("fn", "Fornix"))):
         if sd.has_attribute(f"cc_softlabels_{attr}"):
             logger.info(f"Saving {name} softlabels to {sd.filename_by_attribute(f'cc_softlabels_{attr}')}")
-            futures.append(thread_executor().submit(
-                nib.save,
-                nib.MGHImage(cc_fn_softlabels[..., i], fsaverage_midslab_vox2ras, orig.header),
-                sd.filename_by_attribute(f"cc_softlabels_{attr}"),
-            ))
+            futures.append(
+                thread_executor().submit(
+                    nib.save,
+                    nib.MGHImage(cc_fn_softlabels[..., i], fsaverage_midslab_vox2ras, orig.header),
+                    sd.filename_by_attribute(f"cc_softlabels_{attr}"),
+                )
+            )
 
     # Create a temporary segmentation image with proper affine for enhanced postprocessing
     # Process slices based on selection mode
@@ -1176,11 +1213,13 @@ def main(
         _cc_seg_path = sd.filename_by_attribute("cc_segmentation")
         _cc_seg_path.parent.mkdir(exist_ok=True, parents=True)
         logger.info(f"Saving CC segmentation to {_cc_seg_path}")
-        futures.append(thread_executor().submit(
-            nib.save,
-            nib.MGHImage(cc_fn_seg_labels, fsaverage_midslab_vox2ras, orig.header),
-            _cc_seg_path,
-        ))
+        futures.append(
+            thread_executor().submit(
+                nib.save,
+                nib.MGHImage(cc_fn_seg_labels, fsaverage_midslab_vox2ras, orig.header),
+                _cc_seg_path,
+            )
+        )
 
     logger.info(f"Processing slices with selection mode: {slice_selection}")
     try:
@@ -1208,12 +1247,12 @@ def main(
         slice_results = []
         slice_io_futures = []
         cc_contours = []
-        num_failed_slices = cc_fn_seg_labels.shape[0] if slice_selection  == "all" else 1
+        num_failed_slices = cc_fn_seg_labels.shape[0] if slice_selection == "all" else 1
 
     # Filter out None results for further processing
     valid_slice_results = [r for r in slice_results if r is not None]
     valid_cc_contours = [c for c in cc_contours if c is not None]
-    num_failed_slices +=  len(cc_contours) - len(valid_cc_contours)
+    num_failed_slices += len(cc_contours) - len(valid_cc_contours)
     outer_contours = []
     cc_volume_contour = None
 
@@ -1243,7 +1282,7 @@ def main(
             cc_subseg_midslice = make_subdivision_mask(
                 (cc_fn_seg_labels.shape[1], cc_fn_seg_labels.shape[2]),
                 middle_slice_result["subdivision_lines"],
-                vox2ras=fsavg_vox2ras @ np.linalg.inv(fsavg2midslice_vox2vox)
+                vox2ras=fsavg_vox2ras @ np.linalg.inv(fsavg2midslice_vox2vox),
             )
         else:
             if middle_slice_result is None:
@@ -1253,15 +1292,17 @@ def main(
             cc_subseg_midslice = None
         # if num_threads is not large enough (>1), this might be blocking ; serial_executor runs the function in submit
         executor = thread_executor() if get_num_threads() > 2 else serial_executor()
-        futures.append(executor.submit(
-            map_softlabels_to_orig,
-            cc_fn_softlabels=cc_fn_softlabels,
-            orig=orig,
-            orig_space_segmentation_path=sd.filename_by_attribute("cc_orig_segfile"),
-            orig2slab_vox2vox=_orig2midslab_vox2vox(),
-            cc_subseg_midslice=cc_subseg_midslice,
-            orig2midslice_vox2vox=orig2midslice_vox2vox,
-        ))
+        futures.append(
+            executor.submit(
+                map_softlabels_to_orig,
+                cc_fn_softlabels=cc_fn_softlabels,
+                orig=orig,
+                orig_space_segmentation_path=sd.filename_by_attribute("cc_orig_segfile"),
+                orig2slab_vox2vox=_orig2midslab_vox2vox(),
+                cc_subseg_midslice=cc_subseg_midslice,
+                orig2midslice_vox2vox=orig2midslice_vox2vox,
+            )
+        )
 
     metrics: tuple[CCMeasures] = get_args(CCMeasures)
 
@@ -1274,18 +1315,20 @@ def main(
 
     # Create enhanced output dictionary with all slice results
     per_slice_output_dict = {
-        "slices": [convert_numpy_to_json_serializable({metric: result[metric] for metric in metrics})
-                   if result else None for result in slice_results],
+        "slices": [
+            convert_numpy_to_json_serializable({metric: result[metric] for metric in metrics}) if result else None
+            for result in slice_results
+        ],
     }
 
     ########## Save outputs ##########
     additional_metrics = {}
 
     cc_num_voxel = segmentation_postprocessing.get_cc_num_voxel(
-            desired_width_mm=5,
-            cc_mask=np.equal(cc_fn_seg_labels, CC_LABEL),
-            voxel_size=vox_size, # in LIA order
-        )
+        desired_width_mm=5,
+        cc_mask=np.equal(cc_fn_seg_labels, CC_LABEL),
+        voxel_size=vox_size,  # in LIA order
+    )
     additional_metrics["cc_num_voxel"] = cc_num_voxel
     voxel_volume = np.prod(vox_size)
     additional_metrics["voxel_volume"] = voxel_volume
@@ -1328,7 +1371,7 @@ def main(
     additional_metrics["subdivision_ratios"] = subdivisions
     additional_metrics["contour_smoothing"] = contour_smoothing
     additional_metrics["slice_selection"] = slice_selection
-    additional_metrics["midline_refine_shift_vox"] = int(midline_shift_vox)
+    additional_metrics["midline_refine_shift_vox"] = float(midline_shift_vox)
     additional_metrics["midline_refine_diagnostics"] = midline_shift_diagnostics
 
     # QC checks
@@ -1356,51 +1399,60 @@ def main(
         )
 
     if sd.has_attribute("cc_mid_measures") and middle_slice_result is not None:
-        sd.filename_by_attribute('cc_mid_measures').parent.mkdir(exist_ok=True, parents=True)
-        futures.append(thread_executor().submit(
-            save_cc_measures_json,
-            sd.filename_by_attribute('cc_mid_measures'),
-            output_metrics_middle_slice | additional_metrics,
-        ))
+        sd.filename_by_attribute("cc_mid_measures").parent.mkdir(exist_ok=True, parents=True)
+        futures.append(
+            thread_executor().submit(
+                save_cc_measures_json,
+                sd.filename_by_attribute("cc_mid_measures"),
+                output_metrics_middle_slice | additional_metrics,
+            )
+        )
 
     if sd.has_attribute("cc_measures"):
         sd.filename_by_attribute("cc_measures").parent.mkdir(exist_ok=True, parents=True)
-        futures.append(thread_executor().submit(
-            save_cc_measures_json,
-            sd.filename_by_attribute("cc_measures"),
-            per_slice_output_dict | additional_metrics,
-        ))
+        futures.append(
+            thread_executor().submit(
+                save_cc_measures_json,
+                sd.filename_by_attribute("cc_measures"),
+                per_slice_output_dict | additional_metrics,
+            )
+        )
 
     # save lta to fsaverage space
 
     if sd.has_attribute("upright_lta"):
         sd.filename_by_attribute("upright_lta").parent.mkdir(exist_ok=True, parents=True)
         logger.info(f"Saving LTA to fsaverage space: {sd.filename_by_attribute('upright_lta')}")
-        futures.append(thread_executor().submit(
-            write_lta,
-            sd.filename_by_attribute("upright_lta"),
-            orig2fsavg_ras2ras,
-            sd.filename_by_attribute("aseg_name"),
-            aseg_img.header,
-            "fsaverage",
-            fsavg_header,
-        ))
+        futures.append(
+            thread_executor().submit(
+                write_lta,
+                sd.filename_by_attribute("upright_lta"),
+                orig2fsavg_ras2ras,
+                sd.filename_by_attribute("aseg_name"),
+                aseg_img.header,
+                "fsaverage",
+                fsavg_header,
+            )
+        )
 
     if sd.has_attribute("cc_orient_volume_lta"):
         sd.filename_by_attribute("cc_orient_volume_lta").parent.mkdir(exist_ok=True, parents=True)
         # save lta to standardized space (fsaverage + nodding + ac to center)
-        fsavg2standardized_ras2ras = fsavg_vox2ras @ \
-            np.linalg.inv(standardized2orig_vox2vox) @ np.linalg.inv(orig.affine)
+        fsavg2standardized_ras2ras = (
+            fsavg_vox2ras @ np.linalg.inv(standardized2orig_vox2vox) @ np.linalg.inv(orig.affine)
+        )
         logger.info(f"Saving LTA to standardized space: {sd.filename_by_attribute('cc_orient_volume_lta')}")
-        futures.append(thread_executor().submit(
-            write_lta,
-            sd.filename_by_attribute("cc_orient_volume_lta"),
-            fsavg2standardized_ras2ras,
-            sd.conf_name,
-            orig.header,
-            "standardized",
-            fsavg_header,
-        ))
+        futures.append(
+            thread_executor().submit(
+                write_lta,
+                sd.filename_by_attribute("cc_orient_volume_lta"),
+                fsavg2standardized_ras2ras,
+                sd.conf_name,
+                orig.header,
+                "standardized",
+                fsavg_header,
+            )
+        )
 
     # this waits for all io to finish
     return_value: Literal[0] | str = 0
@@ -1461,37 +1513,39 @@ if __name__ == "__main__":
     # Set up logging if verbose mode is enabled
     logging.setup_logging(None, options.verbose)  # Log to stdout only
 
-    sys.exit(main(
-        conf_name=options.conf_name,
-        aseg_name=options.aseg_name,
-        subject_dir=options.subject_dir,
-        slice_selection=options.slice_selection,
-        num_thickness_points=options.num_thickness_points,
-        subdivisions=list(options.subdivisions),
-        subdivision_method=str(options.subdivision_method),
-        contour_smoothing=options.contour_smoothing,
-        save_template_dir=options.save_template_dir,
-        device=options.device,
-        upright_volume=options.upright_volume,
-        segmentation=options.segmentation,
-        cc_measures=options.cc_measures,
-        cc_mid_measures=options.cc_mid_measures,
-        upright_lta=options.upright_lta,
-        orient_volume_lta=options.orient_volume_lta,
-        midplane_distance_map=options.midplane_distance_map,
-        midplane_fit_mask=options.midplane_fit_mask,
-        midplane_left_hemi_mask=options.midplane_left_hemi_mask,
-        midplane_right_hemi_mask=options.midplane_right_hemi_mask,
-        midplane_upright_aseg=options.midplane_upright_aseg,
-        midplane_method=options.midplane_method,
-        cc_surf=options.cc_surf,
-        cc_thickness_overlay=options.thickness_overlay,
-        cc_html=options.cc_html,
-        cc_surf_vtk=options.cc_surf_vtk,
-        segmentation_in_orig=options.segmentation_in_orig,
-        qc_image=options.qc_image,
-        thickness_image=options.thickness_image,
-        softlabels_cc=options.softlabels_cc,
-        softlabels_fn=options.softlabels_fn,
-        softlabels_background=options.softlabels_background,
-    ))
+    sys.exit(
+        main(
+            conf_name=options.conf_name,
+            aseg_name=options.aseg_name,
+            subject_dir=options.subject_dir,
+            slice_selection=options.slice_selection,
+            num_thickness_points=options.num_thickness_points,
+            subdivisions=list(options.subdivisions),
+            subdivision_method=str(options.subdivision_method),
+            contour_smoothing=options.contour_smoothing,
+            save_template_dir=options.save_template_dir,
+            device=options.device,
+            upright_volume=options.upright_volume,
+            segmentation=options.segmentation,
+            cc_measures=options.cc_measures,
+            cc_mid_measures=options.cc_mid_measures,
+            upright_lta=options.upright_lta,
+            orient_volume_lta=options.orient_volume_lta,
+            midplane_distance_map=options.midplane_distance_map,
+            midplane_fit_mask=options.midplane_fit_mask,
+            midplane_left_hemi_mask=options.midplane_left_hemi_mask,
+            midplane_right_hemi_mask=options.midplane_right_hemi_mask,
+            midplane_upright_aseg=options.midplane_upright_aseg,
+            midplane_method=options.midplane_method,
+            cc_surf=options.cc_surf,
+            cc_thickness_overlay=options.thickness_overlay,
+            cc_html=options.cc_html,
+            cc_surf_vtk=options.cc_surf_vtk,
+            segmentation_in_orig=options.segmentation_in_orig,
+            qc_image=options.qc_image,
+            thickness_image=options.thickness_image,
+            softlabels_cc=options.softlabels_cc,
+            softlabels_fn=options.softlabels_fn,
+            softlabels_background=options.softlabels_background,
+        )
+    )

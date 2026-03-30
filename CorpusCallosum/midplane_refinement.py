@@ -8,7 +8,7 @@ from skimage.morphology import convex_hull_image
 
 from CorpusCallosum.data.read_write import convert_numpy_to_json_serializable
 from CorpusCallosum.shape.postprocessing import offset_affine
-from FastSurferCNN.utils import AffineMatrix4x4, Shape3d, logging, nibabelImage
+from FastSurferCNN.utils import AffineMatrix4x4, Shape3d, logging
 from FastSurferCNN.utils.brainvolstats import hemi_masks_from_aseg
 
 logger = logging.get_logger(__name__)
@@ -75,7 +75,7 @@ def _make_fsavg_convex_hull_mask(brain_mask: np.ndarray) -> np.ndarray:
             x0 = int(x_min[src_y, src_z])
             x1 = int(x_max[src_y, src_z])
         if x1 >= x0:
-            hull_mask[x0:x1 + 1, y_idx, z_idx] = True
+            hull_mask[x0 : x1 + 1, y_idx, z_idx] = True
     return hull_mask
 
 
@@ -131,11 +131,13 @@ def _rotation_from_vectors(source: np.ndarray, target: np.ndarray) -> np.ndarray
         dot = -1.0
     k = cross / cross_norm
     kx, ky, kz = k
-    skew = np.array([
-        [0.0, -kz, ky],
-        [kz, 0.0, -kx],
-        [-ky, kx, 0.0],
-    ])
+    skew = np.array(
+        [
+            [0.0, -kz, ky],
+            [kz, 0.0, -kx],
+            [-ky, kx, 0.0],
+        ]
+    )
     angle = np.arccos(dot)
     return np.eye(3, dtype=float) + np.sin(angle) * skew + (1 - np.cos(angle)) * (skew @ skew)
 
@@ -150,7 +152,7 @@ def _affine_from_rotation_and_center(rotation: np.ndarray, center: np.ndarray) -
 
 def refine_midplane_with_distance_maps(
     orig2fsavg_vox2vox: AffineMatrix4x4,
-    aseg_nib: nibabelImage,
+    aseg_data: np.ndarray,
     fsavg_shape: Shape3d,
     base_middle_vox: float,
     zero_band_vox: float = 0.5,
@@ -160,7 +162,7 @@ def refine_midplane_with_distance_maps(
     max_center_shift_vox: float = 8.0,
 ) -> MidplaneRefinementResult:
     """Fit a midsagittal plane from left/right distance-map differences inside the brain hull."""
-    seg_data = np.asarray(aseg_nib.dataobj).astype(np.int32)
+    seg_data = aseg_data.astype(np.int32)
     empty = np.zeros(fsavg_shape, dtype=np.float32)
     empty_debug = MidplaneDebugVolumes(
         distance_diff=empty,
@@ -235,22 +237,27 @@ def refine_midplane_with_distance_maps(
     tilt_deg = float(np.degrees(np.arccos(np.clip(np.dot(plane_normal, x_axis), -1.0, 1.0))))
 
     yz_center = np.asarray(fsavg_shape[1:], dtype=float) / 2.0
-    plane_center = np.array([
-        a_coef * yz_center[0] + b_coef * yz_center[1] + c_coef,
-        yz_center[0],
-        yz_center[1],
-    ], dtype=float)
+    plane_center = np.array(
+        [
+            a_coef * yz_center[0] + b_coef * yz_center[1] + c_coef,
+            yz_center[0],
+            yz_center[1],
+        ],
+        dtype=float,
+    )
     center_shift_vox = float(plane_center[0] - base_middle_vox)
 
-    diagnostics.update({
-        "plane_coefficients_xyz": [1.0, -a_coef, -b_coef, -c_coef],
-        "plane_center_vox": plane_center.tolist(),
-        "plane_fit_rmse_vox": rmse,
-        "plane_tilt_deg": tilt_deg,
-        "center_shift_vox": center_shift_vox,
-        "max_tilt_deg": float(max_tilt_deg),
-        "max_center_shift_vox": float(max_center_shift_vox),
-    })
+    diagnostics.update(
+        {
+            "plane_coefficients_xyz": [1.0, -a_coef, -b_coef, -c_coef],
+            "plane_center_vox": plane_center.tolist(),
+            "plane_fit_rmse_vox": rmse,
+            "plane_tilt_deg": tilt_deg,
+            "center_shift_vox": center_shift_vox,
+            "max_tilt_deg": float(max_tilt_deg),
+            "max_center_shift_vox": float(max_center_shift_vox),
+        }
+    )
 
     if abs(center_shift_vox) > max_center_shift_vox:
         logger.info(
