@@ -453,14 +453,16 @@ def options_parse() -> argparse.Namespace:
     return args
 
 
-# Standard FreeSurfer aseg left/right label pairs.
+# Standard FreeSurfer aseg left/right label pairs used for LR symmetry scoring.
+# Restricted to subcortical structures that are clearly unilateral (present on one side
+# only in any given yz-slab). Cortex (3/42) and cerebellum-cortex (8/47) are excluded
+# because they wrap both hemispheres throughout the y-z extent, driving all symmetry
+# scores to zero and making the shift selector uninformative.
 _ASEG_LR_PAIRS: tuple[tuple[int, int], ...] = (
     (2, 41),  # Cerebral-White-Matter
-    (3, 42),  # Cerebral-Cortex
     (4, 43),  # Lateral-Ventricle
     (5, 44),  # Inf-Lat-Vent
     (7, 46),  # Cerebellum-White-Matter
-    (8, 47),  # Cerebellum-Cortex
     (10, 49),  # Thalamus
     (11, 50),  # Caudate
     (12, 51),  # Putamen
