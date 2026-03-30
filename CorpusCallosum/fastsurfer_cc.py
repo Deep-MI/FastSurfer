@@ -287,11 +287,13 @@ def make_parser() -> argparse.ArgumentParser:
     )
     advanced.add_argument(
         "--midplane_method",
-        choices=["none", "lr_shift", "distance_map"],
-        default="lr_shift",
-        help="Midsagittal plane refinement method. 'none': no refinement (baseline); "
-        "'lr_shift': 1D integer-voxel shift by scoring left-right label-pair mirroring (default); "
-        "'distance_map': 3D plane fit from hemisphere distance transforms.",
+        choices=["center", "fsaverage", "fsaverage_symmetry", "fsaverage_distance_map"],
+        default="fsaverage_symmetry",
+        help="Midsagittal plane finding method. "
+        "'center': center slice of the input volume, no alignment; "
+        "'fsaverage': centroid-based alignment to fsaverage template; "
+        "'fsaverage_symmetry': fsaverage alignment + LR label-symmetry shift refinement (default); "
+        "'fsaverage_distance_map': fsaverage alignment + distance-map plane-fitting refinement.",
     )
     advanced.add_argument(
         "--qc_image",
@@ -854,7 +856,7 @@ def main(
     midplane_left_hemi_mask: str | Path | None = None,
     midplane_right_hemi_mask: str | Path | None = None,
     midplane_upright_aseg: str | Path | None = None,
-    midplane_method: str = "lr_shift",
+    midplane_method: str = "fsaverage_symmetry",
     cc_surf: str | Path | None = None,
     cc_thickness_overlay: str | Path | None = None,
     cc_html: str | Path | None = None,
@@ -1046,33 +1048,43 @@ def main(
         logger.error(error_message)
         return error_message
 
-    logger.info("Performing centroid registration to fsaverage space")
-    orig2fsavg_vox2vox, orig2fsavg_ras2ras, fsavg_vox2ras, _fsavg_header_dict = register_centroids_to_fsavg(aseg_img)
-    _fsavg_shape = tuple(_fsavg_header_dict["dims"])
-    _base_middle_vox = float(FSAVERAGE_MIDDLE) / float(vox_size[0])
     dm_result = None
     _aseg_data = np.asarray(aseg_img.dataobj)
-    if midplane_method == "distance_map":
-        dm_result = refine_midplane_with_distance_maps(
-            orig2fsavg_vox2vox=orig2fsavg_vox2vox,
-            aseg_data=_aseg_data,
-            fsavg_shape=_fsavg_shape,
-            base_middle_vox=_base_middle_vox,
-        )
-        orig2fsavg_vox2vox = dm_result.updated_vox2vox
-        midline_shift_vox = dm_result.center_shift_vox
-        midline_shift_diagnostics = dm_result.diagnostics
-    elif midplane_method == "lr_shift":
-        orig2fsavg_vox2vox, _lr_shift, _, midline_shift_diagnostics = refine_midline_lr_shift(
-            orig2fsavg_vox2vox=orig2fsavg_vox2vox,
-            aseg_data=_aseg_data,
-            fsavg_shape=_fsavg_shape,
-            base_middle_vox=_base_middle_vox,
-        )
-        midline_shift_vox = float(_lr_shift)
-    else:  # "none"
+    if midplane_method == "center":
+        # No registration: use the original image space with the center x-slice as midplane.
+        orig2fsavg_vox2vox = np.eye(4)
+        fsavg_vox2ras = orig.affine
+        _fsavg_header_dict: MGHHeaderDict = {"dims": list(orig.shape[:3])}
+        _fsavg_shape = orig.shape[:3]
+        _base_middle_vox = orig.shape[0] / 2.0
         midline_shift_vox = 0.0
         midline_shift_diagnostics = {}
+    else:
+        logger.info("Performing centroid registration to fsaverage space")
+        orig2fsavg_vox2vox, _, fsavg_vox2ras, _fsavg_header_dict = register_centroids_to_fsavg(aseg_img)
+        _fsavg_shape = tuple(_fsavg_header_dict["dims"])
+        _base_middle_vox = float(FSAVERAGE_MIDDLE) / float(vox_size[0])
+        if midplane_method == "fsaverage_distance_map":
+            dm_result = refine_midplane_with_distance_maps(
+                orig2fsavg_vox2vox=orig2fsavg_vox2vox,
+                aseg_data=_aseg_data,
+                fsavg_shape=_fsavg_shape,
+                base_middle_vox=_base_middle_vox,
+            )
+            orig2fsavg_vox2vox = dm_result.updated_vox2vox
+            midline_shift_vox = dm_result.center_shift_vox
+            midline_shift_diagnostics = dm_result.diagnostics
+        elif midplane_method == "fsaverage_symmetry":
+            orig2fsavg_vox2vox, _lr_shift, _, midline_shift_diagnostics = refine_midline_lr_shift(
+                orig2fsavg_vox2vox=orig2fsavg_vox2vox,
+                aseg_data=_aseg_data,
+                fsavg_shape=_fsavg_shape,
+                base_middle_vox=_base_middle_vox,
+            )
+            midline_shift_vox = float(_lr_shift)
+        else:  # "fsaverage"
+            midline_shift_vox = 0.0
+            midline_shift_diagnostics = {}
     orig2fsavg_ras2ras = fsavg_vox2ras @ orig2fsavg_vox2vox @ np.linalg.inv(orig.affine)
     fsavg_header = init_mgh_header(orig.header, _fsavg_header_dict)
     midplane_upright_aseg_data = resample_segmentation_to_fsavg(
@@ -1147,7 +1159,7 @@ def main(
         )
 
     # calculate affine for segmentation volume
-    fsavg2midslice_vox2vox: AffineMatrix4x4 = offset_affine([-FSAVERAGE_MIDDLE / vox_size[0], 0, 0])
+    fsavg2midslice_vox2vox: AffineMatrix4x4 = offset_affine([-_base_middle_vox, 0, 0])
     orig2midslice_vox2vox = fsavg2midslice_vox2vox @ orig2fsavg_vox2vox
 
     # calculate vox2vox for input resampling volumes
