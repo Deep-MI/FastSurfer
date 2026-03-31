@@ -31,23 +31,11 @@ from CorpusCallosum.data.constants import (
     CC_LABEL,
     DEFAULT_INPUT_PATHS,
     DEFAULT_OUTPUT_PATHS,
-    FSAVERAGE_CENTROIDS_PATH,
-    FSAVERAGE_DATA_PATH,
-    FSAVERAGE_MIDDLE,
     THIRD_VENTRICLE_LABEL,
 )
-from CorpusCallosum.data.read_write import (
-    MGHHeaderDict,
-    calc_ras_centroids_from_seg,
-    convert_numpy_to_json_serializable,
-    load_fsaverage_centroids,
-    load_fsaverage_data,
-)
+from CorpusCallosum.data.read_write import MGHHeaderDict, convert_numpy_to_json_serializable
 from CorpusCallosum.localization import inference as localization_inference
-from CorpusCallosum.midplane_refinement import (
-    refine_midplane_with_distance_maps,
-    resample_segmentation_to_fsavg,
-)
+from CorpusCallosum.midplane_refinement import find_midplane_transform
 from CorpusCallosum.segmentation import inference as segmentation_inference
 from CorpusCallosum.segmentation import segmentation_postprocessing
 from CorpusCallosum.shape.contour import calculate_volume as calculate_cc_volume_contour
@@ -82,7 +70,6 @@ from FastSurferCNN.utils.common import SubjectDirectory, find_device
 from FastSurferCNN.utils.lta import write_lta
 from FastSurferCNN.utils.parallel import get_num_threads, serial_executor, shutdown_executors, thread_executor
 from FastSurferCNN.utils.parser_defaults import modify_argument
-from recon_surf.align_points import find_rigid
 
 logger = logging.get_logger(__name__)
 
@@ -254,36 +241,6 @@ def make_parser() -> argparse.ArgumentParser:
         "the anterior and posterior commisures are on the coordinate line, and the posterior commissure is "
         "at the origin - standardizing the head position.",
         default=DEFAULT_OUTPUT_PATHS["orient_volume_lta"],
-    )
-    advanced.add_argument(
-        "--midplane_distance_map",
-        type=path_or_none,
-        help="Output path for the fsaverage-space left-right distance-difference volume used for midplane fitting.",
-        default=None,
-    )
-    advanced.add_argument(
-        "--midplane_fit_mask",
-        type=path_or_none,
-        help="Output path for the fsaverage-space candidate mask used for midplane fitting.",
-        default=None,
-    )
-    advanced.add_argument(
-        "--midplane_left_hemi_mask",
-        type=path_or_none,
-        help="Output path for the cleaned left-hemisphere mask used for the distance map.",
-        default=None,
-    )
-    advanced.add_argument(
-        "--midplane_right_hemi_mask",
-        type=path_or_none,
-        help="Output path for the cleaned right-hemisphere mask used for the distance map.",
-        default=None,
-    )
-    advanced.add_argument(
-        "--midplane_upright_aseg",
-        type=path_or_none,
-        help="Output path for the fsaverage-space transformed segmentation used to derive the midplane masks.",
-        default=None,
     )
     advanced.add_argument(
         "--midplane_method",
@@ -458,270 +415,6 @@ def options_parse() -> argparse.Namespace:
 # only in any given yz-slab). Cortex (3/42) and cerebellum-cortex (8/47) are excluded
 # because they wrap both hemispheres throughout the y-z extent, driving all symmetry
 # scores to zero and making the shift selector uninformative.
-_ASEG_LR_PAIRS: tuple[tuple[int, int], ...] = (
-    (2, 41),  # Cerebral-White-Matter
-    (4, 43),  # Lateral-Ventricle
-    (5, 44),  # Inf-Lat-Vent
-    (7, 46),  # Cerebellum-White-Matter
-    (10, 49),  # Thalamus
-    (11, 50),  # Caudate
-    (12, 51),  # Putamen
-    (13, 52),  # Pallidum
-    (17, 53),  # Hippocampus
-    (18, 54),  # Amygdala
-    (26, 58),  # Accumbens-area
-    (28, 60),  # VentralDC
-)
-
-
-def _prepare_lr_pair_labels(seg_data: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
-    """Create matched left/right label-id arrays from a FreeSurfer-style segmentation."""
-    label_set = set(np.unique(seg_data.astype(np.int32)).tolist())
-    label_set.discard(0)
-
-    left_ids = [lbl for lbl, r in _ASEG_LR_PAIRS if lbl in label_set and r in label_set]
-    right_ids = [r for lbl, r in _ASEG_LR_PAIRS if lbl in label_set and r in label_set]
-
-    return np.asarray(left_ids, dtype=np.int32), np.asarray(right_ids, dtype=np.int32)
-
-
-def _score_midline_shift(
-    seg_in_fsavg: np.ndarray,
-    left_ids: np.ndarray,
-    right_ids: np.ndarray,
-    base_middle_vox: float,
-    shift_vox: int,
-    max_pairs_per_slice: int = 64,
-) -> tuple[float, int]:
-    """Score a left-right shift candidate using mirrored anatomy close to the midline."""
-    if left_ids.size == 0 or right_ids.size == 0:
-        return float("inf"), 0
-
-    x_mid = int(np.round(base_middle_vox + shift_vox))
-    if x_mid <= 1 or x_mid >= seg_in_fsavg.shape[0] - 2:
-        return float("inf"), 0
-
-    slab_half = 12
-    x0 = max(0, x_mid - slab_half)
-    x1 = min(seg_in_fsavg.shape[0], x_mid + slab_half + 1)
-    slab = seg_in_fsavg[x0:x1]
-
-    left_mask = np.isin(slab, left_ids)
-    right_mask = np.isin(slab, right_ids)
-    if not left_mask.any() or not right_mask.any():
-        return float("inf"), 0
-
-    distances: list[float] = []
-    for z_idx in range(slab.shape[2]):
-        left_slice = left_mask[:, :, z_idx]
-        right_slice = right_mask[:, :, z_idx]
-        if not left_slice.any() or not right_slice.any():
-            continue
-
-        right_x, right_y = np.where(right_slice)
-        if right_x.size == 0:
-            continue
-
-        if right_x.size > max_pairs_per_slice:
-            sample_idx = np.linspace(0, right_x.size - 1, max_pairs_per_slice).astype(int)
-            right_x = right_x[sample_idx]
-            right_y = right_y[sample_idx]
-
-        for rx, ry in zip(right_x, right_y, strict=False):
-            mirror_x = int(np.clip(2 * (x_mid - x0) - rx, 0, slab.shape[0] - 1))
-            left_row = left_slice[mirror_x]
-            if not left_row.any():
-                continue
-            left_y = np.where(left_row)[0]
-            distances.append(float(np.min(np.abs(left_y - ry))))
-
-    if not distances:
-        return float("inf"), 0
-
-    return float(np.median(distances)), len(distances)
-
-
-def refine_midline_lr_shift(
-    orig2fsavg_vox2vox: AffineMatrix4x4,
-    aseg_data: np.ndarray,
-    fsavg_shape: Shape3d,
-    base_middle_vox: float,
-    max_shift_vox: int = 6,
-    step_vox: int = 1,
-) -> tuple[AffineMatrix4x4, int, float, dict[str, object]]:
-    """Refine the fsaverage alignment by a small left-right shift around the midsagittal plane."""
-    if max_shift_vox < 0 or step_vox <= 0:
-        return orig2fsavg_vox2vox, 0, float("inf"), {}
-
-    seg_data = aseg_data.astype(np.int32)
-    left_ids, right_ids = _prepare_lr_pair_labels(seg_data)
-    if left_ids.size == 0:
-        logger.warning("Midline refinement skipped: no left/right label pairs found.")
-        return orig2fsavg_vox2vox, 0, float("inf"), {}
-
-    seg_fsavg = resample_segmentation_to_fsavg(seg_data, orig2fsavg_vox2vox, fsavg_shape)
-
-    candidate_scores: list[dict[str, int | float | None]] = []
-    zero_shift_score = float("inf")
-    zero_shift_support = 0
-    best_shift = 0
-    best_adjusted_score = float("inf")
-    best_raw_score = float("inf")
-    best_support = 0
-    shift_penalty = 0.25
-    min_improvement = 0.5
-    min_support = 32
-
-    for shift in range(-max_shift_vox, max_shift_vox + 1, step_vox):
-        raw_score, support = _score_midline_shift(
-            seg_fsavg,
-            left_ids,
-            right_ids,
-            base_middle_vox=base_middle_vox,
-            shift_vox=-shift,
-        )
-        adjusted_score = raw_score + shift_penalty * abs(shift)
-        candidate_scores.append(
-            {
-                "shift_vox": int(shift),
-                "raw_score": float(raw_score) if np.isfinite(raw_score) else None,
-                "adjusted_score": float(adjusted_score) if np.isfinite(adjusted_score) else None,
-                "support": int(support),
-            }
-        )
-        if shift == 0:
-            zero_shift_score = raw_score
-            zero_shift_support = support
-        if adjusted_score < best_adjusted_score:
-            best_adjusted_score = adjusted_score
-            best_raw_score = raw_score
-            best_shift = shift
-            best_support = support
-
-    diagnostics: dict[str, object] = {
-        "candidate_scores": candidate_scores,
-        "zero_shift_score": float(zero_shift_score) if np.isfinite(zero_shift_score) else None,
-        "zero_shift_support": int(zero_shift_support),
-        "selected_shift_raw_score": float(best_raw_score) if np.isfinite(best_raw_score) else None,
-        "selected_shift_adjusted_score": float(best_adjusted_score) if np.isfinite(best_adjusted_score) else None,
-        "selected_shift_support": int(best_support),
-        "shift_penalty": shift_penalty,
-        "min_improvement": min_improvement,
-        "min_support": min_support,
-    }
-
-    at_boundary = abs(best_shift) == max_shift_vox
-    insufficient_support = best_support < min_support
-    no_baseline = not np.isfinite(zero_shift_score)
-    small_improvement = (
-        np.isfinite(best_raw_score)
-        and np.isfinite(zero_shift_score)
-        and (zero_shift_score - best_raw_score) < min_improvement
-    )
-    reject_shift = (
-        best_shift == 0
-        or not np.isfinite(best_raw_score)
-        or at_boundary
-        or insufficient_support
-        or (not no_baseline and small_improvement)
-    )
-
-    diagnostics["no_baseline"] = no_baseline
-    diagnostics["rejected_boundary_shift"] = at_boundary
-    diagnostics["rejected_low_support"] = insufficient_support
-    diagnostics["rejected_small_improvement"] = not no_baseline and small_improvement
-
-    if reject_shift:
-        logger.info(
-            "Midline refinement applied no LR correction (best_shift=%d, raw_score=%s, zero_score=%s, support=%d).",
-            best_shift,
-            f"{best_raw_score:.3f}" if np.isfinite(best_raw_score) else "inf",
-            f"{zero_shift_score:.3f}" if np.isfinite(zero_shift_score) else "inf",
-            best_support,
-        )
-        return orig2fsavg_vox2vox, 0, zero_shift_score, diagnostics
-
-    updated_transform = offset_affine([best_shift, 0, 0]) @ orig2fsavg_vox2vox
-    logger.info(
-        "Midline refinement applied %+d vox LR correction in fsaverage space "
-        "(raw_score=%.3f, zero_score=%.3f, support=%d).",
-        best_shift,
-        best_raw_score,
-        zero_shift_score,
-        best_support,
-    )
-    return updated_transform, best_shift, best_raw_score, diagnostics
-
-
-def register_centroids_to_fsavg(
-    aseg_nib: nibabelImage,
-) -> tuple[AffineMatrix4x4, AffineMatrix4x4, AffineMatrix4x4, MGHHeaderDict]:
-    """Perform centroid-based registration between subject and fsaverage space.
-
-    Computes a rigid transformation between the subject's segmentation and fsaverage space
-    by aligning centroids of corresponding anatomical structures.
-
-    Parameters
-    ----------
-    aseg_nib : nibabel.analyze.SpatialImage
-        Subject's segmentation image.
-
-    Returns
-    -------
-    aseg2fsaverage_vox2vox : AffineMatrix4x4
-        Transformation matrix from original to fsaverage voxel space.
-    aseg2fsaverage_ras2ras : AffineMatrix4x4
-        Transformation matrix from original to fsaverage RAS space.
-    fsaverage_hires_vox2ras : AffineMatrix4x4
-        High-resolution fsaverage affine matrix.
-    fsaverage_header : MGHHeaderDict
-        FSAverage header fields for LTA writing.
-
-    Notes
-    -----
-    The function uses pre-computed fsaverage centroids and data from static files
-    to perform the registration. It matches corresponding anatomical structures
-    between the subject's segmentation and fsaverage space.
-    """
-    logger.info("Starting centroid registration")
-
-    # Load pre-computed fsaverage centroids and data from static files
-    fsaverage_data_future = thread_executor().submit(load_fsaverage_data, FSAVERAGE_DATA_PATH)
-    ras_centroids_dst = load_fsaverage_centroids(FSAVERAGE_CENTROIDS_PATH)
-
-    ras_centroids_mov = calc_ras_centroids_from_seg(aseg_nib, label_ids=list(ras_centroids_dst.keys()))
-
-    # get the set of joint labels
-    joint_centroid_labels = [lbl for lbl, v in ras_centroids_mov.items() if v is not None]
-
-    ras_centroids_mov = np.array([ras_centroids_mov[lbl] for lbl in joint_centroid_labels]).T
-    ras_centroids_dst = np.array([ras_centroids_dst[lbl] for lbl in joint_centroid_labels]).T
-
-    aseg2fsaverage_ras2ras: AffineMatrix4x4 = find_rigid(p_mov=ras_centroids_mov.T, p_dst=ras_centroids_dst.T)
-
-    # make affine that increases resolution to orig resolution
-    aseg_zooms_ras = np.asarray(nib.as_closest_canonical(aseg_nib).header.get_zooms()[:3])
-    resolution_trans: AffineMatrix4x4 = np.diagflat(np.append(aseg_zooms_ras[[0, 2, 1]], [1])).astype(float)
-
-    fsaverage_vox2ras, fsavg_header = fsaverage_data_future.result()
-    fsavg_header["delta"] = aseg_zooms_ras[[0, 2, 1]]  # vox sizes in lia
-    # fsavg_hires_vox2ras translation should be 128 always (independent of resolution)
-    fsavg_hires_vox2ras: AffineMatrix4x4 = np.concatenate(
-        [(resolution_trans @ fsaverage_vox2ras)[:, :3], fsaverage_vox2ras[:, 3:4]],
-        axis=1,
-    )
-    fsavg_header["dims"] = np.ceil(fsavg_header["dims"] @ np.linalg.inv(resolution_trans[:3, :3])).astype(int).tolist()
-
-    # Correct fsavg_header["Pxyz_c"] by (vox_size - 1) / 2 in all three directions, because Pxyz_c is not actually in
-    # the center of the image, but in the center of the voxel in increasing voxel index direction, i.e. index 128 for a
-    # 256 image (where the center would be at 127.5).
-    fsavg_header["Pxyz_c"] += (aseg_zooms_ras - 1) / 2 @ fsavg_header["Mdc"]
-
-    aseg2fsavg_vox2vox: AffineMatrix4x4 = np.linalg.inv(fsavg_hires_vox2ras) @ aseg2fsaverage_ras2ras @ aseg_nib.affine
-    logger.info("Centroid registration successful!")
-    return aseg2fsavg_vox2vox, aseg2fsaverage_ras2ras, fsavg_hires_vox2ras, fsavg_header
-
-
 def localize_ac_pc(
     orig_data: Image3d,
     aseg_nib: nibabelImage,
@@ -853,11 +546,6 @@ def main(
     cc_mid_measures: str | Path | None = None,
     upright_lta: str | Path | None = None,
     orient_volume_lta: str | Path | None = None,
-    midplane_distance_map: str | Path | None = None,
-    midplane_fit_mask: str | Path | None = None,
-    midplane_left_hemi_mask: str | Path | None = None,
-    midplane_right_hemi_mask: str | Path | None = None,
-    midplane_upright_aseg: str | Path | None = None,
     midplane_method: str = "fsaverage_symmetry",
     cc_surf: str | Path | None = None,
     cc_thickness_overlay: str | Path | None = None,
@@ -983,11 +671,6 @@ def main(
         cc_mid_measures=cc_mid_measures,
         upright_lta=upright_lta,
         cc_orient_volume_lta=orient_volume_lta,
-        cc_midplane_distance_map=midplane_distance_map,
-        cc_midplane_fit_mask=midplane_fit_mask,
-        cc_midplane_left_hemi_mask=midplane_left_hemi_mask,
-        cc_midplane_right_hemi_mask=midplane_right_hemi_mask,
-        cc_midplane_upright_aseg=midplane_upright_aseg,
         cc_surf=cc_surf,
         cc_thickness_overlay=cc_thickness_overlay,
         cc_html=cc_html,
@@ -1050,101 +733,16 @@ def main(
         logger.error(error_message)
         return error_message
 
-    dm_result = None
-    _aseg_data = np.asarray(aseg_img.dataobj)
-    if midplane_method == "center":
-        # No registration: use the original image space with the center x-slice as midplane.
-        orig2fsavg_vox2vox = np.eye(4)
-        fsavg_vox2ras = orig.affine
-        _fsavg_header_dict: MGHHeaderDict = {"dims": list(orig.shape[:3])}
-        _fsavg_shape = orig.shape[:3]
-        _base_middle_vox = orig.shape[0] / 2.0
-        midline_shift_vox = 0.0
-        midline_shift_diagnostics = {}
-    else:
-        logger.info("Performing centroid registration to fsaverage space")
-        orig2fsavg_vox2vox, _, fsavg_vox2ras, _fsavg_header_dict = register_centroids_to_fsavg(aseg_img)
-        _fsavg_shape = tuple(_fsavg_header_dict["dims"])
-        _base_middle_vox = float(FSAVERAGE_MIDDLE) / float(vox_size[0])
-        if midplane_method == "fsaverage_distance_map":
-            dm_result = refine_midplane_with_distance_maps(
-                orig2fsavg_vox2vox=orig2fsavg_vox2vox,
-                aseg_data=_aseg_data,
-                fsavg_shape=_fsavg_shape,
-                base_middle_vox=_base_middle_vox,
-            )
-            orig2fsavg_vox2vox = dm_result.updated_vox2vox
-            midline_shift_vox = dm_result.center_shift_vox
-            midline_shift_diagnostics = dm_result.diagnostics
-        elif midplane_method == "fsaverage_symmetry":
-            orig2fsavg_vox2vox, _lr_shift, _, midline_shift_diagnostics = refine_midline_lr_shift(
-                orig2fsavg_vox2vox=orig2fsavg_vox2vox,
-                aseg_data=_aseg_data,
-                fsavg_shape=_fsavg_shape,
-                base_middle_vox=_base_middle_vox,
-            )
-            midline_shift_vox = float(_lr_shift)
-        else:  # "fsaverage"
-            midline_shift_vox = 0.0
-            midline_shift_diagnostics = {}
+    midplane = find_midplane_transform(orig=orig, aseg_img=aseg_img, midplane_method=midplane_method)
+    orig2fsavg_vox2vox = midplane.orig2fsavg_vox2vox
+    fsavg_vox2ras = midplane.fsavg_vox2ras
+    _fsavg_header_dict = midplane.fsavg_header_dict
+    _fsavg_shape = midplane.fsavg_shape
+    _base_middle_vox = midplane.base_middle_vox
+    midline_shift_vox = midplane.midline_shift_vox
+    midline_shift_diagnostics = midplane.midline_shift_diagnostics
     orig2fsavg_ras2ras = fsavg_vox2ras @ orig2fsavg_vox2vox @ np.linalg.inv(orig.affine)
     fsavg_header = init_mgh_header(orig.header, _fsavg_header_dict)
-    midplane_upright_aseg_data = resample_segmentation_to_fsavg(
-        np.asarray(aseg_img.dataobj),
-        orig2fsavg_vox2vox,
-        _fsavg_shape,
-    )
-
-    if dm_result is not None and sd.has_attribute("cc_midplane_distance_map"):
-        distance_map_path = sd.filename_by_attribute("cc_midplane_distance_map")
-        distance_map_path.parent.mkdir(exist_ok=True, parents=True)
-        futures.append(
-            thread_executor().submit(
-                nib.save,
-                nib.MGHImage(dm_result.debug_volumes.distance_diff.astype(np.float32), fsavg_vox2ras, orig.header),
-                distance_map_path,
-            )
-        )
-    if dm_result is not None and sd.has_attribute("cc_midplane_fit_mask"):
-        fit_mask_path = sd.filename_by_attribute("cc_midplane_fit_mask")
-        fit_mask_path.parent.mkdir(exist_ok=True, parents=True)
-        futures.append(
-            thread_executor().submit(
-                nib.save,
-                nib.MGHImage(dm_result.debug_volumes.candidate_mask.astype(np.uint8), fsavg_vox2ras, orig.header),
-                fit_mask_path,
-            )
-        )
-    if dm_result is not None and sd.has_attribute("cc_midplane_left_hemi_mask"):
-        left_hemi_mask_path = sd.filename_by_attribute("cc_midplane_left_hemi_mask")
-        left_hemi_mask_path.parent.mkdir(exist_ok=True, parents=True)
-        futures.append(
-            thread_executor().submit(
-                nib.save,
-                nib.MGHImage(dm_result.debug_volumes.left_mask.astype(np.uint8), fsavg_vox2ras, orig.header),
-                left_hemi_mask_path,
-            )
-        )
-    if dm_result is not None and sd.has_attribute("cc_midplane_right_hemi_mask"):
-        right_hemi_mask_path = sd.filename_by_attribute("cc_midplane_right_hemi_mask")
-        right_hemi_mask_path.parent.mkdir(exist_ok=True, parents=True)
-        futures.append(
-            thread_executor().submit(
-                nib.save,
-                nib.MGHImage(dm_result.debug_volumes.right_mask.astype(np.uint8), fsavg_vox2ras, orig.header),
-                right_hemi_mask_path,
-            )
-        )
-    if sd.has_attribute("cc_midplane_upright_aseg"):
-        upright_aseg_path = sd.filename_by_attribute("cc_midplane_upright_aseg")
-        upright_aseg_path.parent.mkdir(exist_ok=True, parents=True)
-        futures.append(
-            thread_executor().submit(
-                nib.save,
-                nib.MGHImage(midplane_upright_aseg_data.astype(np.int32), fsavg_vox2ras, orig.header),
-                upright_aseg_path,
-            )
-        )
 
     # start saving upright volume, this is the image in fsaverage space but not yet oriented via AC-PC
     if sd.has_attribute("upright_volume"):
@@ -1545,11 +1143,6 @@ if __name__ == "__main__":
             cc_mid_measures=options.cc_mid_measures,
             upright_lta=options.upright_lta,
             orient_volume_lta=options.orient_volume_lta,
-            midplane_distance_map=options.midplane_distance_map,
-            midplane_fit_mask=options.midplane_fit_mask,
-            midplane_left_hemi_mask=options.midplane_left_hemi_mask,
-            midplane_right_hemi_mask=options.midplane_right_hemi_mask,
-            midplane_upright_aseg=options.midplane_upright_aseg,
             midplane_method=options.midplane_method,
             cc_surf=options.cc_surf,
             cc_thickness_overlay=options.thickness_overlay,
