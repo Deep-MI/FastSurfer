@@ -410,11 +410,7 @@ def options_parse() -> argparse.Namespace:
     return args
 
 
-# Standard FreeSurfer aseg left/right label pairs used for LR symmetry scoring.
-# Restricted to subcortical structures that are clearly unilateral (present on one side
-# only in any given yz-slab). Cortex (3/42) and cerebellum-cortex (8/47) are excluded
-# because they wrap both hemispheres throughout the y-z extent, driving all symmetry
-# scores to zero and making the shift selector uninformative.
+
 def localize_ac_pc(
     orig_data: Image3d,
     aseg_nib: nibabelImage,
@@ -448,7 +444,7 @@ def localize_ac_pc(
         PC voxel coordinates with shape (2,) containing its [y,x] positions.
     """
     num_slices_to_analyze = resample_shape[0]
-    resample_shape = (num_slices_to_analyze + 2,) + resample_shape[1:]  # 2 for context slices
+    resample_shape = (num_slices_to_analyze + 2,) + resample_shape[1:] # 2 for context slices
     _midslices_fut = thread_executor().submit(
         affine_transform,
         orig_data,

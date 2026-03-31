@@ -23,6 +23,11 @@ from recon_surf.align_points import find_rigid
 
 logger = logging.get_logger(__name__)
 
+# Standard FreeSurfer aseg left/right label pairs used for LR symmetry scoring.
+# Restricted to subcortical structures that are clearly unilateral (present on one side
+# only in any given yz-slab). Cortex (3/42) and cerebellum-cortex (8/47) are excluded
+# because they wrap both hemispheres throughout the y-z extent, driving all symmetry
+# scores to zero and making the shift selector uninformative.
 _ASEG_LR_PAIRS: tuple[tuple[int, int], ...] = (
     (2, 41),
     (3, 42),
