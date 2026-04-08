@@ -8,10 +8,10 @@ from scipy.ndimage import affine_transform, binary_fill_holes, distance_transfor
 from skimage.morphology import convex_hull_image
 
 from CorpusCallosum.data.constants import FSAVERAGE_CENTROIDS_PATH, FSAVERAGE_DATA_PATH, FSAVERAGE_MIDDLE
-from CorpusCallosum.data.read_write import convert_numpy_to_json_serializable
 from CorpusCallosum.data.read_write import (
     MGHHeaderDict,
     calc_ras_centroids_from_seg,
+    convert_numpy_to_json_serializable,
     load_fsaverage_centroids,
     load_fsaverage_data,
 )
