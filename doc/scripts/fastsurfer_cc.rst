@@ -36,7 +36,7 @@ Available modes are:
 - ``center``: use the geometric center of the input volume without additional refinement
 - ``fsaverage_distance_map``: fit a midsagittal plane from left/right distance-map symmetry in fsaverage space
 
-The refinement after fsaverage alignment is intentionally conservative, expected to only make adjustments for unsual anatomies, or significant asymmetry.
+The refinement after fsaverage alignment is intentionally conservative, expected to only make adjustments for unusual anatomies, or significant asymmetry.
 
 
 
