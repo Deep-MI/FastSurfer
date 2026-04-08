@@ -46,6 +46,20 @@ _ASEG_LR_PAIRS: tuple[tuple[int, int], ...] = (
 
 @dataclass(frozen=True)
 class MidplaneDebugVolumes:
+    """Debug volumes produced by distance-map midplane refinement.
+
+    Attributes
+    ----------
+    distance_diff : np.ndarray
+        Voxel-wise difference ``d_left - d_right`` in fsaverage space.
+    candidate_mask : np.ndarray
+        Boolean mask selecting voxels used for plane fitting.
+    left_mask : np.ndarray
+        Partitioned binary left-hemisphere mask in fsaverage space.
+    right_mask : np.ndarray
+        Partitioned binary right-hemisphere mask in fsaverage space.
+    """
+
     distance_diff: np.ndarray
     candidate_mask: np.ndarray
     left_mask: np.ndarray
@@ -54,6 +68,20 @@ class MidplaneDebugVolumes:
 
 @dataclass(frozen=True)
 class MidplaneRefinementResult:
+    """Container for distance-map refinement outputs.
+
+    Attributes
+    ----------
+    updated_vox2vox : AffineMatrix4x4
+        Updated subject-to-fsaverage voxel transform.
+    center_shift_vox : float
+        Estimated LR center shift in fsaverage voxels.
+    diagnostics : dict[str, object]
+        JSON-serializable diagnostics and rejection reasons.
+    debug_volumes : MidplaneDebugVolumes
+        Optional intermediate volumes for quality control and debugging.
+    """
+
     updated_vox2vox: AffineMatrix4x4
     center_shift_vox: float
     diagnostics: dict[str, object]
@@ -62,6 +90,26 @@ class MidplaneRefinementResult:
 
 @dataclass(frozen=True)
 class MidplaneTransformResult:
+    """Result returned by :func:`find_midplane_transform`.
+
+    Attributes
+    ----------
+    orig2fsavg_vox2vox : AffineMatrix4x4
+        Subject-to-fsaverage voxel transform after optional refinement.
+    fsavg_vox2ras : AffineMatrix4x4
+        fsaverage voxel-to-RAS transform used for downstream mapping.
+    fsavg_header_dict : MGHHeaderDict
+        Header metadata for the fsaverage-aligned volume.
+    fsavg_shape : Shape3d
+        Shape of the fsaverage-aligned target grid.
+    base_middle_vox : float
+        Baseline midsagittal x-coordinate in fsaverage voxel units.
+    midline_shift_vox : float
+        Applied LR shift (or estimated center shift) in voxel units.
+    midline_shift_diagnostics : dict[str, object]
+        Method-specific diagnostics for refinement decisions.
+    """
+
     orig2fsavg_vox2vox: AffineMatrix4x4
     fsavg_vox2ras: AffineMatrix4x4
     fsavg_header_dict: MGHHeaderDict
@@ -76,7 +124,26 @@ def resample_segmentation_to_fsavg(
     orig2fsavg_vox2vox: AffineMatrix4x4,
     fsavg_shape: Shape3d,
 ) -> np.ndarray:
-    """Resample a segmentation into fsaverage voxel space using nearest-neighbor interpolation."""
+    """Resample a segmentation into fsaverage voxel space.
+
+    Parameters
+    ----------
+    seg_data : np.ndarray
+        Input segmentation array in subject voxel space.
+    orig2fsavg_vox2vox : AffineMatrix4x4
+        Subject-to-fsaverage voxel transform.
+    fsavg_shape : Shape3d
+        Output shape in fsaverage voxel coordinates.
+
+    Returns
+    -------
+    np.ndarray
+        Resampled integer segmentation in fsaverage space.
+
+    Notes
+    -----
+    Nearest-neighbor interpolation is used to preserve discrete labels.
+    """
     return affine_transform(
         seg_data.astype(np.int32),
         np.linalg.inv(orig2fsavg_vox2vox),
@@ -89,7 +156,18 @@ def resample_segmentation_to_fsavg(
 
 
 def _make_fsavg_convex_hull_mask(brain_mask: np.ndarray) -> np.ndarray:
-    """Approximate the whole-brain convex hull in fsaverage voxel space."""
+    """Approximate a whole-brain hull mask in fsaverage voxel space.
+
+    Parameters
+    ----------
+    brain_mask : np.ndarray
+        Binary brain mask in fsaverage space.
+
+    Returns
+    -------
+    np.ndarray
+        Boolean hull mask spanning valid x extents for each y-z location.
+    """
     yz_projection = brain_mask.any(axis=0)
     yz_hull = convex_hull_image(yz_projection)
 
@@ -121,7 +199,18 @@ def _make_fsavg_convex_hull_mask(brain_mask: np.ndarray) -> np.ndarray:
 
 
 def _clean_partitioned_hemi_masks(seg_fsavg: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
-    """Create hole-free left/right hemisphere masks covering the full brain mask."""
+    """Generate robust, hole-free left/right hemisphere masks.
+
+    Parameters
+    ----------
+    seg_fsavg : np.ndarray
+        Segmentation labels in fsaverage voxel space.
+
+    Returns
+    -------
+    tuple[np.ndarray, np.ndarray]
+        Left and right boolean masks that jointly cover the brain mask.
+    """
     brain_mask = seg_fsavg > 0
     left_vote, right_vote = hemi_masks_from_aseg(seg_fsavg)
     left_core = np.logical_and(left_vote, brain_mask)
@@ -154,7 +243,20 @@ def _clean_partitioned_hemi_masks(seg_fsavg: np.ndarray) -> tuple[np.ndarray, np
 
 
 def _rotation_from_vectors(source: np.ndarray, target: np.ndarray) -> np.ndarray:
-    """Return a 3x3 rotation matrix mapping source onto target."""
+    """Compute a 3x3 rotation matrix mapping ``source`` onto ``target``.
+
+    Parameters
+    ----------
+    source : np.ndarray
+        Source 3D direction vector.
+    target : np.ndarray
+        Target 3D direction vector.
+
+    Returns
+    -------
+    np.ndarray
+        Rotation matrix that aligns ``source`` with ``target``.
+    """
     source = source / np.linalg.norm(source)
     target = target / np.linalg.norm(target)
     cross = np.cross(source, target)
@@ -184,7 +286,20 @@ def _rotation_from_vectors(source: np.ndarray, target: np.ndarray) -> np.ndarray
 
 
 def _affine_from_rotation_and_center(rotation: np.ndarray, center: np.ndarray) -> AffineMatrix4x4:
-    """Build a 4x4 affine that rotates around a given center in voxel coordinates."""
+    """Construct an affine applying a rotation about a voxel-space center.
+
+    Parameters
+    ----------
+    rotation : np.ndarray
+        3x3 rotation matrix.
+    center : np.ndarray
+        Rotation center in voxel coordinates.
+
+    Returns
+    -------
+    AffineMatrix4x4
+        Homogeneous 4x4 affine transform.
+    """
     affine = np.eye(4, dtype=float)
     affine[:3, :3] = rotation
     affine[:3, 3] = center - rotation @ center
@@ -192,7 +307,18 @@ def _affine_from_rotation_and_center(rotation: np.ndarray, center: np.ndarray) -
 
 
 def _prepare_lr_pair_labels(seg_data: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
-    """Create matched left/right label-id arrays from a FreeSurfer-style segmentation."""
+    """Create matched left/right aseg label arrays available in an input segmentation.
+
+    Parameters
+    ----------
+    seg_data : np.ndarray
+        FreeSurfer-style labeled segmentation volume.
+
+    Returns
+    -------
+    tuple[np.ndarray, np.ndarray]
+        Arrays of matched left and right label IDs present in ``seg_data``.
+    """
     label_set = set(np.unique(seg_data.astype(np.int32)).tolist())
     label_set.discard(0)
 
@@ -210,7 +336,29 @@ def _score_midline_shift(
     shift_vox: int,
     max_pairs_per_slice: int = 64,
 ) -> tuple[float, int]:
-    """Score a left-right shift candidate using mirrored anatomy close to the midline."""
+    """Score a candidate LR shift by mirrored label consistency near the midline.
+
+    Parameters
+    ----------
+    seg_in_fsavg : np.ndarray
+        Segmentation labels in fsaverage voxel space.
+    left_ids : np.ndarray
+        Label IDs considered left-hemisphere structures.
+    right_ids : np.ndarray
+        Label IDs considered right-hemisphere structures.
+    base_middle_vox : float
+        Baseline midsagittal x-coordinate in voxel units.
+    shift_vox : int
+        Candidate shift to evaluate relative to ``base_middle_vox``.
+    max_pairs_per_slice : int, default=64
+        Maximum sampled right-side voxels per z-slice for distance matching.
+
+    Returns
+    -------
+    tuple[float, int]
+        Median mirrored y-distance score and number of matched samples.
+        Lower scores indicate better LR consistency.
+    """
     if left_ids.size == 0 or right_ids.size == 0:
         return float("inf"), 0
 
@@ -218,7 +366,7 @@ def _score_midline_shift(
     if x_mid <= 1 or x_mid >= seg_in_fsavg.shape[0] - 2:
         return float("inf"), 0
 
-    slab_half = 12 # this is mm since we are in fsaverage space with 1mm voxels
+    slab_half = 12  # 12 voxels ~= 12 mm in fsaverage (1 mm isotropic grid)
     x0 = max(0, x_mid - slab_half)
     x1 = min(seg_in_fsavg.shape[0], x_mid + slab_half + 1)
     slab = seg_in_fsavg[x0:x1]
@@ -266,7 +414,33 @@ def refine_midline_lr_shift(
     max_shift_vox: int = 6,
     step_vox: int = 1,
 ) -> tuple[AffineMatrix4x4, int, float, dict[str, object]]:
-    """Refine the fsaverage alignment by a small left-right shift around the midsagittal plane."""
+    """Refine midsagittal alignment by searching small LR translations.
+
+    Parameters
+    ----------
+    orig2fsavg_vox2vox : AffineMatrix4x4
+        Initial subject-to-fsaverage voxel transform.
+    aseg_data : np.ndarray
+        Subject segmentation labels in native voxel space.
+    fsavg_shape : Shape3d
+        Shape of the fsaverage target grid.
+    base_middle_vox : float
+        Baseline midsagittal x-coordinate in fsaverage voxels.
+    max_shift_vox : int, default=6
+        Maximum absolute LR shift explored.
+    step_vox : int, default=1
+        Integer step size for the LR search.
+
+    Returns
+    -------
+    tuple[AffineMatrix4x4, int, float, dict[str, object]]
+        Updated transform, selected shift, selected score, and diagnostics.
+
+    Notes
+    -----
+    Candidate shifts are regularized and validated with conservative rejection
+    criteria (boundary hits, low support, and weak improvements over baseline).
+    """
     if max_shift_vox < 0 or step_vox <= 0:
         return orig2fsavg_vox2vox, 0, float("inf"), {}
 
@@ -373,7 +547,18 @@ def refine_midline_lr_shift(
 def register_centroids_to_fsavg(
     aseg_nib: nibabelImage,
 ) -> tuple[AffineMatrix4x4, AffineMatrix4x4, AffineMatrix4x4, MGHHeaderDict]:
-    """Perform centroid-based registration between subject and fsaverage space."""
+    """Estimate a rigid subject-to-fsaverage alignment from aseg centroids.
+
+    Parameters
+    ----------
+    aseg_nib : nibabelImage
+        Input aseg image in subject space.
+
+    Returns
+    -------
+    tuple[AffineMatrix4x4, AffineMatrix4x4, AffineMatrix4x4, MGHHeaderDict]
+        ``(aseg2fsavg_vox2vox, aseg2fsavg_ras2ras, fsavg_hires_vox2ras, fsavg_header)``.
+    """
     logger.info("Starting centroid registration")
 
     fsaverage_data_future = thread_executor().submit(load_fsaverage_data, FSAVERAGE_DATA_PATH)
@@ -415,7 +600,34 @@ def refine_midplane_with_distance_maps(
     max_tilt_deg: float = 7.5,
     max_center_shift_vox: float = 8.0,
 ) -> MidplaneRefinementResult:
-    """Fit a midsagittal plane from left/right distance-map differences inside the brain hull."""
+    """Fit a midsagittal plane from LR distance-map symmetry in fsaverage space.
+
+    Parameters
+    ----------
+    orig2fsavg_vox2vox : AffineMatrix4x4
+        Initial subject-to-fsaverage voxel transform.
+    aseg_data : np.ndarray
+        Subject segmentation labels in native voxel space.
+    fsavg_shape : Shape3d
+        Shape of the fsaverage target grid.
+    base_middle_vox : float
+        Baseline midsagittal x-coordinate in fsaverage voxels.
+    zero_band_vox : float, default=0.5
+        Absolute distance-difference threshold for candidate midplane voxels.
+    support_distance_vox : float, default=24.0
+        Maximum distance to either hemisphere mask for candidate support.
+    fit_band_vox : float, default=20.0
+        X-range around baseline center used for plane fitting.
+    max_tilt_deg : float, default=7.5
+        Maximum accepted angular tilt away from the LR axis.
+    max_center_shift_vox : float, default=8.0
+        Maximum accepted LR center shift from baseline.
+
+    Returns
+    -------
+    MidplaneRefinementResult
+        Updated transform, applied center shift, diagnostics, and debug volumes.
+    """
     seg_data = aseg_data.astype(np.int32)
     empty = np.zeros(fsavg_shape, dtype=np.float32)
     empty_debug = MidplaneDebugVolumes(
@@ -566,7 +778,23 @@ def find_midplane_transform(
     aseg_img: nibabelImage,
     midplane_method: str,
 ) -> MidplaneTransformResult:
-    """Determine the fsaverage-space transform and diagnostics for the requested midplane method."""
+    """Resolve the fsaverage midplane transform for a selected refinement method.
+
+    Parameters
+    ----------
+    orig : nibabelImage
+        Input conformed anatomical image.
+    aseg_img : nibabelImage
+        Subject aseg segmentation image.
+    midplane_method : str
+        Midplane strategy. Supported values are ``"center"``,
+        ``"fsaverage_distance_map"``, and ``"fsaverage_symmetry"``.
+
+    Returns
+    -------
+    MidplaneTransformResult
+        Transform bundle and method-specific diagnostics for downstream CC steps.
+    """
     vox_size_ras: tuple[float, float, float] = nib.as_closest_canonical(orig).header.get_zooms()
     vox_size = vox_size_ras[0], vox_size_ras[2], vox_size_ras[1]
     aseg_data = np.asarray(aseg_img.dataobj)

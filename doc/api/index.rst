@@ -19,6 +19,7 @@ FastSurfer API
     CorpusCallosum.rst
     CorpusCallosum.data.rst
     CorpusCallosum.localization.rst
+    CorpusCallosum.registration.rst
     CorpusCallosum.segmentation.rst
     CorpusCallosum.shape.rst
     CorpusCallosum.transforms.rst
