@@ -35,7 +35,7 @@ from CorpusCallosum.data.constants import (
 )
 from CorpusCallosum.data.read_write import MGHHeaderDict, convert_numpy_to_json_serializable
 from CorpusCallosum.localization import inference as localization_inference
-from CorpusCallosum.midplane_refinement import find_midplane_transform
+from CorpusCallosum.registration.midsagittal_plane_alignment import find_midplane_transform
 from CorpusCallosum.segmentation import inference as segmentation_inference
 from CorpusCallosum.segmentation import segmentation_postprocessing
 from CorpusCallosum.shape.contour import calculate_volume as calculate_cc_volume_contour

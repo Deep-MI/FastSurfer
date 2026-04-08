@@ -23,26 +23,24 @@ from recon_surf.align_points import find_rigid
 
 logger = logging.get_logger(__name__)
 
-# Standard FreeSurfer aseg left/right label pairs used for LR symmetry scoring.
+# FreeSurfer aseg left/right label pairs used for LR symmetry scoring.
 # Restricted to subcortical structures that are clearly unilateral (present on one side
-# only in any given yz-slab). Cortex (3/42) and cerebellum-cortex (8/47) are excluded
-# because they wrap both hemispheres throughout the y-z extent, driving all symmetry
-# scores to zero and making the shift selector uninformative.
+# only in any given yz-slab). Cortex (3/42) and cerebellum-cortex (8/47) are excluded.
 _ASEG_LR_PAIRS: tuple[tuple[int, int], ...] = (
-    (2, 41),
-    (3, 42),
-    (4, 43),
-    (5, 44),
-    (7, 46),
-    (8, 47),
-    (10, 49),
-    (11, 50),
-    (12, 51),
-    (13, 52),
-    (17, 53),
-    (18, 54),
-    (26, 58),
-    (28, 60),
+    (2, 41),  # Cerebral-White-Matter
+    (3, 42),  # Cerebral-Cortex
+    (4, 43),  # Lateral-Ventricle
+    (5, 44),  # Inf-Lat-Vent
+    (7, 46),  # Cerebellum-White-Matter
+    (8, 47),  # Cerebellum-Cortex
+    (10, 49),  # Thalamus
+    (11, 50),  # Caudate
+    (12, 51),  # Putamen
+    (13, 52),  # Pallidum
+    (17, 53),  # Hippocampus
+    (18, 54),  # Amygdala
+    (26, 58),  # Accumbens-Area
+    (28, 60),  # VentralDC
 )
 
 
@@ -220,7 +218,7 @@ def _score_midline_shift(
     if x_mid <= 1 or x_mid >= seg_in_fsavg.shape[0] - 2:
         return float("inf"), 0
 
-    slab_half = 12
+    slab_half = 12 # this is mm since we are in fsaverage space with 1mm voxels
     x0 = max(0, x_mid - slab_half)
     x1 = min(seg_in_fsavg.shape[0], x_mid + slab_half + 1)
     slab = seg_in_fsavg[x0:x1]
