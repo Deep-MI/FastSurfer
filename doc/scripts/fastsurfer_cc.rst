@@ -26,8 +26,8 @@ The following section provides a detailed overview of the command-line interface
 
 Midplane extraction
 -------------------
-The ``--midplane_method`` flag controls how the corpus callosum pipeline refines the midsagittal plane before segmentation. The current implementation lives in ``CorpusCallosum/registration/midsagittal_plane_alignment.py``.
-When the corpus callosum segmentation does not align well with the mid-sagittal plane, can be changed for better results.
+The ``--midplane_method`` flag controls how the corpus callosum pipeline refines the midsagittal plane before segmentation. This is implemented in ``CorpusCallosum/registration/midsagittal_plane_alignment.py``.
+When the corpus callosum segmentation does not align well with the mid-sagittal plane, this option can be changed for better results.
 
 Available modes are:
 
