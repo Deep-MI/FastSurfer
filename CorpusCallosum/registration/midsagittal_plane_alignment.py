@@ -444,7 +444,7 @@ def refine_midline_lr_shift(
     if max_shift_vox < 0 or step_vox <= 0:
         return orig2fsavg_vox2vox, 0, float("inf"), {}
 
-    seg_data = aseg_data.astype(np.int32)
+    seg_data = aseg_data
     left_ids, right_ids = _prepare_lr_pair_labels(seg_data)
     if left_ids.size == 0:
         logger.warning("Midline refinement skipped: no left/right label pairs found.")
@@ -628,7 +628,7 @@ def refine_midplane_with_distance_maps(
     MidplaneRefinementResult
         Updated transform, applied center shift, diagnostics, and debug volumes.
     """
-    seg_data = aseg_data.astype(np.int32)
+    seg_data = aseg_data
     empty = np.zeros(fsavg_shape, dtype=np.float32)
     empty_debug = MidplaneDebugVolumes(
         distance_diff=empty,
