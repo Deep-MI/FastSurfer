@@ -238,7 +238,7 @@ def make_parser() -> argparse.ArgumentParser:
         "--orient_volume_lta",
         type=path_or_none,
         help="Output path for orientation volume LTA transform. This makes sure the midplane is the volume center, "
-        "the anterior and posterior commisures are on the coordinate line, and the posterior commissure is "
+        "the anterior and posterior commissures are on the coordinate line, and the posterior commissure is "
         "at the origin - standardizing the head position.",
         default=DEFAULT_OUTPUT_PATHS["orient_volume_lta"],
     )
