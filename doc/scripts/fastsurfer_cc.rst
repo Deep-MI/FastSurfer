@@ -22,6 +22,24 @@ The following section provides a detailed overview of the command-line interface
    :func: make_parser
    :prog: fastsurfer_cc.py
 
+
+
+Midplane extraction
+-------------------
+The ``--midplane_method`` flag controls how the corpus callosum pipeline refines the midsagittal plane before segmentation. This is implemented in ``CorpusCallosum/registration/midsagittal_plane_alignment.py``.
+When the corpus callosum segmentation does not align well with the mid-sagittal plane, this option can be changed for better results.
+
+Available modes are:
+
+- ``fsaverage_symmetry``: (default) Align to fsaverage, then search for a small left-right shift that minimizes mirrored aseg-label mismatch near the midline
+- ``fsaverage``: Align to fsaverage without additional refinement (matches publication)
+- ``center``: use the geometric center of the input volume without additional refinement
+- ``fsaverage_distance_map``: fit a midsagittal plane from left/right distance-map symmetry in fsaverage space
+
+The refinement after fsaverage alignment is intentionally conservative, expected to only make adjustments for unusual anatomies, or significant asymmetry.
+
+
+
 Quality Control
 ---------------
 The pipeline can produce a dedicated quality control image, showing the CC contour, AC/PC landmarks and thickness estimation.

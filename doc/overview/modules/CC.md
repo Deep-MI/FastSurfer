@@ -6,8 +6,8 @@ Also segments the fornix, localizes the anterior and posterior commissure (AC an
 Overview
 --------
 This pipeline combines localization and segmentation deep learning models to:
-1. Detect AC (Anterior Commissure) and PC (Posterior Commissure) points
-2. Extract and align midplane slices
+1. Extract and align midsagittal slices
+2. Detect AC (Anterior Commissure) and PC (Posterior Commissure) points
 3. Segment the corpus callosum
 4. Perform advanced morphometry for corpus callosum, including subdivision, thickness analysis, and various shape metrics
 5. Generate visualizations and measurements

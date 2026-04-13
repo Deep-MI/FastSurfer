@@ -3,6 +3,7 @@
 /tools/Docker/custom-ssl.crt
 /.idea/**
 /rough_work/**
+/scripts/**
 /doc-build/**
 
 # Byte-compiled / optimized / DLL files
