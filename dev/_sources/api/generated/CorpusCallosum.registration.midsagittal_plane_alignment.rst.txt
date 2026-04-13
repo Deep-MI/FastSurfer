@@ -1,0 +1,5 @@
+﻿CorpusCallosum.registration.midsagittal_plane_alignment
+=======================================================
+
+.. automodule:: CorpusCallosum.registration.midsagittal_plane_alignment
+    :members:
