@@ -25,14 +25,11 @@ logger = logging.get_logger(__name__)
 
 # FreeSurfer aseg left/right label pairs used for LR symmetry scoring.
 # Restricted to subcortical structures that are clearly unilateral (present on one side
-# only in any given yz-slab). Cortex (3/42) and cerebellum-cortex (8/47) are excluded.
+# only in any given yz-slab).
 _ASEG_LR_PAIRS: tuple[tuple[int, int], ...] = (
     (2, 41),  # Cerebral-White-Matter
-    (3, 42),  # Cerebral-Cortex
     (4, 43),  # Lateral-Ventricle
     (5, 44),  # Inf-Lat-Vent
-    (7, 46),  # Cerebellum-White-Matter
-    (8, 47),  # Cerebellum-Cortex
     (10, 49),  # Thalamus
     (11, 50),  # Caudate
     (12, 51),  # Putamen
@@ -787,7 +784,7 @@ def find_midplane_transform(
     aseg_img : nibabelImage
         Subject aseg segmentation image.
     midplane_method : str
-        Midplane strategy. Supported values are ``"center"``,
+        Midplane strategy. Supported values are ``"center"``, ``"fsaverage"``,
         ``"fsaverage_distance_map"``, and ``"fsaverage_symmetry"``.
 
     Returns
@@ -848,12 +845,15 @@ def find_midplane_transform(
             midline_shift_diagnostics=diagnostics,
         )
 
-    return MidplaneTransformResult(
-        orig2fsavg_vox2vox=orig2fsavg_vox2vox,
-        fsavg_vox2ras=fsavg_vox2ras,
-        fsavg_header_dict=fsavg_header_dict,
-        fsavg_shape=fsavg_shape,
-        base_middle_vox=base_middle_vox,
-        midline_shift_vox=0.0,
-        midline_shift_diagnostics={},
-    )
+    if midplane_method == "fsaverage":
+        return MidplaneTransformResult(
+            orig2fsavg_vox2vox=orig2fsavg_vox2vox,
+            fsavg_vox2ras=fsavg_vox2ras,
+            fsavg_header_dict=fsavg_header_dict,
+            fsavg_shape=fsavg_shape,
+            base_middle_vox=base_middle_vox,
+            midline_shift_vox=0.0,
+            midline_shift_diagnostics={},
+        )
+
+    raise ValueError(f"Unsupported midplane_method: {midplane_method!r}")
