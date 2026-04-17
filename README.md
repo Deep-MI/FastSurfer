@@ -37,7 +37,7 @@ Modules (all run by default):
    - a T1w image is highly recommended ([notes on input images](#requirements-to-input-images)), supports high-res (up to 0.7mm, but experimental beyond that).
    - allows the additional passing of a T2w image with `--t2 <path>`, which will be registered to the T1w image (see `--reg_mode` option).
    - calculates volume statistics corrected for partial volume effects based on the T1w image (skipped if `--no_biasfield` is passed).
-5. `neuro-lit`: [FastSurfer-LIT](https://github.com/Deep-MI/neuro-lit) for lesion inpainting (activate with `--lesion_mask <path>`)
+5. `neurolit`: [FastSurfer-LIT](https://github.com/Deep-MI/neurolit) for lesion inpainting (activate with `--lesion_mask <path>`)
    - specifically designed for brain images with lesions (tumors, surgical cavities, etc.).
    - replaces lesion affected region with healthy looking tissue to improve downstream segmentation and surface reconstruction.
    - includes automated postprocessing to mark lesion affected area in final segmentations and surfaces.

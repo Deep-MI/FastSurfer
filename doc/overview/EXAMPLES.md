@@ -269,5 +269,5 @@ docker run --gpus all -v /home/user/my_mri_data:/data \
 When using `--lesion_mask`, FastSurfer will:
 1. Inpaint the lesion area using LIT.
 2. Run the full segmentation and surface pipeline on the inpainted image.
-3. Automatically map the lesion mask back into final output files (segmentations, annotations) and create the modified statistics.
-4. Generate a lesion anatomy reports in the `stats` directory.
+3. Automatically map the lesion mask back into the final output files and regenerate the affected statistics.
+4. Preserve the pre-lesion outputs as `.lit` or mapped backup files and write lesion reports plus `lesion_impact_summary.yaml` in the `stats` directory.

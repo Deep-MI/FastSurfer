@@ -932,6 +932,28 @@ then
   } | tee -a "$seg_log"
 fi
 
+lit_out_dir="${subject_dir}/inpainting"
+lit_mask_output="${lit_out_dir}/inpainting_mask.nii.gz"
+lit_inpainting_result="${lit_out_dir}/inpainting_volumes/inpainting_result.nii.gz"
+
+if [[ -n "$lesion_mask" ]] && [[ "$run_seg_pipeline" != "1" ]]
+then
+  if [[ ! -f "$lit_mask_output" ]] || [[ ! -f "$lit_inpainting_result" ]]
+  then
+    {
+      echo "ERROR: --lesion_mask was passed without running the segmentation pipeline,"
+      echo "  but no prior LIT inpainting outputs were found in $lit_out_dir."
+      echo "  Run FastSurfer with --lesion_mask and segmentation enabled first, so the"
+      echo "  inpainting outputs required for later postprocessing are created."
+    } | tee -a "$seg_log"
+    exit 1
+  fi
+  {
+    echo "INFO: Reusing existing LIT inpainting outputs from $lit_out_dir"
+    echo "  for this surface-only/postprocessing run."
+  } | tee -a "$seg_log"
+fi
+
 # mapfile builtin requires bash 4 (BASH_VERSINFO is available in bash 3)
 if [[ "${BASH_VERSINFO[0]}" -gt 3 ]]
 then
@@ -970,11 +992,11 @@ then
         echo "Running LIT Inpainting..."
         echo "========================================================="
       } | tee -a "$seg_log"
-      lit_out_dir="${sd}/${subject}/inpainting"
       mkdir -p "$lit_out_dir"
       # symlink lesion mask to inpainting directory for consistency
-      cp "$lesion_mask" "${lit_out_dir}/inpainting_mask.nii.gz"
-      cmd=("run-lit" "--input_image" "$t1" "--lesion_mask" "$lesion_mask" "--sd" "$lit_out_dir")
+      cp "$lesion_mask" "$lit_mask_output"
+      cmd=("lit-inpainting" "--input_image" "$t1" "--lesion_mask" "$lesion_mask" "--sd" "$lit_out_dir")
+      if [[ "$native_image" != "false" ]] ; then cmd+=(--keepgeom) ; fi
       echo_quoted "${cmd[@]}" | tee -a "$seg_log"
       "${cmd[@]}" 2>&1 | tee -a "$seg_log"
       if [[ "${PIPESTATUS[0]}" -ne 0 ]]
@@ -982,7 +1004,7 @@ then
         echo "ERROR: LIT Inpainting failed!" | tee -a "$seg_log"
         exit 1
       fi
-      inpainted_t1="${lit_out_dir}/inpainting_volumes/inpainting_result.nii.gz"
+      inpainted_t1="$lit_inpainting_result"
       if [[ -f "$inpainted_t1" ]]
       then
         t1="$inpainted_t1"
@@ -1395,14 +1417,29 @@ then
     export FASTSURFER_HOME="$FASTSURFER_HOME"
 
     # Call LIT postprocessing
-    # We use the python command defined in the script
-    # and the subjects directory and subject id
-    lit_post_cmd=($python -m neuro_lit.scripts.lesion_postprocessing --subject-id "$subject" --subjects-dir "$sd")
+    lit_post_cmd=("lit-postprocessing" --subject-id "$subject" --subjects-dir "$sd")
+    lit_skip_segstats_reason=""
 
-    # If surface pipeline was not run, skip surface masking and stats
+    if [[ ! -f "${subject_dir}/mri/orig_nu.mgz" ]] && [[ ! -f "${subject_dir}/mri/norm.mgz" ]]
+    then
+        lit_skip_segstats_reason="neither mri/orig_nu.mgz nor mri/norm.mgz is available"
+    fi
+
+    if [[ -n "$lit_skip_segstats_reason" ]]
+    then
+        {
+          echo "WARNING: ${lit_skip_segstats_reason}."
+          echo "  Running LIT postprocessing with --skip-segstats."
+          echo "  Lesion mapping, lesion reports, surface masking, and surface statistics"
+          echo "  will still be attempted, but volumetric segstats regeneration is skipped."
+        } | tee -a "$seg_log"
+        lit_post_cmd+=(--skip-segstats)
+    fi
+
+    # If surface pipeline was not run, skip surface masking
     if [[ "$run_surf_pipeline" == "0" ]]
     then
-        lit_post_cmd+=(--skip-surface-masking --skip-segstats)
+        lit_post_cmd+=(--skip-surface-masking)
     fi
 
     echo_quoted "${lit_post_cmd[@]}" | tee -a "$seg_log"

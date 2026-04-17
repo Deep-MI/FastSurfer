@@ -60,7 +60,7 @@ dependencies = [
     'meshpy>=2025.1.1',
     'pyrr>=0.10.3',
     'pip>=25.0',
-    'neuro-lit @ file:///groups/ag-reuter/projects/fastsurfer-tumor/LIT_developement/LIT',
+    'neurolit @ file:///groups/ag-reuter/projects/fastsurfer-tumor/LIT_developement/LIT',
 ]
 
 [project.optional-dependencies]
