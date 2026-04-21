@@ -4,22 +4,18 @@ from dataclasses import dataclass
 
 import nibabel as nib
 import numpy as np
+from neuroreg.segreg import segreg
 from scipy.ndimage import affine_transform, binary_fill_holes, distance_transform_edt
 from skimage.morphology import convex_hull_image
 
-from CorpusCallosum.data.constants import FSAVERAGE_CENTROIDS_PATH, FSAVERAGE_DATA_PATH, FSAVERAGE_MIDDLE
+from CorpusCallosum.data.constants import FSAVERAGE_MIDDLE
 from CorpusCallosum.data.read_write import (
     MGHHeaderDict,
-    calc_ras_centroids_from_seg,
     convert_numpy_to_json_serializable,
-    load_fsaverage_centroids,
-    load_fsaverage_data,
 )
 from CorpusCallosum.shape.postprocessing import offset_affine
 from FastSurferCNN.utils import AffineMatrix4x4, Shape3d, logging, nibabelImage
 from FastSurferCNN.utils.brainvolstats import hemi_masks_from_aseg
-from FastSurferCNN.utils.parallel import thread_executor
-from recon_surf.align_points import find_rigid
 
 logger = logging.get_logger(__name__)
 
@@ -557,32 +553,42 @@ def register_centroids_to_fsavg(
         ``(aseg2fsavg_vox2vox, aseg2fsavg_ras2ras, fsavg_hires_vox2ras, fsavg_header)``.
     """
     logger.info("Starting centroid registration")
+    registration = segreg(
+        mov=aseg_nib,
+        atlas="fsaverage",
+        dof=6,
+        label_set="fsaverage_centroids",
+    )
+    if registration.target_affine is None or registration.target_geometry is None:
+        raise ValueError("neuroreg fsaverage registration did not provide target geometry.")
 
-    fsaverage_data_future = thread_executor().submit(load_fsaverage_data, FSAVERAGE_DATA_PATH)
-    ras_centroids_dst = load_fsaverage_centroids(FSAVERAGE_CENTROIDS_PATH)
-
-    ras_centroids_mov = calc_ras_centroids_from_seg(aseg_nib, label_ids=list(ras_centroids_dst.keys()))
-    joint_centroid_labels = [lbl for lbl, v in ras_centroids_mov.items() if v is not None]
-
-    ras_centroids_mov = np.array([ras_centroids_mov[lbl] for lbl in joint_centroid_labels]).T
-    ras_centroids_dst = np.array([ras_centroids_dst[lbl] for lbl in joint_centroid_labels]).T
-
-    aseg2fsaverage_ras2ras: AffineMatrix4x4 = find_rigid(p_mov=ras_centroids_mov.T, p_dst=ras_centroids_dst.T)
+    aseg2fsaverage_ras2ras = np.asarray(registration.r2r, dtype=np.float64)
+    fsaverage_vox2ras = np.asarray(registration.target_affine, dtype=np.float64)
+    atlas_header = registration.target_geometry
+    fsavg_header: MGHHeaderDict = {
+        "dims": [int(v) for v in atlas_header["dims"]],
+        "delta": [float(v) for v in atlas_header["delta"]],
+        "Mdc": np.asarray(atlas_header["Mdc"], dtype=np.float64).copy(),
+        "Pxyz_c": np.asarray(atlas_header["Pxyz_c"], dtype=np.float64).copy(),
+    }
 
     aseg_zooms_ras = np.asarray(nib.as_closest_canonical(aseg_nib).header.get_zooms()[:3])
     resolution_trans: AffineMatrix4x4 = np.diagflat(np.append(aseg_zooms_ras[[0, 2, 1]], [1])).astype(float)
 
-    fsaverage_vox2ras, fsavg_header = fsaverage_data_future.result()
     fsavg_header["delta"] = aseg_zooms_ras[[0, 2, 1]]
     fsavg_hires_vox2ras: AffineMatrix4x4 = np.concatenate(
         [(resolution_trans @ fsaverage_vox2ras)[:, :3], fsaverage_vox2ras[:, 3:4]],
         axis=1,
     )
-    fsavg_header["dims"] = np.ceil(fsavg_header["dims"] @ np.linalg.inv(resolution_trans[:3, :3])).astype(int).tolist()
+    fsavg_header["dims"] = (
+        np.ceil(np.asarray(fsavg_header["dims"], dtype=np.float64) @ np.linalg.inv(resolution_trans[:3, :3]))
+        .astype(int)
+        .tolist()
+    )
     fsavg_header["Pxyz_c"] += (aseg_zooms_ras - 1) / 2 @ fsavg_header["Mdc"]
 
     aseg2fsavg_vox2vox: AffineMatrix4x4 = np.linalg.inv(fsavg_hires_vox2ras) @ aseg2fsaverage_ras2ras @ aseg_nib.affine
-    logger.info("Centroid registration successful!")
+    logger.info("Centroid registration successful via neuroreg using %d labels!", len(registration.labels))
     return aseg2fsavg_vox2vox, aseg2fsaverage_ras2ras, fsavg_hires_vox2ras, fsavg_header
 
 

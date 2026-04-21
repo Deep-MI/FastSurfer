@@ -18,6 +18,7 @@ tqdm>=4.65
 yacs>=0.1.8
 monai>=1.4.0
 meshpy>=2025.1.1
+neuroreg>=0.3.0
 pyrr>=0.10.3
 whippersnappy>=2.1
 pip>=25.0

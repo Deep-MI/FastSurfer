@@ -39,6 +39,7 @@ dependencies = [
     'meshpy>=2025.1.1', # needed for FastSurfer-CC
     'monai>=1.4.0', # needed for FastSurfer-CC
     'nibabel>=5.4.0', # needed to fix a bug in nibabel
+    'neuroreg>=0.3.0', # needed for FastSurfer-CC registration
     'numpy>=1.25',
     'packaging',
     'pandas>=1.5.3',
