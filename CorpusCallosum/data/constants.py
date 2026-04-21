@@ -16,9 +16,6 @@ from FastSurferCNN.utils.parser_defaults import FASTSURFER_ROOT
 
 ### Constants
 WEIGHTS_PATH = FASTSURFER_ROOT / "checkpoints"
-FSAVERAGE_CENTROIDS_PATH = FASTSURFER_ROOT / "CorpusCallosum" / "data" / "fsaverage_centroids.json"
-# Contains both affine and header
-FSAVERAGE_DATA_PATH = FASTSURFER_ROOT / "CorpusCallosum" / "data" / "fsaverage_data.json"
 FSAVERAGE_MIDDLE = 128  # Middle slice index in fsaverage space
 CC_LABEL = 192          # Label value for corpus callosum in segmentation
 FORNIX_LABEL = 250      # Label value for fornix in segmentation
