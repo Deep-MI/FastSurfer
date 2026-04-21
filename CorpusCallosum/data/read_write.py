@@ -15,7 +15,6 @@
 from typing import TypedDict
 
 import numpy as np
-from numpy import typing as npt
 
 from FastSurferCNN.utils import AffineMatrix3x3, Vector3d
 

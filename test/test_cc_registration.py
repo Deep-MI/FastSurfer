@@ -11,7 +11,6 @@ from CorpusCallosum.registration.midsagittal_plane_alignment import (
     register_centroids_to_fsavg,
 )
 
-
 _LABEL_COORDS = {
     2: (10, 20, 30),
     41: (30, 20, 30),
