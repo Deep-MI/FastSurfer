@@ -288,6 +288,7 @@ EOF
 
 # Add FreeSurfer and python Environment variables
 # DO_NOT_SEARCH_FS_LICENSE_IN_FREESURFER_HOME=true deactivates the search for FS_LICENSE in FREESURFER_HOME
+# XDG_DATA_HOME pins neurolit platformdirs data files to a deterministic image path.
 ENV OS=Linux \
     FS_OVERRIDE=0 \
     FIX_VERTEX_AREA="" \

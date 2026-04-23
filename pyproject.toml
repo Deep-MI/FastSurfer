@@ -61,6 +61,7 @@ dependencies = [
     'pyrr>=0.10.3',
     'pip>=25.0',
     'neurolit @ file:///groups/ag-reuter/projects/fastsurfer-tumor/LIT_developement/LIT',
+    'neurolit>=0.6.0',
 ]
 
 [project.optional-dependencies]
