@@ -24,7 +24,6 @@ from typing import TYPE_CHECKING, Literal, TypedDict, TypeVar, cast
 import nibabel as nib
 import numpy as np
 from nibabel.orientations import aff2axcodes, axcodes2ornt, io_orientation
-from numpy import deprecate_with_doc
 from numpy import typing as npt
 
 from FastSurferCNN.utils import (
@@ -33,6 +32,7 @@ from FastSurferCNN.utils import (
     ScalarType,
     Shape1d,
     Vector3d,
+    deprecated,
     logging,
     nibabelHeader,
     nibabelImage,
@@ -628,7 +628,7 @@ def apply_orientation(arr: _TB | npt.ArrayLike, ornt: OrntArrayType) -> _TB:
     return _apply_orientation(arr, ornt)
 
 
-@deprecate_with_doc("Use apply_vox2vox or Reorientation.__call__ instead of map_image.")
+@deprecated("Use apply_vox2vox or Reorientation.__call__ instead of map_image.")
 def map_image(
         img: nibabelImage,
         out_affine: AffineMatrix4x4,
@@ -719,7 +719,7 @@ def apply_vox2vox(
             if hasattr(image_data, "device"):
                 from torch import Tensor
                 if isinstance(image_data, Tensor):
-                    image_data = image_data.squeeze(tuple(range(3, image_data.ndim)))
+                    image_data = image_data.squeeze(tuple(range(3, image_data.ndim)))  # ty:ignore[invalid-assignment]
                 else:
                     raise TypeError("image_data has a device attribute but is not a torch.Tensor!")
             else:
@@ -1551,13 +1551,12 @@ def check_affine_in_nifti(
     check = True
     message = ""
 
-    header = cast(nib.Nifti1Header | nib.Nifti2Header, img.header)
-    if header["qform_code"] != 0 and not np.allclose(img.get_sform(), img.get_qform(), atol=0.001):
+    if img.header["qform_code"] != 0 and not np.allclose(img.get_sform(), img.get_qform(), atol=0.001):
         message = (
             f"#############################################################\n"
             f"WARNING: qform and sform transform are not identical!\n"
-            f" sform-transform:\n{header.get_sform()}\n"
-            f" qform-transform:\n{header.get_qform()}\n"
+            f" sform-transform:\n{img.header.get_sform()}\n"
+            f" qform-transform:\n{img.header.get_qform()}\n"
             f"You might want to check your Nifti-header for inconsistencies!\n"
             f"!!! Affine from qform transform will now be used !!!\n"
             f"#############################################################"
@@ -1569,7 +1568,7 @@ def check_affine_in_nifti(
     else:
         # Check if affine correctly includes voxel information and print Warning/
         # Exit otherwise
-        vox_size_header = header.get_zooms()
+        vox_size_header = img.header.get_zooms()
 
         # voxel size in xyz direction from the affine
         vox_size_affine = np.sqrt((img.affine[:3, :3] * img.affine[:3, :3]).sum(0))

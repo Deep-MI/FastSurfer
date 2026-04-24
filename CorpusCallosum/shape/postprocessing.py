@@ -647,7 +647,7 @@ def check_area_changes(contours: list[np.ndarray], threshold: float = 0.3) -> bo
     if hasattr(np, 'trapezoid'):
         areas = np.asarray([np.abs(np.trapezoid(c[1], c[0])) for c in contours])
     else:
-        areas = np.asarray([np.abs(np.trapz(c[1], c[0])) for c in contours])
+        areas = np.asarray([np.abs(np.trapz(c[1], c[0])) for c in contours])  # noqa: NPY201
 
     assert len(areas) > 1, "At least two areas are required to check for area changes"
 

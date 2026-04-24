@@ -72,7 +72,7 @@ def random_image(random_affine: AffineMatrix4x4, img_size: int) -> nib.Nifti1Ima
 
 @pytest.fixture(scope="session")
 def empty_image(random_affine: AffineMatrix4x4, img_size: int) -> nib.Nifti1Image:
-    return nib.Nifti1Image(np.empty((img_size,) * 3), random_affine)
+    return nib.Nifti1Image(np.zeros((img_size,) * 3, dtype=np.uint8), random_affine)
 
 
 def affine2orientation(affine: AffineMatrix4x4) -> OrientationType:
@@ -108,18 +108,6 @@ class HeaderTests:
         actual = header.get_zooms()
         expected = np.full_like(actual, vox_size)
         assert actual == approx(expected), "The actual voxel sizes in the affine did not match the expected."
-
-
-# class TestPrepareHeader(HeaderTests):
-#
-#     @pytest.fixture(scope="class")
-#     def header(self, empty_image: nib.Nifti1Image, orientation: OrientationType, img_size: int, vox_size: float) \
-#             -> nib.freesurfer.mghformat.MGHHeader:
-#         return prepare_mgh_header(empty_image, [vox_size] * 3, [img_size] * 3, orientation)
-#
-#     @pytest.fixture(scope="class")
-#     def affine(self, header: nib.freesurfer.mghformat.MGHHeader) -> AffineMatrix4x4:
-#         return header.get_affine()
 
 
 class TestConformAffine(HeaderTests):
