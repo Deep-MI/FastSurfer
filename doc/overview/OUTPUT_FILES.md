@@ -69,16 +69,17 @@ Lesion Inpainting Tool (LIT) module
 The LIT module is run if a lesion mask is provided via the `--lesion_mask` flag. It inpaints the lesion region, runs the downstream FastSurfer modules on the inpainted image, and then maps the lesion back into the resulting outputs. The current LIT postprocessing workflow updates the primary FastSurfer files in place and keeps the original pre-lesion outputs either as `.lit` backups or, for some surface-derived files, in the original `.mapped.*` files. Here we list the most commonly used files.
 
 ### Inpainting Outputs
-These are the key files created during the initial inpainting stage. FastSurfer uses the
-`mri/*.lit.*` paths as public convenience files and keeps the full working set under `inpainting/`.
+These are the key files created during the initial inpainting stage. In FastSurfer mode, LIT writes
+its outputs directly into the standard subject directory layout.
 
 | directory | filename | module | description |
 |:----------|----------|--------|-------------|
 | mri | inpainted.lit.nii.gz | lit | inpainted T1 image used for downstream processing |
+| mri | mask.lit.nii.gz | lit | processed lesion mask in FastSurfer image space (after any optional dilation) |
 | mri/orig | mask.lit.nii.gz | lit | original lesion mask copied into the subject directory |
-| inpainting/inpainting_volumes | inpainting_mask.nii.gz | lit | LIT working mask in FastSurfer image space (after any optional dilation) |
-| inpainting/inpainting_volumes | inpainting_result.nii.gz | lit | internal working copy of the inpainted T1 image |
-| inpainting/inpainting_volumes | inpainting_original_image.nii.gz | lit | conformed original image stored alongside the inpainted result |
+| mri/orig | inpainting_original_image.lit.nii.gz | lit | conformed original image used internally by LIT |
+| mri/orig | inpainting_masked_image.lit.nii.gz | lit | conformed masked image used internally by LIT |
+| scripts | inpainting_*.lit.png | lit | preview images from the inpainting step |
 
 ### Postprocessing MRI Outputs
 These files contain the lesion-integrated segmentations. LIT overwrites the primary FastSurfer outputs and stores the pre-lesion versions as `.lit` backups.

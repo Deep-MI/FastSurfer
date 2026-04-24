@@ -34,7 +34,7 @@ LIT provides comprehensive postprocessing tools to integrate lesions into FastSu
 
 The current integration updates the main FastSurfer output files in place and preserves the pre-lesion versions either as `.lit` backups or, for some surface-derived files, in the original `.mapped.*` files. The most important lesion-specific outputs are:
 
-- `mri/inpainted.lit.nii.gz` and `mri/orig/mask.lit.nii.gz` as the public inpainting inputs stored in the subject directory
+- `mri/inpainted.lit.nii.gz`, `mri/mask.lit.nii.gz`, and `mri/orig/mask.lit.nii.gz` as the inpainting inputs stored in the subject directory
 - `mri/aparc.DKTatlas+aseg.deep.mgz` with backup `mri/aparc.DKTatlas+aseg.deep.lit.mgz`
 - `stats/aseg+DKT.VINN.stats` with backup `stats/aseg+DKT.VINN.lit.stats`
 - `stats/aparc.DKTatlas+aseg.lesion_report.txt`

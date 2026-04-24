@@ -21,6 +21,7 @@ input image, continues the requested FastSurfer pipeline on the inpainted image,
 The most important LIT-modified outputs are:
 
 - `mri/inpainted.lit.nii.gz`
+- `mri/mask.lit.nii.gz`
 - `mri/orig/mask.lit.nii.gz`
 - `mri/aparc.DKTatlas+aseg.deep.mgz` with backup `mri/aparc.DKTatlas+aseg.deep.lit.mgz`
 - `stats/aseg+DKT.VINN.stats` with backup `stats/aseg+DKT.VINN.lit.stats`

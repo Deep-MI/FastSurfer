@@ -932,11 +932,11 @@ then
   } | tee -a "$seg_log"
 fi
 
-lit_out_dir="${subject_dir}/inpainting"
-lit_mask_output="${lit_out_dir}/inpainting_volumes/inpainting_mask.nii.gz"
-lit_mask_legacy_output="${lit_out_dir}/inpainting_mask.nii.gz"
+lit_mask_output="${subject_dir}/mri/mask.lit.nii.gz"
+lit_mask_legacy_output="${subject_dir}/inpainting/inpainting_mask.nii.gz"
+lit_mask_legacy_output_2="${subject_dir}/inpainting/inpainting_volumes/inpainting_mask.nii.gz"
 lit_inpainting_result="${subject_dir}/mri/inpainted.lit.nii.gz"
-lit_inpainting_result_legacy="${lit_out_dir}/inpainting_volumes/inpainting_result.nii.gz"
+lit_inpainting_result_legacy="${subject_dir}/inpainting/inpainting_volumes/inpainting_result.nii.gz"
 
 if [[ -n "$lesion_mask" ]] && [[ "$run_seg_pipeline" != "true" ]]
 then
@@ -945,18 +945,18 @@ then
     lit_inpainting_result="$lit_inpainting_result_legacy"
   fi
 
-  if { [[ ! -f "$lit_mask_output" ]] && [[ ! -f "$lit_mask_legacy_output" ]]; } || [[ ! -f "$lit_inpainting_result" ]]
+  if { [[ ! -f "$lit_mask_output" ]] && [[ ! -f "$lit_mask_legacy_output" ]] && [[ ! -f "$lit_mask_legacy_output_2" ]]; } || [[ ! -f "$lit_inpainting_result" ]]
   then
     {
       echo "ERROR: --lesion_mask was passed without running the segmentation pipeline,"
-      echo "  but no prior LIT inpainting outputs were found in $lit_out_dir."
+      echo "  but no prior LIT inpainting outputs were found in $subject_dir."
       echo "  Run FastSurfer with --lesion_mask and segmentation enabled first, so the"
       echo "  inpainting outputs required for later postprocessing are created."
     } | tee -a "$seg_log"
     exit 1
   fi
   {
-    echo "INFO: Reusing existing LIT inpainting outputs from $lit_out_dir"
+    echo "INFO: Reusing existing LIT inpainting outputs from $subject_dir"
     echo "  for this surface-only/postprocessing run."
   } | tee -a "$seg_log"
 fi
