@@ -255,16 +255,17 @@ if [[ -z "$PYTHONUNBUFFERED" ]] ; then export PYTHONUNBUFFERED=0 ; fi
 
 if [[ "$long" == "true" ]] && [[ "$base" == "true" ]]
 then
-  echo "ERROR: You specified both --long and --base. You need to setup and then run base"
-  echo "  template first, before you can run any longitudinal time points."
+  echo "ERROR: You specified both --long and --base. You need to setup and then run base template first,"
+  echo "before you can run any longitudinal time points."
   exit 1
 fi
 
 if [[ "$base" == "true" ]] && [[ ! -f "$SUBJECTS_DIR/$subject/base-tps.fastsurfer" ]]
 then
-  echo "ERROR: $subject is either not found in \$SUBJECTS_DIR or it is not a longitudinal"
-  echo "  template directory (base), which needs to contain base-tps.fastsurfer file. Please"
-  echo "  ensure that the base (template) has been created with long_prepare_template.sh."
+  echo "ERROR: $subject is either not found in SUBJECTS_DIR"
+  echo "or it is not a longitudinal template directory (base),"
+  echo "which needs to contain base-tps.fastsurfer file. Please ensure that"
+  echo "the base (template) has been created with long_prepare_template.sh."
   exit 1
 fi
 

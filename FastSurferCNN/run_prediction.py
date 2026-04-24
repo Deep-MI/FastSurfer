@@ -466,12 +466,7 @@ class RunModelOnData:
         """
         return self.pool.submit(self.save_img, save_as, data, orig, dtype)
 
-    def set_up_model_params(
-            self,
-            plane: Plane,
-            cfg: "yacs.config.CfgNode",
-            ckpt: "torch.Tensor",
-    ) -> None:
+    def set_up_model_params(self, plane: Plane, cfg: CfgNode, ckpt: "torch.Tensor") -> None:
         """
         Set up the model parameters from the configuration and checkpoint.
         """
