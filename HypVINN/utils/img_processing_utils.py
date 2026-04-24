@@ -17,6 +17,7 @@ from typing import cast
 
 import nibabel as nib
 import numpy as np
+from nibabel.orientations import aff2axcodes
 from scipy import ndimage
 from skimage.measure import label
 
@@ -25,25 +26,6 @@ from FastSurferCNN.utils import AffineMatrix4x4, Image4d, nibabelImage
 from HypVINN.data_loader.data_utils import hypo_map_subseg_2_fsseg
 
 LOGGER = logging.get_logger(__name__)
-
-
-def img2axcodes(img: nib.Nifti1Image) -> tuple:
-    """
-    Convert the affine matrix of an image to axis codes.
-
-    This function takes an image as input and returns the axis codes corresponding to the affine matrix of the image.
-
-    Parameters
-    ----------
-    img : nibabel image object
-        The input image.
-
-    Returns
-    -------
-    tuple
-        The axis codes corresponding to the affine matrix of the image.
-    """
-    return nib.aff2axcodes(img.affine)
 
 
 def save_segmentation(
@@ -95,23 +77,19 @@ def save_segmentation(
     # Mapped HypVINN labelst to FreeSurfer Hypvinn Labels
     pred_arr = hypo_map_subseg_2_fsseg(pred_arr)
     orig_img = cast(nibabelImage, nib.load(orig_path))
-    LOGGER.info(f"Orig data orientation : {img2axcodes(orig_img)}")
+    LOGGER.info(f"Orig data orientation : {aff2axcodes(orig_img.affine)}")
 
     if save_mask:
         mask_img = nib.Nifti1Image(labels_cc, affine=ras_affine, header=ras_header)
-        LOGGER.info(f"HypVINN Mask orientation: {img2axcodes(mask_img)}")
+        LOGGER.info(f"HypVINN Mask orientation: {aff2axcodes(mask_img.affine)}")
         mask_img = reorient_img(mask_img, orig_img)
-        LOGGER.info(
-            f"HypVINN Mask after re-orientation: {img2axcodes(mask_img)}"
-        )
+        LOGGER.info(f"HypVINN Mask after re-orientation: {aff2axcodes(mask_img.affine)}")
         nib.save(mask_img, subject_dir / "mri" / mask_file)
 
     pred_img = nib.Nifti1Image(pred_arr, affine=ras_affine, header=ras_header)
-    LOGGER.info(f"HypVINN Prediction orientation: {img2axcodes(pred_img)}")
+    LOGGER.info(f"HypVINN Prediction orientation: {aff2axcodes(pred_img.affine)}")
     pred_img = reorient_img(pred_img, orig_img)
-    LOGGER.info(
-        f"HypVINN Prediction after re-orientation: {img2axcodes(pred_img)}"
-    )
+    LOGGER.info(f"HypVINN Prediction after re-orientation: {aff2axcodes(pred_img.affine)}")
     pred_img.set_data_dtype(np.int16)  # Maximum value 984
     nib.save(pred_img, subject_dir / "mri" / seg_file)
     return time() - starttime
@@ -154,17 +132,15 @@ def save_logits(
     """
     from HypVINN.data_loader.data_utils import reorient_img
     orig_img = cast(nibabelImage, nib.load(orig_path))
-    LOGGER.info(f"Orig data orientation: {img2axcodes(orig_img)}")
+    LOGGER.info(f"Orig data orientation: {aff2axcodes(orig_img.affine)}")
     nifti_img = nib.Nifti1Image(
         logits.astype(np.float32),
         affine=ras_affine,
         header=ras_header,
     )
-    LOGGER.info(f"HypVINN logits orientation: {img2axcodes(nifti_img)}")
+    LOGGER.info(f"HypVINN logits orientation: {aff2axcodes(nifti_img.affine)}")
     nifti_img = reorient_img(nifti_img, orig_img)
-    LOGGER.info(
-        f"HypVINN logits after re-orientation: {img2axcodes(nifti_img)}"
-    )
+    LOGGER.info(f"HypVINN logits after re-orientation: {aff2axcodes(nifti_img.affine)}")
     nifti_img.set_data_dtype(np.float32)
     save_as = save_dir / f"HypVINN_logits_{mode}.nii.gz"
     nib.save(nifti_img, save_as)
