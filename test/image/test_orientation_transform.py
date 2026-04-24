@@ -19,7 +19,6 @@ from FastSurferCNN.data_loader.conform import (
 )
 from FastSurferCNN.utils import AffineMatrix4x4, Image3d, Shape3d, Vector3d
 from FastSurferCNN.utils.arg_types import OrientationType, StrictOrientationType
-from test.image.test_conform_reorient import affine2orientation
 
 logger = getLogger(__name__)
 SQRT1_2 = np.sqrt(0.5)
@@ -241,6 +240,8 @@ class ReorientationTests:
 
     def test_target_axcode(self, obj: Reorientation, target_orientation: OrientationType):
         """Test whether the axcodes of the target_affine transformed by conform.Reorientation are correct."""
+        from helper_functions import affine2orientation
+        
         actual = affine2orientation(obj.target_affine).lower()
         expected = target_orientation.lower()
         assert actual == expected, "Axcodes of affine after conform.Reorientation were not correct."
@@ -285,6 +286,8 @@ class TestReorientationNative(ReorientationTests):
 
     def test_target_axcode(self, obj: Reorientation, target_orientation: OrientationType):
         """Test whether the axcodes of the target_affine transformed by conform.Reorientation are correct."""
+        from helper_functions import affine2orientation
+
         super().test_target_axcode(obj, affine2orientation(obj.source_affine))
 
     def test_native_transform(self, obj: Reorientation):

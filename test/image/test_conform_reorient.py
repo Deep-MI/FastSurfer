@@ -11,7 +11,6 @@ from pytest import approx
 
 from FastSurferCNN.data_loader.conform import OrientationType, conform
 from FastSurferCNN.utils import AffineMatrix4x4, Image3d, nibabelHeader, nibabelImage
-from FastSurferCNN.utils.arg_types import StrictOrientationType
 
 logger = getLogger(__name__)
 
@@ -75,20 +74,11 @@ def empty_image(random_affine: AffineMatrix4x4, img_size: int) -> nib.Nifti1Imag
     return nib.Nifti1Image(np.zeros((img_size,) * 3, dtype=np.uint8), random_affine)
 
 
-def affine2orientation(affine: AffineMatrix4x4) -> OrientationType:
-    """Generates the orientation type string from an affine matrix."""
-    orientation: StrictOrientationType = "".join(aff2axcodes(affine, ("LR", "PA", "IS")))
-    # make sure the affine is normalized for vox_sizes not 1
-    norm_affine = affine[:3, :3] / np.linalg.norm(affine[:3, :3], keepdims=True, axis=0)
-    if np.allclose(np.sum([np.isclose(np.abs(norm_affine), i) for i in (0, 1.)], axis=0), 1):
-        return orientation
-    else:
-        return "soft " + orientation
-
-
 class HeaderTests:
     def test_affine_orientation(self, affine: AffineMatrix4x4, orientation: OrientationType):
         """Tests whether a conformed image actually has the correct orientation."""
+        from helper_functions import affine2orientation
+
         actual = affine2orientation(affine)
         if orientation.startswith("soft"):
             expected = (orientation, orientation[5:])
@@ -224,6 +214,8 @@ class TestReorientWorldCoords:
         """
         This test checks, whether the affines of the world coordinate images are consistent with the original affine.
         """
+        from helper_functions import affine2orientation
+
         actual = "".join(affine2orientation(conf_images[dim_name].affine))
         if orientation.lower() == "native":
             # native means the image does not change, so the orientation is determined by the original affine
