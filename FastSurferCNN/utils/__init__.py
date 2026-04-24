@@ -23,7 +23,6 @@ __all__ = [
     "meters",
     "metrics",
     "misc",
-    "noop_context",
     "parser_defaults",
     "parallel",
     "Plane",
@@ -97,11 +96,6 @@ if HAS_NUMPY:
         "Vector2d",
         "Vector3d",
     ]
-
-@contextmanager
-def noop_context():
-    """A no-op context manager that does nothing."""
-    yield
 
 LiteralType = TypeVar("LiteralType")
 
