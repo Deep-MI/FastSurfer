@@ -452,7 +452,7 @@ class Inference:
                     cerebnet_seg = self._view_aggregation(preds_per_plane)
 
                     # transform data from lia to native on demand
-                    cerebnet_seg = subject_dataset.back_to_native(cerebnet_seg)
+                    cerebnet_seg = subject_dataset.native_to_lia.inverse(cerebnet_seg, order=0)
                     # map predictions into FreeSurfer Label space & move segmentation to cpu
                     cerebnet_seg = self.cereb_id2fs_id.map(cerebnet_seg).cpu()
                     pred_time = time.time()

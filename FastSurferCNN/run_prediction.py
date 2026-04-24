@@ -38,7 +38,7 @@ from yacs.config import CfgNode
 
 import FastSurferCNN.reduce_to_aseg as rta
 from FastSurferCNN.data_loader import data_utils as du
-from FastSurferCNN.data_loader.conform import conform, is_conform, orientation_to_ornts, to_target_orientation
+from FastSurferCNN.data_loader.conform import Reorientation, conform, is_conform
 from FastSurferCNN.inference import Inference
 from FastSurferCNN.quick_qc import check_volume
 from FastSurferCNN.utils import PLANES, AffineMatrix4x4, Plane, logging, nibabelImage, parser_defaults
@@ -375,10 +375,10 @@ class RunModelOnData:
             msg = "FastSurfer support for anisotropic images is experimental, we detected the following voxel sizes!"
             LOGGER.warning(f"{msg}: {np.round(_zoom, decimals=4).tolist()}!")
 
-        orig_in_lia, back_to_native = to_target_orientation(orig_data, affine, target_orientation="LIA")
+        native_to_lia = Reorientation.from_target_orientation(affine, "soft LIA", orig_data.shape, _zoom)
+        orig_in_lia = native_to_lia(orig_data, order=1)
         shape = orig_in_lia.shape + (self.get_num_classes(),)
-        _ornt_transform, _ = orientation_to_ornts(affine, target_orientation="LIA")
-        _zoom = _zoom[_ornt_transform[:, 0]]
+        _zoom_in_lia = native_to_lia.reorder_axes(_zoom)
 
         pred_prob = torch.zeros(shape, device=self.viewagg_device, dtype=torch.float16, requires_grad=False)
 
@@ -387,13 +387,13 @@ class RunModelOnData:
             LOGGER.info(f"Run {plane} prediction")
             self.set_model(plane)
             # pred_prob is updated inplace to conserve memory
-            pred_prob = model.run(pred_prob, image_name, orig_in_lia, _zoom, out=pred_prob)
+            pred_prob = model.run(pred_prob, image_name, orig_in_lia, _zoom_in_lia, out=pred_prob)
 
         # Get hard predictions
         pred_classes = torch.argmax(pred_prob, 3)
         del pred_prob
         # reorder from lia to native
-        pred_classes = back_to_native(pred_classes)
+        pred_classes = native_to_lia.inverse(pred_classes, order=0)
         # map to freesurfer label space
         pred_classes = du.map_label2aparc_aseg(pred_classes, self.labels)
         # return numpy array
