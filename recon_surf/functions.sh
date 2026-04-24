@@ -40,7 +40,7 @@ function check_create_subjects_dir_properties()
     fi
     if [[ "$user_group" == "0:0" ]] && [[ "$(id -u)" != "0" ]] && [[ "$world_access" -lt 6 ]]
     then
-      echo "ERROR: The subject directory ($1) is owned by root and is not writable."
+      echo "ERROR: The subject directory ($1) is owned by root and is not writeable."
       echo "  FastSurfer cannot write results! This can happen if the directory is created"
       echo "  by docker. Make sure to create the directory before invoking docker!"
       exit 1
