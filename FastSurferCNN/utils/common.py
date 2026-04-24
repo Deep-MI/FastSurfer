@@ -339,7 +339,7 @@ class SubjectDirectory:
         _folder : str, Path
             The subject directory.
         """
-        self._subject_dir = _folder
+        self._subject_dir = Path(_folder)
 
     @property
     def id(self) -> str:
@@ -535,13 +535,13 @@ class SubjectDirectory:
         """
         self._main_segfile = _main_segfile
 
-    def can_resolve_filename(self, filename: str) -> bool:
+    def can_resolve_filename(self, filename: str | Path) -> bool:
         """
         Check whether we can resolve the file name.
 
         Parameters
         ----------
-        filename : str
+        filename : str, Path
             Name of the filename to check.
 
         Returns
@@ -549,7 +549,7 @@ class SubjectDirectory:
         bool
             Whether we can resolve the file name.
         """
-        return os.path.isabs(filename) or self._subject_dir is not None
+        return Path(filename).is_absolute() or self._subject_dir is not None
 
     def can_resolve_attribute(self, attr_name: str) -> bool:
         """
@@ -620,6 +620,7 @@ class SubjectList:
 
     DEFAULT_FLAGS = {k: v(dict) for k, v in parser_defaults.ALL_FLAGS.items()}
 
+    @update_docstring(**DEFAULT_FLAGS)
     def __init__(
             self,
             args: SubjectDirectoryConfig,
@@ -883,8 +884,6 @@ class SubjectList:
 
         self._sid = getattr(args, "sid", "")
 
-    __init__.__doc__ = __init__.__doc__.format(**DEFAULT_FLAGS)
-
     @property
     def flags(self) -> dict[str, dict]:
         """
@@ -973,7 +972,7 @@ class SubjectList:
         str
             The suffix the entries share.
         """
-        suffix = self._subjects[0]
+        suffix = str(self._subjects[0])
         for subject_path in self._subjects[1:]:
             subj = str(subject_path)
             if subj.endswith(suffix):

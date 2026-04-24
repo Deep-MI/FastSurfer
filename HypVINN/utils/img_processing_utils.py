@@ -13,14 +13,15 @@
 # limitations under the License.
 
 from pathlib import Path
+from typing import cast
 
 import nibabel as nib
 import numpy as np
-from numpy import typing as npt
 from scipy import ndimage
 from skimage.measure import label
 
 import FastSurferCNN.utils.logging as logging
+from FastSurferCNN.utils import AffineMatrix4x4, Image4d, nibabelImage
 from HypVINN.data_loader.data_utils import hypo_map_subseg_2_fsseg
 
 LOGGER = logging.get_logger(__name__)
@@ -48,7 +49,7 @@ def img2axcodes(img: nib.Nifti1Image) -> tuple:
 def save_segmentation(
         prediction: np.ndarray,
         orig_path: Path,
-        ras_affine: npt.NDArray[float],
+        ras_affine: AffineMatrix4x4,
         ras_header: nib.nifti1.Nifti1Header | nib.nifti2.Nifti2Header | nib.freesurfer.mghformat.MGHHeader,
         subject_dir: Path,
         seg_file: str,
@@ -93,7 +94,7 @@ def save_segmentation(
     pred_arr, labels_cc = get_clean_labels(np.array(prediction, dtype=np.uint8))
     # Mapped HypVINN labelst to FreeSurfer Hypvinn Labels
     pred_arr = hypo_map_subseg_2_fsseg(pred_arr)
-    orig_img = nib.load(orig_path)
+    orig_img = cast(nibabelImage, nib.load(orig_path))
     LOGGER.info(f"Orig data orientation : {img2axcodes(orig_img)}")
 
     if save_mask:
@@ -117,9 +118,9 @@ def save_segmentation(
 
 
 def save_logits(
-        logits: npt.NDArray[float],
+        logits: Image4d,
         orig_path: Path,
-        ras_affine: npt.NDArray[float],
+        ras_affine: AffineMatrix4x4,
         ras_header: nib.nifti1.Nifti1Header | nib.nifti2.Nifti2Header | nib.freesurfer.mghformat.MGHHeader,
         save_dir: Path,
         mode: str,
@@ -132,11 +133,11 @@ def save_logits(
 
     Parameters
     ----------
-    logits : npt.NDArray[float]
+    logits : np.ndarray
         The raw model outputs.
     orig_path : Path
         The path to the original image.
-    ras_affine : npt.NDArray[float]
+    ras_affine : AffineMatrix4x4
         The affine transformation of the RAS orientation.
     ras_header : nib.nifti1.Nifti1Header
         The header of the RAS orientation.
@@ -152,7 +153,7 @@ def save_logits(
 
     """
     from HypVINN.data_loader.data_utils import reorient_img
-    orig_img = nib.load(orig_path)
+    orig_img = cast(nibabelImage, nib.load(orig_path))
     LOGGER.info(f"Orig data orientation: {img2axcodes(orig_img)}")
     nifti_img = nib.Nifti1Image(
         logits.astype(np.float32),

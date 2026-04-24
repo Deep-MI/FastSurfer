@@ -31,6 +31,8 @@ __all__ = [
     "PlaneCoronal",
     "PlaneSagittal",
     "PLANES",
+    "ScalarType",
+    "Shape1d",
     "Shape2d",
     "Shape3d",
     "Shape4d",
@@ -64,12 +66,14 @@ PlaneCoronal = Literal["coronal"]
 PlaneSagittal = Literal["sagittal"]
 Plane = PlaneAxial | PlaneCoronal | PlaneSagittal
 PLANES: tuple[PlaneAxial, PlaneCoronal, PlaneSagittal] = ("axial", "coronal", "sagittal")
+Shape1d = tuple[int]
 Shape2d = tuple[int, int]
 Shape3d = tuple[int, int, int]
 Shape4d = tuple[int, int, int, int]
 ShapeType = TypeVar("ShapeType", bound=tuple[int, ...])
 
 if HAS_NUMPY:
+    AffineMatrix3x3 = ndarray[tuple[Literal[3], Literal[3]], dtype[float64]]
     AffineMatrix4x4 = ndarray[tuple[Literal[4], Literal[4]], dtype[float64]]
     ScalarType = TypeVar("ScalarType", covariant=True, bound=number)
     Vector2d = ndarray[tuple[Literal[2]], dtype[float64]]
@@ -80,7 +84,6 @@ if HAS_NUMPY:
     Mask2d = ndarray[Shape2d, dtype[bool_]]
     Mask3d = ndarray[Shape3d, dtype[bool_]]
     Mask4d = ndarray[Shape4d, dtype[bool_]]
-    RotationMatrix3x3 = ndarray[tuple[Literal[3], Literal[3]], dtype[float64]]
     __all__ += [
         "AffineMatrix4x4",
         "Image2d",
@@ -89,7 +92,7 @@ if HAS_NUMPY:
         "Mask2d",
         "Mask3d",
         "Mask4d",
-        "RotationMatrix3x3",
+        "AffineMatrix3x3",
         "ScalarType",
         "Vector2d",
         "Vector3d",

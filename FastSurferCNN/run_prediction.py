@@ -30,19 +30,18 @@ import warnings
 from collections.abc import Iterator, Sequence
 from concurrent.futures import Executor, Future, ThreadPoolExecutor
 from pathlib import Path
-from typing import Any, Literal
+from typing import Any, Literal, cast
 
 import numpy as np
 import torch
-import yacs.config
-from numpy import typing as npt
+from yacs.config import CfgNode
 
 import FastSurferCNN.reduce_to_aseg as rta
 from FastSurferCNN.data_loader import data_utils as du
 from FastSurferCNN.data_loader.conform import conform, is_conform, orientation_to_ornts, to_target_orientation
 from FastSurferCNN.inference import Inference
 from FastSurferCNN.quick_qc import check_volume
-from FastSurferCNN.utils import PLANES, Plane, logging, nibabelImage, parser_defaults
+from FastSurferCNN.utils import PLANES, AffineMatrix4x4, Plane, logging, nibabelImage, parser_defaults
 from FastSurferCNN.utils.arg_types import OrientationType, VoxSizeOption
 from FastSurferCNN.utils.arg_types import vox_size as _vox_size
 from FastSurferCNN.utils.checkpoint import get_checkpoints, get_config_file, load_checkpoint_config_defaults
@@ -60,7 +59,7 @@ LOGGER = logging.getLogger(__name__)
 def set_up_cfgs(
         cfg_file: str | Path,
         batch_size: int = 1,
-) -> yacs.config.CfgNode:
+) -> CfgNode:
     """
     Set up configuration with given arguments inside the yaml file.
 
@@ -86,45 +85,37 @@ def set_up_cfgs(
 
 
 def args2cfg(
-    cfg_ax: str | None = None,
-    cfg_cor: str | None = None,
-    cfg_sag: str | None = None,
+    cfg_ax: str | Path | None = None,
+    cfg_cor: str | Path | None = None,
+    cfg_sag: str | Path | None = None,
     batch_size: int = 1,
-) -> tuple[
-    yacs.config.CfgNode, yacs.config.CfgNode, yacs.config.CfgNode, yacs.config.CfgNode
-]:
+) -> tuple[CfgNode, CfgNode, CfgNode, CfgNode]:
     """
     Extract the configuration objects from the arguments.
 
     Parameters
     ----------
-    cfg_ax : str, optional
+    cfg_ax : str, Path, optional
         The path to the axial network YAML config file.
-    cfg_cor : str, optional
+    cfg_cor : str, Path, optional
         The path to the coronal network YAML config file.
-    cfg_sag : str, optional
+    cfg_sag : str, Path, optional
         The path to the sagittal network YAML config file.
     batch_size : int, default=1
         The batch size for the network.
 
     Returns
     -------
-     yacs.config.CfgNode
+    yacs.config.CfgNode
         Configurations for all planes.
     """
-    if cfg_cor is not None:
-        cfg_cor = set_up_cfgs(cfg_cor, batch_size)
-    if cfg_sag is not None:
-        cfg_sag = set_up_cfgs(cfg_sag, batch_size)
-    if cfg_ax is not None:
-        cfg_ax = set_up_cfgs(cfg_ax, batch_size)
-    cfgs = (cfg_cor, cfg_sag, cfg_ax)
+    cfgs = tuple(None if c is None else set_up_cfgs(c, batch_size) for c in (cfg_cor, cfg_sag, cfg_ax))
     # returns the first non-None cfg
     try:
         cfg_fin = next(filter(None, cfgs))
     except StopIteration as err:
         raise RuntimeError("No valid configuration passed!") from err
-    return (cfg_fin,) + cfgs
+    return cast(tuple[CfgNode, CfgNode, CfgNode, CfgNode], (cfg_fin,) + cfgs)
 
 
 ##
@@ -252,12 +243,12 @@ class RunModelOnData:
         self.labels = np.asarray(self.lut["ID"].values).copy()
         self.torch_labels = torch.from_numpy(self.labels)
         self.names = ["SubjectName", "Average", "Subcortical", "Cortical"]
-        self.cfg_fin, cfg_cor, cfg_sag, cfg_ax = args2cfg(cfg_ax, cfg_cor, cfg_sag, batch_size=batch_size)
+        self.cfg_fin, cfgn_cor, cfgn_sag, cfgn_ax = args2cfg(cfg_ax, cfg_cor, cfg_sag, batch_size=batch_size)
         # the order in this dictionary dictates the order in the view aggregation
         self.view_ops = {
-            "coronal": {"cfg": cfg_cor, "ckpt": ckpt_cor},
-            "sagittal": {"cfg": cfg_sag, "ckpt": ckpt_sag},
-            "axial": {"cfg": cfg_ax, "ckpt": ckpt_ax},
+            "coronal": {"cfg": cfgn_cor, "ckpt": ckpt_cor},
+            "sagittal": {"cfg": cfgn_sag, "ckpt": ckpt_sag},
+            "axial": {"cfg": cfgn_ax, "ckpt": ckpt_ax},
         }
         # self.num_classes = max(view["cfg"].MODEL.NUM_CLASSES for view in self.view_ops.values() if view["cfg"])
         # currently, num_classes must be 79 in all cases. This seems like it is a config option here, but in reality it
@@ -270,7 +261,10 @@ class RunModelOnData:
                 self.models[plane] = Inference(view["cfg"], ckpt=view["ckpt"], device=self.device, lut=self.lut)
 
         try:
-            self.vox_size = _vox_size(vox_size)
+            __vox_size = _vox_size(vox_size)
+            if __vox_size is None:
+                raise ValueError("vox_size cannot be None")
+            self.vox_size = __vox_size
         except (argparse.ArgumentTypeError, ValueError):
             condition = "convertible to a float between 0 and 1 or 'min'"
             raise ValueError(f"Invalid value for vox_size, must be {condition}, was '{vox_size}'.") from None
@@ -355,7 +349,7 @@ class RunModelOnData:
         self.current_plane = plane
 
     def get_prediction(
-        self, image_name: str, orig_data: np.ndarray, zoom: np.ndarray | Sequence[int], affine: npt.NDArray[float],
+        self, image_name: str, orig_data: np.ndarray, zoom: np.ndarray | Sequence[int], affine: AffineMatrix4x4,
     ) -> np.ndarray:
         """
         Run and get prediction.
@@ -368,7 +362,7 @@ class RunModelOnData:
             Original image data.
         zoom : np.ndarray, tuple
             Original zoom.
-        affine : npt.NDArray[float]
+        affine : AffineMatrix4x4
             Original affine.
 
         Returns
@@ -376,14 +370,9 @@ class RunModelOnData:
         np.ndarray
             Predicted classes.
         """
-        kwargs = {
-            "device": self.viewagg_device,
-            "dtype": torch.float16,
-            "requires_grad": False,
-        }
-
-        if not np.allclose(_zoom := np.asarray(zoom), np.mean(zoom), atol=1e-4, rtol=1e-3):
-            msg = "FastSurfer support for anisotropic images is experimental, we detected the following voxel sizes"
+        _zoom = np.asarray(zoom)
+        if not np.allclose(_zoom, np.mean(_zoom), atol=1e-4, rtol=1e-3):
+            msg = "FastSurfer support for anisotropic images is experimental, we detected the following voxel sizes!"
             LOGGER.warning(f"{msg}: {np.round(_zoom, decimals=4).tolist()}!")
 
         orig_in_lia, back_to_native = to_target_orientation(orig_data, affine, target_orientation="LIA")
@@ -391,7 +380,7 @@ class RunModelOnData:
         _ornt_transform, _ = orientation_to_ornts(affine, target_orientation="LIA")
         _zoom = _zoom[_ornt_transform[:, 0]]
 
-        pred_prob = torch.zeros(shape, **kwargs)
+        pred_prob = torch.zeros(shape, device=self.viewagg_device, dtype=torch.float16, requires_grad=False)
 
         # inference and view aggregation
         for plane, model in self.models.items():

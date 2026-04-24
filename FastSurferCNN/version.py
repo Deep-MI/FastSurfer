@@ -5,8 +5,9 @@ import io
 import re
 import shutil
 import subprocess
-from collections.abc import Sequence
+from collections.abc import Iterable, Sequence
 from concurrent.futures import Future, ThreadPoolExecutor
+from functools import lru_cache
 from os import PathLike
 from pathlib import Path
 from typing import Any, Literal, TextIO, TypedDict, cast, get_args
@@ -137,6 +138,7 @@ def make_parser():
     return parser
 
 
+@lru_cache
 def has_git():
     """
     Determine whether FastSurfer is installed as a git directory.
@@ -210,7 +212,7 @@ def print_build_file(
 def main(
     sections: str = "",
     project_file: TextIO | None = None,
-    build_cache: TextIO | bool | None = None,
+    build_cache: TextIO | Literal[False] | None = None,
     file: TextIO | None = None,
     prefer_cache: bool = False,
 ) -> str | int:
@@ -303,7 +305,7 @@ def main(
         if "+checkpoints" in sections and not prefer_cache:
 
             def calculate_md5_for_checkpoints() -> "MessageBuffer":
-                files = list(map(str, DEFAULTS.PROJECT_ROOT.glob("checkpoints/*")))
+                files = list(map(str, cast(Iterable[Path], DEFAULTS.PROJECT_ROOT.glob("checkpoints/*"))))
                 if len(files) == 0:
                     return MessageBuffer(out=b"", err=b"No checkpoints found.", retcode=0, runtime=0.0)
                 return Popen(["md5sum"] + files, **kw_root).finish(timeout=10.0)
@@ -315,14 +317,14 @@ def main(
             futures["pypackages"] = PyPopen(pip_command.split(" "), **kw_root).as_future(pool, timeout=10.0)
 
     if build_cache_required and build_cache is not False:
-        build_cache: VersionDict = futures.pop("build_cache").result()
+        build_cache: VersionDict = cast(VersionDict, futures.pop("build_cache").result())
     else:
         build_cache: VersionDict = get_default_version_info()
 
     build_file_kwargs = {}
 
     try:
-        version = futures.pop("version").result()
+        version = cast(str, futures.pop("version").result())
     except OSError:
         version = build_cache["version"]
 
@@ -406,12 +408,17 @@ def parse_build_file(build_file: TextIO | io.StringIO | None) -> VersionDict:
     file_cache: VersionDict = get_default_version_info()
     if build_file is None:
         try:
-            build_file = open(DEFAULTS.BUILD_TXT)
+            _build_file = open(DEFAULTS.BUILD_TXT)
         except FileNotFoundError:
             return get_default_version_info()
-    file_cache["content"] = build_file.getvalue() if hasattr(build_file, "getvalue") else "".join(build_file.read())
-    if not build_file.closed:
-        build_file.close()
+    else:
+        _build_file = build_file
+    if isinstance(_build_file, io.StringIO) and hasattr(_build_file, "getvalue"):
+        file_cache["content"] = _build_file.getvalue()
+    else:
+        file_cache["content"] = "".join(_build_file.read())
+    if not _build_file.closed:
+        _build_file.close()
     section_pattern = re.compile("\n={3,}\n")
     file_cache["version_line"], *rest = section_pattern.split(file_cache["content"], 1)
     version_regex = re.compile("([a-zA-Z.0-9\\-]+)(\\+([0-9A-Fa-f]+))?(\\s+\\(([^)]+)\\))?\\s*")
@@ -522,12 +529,18 @@ def read_and_close_version(project_file: TextIO | PathLike | None = None) -> str
     -----
     See also FastSurferCNN.version.read_version_from_project_file
     """
-    if not hasattr(project_file, "readline"):
-        project_file = open(project_file or DEFAULTS.PROJECT_TOML)
+    if project_file is None:
+        _project_file = open(DEFAULTS.PROJECT_TOML)
+    elif hasattr(project_file, "read"):
+        _project_file = cast(TextIO, project_file)
+    elif isinstance(project_file, (PathLike, Path)):
+        _project_file = open(project_file)
+    else:
+        raise TypeError("project_file must be TextIO, PathLike, or None!")
     try:
-        version = read_version_from_project_file(project_file)
+        version = read_version_from_project_file(_project_file)
     finally:
-        project_file.close()
+        _project_file.close()
     return version
 
 
