@@ -69,12 +69,15 @@ Lesion Inpainting Tool (LIT) module
 The LIT module is run if a lesion mask is provided via the `--lesion_mask` flag. It inpaints the lesion region, runs the downstream FastSurfer modules on the inpainted image, and then maps the lesion back into the resulting outputs. The current LIT postprocessing workflow updates the primary FastSurfer files in place and keeps the original pre-lesion outputs either as `.lit` backups or, for some surface-derived files, in the original `.mapped.*` files. Here we list the most commonly used files.
 
 ### Inpainting Outputs
-These are the key files created during the initial inpainting stage.
+These are the key files created during the initial inpainting stage. FastSurfer uses the
+`mri/*.lit.*` paths as public convenience files and keeps the full working set under `inpainting/`.
 
 | directory | filename | module | description |
 |:----------|----------|--------|-------------|
-| inpainting/inpainting_volumes | inpainting_mask.nii.gz | lit | copy of the input lesion mask in FastSurfer image space (after any optional dilation) |
-| inpainting/inpainting_volumes | inpainting_result.nii.gz | lit | inpainted T1 image used for downstream processing |
+| mri | inpainted.lit.nii.gz | lit | inpainted T1 image used for downstream processing |
+| mri/orig | mask.lit.nii.gz | lit | original lesion mask copied into the subject directory |
+| inpainting/inpainting_volumes | inpainting_mask.nii.gz | lit | LIT working mask in FastSurfer image space (after any optional dilation) |
+| inpainting/inpainting_volumes | inpainting_result.nii.gz | lit | internal working copy of the inpainted T1 image |
 | inpainting/inpainting_volumes | inpainting_original_image.nii.gz | lit | conformed original image stored alongside the inpainted result |
 
 ### Postprocessing MRI Outputs

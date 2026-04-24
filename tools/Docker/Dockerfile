@@ -288,7 +288,7 @@ EOF
 
 # Add FreeSurfer and python Environment variables
 # DO_NOT_SEARCH_FS_LICENSE_IN_FREESURFER_HOME=true deactivates the search for FS_LICENSE in FREESURFER_HOME
-# XDG_DATA_HOME pins neurolit platformdirs data files to a deterministic image path.
+# XDG_DATA_HOME pins neurolit platformdirs data files to a deterministic, runtime-writable image path.
 ENV OS=Linux \
     FS_OVERRIDE=0 \
     FIX_VERTEX_AREA="" \
@@ -301,7 +301,7 @@ ENV OS=Linux \
     LC_NUMERIC=en_US.UTF-8 \
     PATH=/venv/bin:/opt/freesurfer/bin:$PATH \
     MPLCONFIGDIR=/tmp/matplotlib-config \
-    XDG_DATA_HOME=/fastsurfer/.local/share \
+    XDG_DATA_HOME=/tmp/fastsurfer/.local/share \
     DO_NOT_SEARCH_FS_LICENSE_IN_FREESURFER_HOME="true"
 
 # Copy fastsurfer venv and pruned freesurfer from build images
@@ -322,8 +322,10 @@ ENV PYTHONPATH=/fastsurfer:/opt/freesurfer/python/packages \
 RUN <<EOF
 source /venv/bin/activate
 cd /fastsurfer
+install -d -m 0777 /tmp/fastsurfer /tmp/fastsurfer/.local "$XDG_DATA_HOME"
 # Download all remote network checkpoints already
 python3 FastSurferCNN/download_checkpoints.py --all
+# Download LIT checkpoints used by the lesion inpainting integration.
 lit-download-models
 # compile all FastSurfer scripts into bytecode
 python3 -m compileall *

@@ -933,12 +933,19 @@ then
 fi
 
 lit_out_dir="${subject_dir}/inpainting"
-lit_mask_output="${lit_out_dir}/inpainting_mask.nii.gz"
-lit_inpainting_result="${lit_out_dir}/inpainting_volumes/inpainting_result.nii.gz"
+lit_mask_output="${lit_out_dir}/inpainting_volumes/inpainting_mask.nii.gz"
+lit_mask_legacy_output="${lit_out_dir}/inpainting_mask.nii.gz"
+lit_inpainting_result="${subject_dir}/mri/inpainted.lit.nii.gz"
+lit_inpainting_result_legacy="${lit_out_dir}/inpainting_volumes/inpainting_result.nii.gz"
 
-if [[ -n "$lesion_mask" ]] && [[ "$run_seg_pipeline" != "1" ]]
+if [[ -n "$lesion_mask" ]] && [[ "$run_seg_pipeline" != "true" ]]
 then
-  if [[ ! -f "$lit_mask_output" ]] || [[ ! -f "$lit_inpainting_result" ]]
+  if [[ ! -f "$lit_inpainting_result" ]] && [[ -f "$lit_inpainting_result_legacy" ]]
+  then
+    lit_inpainting_result="$lit_inpainting_result_legacy"
+  fi
+
+  if { [[ ! -f "$lit_mask_output" ]] && [[ ! -f "$lit_mask_legacy_output" ]]; } || [[ ! -f "$lit_inpainting_result" ]]
   then
     {
       echo "ERROR: --lesion_mask was passed without running the segmentation pipeline,"
@@ -987,15 +994,13 @@ then
   # ============= Running LIT Inpainting ========================================
   if [[ -n "$lesion_mask" ]]
   then
+      echo "MODULE: LIT inpainting" >> "$exec_time_log"
       {
         echo "========================================================="
         echo "Running LIT Inpainting..."
         echo "========================================================="
       } | tee -a "$seg_log"
-      mkdir -p "$lit_out_dir"
-      # symlink lesion mask to inpainting directory for consistency
-      cp "$lesion_mask" "$lit_mask_output"
-      cmd=("lit-inpainting" "--input_image" "$t1" "--lesion_mask" "$lesion_mask" "--sd" "$lit_out_dir")
+      cmd=("lit-inpainting" "--input_image" "$t1" "--lesion_mask" "$lesion_mask" "--sd" "$subject_dir" "--fastsurfer_dir")
       if [[ "$native_image" != "false" ]] ; then cmd+=(--keepgeom) ; fi
       echo_quoted "${cmd[@]}" | tee -a "$seg_log"
       "${cmd[@]}" 2>&1 | tee -a "$seg_log"
@@ -1005,6 +1010,10 @@ then
         exit 1
       fi
       inpainted_t1="$lit_inpainting_result"
+      if [[ ! -f "$inpainted_t1" ]] && [[ -f "$lit_inpainting_result_legacy" ]]
+      then
+        inpainted_t1="$lit_inpainting_result_legacy"
+      fi
       if [[ -f "$inpainted_t1" ]]
       then
         t1="$inpainted_t1"
@@ -1413,9 +1422,6 @@ then
       echo "========================================================="
     } | tee -a "$seg_log"
 
-    # Setup paths for LIT postprocessing
-    export FASTSURFER_HOME="$FASTSURFER_HOME"
-
     # Call LIT postprocessing
     lit_post_cmd=("lit-postprocessing" --subject-id "$subject" --subjects-dir "$sd")
     lit_skip_segstats_reason=""
@@ -1437,15 +1443,16 @@ then
     fi
 
     # If surface pipeline was not run, skip surface masking
-    if [[ "$run_surf_pipeline" == "0" ]]
+    if [[ "$run_surf_pipeline" != "true" ]]
     then
         lit_post_cmd+=(--skip-surface-masking)
     fi
 
+    echo "MODULE: LIT postprocessing" >> "$exec_time_log"
     echo_quoted "${lit_post_cmd[@]}" | tee -a "$seg_log"
-    "${lit_post_cmd[@]}" 2>&1 | tee -a "$seg_log"
+    "${wrap[@]}" "${lit_post_cmd[@]}" 2>&1 | tee -a "$seg_log"
 
-    if [[ "${PIPESTATUS[0]}" -ne 0 ]]
+    if [[ "${PIPESTATUS[0]}" != 0 ]]
     then
       echo "ERROR: LIT Postprocessing failed!" | tee -a "$seg_log"
       exit 1

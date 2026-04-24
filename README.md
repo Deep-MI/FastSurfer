@@ -137,13 +137,14 @@ All installation methods use the `run_fastsurfer.sh` call interface (replace the
 <!-- start of examples -->
 Examples
 --------
-The documentation includes [6 detailed Examples](doc/overview/EXAMPLES.md) on how to use FastSurfer. 
+The documentation includes [several detailed Examples](doc/overview/EXAMPLES.md) on how to use FastSurfer. 
 - [Example 1: FastSurfer Singularity](doc/overview/EXAMPLES.md#example-1-fastsurfer-singularity-or-apptainer)
 - [Example 2: FastSurfer Docker](doc/overview/EXAMPLES.md#example-2-fastsurfer-docker)
 - [Example 3: Native FastSurfer on subjectX with parallel processing of hemis](doc/overview/EXAMPLES.md#example-3-native-fastsurfer-on-subjectx-with-parallel-processing-of-hemis)
 - [Example 4: FastSurfer on multiple subjects](doc/overview/EXAMPLES.md#example-4-fastsurfer-on-multiple-subjects)
 - [Example 5: Quick Segmentation](doc/overview/EXAMPLES.md#example-5-quick-segmentation)
 - [Example 6: Running FastSurfer on a SLURM cluster via Singularity](doc/overview/EXAMPLES.md#example-6-running-fastsurfer-on-a-slurm-cluster-via-singularity)
+- [Example 7: Lesion Inpainting with LIT](doc/overview/EXAMPLES.md#example-7-lesion-inpainting-with-lit)
 
 Output files
 ------------
