@@ -887,6 +887,19 @@ then
   echo "  via --lesion_mask <absolute path and name> for generating the inpainting."
   exit 1
 fi
+run_lit_inpainting="false"
+reuse_lit_inpainting="false"
+run_lit_postprocessing="false"
+if [[ -n "$lesion_mask" ]]
+then
+  run_lit_postprocessing="true"
+  if [[ "$run_seg_pipeline" == "true" ]]
+  then
+    run_lit_inpainting="true"
+  else
+    reuse_lit_inpainting="true"
+  fi
+fi
 
 ## make sure +eo are unset
 set +eo > /dev/null
@@ -938,7 +951,7 @@ lit_mask_legacy_output_2="${subject_dir}/inpainting/inpainting_volumes/inpaintin
 lit_inpainting_result="${subject_dir}/mri/inpainted.lit.nii.gz"
 lit_inpainting_result_legacy="${subject_dir}/inpainting/inpainting_volumes/inpainting_result.nii.gz"
 
-if [[ -n "$lesion_mask" ]] && [[ "$run_seg_pipeline" != "true" ]]
+if [[ "$reuse_lit_inpainting" == "true" ]]
 then
   if [[ ! -f "$lit_inpainting_result" ]] && [[ -f "$lit_inpainting_result_legacy" ]]
   then
@@ -992,7 +1005,7 @@ asegdkt_segfile_manedit=$(add_file_suffix "$asegdkt_segfile" "manedit")
 if [[ "$run_seg_pipeline" == "true" ]]
 then
   # ============= Running LIT Inpainting ========================================
-  if [[ -n "$lesion_mask" ]]
+  if [[ "$run_lit_inpainting" == "true" ]]
   then
       echo "MODULE: LIT inpainting" >> "$exec_time_log"
       {
@@ -1414,7 +1427,7 @@ then
 fi
 
 # ============= Running LIT Postprocessing ====================================
-if [[ -n "$lesion_mask" ]]
+if [[ "$run_lit_postprocessing" == "true" ]]
 then
     {
       echo "========================================================="
