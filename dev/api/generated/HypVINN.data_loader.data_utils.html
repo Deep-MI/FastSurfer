@@ -485,20 +485,20 @@
 
 <dl class="py function">
 <dt class="sig sig-object py" id="HypVINN.data_loader.data_utils.hypo_map_label2subseg">
-<span class="sig-prename descclassname"><span class="pre">HypVINN.data_loader.data_utils.</span></span><span class="sig-name descname"><span class="pre">hypo_map_label2subseg</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mapped_subseg</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//HypVINN/data_loader/data_utils.py#L185-L208"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#HypVINN.data_loader.data_utils.hypo_map_label2subseg" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">HypVINN.data_loader.data_utils.</span></span><span class="sig-name descname"><span class="pre">hypo_map_label2subseg</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mapped_subseg</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//HypVINN/data_loader/data_utils.py#L185-L209"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#HypVINN.data_loader.data_utils.hypo_map_label2subseg" title="Link to this definition">¶</a></dt>
 <dd><p>Perform look-up table mapping from label space to subseg space.</p>
 <p>This function is used to perform a look-up table mapping from label space to subseg
 space.</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><dl>
-<dt><strong>mapped_subseg</strong><span class="classifier"><code class="xref py py-obj docutils literal notranslate"><span class="pre">npt.NDArray</span></code>[<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">int</span></code></a>]</span></dt><dd><p>The input array in label space to be mapped to subseg space.</p>
+<dt><strong>mapped_subseg</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.4)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a> <code class="xref py py-obj docutils literal notranslate"><span class="pre">of</span></code> <code class="xref py py-obj docutils literal notranslate"><span class="pre">integers</span></code></span></dt><dd><p>The input array in label space to be mapped to subseg space.</p>
 </dd>
 </dl>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><dl class="simple">
-<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">npt.NDArray</span></code>[<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">int</span></code></a>]</dt><dd><p>The mapped array in subseg space.</p>
+<dt><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.4)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a> <code class="xref py py-obj docutils literal notranslate"><span class="pre">of</span></code> <code class="xref py py-obj docutils literal notranslate"><span class="pre">integers</span></code></dt><dd><p>The mapped array in subseg space.</p>
 </dd>
 </dl>
 </dd>
@@ -507,20 +507,20 @@ space.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="HypVINN.data_loader.data_utils.hypo_map_prediction_sagittal2full">
-<span class="sig-prename descclassname"><span class="pre">HypVINN.data_loader.data_utils.</span></span><span class="sig-name descname"><span class="pre">hypo_map_prediction_sagittal2full</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">prediction_sag</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//HypVINN/data_loader/data_utils.py#L211-L234"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#HypVINN.data_loader.data_utils.hypo_map_prediction_sagittal2full" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">HypVINN.data_loader.data_utils.</span></span><span class="sig-name descname"><span class="pre">hypo_map_prediction_sagittal2full</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">prediction_sag</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//HypVINN/data_loader/data_utils.py#L212-L235"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#HypVINN.data_loader.data_utils.hypo_map_prediction_sagittal2full" title="Link to this definition">¶</a></dt>
 <dd><p>Remap the prediction on the sagittal network to full label space.</p>
 <p>This function is used to remap the prediction on the sagittal network to the full
 label space used by the coronal and axial networks.</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><dl>
-<dt><strong>prediction_sag</strong><span class="classifier"><code class="xref py py-obj docutils literal notranslate"><span class="pre">npt.NDArray</span></code>[<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">int</span></code></a>]</span></dt><dd><p>The sagittal prediction in label space to be remapped to full label space.</p>
+<dt><strong>prediction_sag</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.4)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a> <code class="xref py py-obj docutils literal notranslate"><span class="pre">of</span></code> <code class="xref py py-obj docutils literal notranslate"><span class="pre">integers</span></code></span></dt><dd><p>The sagittal prediction in label space to be remapped to full label space.</p>
 </dd>
 </dl>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><dl class="simple">
-<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">npt.NDArray</span></code>[<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">int</span></code></a>]</dt><dd><p>The remapped prediction in full label space.</p>
+<dt><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.4)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a> <code class="xref py py-obj docutils literal notranslate"><span class="pre">of</span></code> <code class="xref py py-obj docutils literal notranslate"><span class="pre">integers</span></code></dt><dd><p>The remapped prediction in full label space.</p>
 </dd>
 </dl>
 </dd>
@@ -529,7 +529,7 @@ label space used by the coronal and axial networks.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="HypVINN.data_loader.data_utils.hypo_map_subseg_2_fsseg">
-<span class="sig-prename descclassname"><span class="pre">HypVINN.data_loader.data_utils.</span></span><span class="sig-name descname"><span class="pre">hypo_map_subseg_2_fsseg</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">subseg</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reverse</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//HypVINN/data_loader/data_utils.py#L237-L273"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#HypVINN.data_loader.data_utils.hypo_map_subseg_2_fsseg" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">HypVINN.data_loader.data_utils.</span></span><span class="sig-name descname"><span class="pre">hypo_map_subseg_2_fsseg</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">subseg</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reverse</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//HypVINN/data_loader/data_utils.py#L238-L274"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#HypVINN.data_loader.data_utils.hypo_map_subseg_2_fsseg" title="Link to this definition">¶</a></dt>
 <dd><p>Remap HypVINN internal labels to FastSurfer Labels and vice versa.</p>
 <p>This function is used to remap HypVINN internal labels to FastSurfer Labels and vice
 versa. If the <code class="xref py py-obj docutils literal notranslate"><span class="pre">reverse</span></code> parameter is set to False, the function will map HypVINN
@@ -538,7 +538,7 @@ labels to HypVINN labels.</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><dl>
-<dt><strong>subseg</strong><span class="classifier"><code class="xref py py-obj docutils literal notranslate"><span class="pre">npt.NDArray</span></code>[<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">int</span></code></a>]</span></dt><dd><p>The input array with HypVINN or FastSurfer labels to be remapped.</p>
+<dt><strong>subseg</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.4)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a> <code class="xref py py-obj docutils literal notranslate"><span class="pre">of</span></code> <code class="xref py py-obj docutils literal notranslate"><span class="pre">integers</span></code></span></dt><dd><p>The input array with HypVINN or FastSurfer labels to be remapped.</p>
 </dd>
 <dt><strong>reverse</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">bool</span></code></a>, default=False</span></dt><dd><p>A flag to determine the direction of the remapping. If False, remap HypVINN
 labels to FastSurfer labels. If True, remap FastSurfer labels to HypVINN labels.</p>
@@ -547,7 +547,7 @@ labels to FastSurfer labels. If True, remap FastSurfer labels to HypVINN labels.
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><dl class="simple">
-<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">npt.NDArray</span></code>[<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">int</span></code></a>]</dt><dd><p>The remapped array with FastSurfer or HypVINN labels.</p>
+<dt><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.4)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a> <code class="xref py py-obj docutils literal notranslate"><span class="pre">of</span></code> <code class="xref py py-obj docutils literal notranslate"><span class="pre">integers</span></code></dt><dd><p>The remapped array with FastSurfer or HypVINN labels.</p>
 </dd>
 </dl>
 </dd>
