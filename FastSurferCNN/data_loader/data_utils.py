@@ -14,6 +14,7 @@
 
 
 # IMPORTS
+from collections import defaultdict
 from collections.abc import Mapping
 from pathlib import Path
 from typing import cast
@@ -35,7 +36,7 @@ from scipy.ndimage import (
 from skimage.measure import label, regionprops
 
 from FastSurferCNN.data_loader.conform import check_affine_in_nifti, conform, is_conform
-from FastSurferCNN.utils import logging, nibabelImage
+from FastSurferCNN.utils import AffineMatrix4x4, Shape1d, logging, nibabelImage
 
 ##
 # Global Vars
@@ -198,7 +199,7 @@ def load_maybe_conform(
         # is_conform only needs the header, not the data
         _is_conform = is_conform(img, **conform_kwargs_is_conform, verbose=False, vox_eps=0.1)
 
-    if _is_conform:
+    if _is_conform and img is not None:
         # calling np.asarray here, forces the load of img.dataobj into memory
         # (which is parallel with other operations, if done here)
         data = np.asarray(img.dataobj)
@@ -238,7 +239,7 @@ def load_maybe_conform(
 # Save image routine
 def save_image(
         header_info: _Header,
-        affine_info: npt.NDArray[float],
+        affine_info: AffineMatrix4x4,
         img_array: np.ndarray,
         save_as: str | Path,
         dtype: npt.DTypeLike | None = None
@@ -252,7 +253,7 @@ def save_image(
     ----------
     header_info : _Header
         Image header information.
-    affine_info : npt.NDArray[float]
+    affine_info : AffineMatrix4x4
         Image affine information.
     img_array : np.ndarray
         An array containing image data.
@@ -265,11 +266,12 @@ def save_image(
     valid_ext = save_as.suffix[1:] in SUPPORTED_OUTPUT_FILE_FORMATS or save_as.suffixes[-2:] == [".nii", ".gz"]
     assert valid_ext, f"Output filename does not contain a supported file format {SUPPORTED_OUTPUT_FILE_FORMATS}!"
 
-    mgh_img = None
     if save_as.suffix == ".mgz":
         mgh_img = nib.MGHImage(img_array, affine_info, header_info)
     elif save_as.suffix == ".nii" or save_as.suffixes[-2:] == [".nii", ".gz"]:
         mgh_img = nib.nifti1.Nifti1Pair(img_array, affine_info, header_info)
+    else:
+        raise ValueError(f"Invalid file extension of {save_as}, must be .mgz, .nii or .nii.gz!")
 
     if dtype is not None:
         mgh_img.set_data_dtype(dtype)
@@ -553,9 +555,7 @@ def deep_sulci_and_wm_strand_mask(
 
     # Get difference between eroded and original image
     diff_image = np.logical_xor(empty_im, eroded)
-    print(
-        "Remaining voxels sulci/wm strand: ", np.unique(diff_image, return_counts=True)
-    )
+    print("Remaining voxels sulci/wm strand: ", np.unique(diff_image, return_counts=True))
     return diff_image
 
 
@@ -587,23 +587,20 @@ def read_classes_from_lut(lut_file: str | Path):
         return pd.read_csv(lut_file, sep="\t")
 
     # Read in file
-    names = {
-        "ID": "int",
-        "LabelName": "str",
-        "Red": "int",
-        "Green": "int",
-        "Blue": "int",
-        "Alpha": "int",
-    }
-    kwargs = {}
+    names: defaultdict[str, str] = defaultdict(str,
+        ID="int",
+        LabelName="str",
+        Red="int",
+        Green="int",
+        Blue="int",
+        Alpha="int",
+    )
     if lut_file.suffix == ".csv":
-        kwargs["sep"] = ","
+        _sep = ","
     elif lut_file.suffix == ".txt":
-        kwargs["sep"] = "\\s+"
+        _sep = "\\s+"
     else:
-        raise RuntimeError(
-            f"Unknown LUT file extension {lut_file}, must be csv, txt or tsv."
-        )
+        raise RuntimeError(f"Unknown LUT file extension {lut_file}, must be csv, txt or tsv.")
     return pd.read_csv(
         lut_file,
         index_col=False,
@@ -612,7 +609,7 @@ def read_classes_from_lut(lut_file: str | Path):
         header=None,
         names=list(names.keys()),
         dtype=names,
-        **kwargs,
+        sep=_sep,
     )
 
 
@@ -901,7 +898,7 @@ def unify_lateralized_labels(
 def get_labels_from_lut(
         lut: str | pd.DataFrame,
         label_extract: tuple[str, str] = ("Left-", "ctx-rh")
-) -> tuple[np.ndarray, np.ndarray]:
+) -> tuple[np.ndarray[Shape1d, np.dtype[np.integer]], np.ndarray[Shape1d, np.dtype[np.integer]]]:
     """
     Extract labels from the lookup tables.
 
@@ -925,10 +922,9 @@ def get_labels_from_lut(
     np.ndarray
         Sagittal label list.
     """
-    if isinstance(lut, str):
-        lut = read_classes_from_lut(lut)
-    mask = lut["LabelName"].str.startswith(label_extract)
-    return lut["ID"].values, lut["ID"][~mask].values
+    _lut = read_classes_from_lut(lut) if isinstance(lut, str) else lut
+    mask = _lut["LabelName"].str.startswith(label_extract)
+    return np.asarray(_lut["ID"].values), np.asarray(_lut["ID"][~mask].values)
 
 
 def map_aparc_aseg2label(

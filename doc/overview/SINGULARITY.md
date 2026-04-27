@@ -112,7 +112,13 @@ Common problems
    INFO:    Starting build...
    FATAL:   While performing build: conveyor failed to get: loading image from docker engine: Error response from daemon: {"message":"client version 1.22 is too old. Minimum supported API version is 1.24, please upgrade your client to a newer version"}
    ```
-   - To solve this issue, you can export the image from docker with `docker save -o <docker file location> <image tag>` and then you can use singularity to build from that `singularity build <singularity file name> docker-archive:<docker file location>`.
+   To solve this issue, you can export the image from docker with `docker save -o <docker file location> <image tag>` and then you can use singularity to build from that `singularity build <singularity file name> docker-archive:<docker file location>`.
+
+3. I get the following warning:
+   ```
+   WARNING: Error changing the container working directory. Using '/' instead: chdir /home/***: no such file or directory
+   ```
+   This is because the home directory is not mounted inside the singularity container (see [Best Practices](#best-practices)). You can ignore this warning, since `/` as the working directory does not cause any issues, or specify a different working directory with `--cwd <directory>`, for example `--cwd /fastsurfer`.
 
 Best Practices
 --------------

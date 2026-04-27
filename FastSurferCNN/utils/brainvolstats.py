@@ -1,27 +1,16 @@
 import abc
 import logging
 import re
-from collections.abc import Callable, Iterable, Sequence
+from collections.abc import Callable, Generator, Iterable, Sequence
 from concurrent.futures import Executor, Future
 from contextlib import contextmanager
 from pathlib import Path
-from typing import (
-    TYPE_CHECKING,
-    Generic,
-    Literal,
-    Protocol,
-    TextIO,
-    TypeVar,
-    Union,
-    cast,
-    overload,
-)
+from typing import TYPE_CHECKING, Generic, Literal, Protocol, TextIO, TypedDict, TypeVar, Union, cast, overload
 
 import numpy as np
 
-from FastSurferCNN.utils import AffineMatrix4x4, ShapeType, nibabelImage
+from FastSurferCNN.utils import AffineMatrix4x4, ShapeType, check_literal_type, nibabelImage
 from FastSurferCNN.utils.common import update_docstring
-from FastSurferCNN.utils.lta import LTADict
 from FastSurferCNN.utils.parallel import SerialExecutor, thread_executor
 
 if TYPE_CHECKING:
@@ -34,23 +23,10 @@ MeasureTuple = tuple[str, str, int | float, str]
 ImageTuple = tuple[nibabelImage, np.ndarray[tuple[int, ...], np.dtype[np.number]]]
 UnitString = Literal["unitless", "mm^3"]
 MeasureString = Union[str, "Measure"]
-AnyBufferType = Union[
-    dict[str, MeasureTuple],
-    ImageTuple,
-    "lapy.TriaMesh",
-    "npt.NDArray[float]",
-    "pd.DataFrame",
-]
+AnyBufferType = Union[dict[str, MeasureTuple], ImageTuple, AffineMatrix4x4, "pd.DataFrame", "lapy.TriaMesh"]
 T_BufferType = TypeVar(
     "T_BufferType",
-    bound=Union[
-        ImageTuple,
-        dict[str, MeasureTuple],
-        "lapy.TriaMesh",
-        "np.ndarray",
-        "pd.DataFrame",
-        "LTADict",
-    ])
+    bound=Union[dict[str, MeasureTuple], ImageTuple, AffineMatrix4x4, "pd.DataFrame", "lapy.TriaMesh"])
 DerivedAggOperation = Literal["sum", "ratio", "by_vox_vol"]
 AnyMeasure = Union["AbstractMeasure", str]
 PVMode = Literal["vox", "pv"]
@@ -62,6 +38,7 @@ MaskSign = Literal["abs", "pos", "neg"]
 ASEG_LEFT_CLASSES = (2, 3, 4, 5, 7, 8, 10, 11, 12, 13, 17, 18, 26, 28, 30, 31)
 ASEG_RIGHT_CLASSES = (41, 42, 43, 44, 46, 47, 49, 50, 51, 52, 53, 54, 58, 60, 62, 63)
 
+logger = logging.getLogger(__name__)
 
 class ReadFileHook(Protocol[T_BufferType]):
     """Protocol for a buffered file-reading hook returned by :meth:`Manager.make_read_hook`."""
@@ -170,7 +147,7 @@ def read_mesh_file(path: Path) -> "lapy.TriaMesh":
     return mesh
 
 
-def read_lta_transform_file(path: Path) -> "AffineMatrix4x4":
+def read_lta_transform_file(path: Path) -> AffineMatrix4x4:
     """
     Read and extract the first lta transform from an LTA file.
 
@@ -188,7 +165,7 @@ def read_lta_transform_file(path: Path) -> "AffineMatrix4x4":
     return read_lta(path)["lta"][0, 0]
 
 
-def read_xfm_transform_file(path: Path) -> "AffineMatrix4x4":
+def read_xfm_transform_file(path: Path) -> AffineMatrix4x4:
     """
     Read XFM talairach transform.
 
@@ -222,7 +199,7 @@ def read_xfm_transform_file(path: Path) -> "AffineMatrix4x4":
         raise err from e
 
 
-def read_transform_file(path: Path) -> "AffineMatrix4x4":
+def read_transform_file(path: Path) -> AffineMatrix4x4:
     """
     Read xfm or lta transform file.
 
@@ -246,7 +223,7 @@ def read_transform_file(path: Path) -> "AffineMatrix4x4":
 
 
 def mask_in_array(
-        arr: np.ndarray[ShapeType, np.dtype[np.unsignedinteger]],
+        arr: np.ndarray[ShapeType, np.dtype[np.integer]],
         items: "npt.ArrayLike",
         /,
         max_index: np.unsignedinteger | None = None,
@@ -258,8 +235,8 @@ def mask_in_array(
     ----------
     arr : ndarray of int
         An array with data, most likely int.
-    items : npt.ArrayLike
-        Which elements of `arr` in arr should yield True.
+    items : array_like
+        Which elements of `arr` in arr should yield True, can only include unsigned integers.
     max_index : int, optional
         The maximum value of `arr` and `items` for performance, uses maximum value if None.
 
@@ -268,36 +245,40 @@ def mask_in_array(
     mask : np.ndarray of bool
         A binary array, true, where elements in `arr` are in `items`.
 
+    Raises
+    ------
+    ValueError
+        If items are not only positive integers (dtype integer), or if arr is not an integer ndarray.
+
     See Also
     --------
     mask_not_in_array
         Inverse mask, true where elements are not in `items`.
     """
-    _items = np.asarray(items)
+    __items = np.asarray(items)
+    _items: np.ndarray[tuple[int], np.dtype[np.int64]] = np.asarray(__items, dtype=np.int64).flatten()
+    if not np.issubdtype(__items.dtype, np.integer) or np.any(_items < 0):
+        raise ValueError("All values in items must be positive integers")
+    if not isinstance(arr, np.ndarray) or not np.issubdtype(arr.dtype, np.integer):
+        raise ValueError("arr must be a numpy array of integer type")
+
     if _items.size == 0:
         return np.zeros_like(arr, dtype=bool)
     elif _items.size == 1:
         return np.asarray(arr == _items.flat[0])
     else:
-        if max_index is None:
-            # 2 ** 10 = 4096
-            max_index = np.iinfo(arr.dtype).max if np.iinfo(arr.dtype).max < 4096 else np.max(items)
-            max_index = max(max_index, np.max(arr))
-        if max_index >= 2 ** 16:
-            logging.getLogger(__name__).warning(
-                f"labels in arr are larger than {2 ** 16 - 1}, this is not recommended!"
-            )
-        lookup = np.zeros(max_index + 1, dtype=bool)
+        _max_index = __infer_check_max_index(arr, _items, max_index)
+        lookup = np.zeros((_max_index + 1,), dtype=bool)
         lookup[np.asarray(_items)] = True
         return lookup[arr]
 
 
 def mask_not_in_array(
-        arr: np.ndarray[ShapeType, np.dtype[np.unsignedinteger]],
+        arr: np.ndarray[ShapeType, np.dtype[np.integer]],
         items: "npt.ArrayLike",
         /,
         max_index: np.unsignedinteger | None = None,
-) -> "npt.NDArray[bool]":
+) -> np.ndarray[ShapeType, np.dtype[np.bool_]]:
     """
     Inverse of mask_in_array.
 
@@ -305,8 +286,8 @@ def mask_not_in_array(
     ----------
     arr : ndarray of int
         An array with data, most likely int.
-    items : npt.ArrayLike
-        Which elements of `arr` in arr should yield False.
+    items : array_like
+        Which elements of `arr` in arr should yield True, can only include unsigned integers.
     max_index : int, optional
         The maximum value of `arr` and `items` for performance, uses maximum value if None.
 
@@ -315,36 +296,52 @@ def mask_not_in_array(
     mask : np.ndarray of bool
         A binary array, true, where elements in `arr` are not in `items`.
 
+    Raises
+    ------
+    ValueError
+        If items are not only positive integers (dtype integer), or if arr is not an integer ndarray.
+
     See Also
     --------
     mask_in_array
         Mask where elements are in `items`.
     """
-    _items = np.asarray(items)
+    __items = np.asarray(items)
+    _items: np.ndarray[tuple[int], np.dtype[np.int64]] = np.asarray(__items, dtype=np.int64).flatten()
+    if not np.issubdtype(__items.dtype, np.integer) or np.any(_items < 0):
+        raise ValueError("All values in items must be positive integers")
+    if not isinstance(arr, np.ndarray) or not np.issubdtype(arr.dtype, np.integer):
+        raise ValueError("arr must be a numpy array of integer type")
+
     if _items.size == 0:
         return np.ones_like(arr, dtype=bool)
     elif _items.size == 1:
         return np.asarray(arr != _items.flat[0])
     else:
-        max_index = __infer_check_max_index(arr, items, max_index)
-        lookup = np.ones(max_index + 1, dtype=bool)
+        _max_index = __infer_check_max_index(arr, _items, max_index)
+        lookup = np.ones(_max_index + 1, dtype=np.bool_)
         lookup[np.asarray(_items)] = False
         return lookup[arr]
 
 
 def __infer_check_max_index(
-        arr: np.ndarray[ShapeType, np.dtype[np.unsignedinteger]],
-        items: "npt.ArrayLike",
-        max_index: int | None,
+        arr: np.ndarray[ShapeType, np.dtype[np.integer]],
+        items: np.ndarray[tuple[int, ...], np.dtype[np.int64]],
+        max_index: np.unsignedinteger | None,
 ) -> int:
-    if max_index is None:
+    """Function to infer the max_index to create the lookup for mask_in_array and mask_not_in_array for."""
+    def __int(a) -> int:
+        return np.int64(np.maximum(a, 0)).item()
+    if max_index is None and (array_datatype_max_value := np.iinfo(arr.dtype).max) < 4096:
         # 2 ** 10 = 4096
-        _max_index = np.iinfo(arr.dtype).max if np.iinfo(arr.dtype).max < 4096 else np.max(arr)
-        _max_index = max(_max_index, np.max(items))
-        if _max_index >= 2**16:
-            logging.getLogger(__name__).warning(f"labels in arr are larger than {2**16 - 1}, this is not recommended!")
-        return _max_index
-    return max_index
+        _max_index = __int(array_datatype_max_value)
+    elif max_index is None:
+        _max_index: int = max([np.max(items).item(), np.max(arr).item()])
+    else:
+        _max_index = __int(max_index)
+    if _max_index >= 2 ** 16:
+        logger.warning(f"labels in arr are larger than {2 ** 16 - 1}, this is not recommended!")
+    return _max_index
 
 
 @update_docstring(left_classes=ASEG_LEFT_CLASSES, right_classes=ASEG_RIGHT_CLASSES)
@@ -442,7 +439,7 @@ class AbstractMeasure(metaclass=abc.ABCMeta):
         return self._unit
 
     @property
-    def subject_dir(self) -> Path:
+    def subject_dir(self) -> Path | None:
         """The subject directory last passed to :meth:`read_subject`, or ``None``."""
         return self._subject_dir
 
@@ -475,7 +472,7 @@ class AbstractMeasure(metaclass=abc.ABCMeta):
         """Return the ordered list of argument names accepted by :meth:`set_args`."""
         ...
 
-    def set_args(self, **kwargs: str) -> None:
+    def set_args(self, **kwargs: str | None) -> None:
         """
         Set the arguments of the Measure.
 
@@ -512,8 +509,7 @@ class AbstractMeasure(metaclass=abc.ABCMeta):
         _pargs = self._parsable_args()
         if len(args) > len(_pargs):
             raise ValueError(
-                f"The measure {self.name} can have up to {len(_pargs)} arguments, but "
-                f"parsing {len(args)}: {args}."
+                f"The measure {self.name} can have up to {len(_pargs)} arguments, but parsing {len(args)}: {args}."
             )
         _kwargs = {}
         _kwmode = False
@@ -578,6 +574,10 @@ class Measure(AbstractMeasure, Generic[T_BufferType], metaclass=abc.ABCMeta):
     __buffer: float | int | None
     __token: str = ""
     __PATTERN = re.compile("^([^\\s=]*file)\\s*=\\s*(\\S.*)$")
+
+    _callback: ReadFileHook[T_BufferType]
+    _file: Path
+    _data: T_BufferType | None
 
     def __call__(self) -> int | float:
         """
@@ -657,7 +657,9 @@ class Measure(AbstractMeasure, Generic[T_BufferType], metaclass=abc.ABCMeta):
         Path
             ``subject_dir / file``.
         """
-        return self._subject_dir / self._file
+        if self._file.is_absolute():
+            return self._file
+        return (self._subject_dir or Path.cwd()) / self._file
 
     def read_subject(self, subject_dir: Path) -> bool:
         """
@@ -686,7 +688,7 @@ class Measure(AbstractMeasure, Generic[T_BufferType], metaclass=abc.ABCMeta):
         """Return ``['file']`` as the single parsable argument name."""
         return ["file"]
 
-    def set_args(self, file: str | None = None, **kwargs: str) -> None:
+    def set_args(self, file: str | None = None, **kwargs: str | None) -> None:
         """
         Optionally update the file path and delegate remaining kwargs to the parent.
 
@@ -712,7 +714,7 @@ class ImportedMeasure(Measure[dict[str, MeasureTuple]]):
     """
 
     PREFIX = "__IMPORTEDMEASURE-prefix__"
-    read_file = staticmethod(read_measure_file)
+    read_file = cast(ReadFileHook[dict[str, MeasureTuple]], staticmethod(read_measure_file))
 
     def __init__(
             self,
@@ -763,7 +765,7 @@ class ImportedMeasure(Measure[dict[str, MeasureTuple]]):
 
         Returns
         -------
-        value : int | float
+        value : int, float
             Value of the measure as read from the file.
 
         Raises
@@ -771,6 +773,8 @@ class ImportedMeasure(Measure[dict[str, MeasureTuple]]):
         KeyError
             If ``key`` is not found in the file.
         """
+        if self._data is None:
+            raise ValueError(f"data has not been loaded from file for {self}")
         try:
             self._name, self._description, out, self._unit = self._data[self._key]
         except KeyError as e:
@@ -785,8 +789,8 @@ class ImportedMeasure(Measure[dict[str, MeasureTuple]]):
             self,
             key: str | None = None,
             measurefile: str | None = None,
-            **kwargs: str,
-    ) -> None:
+            **kwargs: str | None,
+    ) -> None:  # ty:ignore[invalid-method-override]
         """
         Optionally update ``key`` and/or ``measurefile`` and delegate to the parent.
 
@@ -823,9 +827,8 @@ class ImportedMeasure(Measure[dict[str, MeasureTuple]]):
         """
         if not self._file.is_absolute() or not self._file.exists():
             raise AssertionError(
-                f"The ImportedMeasures {self.name} is defined for import, but the "
-                f"associated measure file {self._file} is not an absolute path or "
-                f"does not exist and no subjects dir or subject id are defined."
+                f"The ImportedMeasures {self.name} is defined for import, but the associated measure file {self._file} "
+                f"is not an absolute path or does not exist and no subjects dir or subject id are defined."
             )
 
     def get_vox_vol(self) -> float:
@@ -872,6 +875,8 @@ class ImportedMeasure(Measure[dict[str, MeasureTuple]]):
             Whether the data was updated.
         """
         if super().read_subject(subject_dir):
+            if self._data is None:
+                raise ValueError(f"data has not been loaded from file for {self}")
             vox_vol_tup = self._data.get("vox_vol", None)
             if isinstance(vox_vol_tup, tuple) and len(vox_vol_tup) > 2:
                 self._vox_vol = vox_vol_tup[2]
@@ -915,7 +920,7 @@ class SurfaceMeasure(Measure["lapy.TriaMesh"], metaclass=abc.ABCMeta):
             name,
             description,
             unit,
-            self.read_file if read_mesh is None else read_mesh,
+            cast(ReadFileHook["lapy.TriaMesh"], self.read_file if read_mesh is None else read_mesh),
         )
 
     def __str__(self) -> str:
@@ -926,7 +931,11 @@ class SurfaceMeasure(Measure["lapy.TriaMesh"], metaclass=abc.ABCMeta):
         """Return ``['surface_file']`` as the parsable argument name."""
         return ["surface_file"]
 
-    def set_args(self, surface_file: str | None = None, **kwargs: str) -> None:
+    def set_args(
+            self,
+            surface_file: str | None = None,
+            **kwargs: str | None,
+    ) -> None:  # ty:ignore[invalid-method-override]
         """
         Optionally update the surface file path and delegate to the parent.
 
@@ -954,6 +963,8 @@ class SurfaceHoles(SurfaceMeasure):
         int
             Number of topological holes: ``1 - euler / 2``.
         """
+        if self._data is None:
+            raise ValueError("data not initialized!")
         return int(1 - self._data.euler() / 2)
 
     def help(self) -> str:
@@ -973,6 +984,8 @@ class SurfaceVolume(SurfaceMeasure):
         float
             Enclosed volume in mm³.
         """
+        if self._data is None:
+            raise ValueError(f"data has not been loaded from file for {self}")
         return self._data.volume()
 
     def help(self) -> str:
@@ -984,6 +997,7 @@ class PVMeasure(AbstractMeasure):
     """Class to compute volume for segmentations (includes PV-correction)."""
 
     read_file = None
+    _classes: ClassesType
 
     def __init__(
             self,
@@ -1021,6 +1035,8 @@ class PVMeasure(AbstractMeasure):
     @property
     def vox_vol(self) -> float:
         """Voxel volume in mm³ used to convert voxel counts to physical volume."""
+        if self._vox_vol is None:
+            raise ValueError("vox_vol not initialized!")
         return self._vox_vol
 
     @vox_vol.setter
@@ -1073,8 +1089,7 @@ class PVMeasure(AbstractMeasure):
         """
         if self._pv_value is None:
             raise RuntimeError(
-                f"The partial volume of {self._name} has not been updated in the "
-                f"PVMeasure object yet!"
+                f"The partial volume of {self._name} has not been updated in the PVMeasure object yet!"
             )
         col = "NVoxels" if self.unit == "unitless" else "Volume_mm3"
         return self._pv_value[col].item()
@@ -1083,7 +1098,7 @@ class PVMeasure(AbstractMeasure):
         """Return ``['classes']`` as the parsable argument name."""
         return ["classes"]
 
-    def set_args(self, classes: str | None = None, **kwargs: str) -> None:
+    def set_args(self, classes: str | None = None, **kwargs: str | None) -> None:
         """
         Optionally update the classes and delegate to the parent.
 
@@ -1095,7 +1110,7 @@ class PVMeasure(AbstractMeasure):
             Additional keyword arguments forwarded to :meth:`AbstractMeasure.set_args`.
         """
         if classes is not None:
-            self._classes = classes
+            self._classes = list(map(int, (s.strip() for s in classes.split(","))))
         return super().set_args(**kwargs)
 
     def __str__(self) -> str:
@@ -1189,7 +1204,7 @@ class VolumeMeasure(Measure[ImageTuple]):
         """
         if callable(classes_or_cond):
             self._classes: ClassesType | None = None
-            self._cond: CondType = classes_or_cond
+            self._cond: CondType = cast(CondType, classes_or_cond)
         else:
             if len(classes_or_cond) == 0:
                 raise ValueError(f"No operation passed to {type(self).__name__}.")
@@ -1198,8 +1213,8 @@ class VolumeMeasure(Measure[ImageTuple]):
             self._cond = partial(mask_in_array, items=self._classes)
         if unit not in ["unitless", "mm^3"]:
             raise ValueError(f"unit must be either 'mm^3' or 'unitless' for {type(self).__name__}!")
-        super().__init__(segfile, name, description, unit,
-                         self.read_file if read_file is None else read_file)
+        read_hook = cast(ReadFileHook[ImageTuple], self.read_file if read_file is None else read_file)
+        super().__init__(segfile, name, description, unit, read_hook)
 
     def get_vox_vol(self) -> float:
         """
@@ -1210,6 +1225,8 @@ class VolumeMeasure(Measure[ImageTuple]):
         float
             Product of the voxel zooms in mm³.
         """
+        if self._data is None:
+            raise ValueError(f"data has not been loaded from file for {self}")
         return np.prod(self._data[0].header.get_zooms()).item()
 
     def _compute(self) -> int | float:
@@ -1259,8 +1276,8 @@ class VolumeMeasure(Measure[ImageTuple]):
             self,
             segfile: str | None = None,
             classes: str | None = None,
-            **kwargs: str,
-    ) -> None:
+            **kwargs: str | None,
+    ) -> None:  # ty:ignore[invalid-method-override]
         """
         Optionally update the segmentation file and/or classes, then delegate to parent.
 
@@ -1379,8 +1396,8 @@ class MaskMeasure(VolumeMeasure):
             self,
             maskfile: Path | None = None,
             threshold: float | None = None,
-            **kwargs: str,
-    ) -> None:
+            **kwargs: str | None,
+    ) -> None:  # ty:ignore[invalid-method-override]
         """
         Optionally update the mask file and/or threshold, then delegate to parent.
 
@@ -1396,7 +1413,7 @@ class MaskMeasure(VolumeMeasure):
         if threshold is not None:
             self._threshold = float(threshold)
         if maskfile is not None:
-            kwargs["file"] = maskfile
+            kwargs["file"] = str(maskfile)
         return super().set_args(**kwargs)
 
     def _parsable_args(self) -> list[str]:
@@ -1431,7 +1448,7 @@ class TransformMeasure(Measure, metaclass=abc.ABCMeta):
             name: str,
             description: str,
             unit: str,
-            read_lta: ReadFileHook["npt.NDArray[float]"] | None = None,
+            read_lta: ReadFileHook[AffineMatrix4x4] | None = None,
     ):
         """
         Initialize the TransformMeasure.
@@ -1454,14 +1471,14 @@ class TransformMeasure(Measure, metaclass=abc.ABCMeta):
             name,
             description,
             unit,
-            self.read_file if read_lta is None else read_lta,
+            cast(ReadFileHook[AffineMatrix4x4], self.read_file if read_lta is None else read_lta),
         )
 
     def _parsable_args(self) -> list[str]:
         """Return ``['lta_file']`` as the parsable argument name."""
         return ["lta_file"]
 
-    def set_args(self, lta_file: str | None = None, **kwargs: str) -> None:
+    def set_args(self, lta_file: str | None = None, **kwargs: str | None) -> None:  # ty:ignore[invalid-method-override]
         """
         Optionally update the LTA file path and delegate to the parent.
 
@@ -1498,7 +1515,7 @@ class ETIVMeasure(TransformMeasure):
             name: str,
             description: str,
             unit: str,
-            read_lta: ReadFileHook["LTADict"] | None = None,
+            read_lta: ReadFileHook[AffineMatrix4x4] | None = None,
             etiv_scale_factor: float | None = None,
     ):
         """
@@ -1529,7 +1546,11 @@ class ETIVMeasure(TransformMeasure):
         """Return ``['lta_file', 'etiv_scale_factor']`` as the parsable argument names."""
         return super()._parsable_args() + ["etiv_scale_factor"]
 
-    def set_args(self, etiv_scale_factor: str | None = None, **kwargs: str) -> None:
+    def set_args(
+            self,
+            etiv_scale_factor: str | None = None,
+            **kwargs: str | None,
+    ) -> None:  # ty:ignore[invalid-method-override]
         """
         Optionally update the eTIV scale factor and delegate to the parent.
 
@@ -1553,6 +1574,8 @@ class ETIVMeasure(TransformMeasure):
         float
             Estimated total intracranial volume in mm³.
         """
+        if self._data is None:
+            raise ValueError(f"data has not been loaded from file for {self}")
         # this scale factor is a fixed number derived by freesurfer
         return self._etiv_scale_factor / np.linalg.det(self._data).item()
 
@@ -1608,16 +1631,13 @@ class DerivedMeasure(AbstractMeasure):
             if isinstance(value, Sequence) and not isinstance(value, str):
                 if len(value) != 2:
                     raise ValueError("A tuple was not length 2.")
-                factor, measure = value
+                factor, measure = cast(tuple[float, AnyMeasure], value)
             else:
                 factor, measure = 1., value
 
             if not isinstance(measure, str | AbstractMeasure):
-                raise ValueError(f"Expected a str or AbstractMeasure, not "
-                                 f"{type(measure).__name__}!")
-            if not isinstance(factor, float):
-                factor = float(factor)
-            return factor, measure
+                raise ValueError(f"Expected a str or AbstractMeasure, not {type(measure).__name__}!")
+            return float(factor), measure
 
         self._parents: list[AnyParentsTuple] = [to_tuple(p) for p in parents]
         if len(self._parents) == 0:
@@ -1708,6 +1728,8 @@ class DerivedMeasure(AbstractMeasure):
         Iterable[tuple[float, AbstractMeasure]]
             Each item is ``(weight, measure)`` where ``weight`` scales the measure value.
         """
+        if self._measure_host is None:
+            raise ValueError("measure_host has not been set!")
         return ((f, self._measure_host[p] if isinstance(p, str) else p)
                 for f, p in self._parents)
 
@@ -1746,8 +1768,9 @@ class DerivedMeasure(AbstractMeasure):
             Whether there was an update in any of the parent measures.
         """
         if self._measure_host is not None and hasattr(self._measure_host, "read_subject_parents"):
+            func = cast(Callable[[AbstractMeasure, Path], bool], self._measure_host.read_subject_parents)
             from functools import partial
-            return partial(self._measure_host.read_subject_parents, self.parents)
+            return partial(func, self.parents)
         else:
             return self.__read_subject
 
@@ -1772,7 +1795,10 @@ class DerivedMeasure(AbstractMeasure):
         first, e.g. because of thread availability.
         """
         if super().read_subject(subject_dir):
-            return self.read_subject_on_parents(self._subject_dir)
+            if self._subject_dir is not None:
+                return self.read_subject_on_parents(self._subject_dir)
+            else:
+                raise ValueError("subject_dir not set in DerivedMeasure, cannot read parents!")
         return False
 
     def __call__(self) -> int | float:
@@ -1803,6 +1829,8 @@ class DerivedMeasure(AbstractMeasure):
             if len(self._parents) != 1:
                 raise self.invalid_len_vox_vol()
             vox_vol = self.get_vox_vol()
+            if vox_vol is None:
+                raise ValueError("Could not retrieve voxel volume for 'by_vox_vol' operation in DerivedMeasure!")
             if isinstance(vox_vol, _DefaultFloat):
                 logging.getLogger(__name__).warning(
                     f"The vox_vol in {self} was unexpectedly not initialized; using {vox_vol}!"
@@ -1845,7 +1873,7 @@ class DerivedMeasure(AbstractMeasure):
             self,
             parents: str | None = None,
             operation: str | None = None,
-            **kwargs: str,
+            **kwargs: str | None,
     ) -> None:
         """
         Optionally update parents and/or operation string, then delegate to parent.
@@ -1877,8 +1905,9 @@ class DerivedMeasure(AbstractMeasure):
             self._parents = list(map(parse, re.split("\\s+", stripped)))
         if operation is not None:
             from typing import get_args as args
-            if operation in args(DerivedAggOperation):
-                self._operation = operation
+            is_valid, op = check_literal_type(operation, DerivedAggOperation)
+            if is_valid:
+                self._operation = op
             else:
                 raise ValueError(f"operation can only be {args(DerivedAggOperation)}")
         return super().set_args(**kwargs)
@@ -1896,6 +1925,8 @@ class DerivedMeasure(AbstractMeasure):
 
         def format_parent(measure: str | AnyMeasure) -> str:
             if isinstance(measure, str):
+                if self._measure_host is None:
+                    raise ValueError("measure_host is not set!")
                 measure = self._measure_host[measure]
             return measure if isinstance(measure, str) else measure.help()
 
@@ -2022,7 +2053,6 @@ class Manager(dict[str, AbstractMeasure]):
         legacy_freesurfer : bool, default=False
             FreeSurfer compatibility mode.
         """
-        from concurrent.futures import Future
         from copy import deepcopy
 
         def _check_measures(x):
@@ -2057,7 +2087,12 @@ class Manager(dict[str, AbstractMeasure]):
             )
             self._seg_from_file = Path(segfile)
 
-        import_kwargs = {"vox_vol": _DefaultFloat(1.0)}
+        class IKWArgs(TypedDict, total=False):
+            vox_vol: float
+            measurefile: Path
+            read_file: ReadFileHook[dict[str, MeasureTuple]]
+
+        import_kwargs: IKWArgs = {"vox_vol": _DefaultFloat(1.0)}
         if any(filter(lambda x: x[0], measures)):
             if measurefile is None:
                 raise ValueError(
@@ -2241,7 +2276,7 @@ class Manager(dict[str, AbstractMeasure]):
         self.read_subject_parents(self.values(), subject_dir, False)
 
     @contextmanager
-    def with_subject(self, subjects_dir: Path | None, subject_id: str | None) -> None:
+    def with_subject(self, subjects_dir: Path | None, subject_id: str | None) -> Generator[None, None, None]:
         """
         Contextmanager for the `start_read_subject` and the `wait_read_subject` pair.
 
@@ -2298,8 +2333,8 @@ class Manager(dict[str, AbstractMeasure]):
                     read_func = self.make_read_hook(read_volume_file)
                     img, _ = read_func(self._seg_from_file, blocking=True)
                     vox_vol = np.prod(img.header.get_zooms())
-            if vox_vol is not None:
-                m.set_vox_vol(vox_vol)
+            if vox_vol is not None and isinstance(m, ImportedMeasure):
+                m.set_vox_vol(float(vox_vol))
 
     def read_subject_parents(
             self,
@@ -2419,18 +2454,15 @@ class Manager(dict[str, AbstractMeasure]):
             out = self._cache.get(file, None)
             if out is None:
                 # not already in cache
-                if blocking:
-                    out = read_func(file)
-                else:
-                    out = thread_executor().submit(read_func, file)
-                self._cache[file] = out
+                self._cache[file] = out = thread_executor().submit(read_func, file)
             if not blocking:
                 return None
             elif isinstance(out, Future):
-                self._cache[file] = out = out.result()
+                # update the value in cache with the Future's result
+                self._cache[file] = out = cast(AnyBufferType, out.result())
             return out
 
-        return read_wrapper
+        return cast(ReadFileHook[T_BufferType], read_wrapper)
 
     def clear(self):
         """
@@ -2460,9 +2492,8 @@ class Manager(dict[str, AbstractMeasure]):
         file : TextIO, optional
             The file object to write to. If None, writes to stdout.
         """
-        kwargs = {} if file is None else {"file": file}
         for line in self.format_measures():
-            print(line, **kwargs)
+            print(line, file=file)
 
     def get_imported_all_measures(self) -> dict[str, MeasureTuple]:
         """
@@ -2967,7 +2998,7 @@ class Manager(dict[str, AbstractMeasure]):
     def compute_non_derived_pv(
             self,
             compute_threads: Executor | None = None
-    ) -> "list[Future[int | float]]":
+    ) -> list[Future[int | float]]:
         """
         Trigger computation of all non-derived, non-pv measures that are required.
 

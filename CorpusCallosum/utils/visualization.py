@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from contextlib import nullcontext
 from pathlib import Path
 
 import matplotlib.axes
@@ -19,7 +20,7 @@ import nibabel as nib
 import numpy as np
 
 from CorpusCallosum.utils.types import ContourList, Polygon2dType
-from FastSurferCNN.utils import AffineMatrix4x4, Image3d, Vector2d, noop_context
+from FastSurferCNN.utils import AffineMatrix4x4, Image3d, Vector2d
 
 
 def plot_standardized_space(
@@ -198,7 +199,7 @@ def plot_contours(
     if vox2ras is None and None in (split_contours, midline_equidistant, levelpaths):
         raise ValueError("vox_size must be provided if split_contours, midline_equidistant, or levelpaths are given.")
     
-    _backend_context = noop_context if output_path is None else partial(backend, 'agg')  # Use non-GUI backend
+    _backend_context = nullcontext if output_path is None else partial(backend, 'agg')  # Use non-GUI backend
 
     # convert vox_size from LIA to AS
     ras2vox = partial(apply_affine, np.linalg.inv(vox2ras)[1:, 1:])

@@ -9,11 +9,11 @@ from scipy.ndimage import affine_transform
 from CorpusCallosum.data.constants import CC_LABEL, FORNIX_LABEL
 from CorpusCallosum.utils.types import Polygon3dType
 from FastSurferCNN.utils import (
+    AffineMatrix3x3,
     AffineMatrix4x4,
     Image2d,
     Image3d,
     Image4d,
-    RotationMatrix3x3,
     Shape3d,
     Vector2d,
     Vector3d,
@@ -56,7 +56,7 @@ def make_midplane_affine(
     return seg_affine
 
 
-def correct_nodding(ac_pt: Vector2d, pc_pt: Vector2d) -> RotationMatrix3x3:
+def correct_nodding(ac_pt: Vector2d, pc_pt: Vector2d) -> AffineMatrix3x3:
     """Calculate rotation matrix to correct head nodding.
 
     Calculates rotation matrix to align AC-PC line with posterior direction,
@@ -90,7 +90,7 @@ def correct_nodding(ac_pt: Vector2d, pc_pt: Vector2d) -> RotationMatrix3x3:
         theta = -theta
 
     # create rotation matrix for theta
-    rotation_matrix: RotationMatrix3x3 = np.array(
+    rotation_matrix: AffineMatrix3x3 = np.array(
         [
             [np.cos(theta), -np.sin(theta), 0],
             [np.sin(theta), np.cos(theta), 0],

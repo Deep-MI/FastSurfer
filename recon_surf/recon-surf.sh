@@ -333,8 +333,8 @@ if [[ "$threads" -gt 1 ]] ; then fsthreads="-threads $threads -itkthreads $threa
 if [[ "$(echo -n "${SUBJECTS_DIR}/${subject}" | wc -m)" -gt 185 ]]
 then
   echo "ERROR: Subject directory path is very long."
-  echo "  This is known to cause errors due to some commands run by freesurfer versions built for Ubuntu."
-  echo "  --sd + --sid should be less than 185 characters long."
+  echo "  This is known to cause errors due to some commands run by FreeSurfer versions"
+  echo "  built for Ubuntu. --sd + --sid should be less than 185 characters long."
   exit 1
 fi
 

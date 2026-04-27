@@ -20,7 +20,7 @@ import numpy as np
 from numpy import typing as npt
 
 import FastSurferCNN.utils.logging as logging
-from FastSurferCNN.utils import AffineMatrix4x4, RotationMatrix3x3, Vector3d, nibabelImage
+from FastSurferCNN.utils import AffineMatrix3x3, AffineMatrix4x4, Vector3d, nibabelImage
 from FastSurferCNN.utils.parallel import thread_executor
 
 logger = logging.get_logger(__name__)
@@ -30,7 +30,7 @@ class MGHHeaderDict(TypedDict):
     """A dictionary with the four required fields of a MGH Header"""
     dims: Vector3d
     delta: Vector3d
-    Mdc: RotationMatrix3x3
+    Mdc: AffineMatrix3x3
     Pxyz_c: Vector3d
 
 

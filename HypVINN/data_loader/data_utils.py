@@ -16,9 +16,9 @@
 # IMPORTS
 import nibabel as nib
 import numpy as np
-from numpy import typing as npt
 
 from FastSurferCNN.data_loader.conform import getscale, scalecrop
+from FastSurferCNN.utils import ShapeType
 from HypVINN.config.hypvinn_global_var import (
     FS_CLASS_NAMES,
     HYPVINN_CLASS_NAMES,
@@ -179,10 +179,11 @@ def rescale_image(img_data: np.ndarray) -> np.ndarray:
     if not np.allclose([src_min, scale], [0, 1]):
         mapped_data = scalecrop(img_data, 0, 255, src_min, scale)
 
-    return np.uint8(np.rint(mapped_data))
+    return np.rint(mapped_data).astype(np.uint8)
 
 
-def hypo_map_label2subseg(mapped_subseg: npt.NDArray[int]) -> npt.NDArray[int]:
+def hypo_map_label2subseg(mapped_subseg: np.ndarray[ShapeType, np.dtype[np.integer]]) \
+        -> np.ndarray[ShapeType, np.dtype[np.integer]]:
     """
     Perform look-up table mapping from label space to subseg space.
 
@@ -191,12 +192,12 @@ def hypo_map_label2subseg(mapped_subseg: npt.NDArray[int]) -> npt.NDArray[int]:
 
     Parameters
     ----------
-    mapped_subseg : npt.NDArray[int]
+    mapped_subseg : np.ndarray of integers
         The input array in label space to be mapped to subseg space.
 
     Returns
     -------
-    npt.NDArray[int]
+    np.ndarray of integers
         The mapped array in subseg space.
     """
     # TODO can this function be replaced by a Mapper and a mapping file?
@@ -209,8 +210,8 @@ def hypo_map_label2subseg(mapped_subseg: npt.NDArray[int]) -> npt.NDArray[int]:
 
 
 def hypo_map_prediction_sagittal2full(
-        prediction_sag: npt.NDArray[int],
-) -> npt.NDArray[int]:
+        prediction_sag: np.ndarray[ShapeType, np.dtype[np.integer]],
+) -> np.ndarray[ShapeType, np.dtype[np.integer]]:
     """
     Remap the prediction on the sagittal network to full label space.
 
@@ -219,12 +220,12 @@ def hypo_map_prediction_sagittal2full(
 
     Parameters
     ----------
-    prediction_sag : npt.NDArray[int]
+    prediction_sag : np.ndarray of integers
         The sagittal prediction in label space to be remapped to full label space.
 
     Returns
     -------
-    npt.NDArray[int]
+    np.ndarray of integers
         The remapped prediction in full label space.
     """
     # TODO can this function be replaced by a Mapper and a mapping file?
@@ -235,9 +236,9 @@ def hypo_map_prediction_sagittal2full(
 
 
 def hypo_map_subseg_2_fsseg(
-        subseg: npt.NDArray[int],
+        subseg: np.ndarray[ShapeType, np.dtype[np.integer]],
         reverse: bool = False,
-) -> npt.NDArray[int]:
+) -> np.ndarray[ShapeType, np.dtype[np.int16]]:
     """
     Remap HypVINN internal labels to FastSurfer Labels and vice versa.
 
@@ -248,7 +249,7 @@ def hypo_map_subseg_2_fsseg(
 
     Parameters
     ----------
-    subseg : npt.NDArray[int]
+    subseg : np.ndarray of integers
         The input array with HypVINN or FastSurfer labels to be remapped.
     reverse : bool, default=False
         A flag to determine the direction of the remapping. If False, remap HypVINN
@@ -256,12 +257,12 @@ def hypo_map_subseg_2_fsseg(
 
     Returns
     -------
-    npt.NDArray[int]
+    np.ndarray of integers
         The remapped array with FastSurfer or HypVINN labels.
     """
     # TODO can this function be replaced by a Mapper and a mapping file?
 
-    fsseg = np.zeros_like(subseg, dtype=np.int16)
+    fsseg: np.ndarray[ShapeType, np.dtype[np.int16]] = np.zeros_like(subseg, dtype=np.int16)
 
     if not reverse:
         for value, name in HYPVINN_CLASS_NAMES.items():
