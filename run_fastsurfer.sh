@@ -168,8 +168,8 @@ SEGMENTATION PIPELINE:
                             image will be saved. Requires an ABSOLUTE Path!
                             Default location:
                             \$SUBJECTS_DIR/\$sid/mri/orig.mgz.
-  --no_biasfield          Create a bias field corrected image and enable the
-                            calculation of partial volume-corrected stats-files.
+  --no_biasfield          Deactivate bias field correction and the calculation of
+                            partial volume-corrected stats-files.
   --norm_name <nu.mgz>    Name of the biasfield corrected image
                             Default location:
                             \$SUBJECTS_DIR/\$sid/mri/orig_nu.mgz
@@ -223,11 +223,11 @@ SEGMENTATION PIPELINE:
 
   HYPOTHALAMUS MODULE (HypVINN):
   --no_hypothal           Skip the hypothalamus segmentation.
-  --no_biasfield          This option implies --no_hypothal, as the hypothalamus
-                            sub-segmentation requires biasfield-corrected images.
+  --no_biasfield          Biasfield-corrected inputs are recommended for the
+                            hypothalamus sub-segmentation, but not required.
   --t2 <T2_input>         *Optional* T2 full head input (does not have to be bias
-                            corrected, a mandatory biasfield correction step is
-                            performed). Requires an ABSOLUTE Path!
+                            corrected; FastSurfer preprocesses it before HypVINN).
+                            Requires an ABSOLUTE Path!
   --reg_mode <none|coreg|robust>
                           Ignored, if no T2 image is passed.
                             Specifies the registration method used to register T1
