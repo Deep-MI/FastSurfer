@@ -1290,7 +1290,7 @@ then
         echo "  with the hypothal module!"
       } | tee -a "$seg_log"
       cmd+=("$t1")
-      if [[ -n "$t2" ]] ; then cmd+=(--t2 "$t2") ; fi
+      if [[ -n "$t2" ]] ; then cmd+=(--t2 "$norm_name_t2") ; fi
     fi
     echo_quoted "${cmd[@]}" | tee -a "$seg_log"
     "${wrap[@]}" "${cmd[@]}" # no tee, directly logging to $seg_log
