@@ -1045,7 +1045,7 @@ then
       fi
     fi
 
-    if [[ "$run_asegdkt_module" ]]
+    if [[ "$run_asegdkt_module" == "true" ]]
     then
       mask_name_manedit=$(add_file_suffix "$mask_name" "manedit")
       if [[ -e "$mask_name_manedit" ]] ; then mask_name="$mask_name_manedit" ; fi
