@@ -586,8 +586,8 @@ def read_classes_from_lut(lut_file: str | Path):
     if lut_file.suffix == ".tsv":
         return pd.read_csv(lut_file, sep="\t")
 
-    # Read in file
-    names: defaultdict[str, str] = defaultdict(str,
+    # Read in file, default factory must be a dtype factory
+    names: defaultdict[str, str] = defaultdict(lambda: "str",
         ID="int",
         LabelName="str",
         Red="int",
