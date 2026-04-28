@@ -103,7 +103,7 @@ def load_and_conform_image(
             if not check_affine_in_nifti(cast(nib.nifti1.Nifti1Image | nib.nifti2.Nifti1Image, orig), logger=logger):
                 raise RuntimeError("Inconsistency in nifti-header!")
 
-        # conform
+        # conform ; orig will remain the same class
         orig = conform(orig, order=order, **conform_kwargs)
 
     # Return header and affine information
@@ -586,8 +586,8 @@ def read_classes_from_lut(lut_file: str | Path):
     if lut_file.suffix == ".tsv":
         return pd.read_csv(lut_file, sep="\t")
 
-    # Read in file
-    names: defaultdict[str, str] = defaultdict(str,
+    # Read in file, default factory must be a dtype factory
+    names: defaultdict[str, str] = defaultdict(lambda: "str",
         ID="int",
         LabelName="str",
         Red="int",

@@ -13,30 +13,40 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
 # IMPORTS
 import argparse
 import re
 import sys
 from collections.abc import Callable, Iterable, Sequence
-from typing import TYPE_CHECKING, Literal, TypeVar, Union, cast
+from functools import partial
+from typing import TYPE_CHECKING, Literal, TypedDict, TypeVar, cast
 
-import nibabel
 import nibabel as nib
 import numpy as np
-import numpy.typing as npt
-from nibabel.freesurfer.mghformat import MGHHeader
+import torch
+from nibabel.orientations import aff2axcodes, axcodes2ornt, io_orientation
+from numpy import typing as npt
 
-if TYPE_CHECKING:
-    import torch
-
-from FastSurferCNN.utils import ScalarType, logging, nibabelImage
-from FastSurferCNN.utils.arg_types import ImageSizeOption, OrientationType, StrictOrientationType, VoxSizeOption
+from FastSurferCNN.utils import (
+    AffineMatrix3x3,
+    AffineMatrix4x4,
+    ScalarType,
+    Shape1d,
+    Vector3d,
+    deprecated,
+    logging,
+    nibabelHeader,
+    nibabelImage,
+)
+from FastSurferCNN.utils.arg_types import ImageSizeOption, OrientationType, VoxSizeOption
 from FastSurferCNN.utils.arg_types import float_gt_zero_and_le_one as __conform_to_one_mm
 from FastSurferCNN.utils.arg_types import img_size as __img_size
 from FastSurferCNN.utils.arg_types import orientation as __orientation
 from FastSurferCNN.utils.arg_types import target_dtype as __target_dtype
 from FastSurferCNN.utils.arg_types import vox_size as __vox_size
+from FastSurferCNN.utils.common import array_flags
+
+AXCODES = ("lr", "pa", "is")
 
 HELPTEXT = """
 Script to conform an MRI brain image to UCHAR, RAS orientation, 
@@ -59,8 +69,17 @@ Date: May-12-2025
 
 LOGGER = logging.getLogger(__name__)
 
-_TA = TypeVar("_TA", bound=Union[np.ndarray, "torch.Tensor"])
-_TB = TypeVar("_TB", bound=Union[np.ndarray, "torch.Tensor"])
+OrntArrayType = np.ndarray[tuple[int, Literal[2]], np.dtype[ScalarType]]
+IntVector3d = np.ndarray[tuple[Literal[3]], np.dtype[np.int64]]
+
+if TYPE_CHECKING:
+    from torch import Tensor
+
+    _TA = TypeVar("_TA", bound=np.ndarray | Tensor)
+    _TB = TypeVar("_TB", bound=np.ndarray | Tensor)
+else:
+    _TA = TypeVar("_TA", bound=np.ndarray)
+    _TB = TypeVar("_TB", bound=np.ndarray)
 
 
 def __rescale_type(a: str) -> float | int | None:
@@ -251,76 +270,318 @@ def options_parse():
 
     return args
 
+SelfReorientation = TypeVar("SelfReorientation", bound="Reorientation")
 
-def to_target_orientation(
-        image_data: _TA,
-        source_affine: npt.NDArray[float],
-        target_orientation: StrictOrientationType,
-) -> tuple[_TA, Callable[[_TB], _TB]]:
+class Reorientation:
     """
-    Reorder and flip image_data such that the data is in orientation. This will always be without interpolation.
+    A class to organize data reorientation to canonical orientations.
 
-    Parameters
+    Attributes
     ----------
-    image_data : np.ndarray, torch.Tensor
-        The image data to reorder/flip.
-    source_affine : npt.NDArray[float]
-        The affine to detect the reorientation operations.
-    target_orientation : StrictOrientationType
-        The target orientation to reorient to.
-
-    Returns
-    -------
-    np.ndarray, torch.Tensor
-        The data flipped and reordered so it is close to LIA (same type as image_data).
-    Callable[[np.ndarray], np.ndarray], Callable[[torch.Tensor], torch.Tensor]
-        A function that flips and reorders the data back (returns same type as output).
+    source_affine : AffineMatrix4x4
+        The vox2ras affine of the input image.
+    vox2vox : AffineMatrix4x4
+        The vox2vox transformation matrix.
+    source_shape : Shape1d
+        The shape of the input image.
+    target_shape : Shape1d
+        The shape of the output image.
+    tol : float
+        The threshold to check to determine identity or reordering.
     """
-    reorient_ornt, unorient_ornt = orientation_to_ornts(source_affine, target_orientation)
 
-    if np.any([reorient_ornt[:, 1] != 1, reorient_ornt[:, 0] != np.arange(reorient_ornt.shape[0])]):  # is not lia yet
-        def back_to_native(data: _TB) -> _TB:
-            return apply_orientation(data, unorient_ornt)
+    def __init__(self, source_affine: AffineMatrix4x4, source_shape: IntVector3d, tol: float = 1e-6):
+        """
+        Creates a transformation from """
+        self._source_affine: AffineMatrix4x4 = source_affine
+        self._vox2vox: AffineMatrix4x4 = np.eye(4)
+        self.source_shape = source_shape
+        self.target_shape = source_shape
+        self.tol = tol
 
-        return apply_orientation(image_data, reorient_ornt), back_to_native
-    else:  # data is already in lia
-        def do_nothing(data: _TB) -> _TB:
-            return data
+    @property
+    def vox2vox(self) -> AffineMatrix4x4:
+        """
+        Returns a readonly view of the target2source vox2vox transformation matrix.
+        """
+        with array_flags(self._vox2vox, writeable=False) as readonly_view:
+            return readonly_view
 
-        return image_data, do_nothing
+    @property
+    def source_affine(self) -> AffineMatrix4x4:
+        """
+        Returns a readonly view of the source affine matrix.
+        """
+        with array_flags(self._source_affine, writeable=False) as readonly_view:
+            return readonly_view
+
+    @classmethod
+    def from_target_orientation(
+            cls: type[SelfReorientation],
+            source_affine: AffineMatrix4x4,
+            target_orientation: OrientationType,
+            shape: npt.ArrayLike,
+            target_vox_size: npt.ArrayLike | None = None,
+            target_shape: npt.ArrayLike | None = None,
+            tol: float = 1e-6,
+    ) -> SelfReorientation:
+        """
+        Determine the affine matrix to reorder and flip/interpolate data from source_affine to orientation.
+
+        The resulting transform is a vox2vox from source to target.
+
+        Parameters
+        ----------
+        source_affine : AffineMatrix4x4
+            The input image affine to detect the reorientation operations.
+        target_orientation : OrientationType
+            The target orientation to reorient to.
+        shape : array_like of shape (3,)
+            The source shape of the data to reorder. If a "wrong shape" is passed, the vox2vox offset will corrupt.
+        target_vox_size : array_like of shape (3,), optional
+            The target voxel size in native coordinates, defaults to source_affine.
+        target_shape : array_like of shape (3,), optional
+            The target shape in native coordinates, defaults to shape.
+        tol : float, default=1e-6
+            Tolerance to identify reordering.
+
+        Returns
+        -------
+        Reorientation
+            An object holding the source_affine and the vox2vox transform to reorient data from source_affine to
+            target_orientation.
+        """
+        _target_orientation = target_orientation.lower()
+        if _target_orientation == "native":
+            _target_orientation = "soft " + "".join(aff2axcodes(source_affine, AXCODES))
+
+        source_vox_size = np.linalg.norm(source_affine[:3, :3], axis=0)
+        if target_vox_size is None:
+            vox_size: Vector3d = source_vox_size
+        else:
+            vox_size = np.asarray(target_vox_size, dtype=np.float64)
+            if vox_size.size == 1:
+                vox_size = np.full((3,), fill_value=vox_size.item())
+
+        is_soft = _target_orientation.startswith("soft")
+        if is_soft:
+            # use strict source affine to compute soft re-orientation if intended
+            _target_orientation = _target_orientation[5:]
+        if any(c not in "lrpais" for c in _target_orientation) or len(_target_orientation) != 3:
+            raise ValueError(f"Invalid target_orientation: {target_orientation}.")
+
+        # by setting only the 3x3 rotational part here, we force from_target_affine to determine the translation
+        # (as center-conserving)
+        _reorder_ornt = axcodes2ornt(_target_orientation, AXCODES)
+        target_strict_affine: AffineMatrix3x3 = ornt2vox2vox(_reorder_ornt, (1,) * 3, vox_size)[:3, :3]
+        if not is_soft:
+            return cls.from_target_affine(source_affine, target_strict_affine, shape, target_shape, tol)
+
+        # soft transform
+        _source_affine = ornt2vox2vox(io_orientation(source_affine), shape,source_vox_size)
+        rot_mat = np.linalg.inv(_source_affine[:3, :3]) @ target_strict_affine
+
+        if np.allclose(rot_mat, np.round(rot_mat), atol=tol):
+            rot_mat = np.round(rot_mat)
+
+        return cls.from_vox2vox(source_affine, rot_mat, shape, target_shape, tol)
+
+    @classmethod
+    def from_target_affine(
+            cls: type[SelfReorientation],
+            source_affine: AffineMatrix4x4,
+            target_affine: AffineMatrix4x4 | AffineMatrix3x3,
+            shape: npt.ArrayLike,
+            target_shape: npt.ArrayLike | None = None,
+            tol: float = 1e-6,
+    ) -> SelfReorientation:
+        """
+        Determine the affine matrix to reorder and flip/interpolate data from source_affine to orientation.
+
+        The resulting transform is a vox2vox from source to target.
+
+        Parameters
+        ----------
+        source_affine : AffineMatrix4x4
+            The input image affine to detect the reorientation operations.
+        target_affine : AffineMatrix4x4, AffineMatrix3x3
+            The target affine to reorient to.
+        shape : array_like of shape (3,)
+            The source shape of the data to reorder. If a "wrong shape" is passed, the vox2vox offset will corrupt.
+        target_shape : array_like of shape (3,), optional
+            The target shape in native coordinates, defaults to shape.
+        tol : float, default=1e-6
+            Tolerance to identify reordering.
+
+        Returns
+        -------
+        Reorientation
+            An object holding the source_affine and the vox2vox transform to reorient data from source_affine to
+            target_orientation.
+        """
+        if target_affine.shape == (4, 4):
+            v2v = np.linalg.inv(source_affine) @ target_affine
+
+        elif target_affine.shape == (3, 3):
+            v2v = np.linalg.inv(source_affine[:3, :3]) @ target_affine
+            if np.allclose(v2v, np.round(v2v), atol=tol):
+                v2v = np.round(v2v)
+
+        elif target_affine.shape == (3, 4):
+            v2v = np.linalg.inv(source_affine) @ np.concatenate([target_affine, np.eye(4)[3:]], axis=0)
+
+        else:
+            raise ValueError(f"target_affine must be of shape (3, 3), (4, 4) or (3, 4), but was {target_affine.shape}.")
+
+        return cls.from_vox2vox(source_affine, v2v, shape, target_shape, tol)
+
+    @classmethod
+    def from_vox2vox(
+            cls: type[SelfReorientation],
+            source_affine: AffineMatrix4x4,
+            vox2vox: AffineMatrix3x3 | AffineMatrix4x4,
+            shape: npt.ArrayLike,
+            target_shape: npt.ArrayLike | None = None,
+            tol: float = 1e-6,
+    ) -> SelfReorientation:
+        """
+        Determine the affine matrix to reorder and flip/interpolate data from source_affine to orientation.
+
+        The resulting transform is a vox2vox from source to target.
+
+        Parameters
+        ----------
+        source_affine : AffineMatrix4x4
+            The input image affine to detect the reorientation operations.
+        vox2vox : AffineMatrix4x4, AffineMatrix3x3
+            The out2in vox2vox matrix to use, for a 3x3 matrix compute translation by assuming a rotation around the
+            center (this is consistent with vox2vox of `scipy.ndimage.affine_transform`, `apply_image` and
+            `nibabel.orientations.aff2axcodes`).
+        shape : array_like of shape (3,)
+            The source shape of the data to reorder. If a "wrong shape" is passed, the vox2vox offset will corrupt.
+        target_shape : array_like of shape (3,), optional
+            The target shape in native coordinates, defaults to shape.
+        tol : float, default=1e-6
+            Tolerance to identify reordering.
+
+        Returns
+        -------
+        Reorientation
+            An object holding the source_affine and the vox2vox transform to reorient data from source_affine to
+            target_orientation.
+
+        See Also
+        --------
+        FastSurferCNN.data_loader.conform.apply_vox2vox : Apply a vox2vox matrix to a 3D image.
+        scipy.ndimage.affine_transform : Apply an affine transform to data.
+        nibabel.orientations.aff2axcodes : Generate Orientation Codes from an affine matrix.
+        """
+        _shape = np.asarray(shape, dtype=np.int64)
+        obj = cls(source_affine, _shape, tol)
+
+        _target_shape = _shape if target_shape is None else np.asarray(target_shape, dtype=np.int64)
+        if vox2vox.shape == (3, 3):
+            # make center stay consistent, so in_voxcenter and and out_voxcenter should have same ras coordinates
+            translation = _translation_to_fix_center(vox2vox, _shape, _target_shape)
+
+            # expand the rotation matrix to 4x4 by 0 and translation
+            rot_cols = np.concatenate([vox2vox, np.zeros((1, 3))], axis=0)
+            trans_col = np.append(translation, 1)
+            obj._vox2vox = np.concatenate([rot_cols, trans_col[:, None]], axis=1)
+        elif vox2vox.shape == (4, 4):
+            obj._vox2vox = cast(AffineMatrix4x4, vox2vox)
+
+        elif vox2vox.shape == (3, 4):
+            obj._vox2vox = np.concatenate([vox2vox, np.eye(4)[3:]], axis=0)
+
+        else:
+            raise ValueError(f"vox2vox must be of shape (3, 3), (4, 4) or (3, 4), but was {vox2vox.shape}.")
+        obj.target_shape = obj.reorder_axes(_target_shape)
+        return obj
+
+    def snap_translation_to_grid_(self: SelfReorientation) -> None:
+        """Modifies the translation to snap to the grid, if no rotation or scaling is present."""
+        if not does_vox2vox_rot_require_interpolation(self.vox2vox):
+            # here we check whether the vox2vox is a pure rotation that requires interpolation, if so we try to find a
+            # close-by reorientation that does not require interpolation
+            # Note, that we are rounding on the in-grid here, but this does not matter, because this vox2vox does not
+            # rescale ("does_vox2vox_rot_require_interpolation"). Downscaling by integer values requires interpolation!
+            ivox2vox = np.linalg.inv(self.vox2vox)
+            self._vox2vox = np.linalg.inv(np.concatenate([ivox2vox[:, :3], np.fix(ivox2vox[:, 3:])], axis=1))
+
+    def is_identity(self) -> bool:
+        """Whether the internal vox2vox is the identity."""
+        return np.allclose(self.vox2vox, np.eye(4))
+
+    def __call__(self, image_data: _TA, order: int = 1, vox_eps: float = 1e-4, rot_eps: float | None = None) -> _TA:
+        """
+        Reorder and flip image_data such that the data is according to the source_affine and vox2vox attributes.
+
+        Parameters
+        ----------
+        image_data : np.ndarray, torch.Tensor
+            The image data to reorder/flip.
+        order : int, default=1
+            Order of interpolation (0=nearest,1=linear,2=quadratic,3=cubic).
+        vox_eps : float, default=1e-4
+            The epsilon for the voxelsize check.
+        rot_eps : float, optional
+            The epsilon for the affine rotation check, defaults to the attribute tol.
+
+        Returns
+        -------
+        np.ndarray, torch.Tensor
+            The reordered/flipped image data.
+        """
+        # is already target_orientation and no cropping
+        if self.is_identity() and (self.target_shape is None or np.allclose(image_data.shape, self.target_shape)):
+            return image_data
+        else:  # is not target_affine yet
+            if self.target_shape is None:
+                raise ValueError("target_shape must be initialized for __call__")
+            out_shape = np.asarray(self.target_shape)
+            return apply_vox2vox(image_data, self.vox2vox, out_shape, order, vox_eps, rot_eps or self.tol)
+
+    @property
+    def target_affine(self) -> AffineMatrix4x4:
+        """The target affine after reorientation."""
+        return self.source_affine @ self.vox2vox
+
+    @property
+    def inverse(self: SelfReorientation) -> SelfReorientation:
+        """
+        A Reorientation object that can be used to reverse the reorientation of this object.
+        """
+        if self.is_identity():
+            return self
+        else:
+            return self.from_vox2vox(
+                self.target_affine,
+                np.linalg.inv(self.vox2vox),
+                self.target_shape,
+                self.source_shape,
+                self.tol,
+            )
+
+    def reorder_axes(self, vector: np.ndarray[tuple[Literal[3]], np.dtype[ScalarType]]) \
+            -> np.ndarray[tuple[Literal[3]], np.dtype[ScalarType]]:
+        """
+        Reorder a vector according to the vox2vox of this Reorientation.
+
+        Parameters
+        ----------
+        vector : np.ndarray of shape (3,)
+            The vector to reorder.
+
+        Returns
+        -------
+        ndarray of shape (3,)
+            Reordered vector.
+        """
+        return vector[io_orientation(self.vox2vox)[:, 0].astype(np.int64)]
 
 
-def orientation_to_ornts(
-        source_affine: npt.NDArray[float],
-        target_orientation: StrictOrientationType,
-) -> tuple[npt.NDArray[int], npt.NDArray[int]]:
-    """
-    Determine the nibabel `ornt` Array to reorder and flip data from source_affine such that the data is in orientation.
-
-    Parameters
-    ----------
-    source_affine : npt.NDArray[float]
-        The affine to detect the reorientation operations.
-    target_orientation : StrictOrientationType
-        The target orientation to reorient to.
-
-    Returns
-    -------
-    npt.NDArray[int]
-        The `ornt` transform from source_affine to target_orientation.
-    npt.NDArray[int]
-        The `ornt` transform back from target_orientation to source_affine.
-    """
-    from nibabel.orientations import axcodes2ornt, io_orientation, ornt_transform
-
-    source_ornt = io_orientation(source_affine)
-    target_ornt = axcodes2ornt(target_orientation.upper())
-    reorient_ornt = ornt_transform(source_ornt, target_ornt)
-    unorient_ornt = ornt_transform(target_ornt, source_ornt)
-    return reorient_ornt.astype(int), unorient_ornt.astype(int)
-
-
-def apply_orientation(arr: _TB | npt.ArrayLike, ornt: npt.NDArray[int]) -> _TB:
+def apply_orientation(arr: _TB | npt.ArrayLike, ornt: OrntArrayType) -> _TB:
     """
     Apply transformations implied by `ornt` to the first n axes of the array `arr`.
 
@@ -346,31 +607,34 @@ def apply_orientation(arr: _TB | npt.ArrayLike, ornt: npt.NDArray[int]) -> _TB:
     """
     from nibabel.orientations import OrientationError
     from nibabel.orientations import apply_orientation as _apply_orientation
-    from torch import is_tensor as _is_tensor
 
-    if _is_tensor(arr):
-        ornt = np.asarray(ornt)
-        n = ornt.shape[0]
-        if arr.ndim < n:
-            raise OrientationError("Data array has fewer dimensions than orientation")
-        # apply ornt transformations
-        flip_dims = np.nonzero(ornt[:, 1] == -1)[0].tolist()
-        if len(flip_dims) > 0:
-            arr = arr.flip(flip_dims)
-        full_transpose = np.arange(arr.ndim)
-        # ornt indicates the transpose that has occurred - we reverse it
-        full_transpose[:n] = np.argsort(ornt[:, 0])
-        t_arr = arr.permute(*full_transpose)
-        return t_arr
-    else:
-        return _apply_orientation(arr, ornt)
+    # only import torch, if it is likely we are dealing with a tensor
+    if hasattr(arr, "device"):
+        from torch import is_tensor as _is_tensor
+
+        if _is_tensor(arr):  # arr torch.Tensor
+            ornt = np.asarray(ornt)
+            n = ornt.shape[0]
+            if arr.ndim < n:
+                raise OrientationError("Data array has fewer dimensions than orientation")
+            # apply ornt transformations
+            flip_dims = np.nonzero(ornt[:, 1] == -1)[0].tolist()
+            if len(flip_dims) > 0:
+                arr = arr.flip(flip_dims)
+            full_transpose = np.arange(arr.ndim)
+            # ornt indicates the transpose that has occurred - we reverse it
+            full_transpose[:n] = np.argsort(ornt[:, 0])
+            return cast(_TB, arr.permute(*full_transpose))
+
+    return _apply_orientation(arr, ornt)
 
 
+@deprecated("Use apply_vox2vox or Reorientation.__call__ instead of map_image.")
 def map_image(
         img: nibabelImage,
-        out_affine: npt.NDArray[float],
-        out_shape: tuple[int, ...] | npt.NDArray[int] | Iterable[int],
-        ras2ras: npt.NDArray[np.number] | None = None,
+        out_affine: AffineMatrix4x4,
+        out_shape: np.ndarray[Shape1d, np.dtype[np.integer]] | Iterable[int],
+        ras2ras: AffineMatrix4x4 | None = None,
         order: int = 1,
         dtype: np.dtype[ScalarType] | npt.DTypeLike | None = None,
         vox_eps: float = 1e-4,
@@ -381,13 +645,13 @@ def map_image(
 
     Parameters
     ----------
-    img : nibabelImage
+    img : nibabel.spatialimages.SpatialImage
         The src 3D image with data and affine set.
-    out_affine : np.ndarray
+    out_affine : AffineMatrix4x4
         Trg image affine.
-    out_shape : tuple[int, ...], np.ndarray
+    out_shape : tuple[int, ...], np.ndarray of int
         The target shape information.
-    ras2ras : np.ndarray, optional
+    ras2ras : AffineMatrix4x4, optional
         An additional mapping that should be applied (default=id to just reslice).
     order : int, default=1
         Order of interpolation (0=nearest,1=linear,2=quadratic,3=cubic).
@@ -408,9 +672,42 @@ def map_image(
 
     # compute vox2vox from src to trg
     vox2vox = np.linalg.inv(out_affine) @ ras2ras @ img.affine
-
     # here we apply the inverse vox2vox (to pull back the src info to the target image)
     image_data = np.asarray(img.dataobj, dtype=dtype)
+    return apply_vox2vox(image_data, vox2vox, out_shape=out_shape, order=order, vox_eps=vox_eps, rot_eps=rot_eps)
+
+
+def apply_vox2vox(
+        image_data: _TA,
+        vox2vox: AffineMatrix4x4,
+        out_shape: np.ndarray[tuple[int], np.dtype[np.integer]] | Iterable[int],
+        order: int = 1,
+        vox_eps: float = 1e-4,
+        rot_eps: float = 1e-6,
+    ) -> _TA:
+    """
+    Map image to new voxel space (RAS orientation).
+
+    Parameters
+    ----------
+    image_data : np.ndarray
+        The 3D image data.
+    vox2vox : np.ndarray
+        To-apply out2in vox2vox (!) for consistentcy with `scipy.ndimage.affine_transform`.
+    out_shape : tuple[int, ...], np.ndarray
+        The target shape information.
+    order : int, default=1
+        Order of interpolation (0=nearest,1=linear,2=quadratic,3=cubic).
+    vox_eps : float, default=1e-4
+        The epsilon for the voxelsize check.
+    rot_eps : float, default=1e-6
+        The epsilon for the affine rotation check.
+
+    Returns
+    -------
+    np.ndarray
+        Mapped image data array.
+    """
     # convert frames to single image
 
     out_shape = tuple(out_shape)
@@ -420,14 +717,21 @@ def map_image(
         if len(out_shape) == 3:
             if any(s != 1 for s in image_data.shape[3:]):
                 raise ValueError(f"Multiple input frames {tuple(image_data.shape)} not supported!")
-            image_data = np.squeeze(image_data, axis=tuple(range(3, image_data.ndim)))
+            if hasattr(image_data, "device"):
+                from torch import Tensor
+                if isinstance(image_data, Tensor):
+                    image_data = image_data.squeeze(tuple(range(3, image_data.ndim)))  # ty:ignore[invalid-assignment]
+                else:
+                    raise TypeError("image_data has a device attribute but is not a torch.Tensor!")
+            else:
+                image_data = np.squeeze(image_data, axis=tuple(range(3, image_data.ndim)))  # ty:ignore[invalid-assignment]
         # if the output has the same number of frames as the input
         elif image_data.shape[3:] == out_shape[3:]:
             # add a frame dimension to vox2vox
             _vox2vox = np.eye(5, dtype=vox2vox.dtype)
             _vox2vox[:3, :3] = vox2vox[:3, :3]
-            _vox2vox[3:, 4:] = vox2vox[:3, 3:]
-            vox2vox = _vox2vox
+            _vox2vox[:3, 4:] = vox2vox[:3, 3:]
+            vox2vox = np.linalg.inv(_vox2vox)
         else:
             raise ValueError(
                     f"Input image and requested output shape have different frames: {image_data.shape} vs. {out_shape}!"
@@ -439,25 +743,38 @@ def map_image(
         # no interpolation needed, just use image_data
         return image_data
 
-    inv_vox2vox = np.linalg.inv(vox2vox)
     if not does_vox2vox_rot_require_interpolation(vox2vox, vox_eps=vox_eps, rot_eps=rot_eps):
 
-        LOGGER.debug(f"vox2vox: {vox2vox}")
         # second condition: translations are integers
         if np.allclose(vox2vox[:, 3], np.round(vox2vox[:, 3]), atol=1e-4):
-            # reorder axes
-            ornt = nib.orientations.io_orientation(vox2vox)
-            new_old_index = list(enumerate(map(int, ornt[:, 0])))
-            # if the direction is flipped (ornt[j, 1] == -1), offset has to start at the other end
-            offsets = [ornt[j, 1] * vox2vox[i, 3] + (ornt[j, 1] == -1) * img.shape[j] for i, j in new_old_index]
-            offsets = list(map(lambda x: int(x.astype(int)), offsets))
+            inv_vox2vox = np.linalg.inv(vox2vox)
+            # reorder axes, ornt is normally orientation2ras, but here we already inverted the matrix (as part of the
+            # apply_vox2vox interface convention), so vox2vox is out2in
+            ornt = io_orientation(inv_vox2vox).astype(np.int16)
             reordered = apply_orientation(image_data, ornt)
+
+            # offset is the delta between vox coord zero and cut-off.
+            # vox0_out[d] = output-space coordinate of input voxel (0,0,0) in output dimension d.
+            vox0_out = np.round(inv_vox2vox[:3, 3]).astype(np.int16)
+            # io_orientation returns one row per INPUT axis: ornt[k] = [output_axis, direction] for input axis k.
+            # We need per OUTPUT dimension d: which input axis c_d maps to it, and whether it is flipped.
+            # inv_ornt_axes[d] = c_d = the input axis that maps to output dimension d.
+            inv_ornt_axes = np.argsort(ornt[:, 0]).astype(np.int16)
+            # apply_orientation flips input axis c_d (at reordered position d) when ornt[c_d, 1] == -1.
+            flipped_per_out_dim = (ornt[inv_ornt_axes, 1] == -1).astype(np.int16)
+            # At reordered index 0 in dim d:
+            #   not flipped: input axis c_d = 0  → out_d = trans_d  → offset = -trans_d = -vox0_out[d]
+            #   flipped:     input axis c_d = reordered.shape[d]-1 → out_d = -sign*(reordered.shape[d]-1)+trans_d
+            #                                                       → offset = reordered.shape[d] - 1 - vox0_out[d]
+            # (note reordered.shape[d] = data.shape[c_d])
+            offsets = -vox0_out + flipped_per_out_dim * (np.asarray(reordered.shape[:3], np.int16) - 1)
             # pad=0 => pad with zeros
             return crop_transform(reordered, offsets=offsets, target_shape=out_shape, pad=0)
 
+    # TODO: in contrast to the type annotation, the following is not compatible with non-cpu torch.Tensor
     from scipy.ndimage import affine_transform
 
-    return affine_transform(image_data, inv_vox2vox, output_shape=out_shape, order=order)
+    return affine_transform(image_data, vox2vox, output_shape=out_shape, order=order)
 
 
 def getscale(
@@ -633,12 +950,13 @@ def conform(
         order: int = 1,
         vox_size: VoxSizeOption | None = 1.0,
         img_size: ImageSizeOption | None = 256,
-        dtype: type | None = np.uint8,
+        dtype: npt.DTypeLike | None = np.uint8,
         orientation: OrientationType | None = "lia",
         threshold_1mm: float | None = None,
-        rescale: int | float | Literal["none"] = 255,
+        rescale: int | float | None = 255,
         vox_eps: float = 1e-4,
         rot_eps: float = 1e-6,
+        file_type: type[nibabelImage] | None = None,
         **kwargs,
 ) -> nibabelImage:
     """Python version of mri_convert -c.
@@ -648,7 +966,7 @@ def conform(
 
     Parameters
     ----------
-    img : nibabelImage
+    img : nib.spatialimages.SpatialImage
         Loaded source image.
     order : int, default=1
         Interpolation order (0=nearest, 1=linear, 2=quadratic, 3=cubic).
@@ -673,10 +991,12 @@ def conform(
         The epsilon for the voxelsize check.
     rot_eps : float, default=1e-6
         The epsilon for the affine rotation check.
+    file_type : class, optional
+        The class to use for the image object. If None, will use the class of `img`.
 
     Returns
     -------
-    nib.MGHImage
+    nibabel.spatialimages.SpatialImage
         Conformed image.
 
     Other Parameters
@@ -698,22 +1018,29 @@ def conform(
         LOGGER.warning("conform_vox_size is deprecated, replaced by vox_size and will be removed.")
         vox_size = kwargs["conform_vox_size"]
 
-    vox_img = conformed_vox_img_size(img, vox_size, img_size, threshold_1mm=threshold_1mm, vox_eps=vox_eps)
-    _orientation: OrientationType = "native" if orientation is None else orientation
-    h1 = prepare_mgh_header(img, *vox_img, _orientation, vox_eps=vox_eps, rot_eps=rot_eps)
+    _vox_size, _img_size = conformed_vox_img_size(img, vox_size, img_size, threshold_1mm=threshold_1mm, vox_eps=vox_eps)
 
-    # affine is the computed target affine for the output image
-    target_affine = h1.get_affine()
+    __vox_size: Vector3d = np.asarray(img.header.get_zooms()[:3] if _vox_size is None else _vox_size, dtype=np.float64)
+    __img_size: IntVector3d = np.asarray(img.shape[:3] if _img_size is None else _img_size, dtype=np.int64)
+    _orientation: OrientationType = "native" if orientation is None else orientation
+
+    TargetImageClass: type[nibabelImage] = type(img) if file_type is None else file_type
+    target_header: nibabelHeader = TargetImageClass.header_class.from_header(img.header)
+
+    reorient = Reorientation.from_target_orientation(img.affine, _orientation, img.shape, __vox_size, __img_size)
+    target_vox_size = reorient.reorder_axes(__vox_size)
+
+    target_header.set_zooms(np.concatenate([target_vox_size, img.header.get_zooms()[3:]], axis=0))
+    target_header.set_data_shape(np.concatenate([reorient.target_shape, img.shape[3:]], axis=0))
+
     if LOGGER.getEffectiveLevel() <= logging.DEBUG:
         with np.printoptions(precision=2, suppress=True):
             from re import sub
-            LOGGER.debug("affine: " + sub("\\s+", " ", str(target_affine[:3, :3])))
-
-    # from_header does not compute Pxyz_c (and probably others) when importing from nii
-    # Pxyz is the center of the image in world coords
+            LOGGER.debug("affine: " + sub("\\s+", " ", str(reorient.target_affine[:3, :3])))
 
     # derive target datatype from input
     target_dtype: np.dtype = np.dtype(img.get_data_dtype() if dtype is None else dtype)
+    target_header.set_data_dtype(target_dtype)
     limits: None | tuple[int | float, int | float] = None
 
     if rescale is None and np.issubdtype(target_dtype, np.integer):
@@ -724,15 +1051,7 @@ def conform(
         raise ValueError(f"Invalid rescale value: {rescale}")
 
     # reorient the image to the "corrected" (target) affine, always use float here
-    mapped_data = map_image(
-        img,
-        target_affine,
-        h1.get_data_shape(),
-        order=order,
-        dtype=float,
-        vox_eps=vox_eps,
-        rot_eps=rot_eps,
-    )
+    mapped_data = reorient(img.get_fdata(), order=order, vox_eps=vox_eps, rot_eps=rot_eps)
 
     # get scale for conversion on original input before mapping to be more similar to mri_convert
     if rescale is not None:
@@ -751,123 +1070,139 @@ def conform(
     # mapped data is still float here, clip to integers now
     if np.issubdtype(target_dtype, np.integer):
         mapped_data = np.rint(mapped_data)
-    new_img = nibabel.MGHImage(mapped_data.astype(target_dtype), target_affine, h1)
+    new_img = TargetImageClass(mapped_data.astype(target_dtype), reorient.target_affine, target_header)
 
-    # make sure we store uchar
-    from nibabel.freesurfer import mghformat
-    try:
-        new_img.set_data_dtype(target_dtype)
-    except mghformat.MGHError as e:
-        if "not recognized" not in e.args[0]:
-            raise
-        dtype_codes = mghformat.data_type_codes.code.keys()
-        codes = set(k.name for k in dtype_codes if isinstance(k, np.dtype))
-        logging.getLogger(__name__).error(
-            f"The data type '{dtype}' is not recognized for MGH images, switching to '{new_img.get_data_dtype()}' "
-            f"(supported: {tuple(codes)})."
-        )
+    # # make sure we store uchar
+    # from nibabel.freesurfer import mghformat
+    # try:
+    #     new_img.set_data_dtype(target_dtype)
+    # except mghformat.MGHError as e:
+    #     if "not recognized" not in e.args[0]:
+    #         raise
+    #     dtype_codes = mghformat.data_type_codes.code.keys()
+    #     codes = set(k.name for k in dtype_codes if isinstance(k, np.dtype))
+    #     logging.getLogger(__name__).error(
+    #         f"The data type '{dtype}' is not recognized for MGH images, switching to '{new_img.get_data_dtype()}' "
+    #         f"(supported: {tuple(codes)})."
+    #     )
 
     return new_img
 
 
-def prepare_mgh_header(
-        img: nibabelImage,
-        target_vox_size: npt.NDArray[float] | None = None,
-        target_img_size: npt.NDArray[int] | None = None,
-        orientation: OrientationType = "native",
-        vox_eps: float = 1e-4,
-        rot_eps: float = 1e-6,
-) -> MGHHeader:
+def _translation_to_fix_center(
+        vox2vox_o2i: AffineMatrix4x4 | AffineMatrix3x3,
+        shape: IntVector3d,
+        target_shape: IntVector3d | None = None,
+) -> Vector3d:
     """
-    Prepare the header with affine by target voxel size, target image size and criteria - initialized from img.
-
-    This implicitly prepares the affine, which can be computed by `return_value.get_affine()`.
+    Calculate the translation to keep the center of the image fixed after applying the vox2vox transformation.
 
     Parameters
     ----------
-    img : nibabel.analyze.SpatialImage
-        The image object to base the header on.
-    target_vox_size : npt.NDArray[float], None, default=None
-        The target voxel size, importantly still in native orientation (reordering after).
-    target_img_size : npt.NDArray[int], None, default=None
-        The target image size, importantly still in native orientation (reordering after).
-    orientation : "native", "soft-<orientation>", "<orientation>", default="native"
-        How the affine should look like.
-    vox_eps : float, default=1e-4
-        The epsilon for the voxelsize check.
-    rot_eps : float, default=1e-6
-        The epsilon for the affine rotation check.
+    vox2vox_o2i: AffineMatrix4x4, AffineMatrix3x3
+        The vox2vox matrix for in2out transformation to keep the center fixed for.
+    shape: IntVector3d
+        The shape of the input data.
+    target_shape: IntVector3d, optional
+        The shape of the output data (in input data order, not target order), defaults to the same as shape.
 
     Returns
     -------
-    nibabel.freesurfer.mghformat.MGHHeader
-        The header object to the "conformed" image based on img and the other parameters.
+    ndarray of shape (3,)
+        The translation to keep the center of the image fixed after applying the vox2vox transformation.
     """
-    # may copy some parameters if input was MGH format
-    h1 = MGHHeader.from_header(img.header)
-    # nibabel only copies header information, if the file type is the same (here, this would be only of mgh header)
-    source_img_shape = img.header.get_data_shape()
-    source_vox_size = img.header.get_zooms()
+    _target_shape = shape if target_shape is None else target_shape
+    in_voxcenter = (np.asarray(shape) - 1) / 2
+    vox2vox4 = np.pad(vox2vox_o2i[:3, :3], ((0, 1), (0, 1)))
+    out_voxcenter = (_target_shape[io_orientation(vox2vox4.T)[:, 0].astype(np.int64)] - 1) / 2
+    #    voxO2ras @ voxO2voxI @ voxI_coord = voxO2ras @ voxO_coord
+    # => voxO_coord = voxI2voxO @ voxI_coord = voxI2voxO_rot @ voxI_coord + voxI2voxO_trans
+    # => voxO2voxI_trans = voxO_coord - voxI2voxO_rot @ voxI_coord
+    return in_voxcenter - vox2vox_o2i[:3, :3] @ out_voxcenter
 
-    source_mdc = img.affine[:3, :3] / np.linalg.norm(img.affine[:3, :3], axis=0, keepdims=True)
-    # native
-    if orientation == "native":
-        re_order_axes = [0, 1, 2]
-        mdc_affine = np.linalg.inv(source_mdc)
+
+def target_shape_from_shape_scale(shape: npt.ArrayLike, scale: npt.ArrayLike) -> IntVector3d:
+    """
+    Calculate a target shape, that would enclose input shape after rescaling by scale.
+
+    Parameters
+    ----------
+    shape : array_like
+        The shape of the input data.
+    scale : array_like
+        The scale factors of the input data (out_vox_size / in_vox_size).
+
+    Returns
+    -------
+    int
+        The shape resized by the scale and rounded.
+    """
+    return np.ceil(np.asarray(shape) / np.asarray(scale)).astype(np.int64)
+
+
+def ornt2vox2vox(ornt: OrntArrayType, shape: npt.ArrayLike, scale: npt.ArrayLike | None = None) -> AffineMatrix4x4:
+    """
+    Calculate the mid-centered vox2vox matrix of the orientation transform `ornt` (operation, not target orientation).
+
+    Parameters
+    ----------
+    ornt : array_like
+        The orientation to transform by. Importantly, if nibabel calls it axcode LIA, this is a LIA->RAS transform.
+    shape : array_like
+        The shape of the (input) data.
+    scale : array_like, optional
+        The scaling factor of the (input) data, defaults to 1. If scale is not one, the assumed target shape will be
+        shape scaled by `scale` as computed by `target_shape_from_shape_scale` (so out_vox_size / in_vox_size).
+
+    Returns
+    -------
+    AffineMatrix4x4
+        The transformation affine, a homogeneous affine if shape is passed. Importantly, the convention is that the
+        matrix is out2in! `nib.orientations.aff2axcodes(vox2vox)` yields the `ornt` that was passed in, and
+        so that the transformation can be applied by
+        `apply_vox2vox(image_data, vox2vox, out_shape=target_shape_from_shape_scale(shape, scale))` or
+        `scipy.ndimage.affine_transform(...)`.
+
+    See Also
+    --------
+    target_shape_from_shape_scale : Generate the target shape from input scale and scale factor.
+    apply_vox2vox : Apply a vox2vox matrix to a 3D image.
+    """
+    _ornt = np.asarray(ornt, dtype=int)
+    # read dim from ornt
+    if _ornt.shape[1] != 2:
+        raise ValueError("shape of ornt must be (dim, 2)")
+    dim = _ornt.shape[0]
+    if scale is None:
+        _scale = np.ones((dim,))
+    elif isinstance(scale, (int, float)):
+        _scale = np.full((dim,), scale)
     else:
-        _ornt_transform, _ = orientation_to_ornts(img.affine, orientation[-3:])
-        re_order_axes = _ornt_transform[:, 0]
-        if len(orientation) == 3:  # lia, ras, etc
-            # this is a 3x3 matrix
-            out_ornt = nib.orientations.axcodes2ornt(orientation[-3:].upper())
-            mdc_affine = nib.orientations.inv_ornt_aff(out_ornt, source_img_shape)[:3, :3]
-        else: # soft lia, ras, ....
-            aff = _ornt_transform[:, 1][None] * source_mdc
-            mdc_affine = np.stack([aff[:3, int(ax)] for ax in _ornt_transform[:, 0]], axis=-1)
-
-    shape: list[int] = [(source_img_shape if target_img_size is None else target_img_size)[i] for i in re_order_axes]
-    h1.set_data_shape(shape + [1])
-
-    # --> h1['delta']
-    h1.set_zooms([(target_vox_size if target_vox_size is not None else source_vox_size)[i] for i in re_order_axes])
-
-    h1["Mdc"] = mdc_affine
-    # fov should only be defined, if the image has same fov in all directions? fov == one number
-    _fov = np.asarray([i * v for i, v in zip(h1.get_data_shape(), h1.get_zooms(), strict=False)])
-    if _fov.min() == _fov.max():
-        # fov is not needed for MGHHeader.get_affine()
-        h1["fov"] = _fov[0]
-    center = np.asarray(img.shape[:3], dtype=float) / 2.0
-    h1["Pxyz_c"] = img.affine.dot(np.hstack((center, [1.0])))[:3]
-    # There is a special case here, where an interpolation is triggered, but it is not necessary, if the position of
-    # the center could "fix this" condition:
-    vox2vox = np.linalg.inv(h1.get_affine()) @ img.affine
-    if does_vox2vox_rot_require_interpolation(vox2vox, vox_eps=vox_eps, rot_eps=rot_eps):
-        # 1. has rotation, or vox-size resampling => requires resampling
-        pass
+        _scale = np.asarray(scale).flatten()
+        if not isinstance(_scale, (Sequence, np.ndarray)) or not np.issubdtype(_scale.dtype, np.number):
+            raise ValueError("scale must be None, a scalar or an sequence/array of shape (ornt.shape[0])!")
+        elif _scale.size == 1:
+            _scale = np.full((dim,), _scale.item())
+        elif _scale.size != dim:
+            raise ValueError("scale must be of size ornt.shape[0] or a scalar!")
+    _shape = np.asarray(shape)
+    if _shape.size != dim:
+        raise ValueError(f"The length of shape needs to be equal ornt.shape[0] ({dim})!")
+    target_shape = target_shape_from_shape_scale(_shape, _scale)
+    if scale is None:
+        _out_center = (_shape - 1) / 2
     else:
-        # 2. img_size changes from odd to even and vice versa
-        #    i.e. can changing the RAS center make an interpolation unnecessary?
-        vec = np.linalg.inv(vox2vox)[:3, 3]
-        tols = {"atol": 1.e-4, "rtol": 0.}
-        # is it fixable?
-        if not np.allclose(vec, np.round(vec), **tols) and np.allclose(vec * 2, np.round(vec * 2), **tols):
-            new_center = (center + (1 - np.isclose(vec, np.round(vec), **tols)) / 2.0, [1.0])
-            h1["Pxyz_c"] = img.affine.dot(np.hstack(new_center))[:3]
+        _out_center = (target_shape - 1) / 2
 
-    # tr information is not copied when copying from non-mgh formats
-    if len(img.header.get('pixdim', [])) :
-        h1['tr'] = img.header['pixdim'][4] * 1000
-
-    # The affine can be explicitly constructed by MGHHeader.get_affine() / h1.get_affine()
-    # MdcD = np.asarray(h1["Mdc"]).T * h1["delta"]
-    # vol_center = MdcD.dot(hdr["dims"][:3]) / 2
-    # affine = from_matvec(MdcD, h1["Pxyz_c"] - vol_center)
-    return h1
+    # reorder, then flip
+    vox2vox = np.zeros((dim + 1,) * 2, dtype=float)
+    vox2vox[_ornt[:, 0], np.arange(dim)] = _ornt[:, 1] * _scale
+    vox2vox[:, dim] = np.append(_translation_to_fix_center(vox2vox, _shape, target_shape=target_shape), 1)
+    return vox2vox
 
 
 def does_vox2vox_rot_require_interpolation(
-        vox2vox: npt.NDArray[float],
+        vox2vox: AffineMatrix4x4 | AffineMatrix3x3,
         vox_eps: float = 1e-4,
         rot_eps: float = 1e-6,
 ) -> bool:
@@ -876,8 +1211,8 @@ def does_vox2vox_rot_require_interpolation(
 
     Parameters
     ----------
-    vox2vox : np.ndarray
-        The affine matrix.
+    vox2vox : Affinematrix4x4, AffineMatrix3x3
+        The affine matrix (direction does not matter for this check).
     vox_eps : float, default=1e-4
         The epsilon for the voxelsize check.
     rot_eps : float, default=1e-6
@@ -886,7 +1221,8 @@ def does_vox2vox_rot_require_interpolation(
     Returns
     -------
     bool
-        Whether the vox2vox matrix requires resampling.
+        Whether the vox2vox matrix requires resampling, integer-value downsampling (e.g. solvable by strides) by
+        definition also requires interpolation.
     """
     def isclose(x, y, eps):
         return np.isclose(x, y, atol=eps, rtol=0)
@@ -915,7 +1251,7 @@ def is_conform(
 
     Parameters
     ----------
-    img : nibabelImage
+    img : nib.analyze.SpatialImage
         Loaded source image.
     vox_size : float, "min", None, default=1.0
         Which voxel size to conform to. Can either be a float between 0.0 and 1.0, 'min' (to check, whether the image is
@@ -990,7 +1326,7 @@ def is_conform(
         checks[img_size_criteria] = np.array_equal(np.asarray(img.shape[:3]), _img_size), img_size_text
 
     # check orientation LIA
-    affcode = "".join(nib.orientations.aff2axcodes(img.affine))
+    affcode = "".join(aff2axcodes(img.affine))
     with np.printoptions(precision=2, suppress=True):
         orientation_text = "affine=" + re.sub("\\s+", " ", str(img.affine[:3, :3])) + f" => {affcode}"
     if orientation is None or orientation == "native":
@@ -1006,7 +1342,12 @@ def is_conform(
         checks["Dtype None"] = "IGNORED", dtype_text
     else:
         _dtype: npt.DTypeLike = to_dtype(dtype)
-        _dtype_name = np.dtype(_dtype).name if isinstance(_dtype, (str, np.dtype)) else _dtype.__name__
+        if isinstance(_dtype, (str, np.dtype)):
+            _dtype_name = np.dtype(_dtype).name
+        elif isinstance(_dtype, type):
+            _dtype_name = _dtype.__name__
+        else:
+            _dtype_name = str(_dtype)
         checks[f"Dtype {_dtype_name}"] = np.issubdtype(img.get_data_dtype(), _dtype), dtype_text
 
     _is_conform = all(map(lambda x: x[0], checks.values()))
@@ -1060,7 +1401,7 @@ def to_dtype(dtype: str | np.dtype | type | npt.DTypeLike) -> npt.DTypeLike:
 
 
 def is_orientation(
-        affine: npt.NDArray[float],
+        affine: AffineMatrix4x4,
         target_orientation: OrientationType = "lia",
         soft: bool = False,
         eps: float = 1e-6,
@@ -1070,7 +1411,7 @@ def is_orientation(
 
     Parameters
     ----------
-    affine : np.ndarray
+    affine : AffineMatrix4x4
         The affine to check.
     target_orientation : OrientationType, default="lia"
         The target orientation for which to check the affine for.
@@ -1085,13 +1426,13 @@ def is_orientation(
     bool
         Whether the affine is LIA-oriented.
     """
-    if "".join(nib.orientations.aff2axcodes(affine, tol=eps)).lower() == target_orientation.lower():
+    if "".join(aff2axcodes(affine, tol=eps)).lower() == target_orientation.lower():
         if soft:
             return True
     else:
         return False
 
-    return does_vox2vox_rot_require_interpolation(affine / np.linalg.norm(affine, axis=0), eps=eps)
+    return does_vox2vox_rot_require_interpolation(affine / np.linalg.norm(affine, axis=0), rot_eps=eps, vox_eps=eps)
 
 
 def conformed_vox_img_size(
@@ -1101,7 +1442,7 @@ def conformed_vox_img_size(
         threshold_1mm: float | None = None,
         vox_eps: float = 1e-4,
         **kwargs,
-) -> tuple[npt.NDArray[float] | None, npt.NDArray[int] | None]:
+) -> tuple[Vector3d | None, IntVector3d | None]:
     """
     Extract the voxel size and the image size.
 
@@ -1109,7 +1450,7 @@ def conformed_vox_img_size(
 
     Parameters
     ----------
-    img : nibabelImage
+    img : nib.spatialimages.SpatialImage
         Loaded source image.
     vox_size : float, "min", None
         The voxel size parameter to use: either a voxel size as float, or the string "min" to automatically find a
@@ -1126,9 +1467,9 @@ def conformed_vox_img_size(
 
     Returns
     -------
-    numpy.typing.NDArray[float], None
+    np.ndarray of floats, None
         The determined voxel size to conform the image to (still in native orientation), shape: 3.
-    numpy.typing.NDArray[int], None
+    np.ndarray of ints, None
         The size of the image adjusted to the conformed voxel size (still in native orientation), shape: 3.
     """
     if "conform_to_1mm_threshold" in kwargs:
@@ -1138,10 +1479,12 @@ def conformed_vox_img_size(
         LOGGER.warning("conform_vox_size is deprecated, replaced by vox_size and will be removed.")
         vox_size = kwargs["conform_vox_size"]
 
+    target_vox_size: Vector3d | None
+    target_img_size: IntVector3d | None
     MAX_VOX_SIZE = 1.0
     MAX_DIMENSION = 256
     # this is similar to mri_convert --conform_min
-    if isinstance(vox_size, str) and (vox_size := vox_size.lower()) in ["min", "auto"]:
+    if isinstance(vox_size, str) and (vox_size := cast(VoxSizeOption, vox_size.lower())) in ["min", "auto"]:
         # find minimal voxel side length
         min_vox_size = np.round(np.min(img.header.get_zooms()[:3]), decimals=int(np.ceil(-np.log10(vox_eps))))
         # set to 1 mm if larger than that
@@ -1164,9 +1507,9 @@ def conformed_vox_img_size(
         target_img_size = None
     elif isinstance(img_size, int) and img_size > 0:
         target_img_size = np.full((3,), img_size)
-    elif isinstance(img_size, str) and (img_size := img_size.lower()) in ["fov", "auto"]:
+    elif isinstance(img_size, str) and (_img_size := img_size.lower()) in ["fov", "auto"]:
         thres = abs(1.0 - (threshold_1mm or 1.0))
-        if target_vox_size is not None and np.allclose(target_vox_size, 1.0, atol=thres) and img_size == "auto":
+        if target_vox_size is not None and np.allclose(target_vox_size, 1.0, atol=thres) and _img_size == "auto":
             target_img_size = np.full((3,), MAX_DIMENSION)
         # (other voxel sizes may use different sizes)
         else:
@@ -1178,7 +1521,7 @@ def conformed_vox_img_size(
                 # compute number of voxels needed to cover field of view
                 target_img_size = np.ceil((fov / target_vox_size * 10000).astype(int).astype(float) / 10000).astype(int)
         # use cube (same size in all directions) with MAX_DIMENSION in each direction as minimum
-        if img_size == "auto":
+        if _img_size == "auto":
             target_img_size = np.full_like(np.maximum(MAX_DIMENSION, target_img_size), np.amax(target_img_size))
     else:
         raise ValueError("Invalid value for img_size passed.")
@@ -1212,13 +1555,12 @@ def check_affine_in_nifti(
     check = True
     message = ""
 
-    header = cast(nib.Nifti1Header | nib.Nifti2Header, img.header)
-    if header["qform_code"] != 0 and not np.allclose(img.get_sform(), img.get_qform(), atol=0.001):
+    if img.header["qform_code"] != 0 and not np.allclose(img.get_sform(), img.get_qform(), atol=0.001):
         message = (
             f"#############################################################\n"
             f"WARNING: qform and sform transform are not identical!\n"
-            f" sform-transform:\n{header.get_sform()}\n"
-            f" qform-transform:\n{header.get_qform()}\n"
+            f" sform-transform:\n{img.header.get_sform()}\n"
+            f" qform-transform:\n{img.header.get_qform()}\n"
             f"You might want to check your Nifti-header for inconsistencies!\n"
             f"!!! Affine from qform transform will now be used !!!\n"
             f"#############################################################"
@@ -1230,7 +1572,7 @@ def check_affine_in_nifti(
     else:
         # Check if affine correctly includes voxel information and print Warning/
         # Exit otherwise
-        vox_size_header = header.get_zooms()
+        vox_size_header = img.header.get_zooms()
 
         # voxel size in xyz direction from the affine
         vox_size_affine = np.sqrt((img.affine[:3, :3] * img.affine[:3, :3]).sum(0))
@@ -1287,17 +1629,18 @@ def print_options(options: dict):
             _logger.info(m.format(**options))
 
 
-def _crop_transform_make_indices(image_shape, offsets, target_shape):
+def _crop_transform_make_indices(image_shape: Sequence[int], offsets: Sequence[int], target_shape: Sequence[int]) \
+        -> tuple[list[tuple[int, int]] | None, tuple[slice, ...]]:
     """
     Create the indexing tuple and return padding tuples for the last N dimensions.
 
     Parameters
     ----------
-    image_shape : np.ndarray
+    image_shape : Sequence[int]
         The shape of the image from which a region is to be cropped.
     offsets : Sequence[int]
-        Exact location within the image from which the cropping should start.
-    target_shape : Sequence[int], optional
+        Exact location within the image from which the cropping should start, negative offsets pad.
+    target_shape : Sequence[int]
         The desired shape of the cropped region.
 
     Returns
@@ -1308,18 +1651,14 @@ def _crop_transform_make_indices(image_shape, offsets, target_shape):
         A tuple of per-axis indices to index in the data to get the target_shape.
     """
     if len(offsets) != len(target_shape):
-        raise ValueError(
-            f"offsets {offsets} and target shape {target_shape} must be same length."
-        )
+        raise ValueError(f"offsets {offsets} and target shape {target_shape} must be same length.")
     if len(offsets) > len(image_shape):
         raise ValueError("offsets too long for image")
     batch_dims = len(image_shape) - len(offsets)
-    indices = [slice(None)] * batch_dims
-    paddings = []
+    indices: list[slice] = [slice(None)] * batch_dims
+    paddings: list[tuple[int, int]] = []
     any_pad = False
-    for offset, t_shape, i_shape in zip(
-        offsets, target_shape, image_shape[batch_dims:], strict=False
-    ):
+    for offset, t_shape, i_shape in zip(offsets, target_shape, image_shape[batch_dims:], strict=False):
         crop_end = min(offset + t_shape, i_shape)
         indices.append(slice(max(0, offset), crop_end))
         pads = (max(0, -offset), max(0, offset + t_shape - crop_end))
@@ -1329,7 +1668,8 @@ def _crop_transform_make_indices(image_shape, offsets, target_shape):
     return paddings if any_pad else None, tuple(indices)
 
 
-def _crop_transform_pad_fn(image, pad_tuples, pad):
+def _crop_transform_pad_fn(image: _TA, pad_tuples: list[tuple[int, int]], pad: str | float) \
+        -> Callable[[_TA], _TA] | None:
     """
     Generate a parameterized pad function.
 
@@ -1339,33 +1679,46 @@ def _crop_transform_pad_fn(image, pad_tuples, pad):
         Input image.
     pad_tuples : List[Tuple[int, int]]
         List of padding tuples for each axis.
+    pad : str, float, torch.Tensor
+        The padding strategy to use when padding is required, if int, pad with that value, if str, use that mode (e.g.
+        "edge", "reflect", "symmetric" for numpy.ndarray and "reflect", "replicate", "circular", for torch.Tensor).
 
     Returns
     -------
-    partial
-        A partial function to pad the image.
+    partial, None
+        A partial function to pad the image or None.
     """
     if all(p1 == 0 and p2 == 0 for p1, p2 in pad_tuples):
         return None
 
-    kwargs = {"mode": "constant"}
     if isinstance(pad, str):
-        kwargs["mode"] = pad
-    elif isinstance(image, np.ndarray):
-        kwargs["constant_values"] = pad
-    else:  # Tensor
-        kwargs["value"] = pad
-
-    from functools import partial
-
+        # TorchPadModes are valid for torch, NumpyPadModes are valid for numpy (exhaustive lists ignoring "constant")
+        TorchPadModes = ("reflect", "replicate", "circular")
+        NumpyPadModes = ("edge", "linear_ramp", "maximum", "mean", "median", "minimum", "reflect", "symmetric", "wrap")
+        if isinstance(image, np.ndarray) and pad not in NumpyPadModes:
+            raise ValueError("Invalid value for `pad` for numpy array!")
+        elif isinstance(image, torch.Tensor) and pad not in TorchPadModes:
+            raise ValueError("Invalid value for `pad` for torch tensor!")
+        mode = pad
+    else:
+        mode = "constant"
+    _func : Callable[[_TA], _TA]
     if isinstance(image, np.ndarray):
-        return partial(np.pad, pad_width=[(0, 0)] * (image.ndim - len(pad_tuples)) + pad_tuples, **kwargs)
+        _pad_width = [(0, 0)] * (image.ndim - len(pad_tuples)) + pad_tuples
+        _func = partial(np.pad, mode=mode, pad_width=_pad_width)  # ty:ignore[invalid-assignment]
+        if mode == "constant":
+            _func = partial(_func, constant_values=pad)
     else:  # Tensor
         from itertools import chain
 
         from torch.nn.functional import pad as _pad
 
-        return partial(_pad, pad=list(chain.from_iterable(reversed(pad_tuples))), **kwargs)
+        _pad_value = list(chain.from_iterable(reversed(pad_tuples)))
+        _func = partial(_pad, mode=mode, pad=_pad_value)  # ty:ignore[invalid-assignment]
+        if mode == "constant":
+            _func = partial(_func, value=pad)
+
+    return _func
 
 
 def crop_transform(
@@ -1377,34 +1730,30 @@ def crop_transform(
 ) -> _TA:
     """
     Perform a crop transform of the last N dimensions on the image data.
-    Cropping does not interpolate the image, but "just removes" border pixels/voxels.
-    Negative offsets lead to padding.
+
+    Cropping does not interpolate the image, but "just removes" border pixels/voxels. Negative offsets lead to padding.
 
     Parameters
     ----------
     image : np.ndarray, torch.Tensor
-        Image of size [..., D_1, D_2, ..., D_N], where D_1, D_2, ..., D_N are the N
-        image dimensions.
+        Image of size [..., D_1, D_2, ..., D_N], where D_1, D_2, ..., D_N are the N image dimensions.
     offsets : Sequence[int], optional
-        Offset of the cropped region for the last N dimensions (default: center crop
-        with less crop/pad towards index 0).
+        Offset of the cropped region for the last N dimensions (default: center crop, less crop/pad towards index 0).
+        Negative offsets pad.
     target_shape : Sequence[int], optional
-        If defined, target_shape specifies the target shape of the "cropped region",
-        else the crop will be centered cropping offset[dim] voxels on each side (then
-        the shape is derived by subtracting 2x the dimension-specific offset).
-        target_shape should have the same number of elements as offsets.
-        May be implicitly defined by out.
+        If defined, target_shape specifies the target shape of the "cropped region", else the crop will be centered
+        cropping offset[dim] voxels on each side (then the shape is derived by subtracting 2x the dimension-specific
+        offset). target_shape should have the same number of elements as offsets. May be implicitly defined by out.
     out : np.ndarray, torch.Tensor, optional
-        Array to store the cropped image in (optional), can be a view on image for
-        memory-efficiency.
+        Array to store the cropped image in (optional), can be a view on image for memory-efficiency.
     pad :  int, str, default=0/zero-pad
         Padding strategy to use when padding is required, if int, pad with that value.
 
     Returns
     -------
     out : np.ndarray, torch.Tensor
-        The image (stack) cropped in the last N dimensions by offsets to the shape
-        target_shape, or if target_shape is not given image.shape[i+2] - 2*offset[i].
+        The image (stack) cropped in the last N dimensions by offsets to the shape target_shape, or if target_shape is
+        not given image.shape[i+2] - 2*offset[i].
 
     Raises
     ------
@@ -1415,8 +1764,7 @@ def crop_transform(
     TypeError
         If the type of image is not an np.ndarray or a torch.Tensor.
     RuntimeError
-        If the dimensionality of image, out, offset or target_shape is invalid or
-        inconsistent.
+        If the dimensionality of image, out, offset or target_shape is invalid or inconsistent.
 
     See Also
     --------
@@ -1434,7 +1782,7 @@ def crop_transform(
     if offsets is None:
         if target_shape is None:
             raise ValueError("Either target_shape or offsets must be defined!")
-        _target_shape = image.shape[: -len(target_shape)] + tuple(target_shape)
+        _target_shape = image.shape[:-len(target_shape)] + tuple(target_shape)
         offsets = tuple(int((i - t) / 2) for t, i in zip(_target_shape, image.shape, strict=False))
         len_off = len(offsets)
     else:
@@ -1458,20 +1806,17 @@ def crop_transform(
     pad_tuples, indices = _crop_transform_make_indices(
         image.shape, offsets, _target_shape
     )
-    if out is None:
-        if pad_tuples is None:
-            return image[indices]
-        else:
-            pad_fn = _crop_transform_pad_fn(image, pad_tuples, pad)
-            return pad_fn(image[indices])
-    else:
-        if pad_tuples is None:
-            out[:] = image[indices]
-        else:
-            pad_fn = _crop_transform_pad_fn(image, pad_tuples, pad)
-            out[:] = pad_fn(image[indices])
+    outval: _TA = image[indices]  # ty:ignore[invalid-argument-type, invalid-assignment]
+    if pad_tuples is not None:
+        pad_fn = _crop_transform_pad_fn(image, pad_tuples, pad)
+        outval = outval if pad_fn is None else pad_fn(outval)
 
-    return out
+    if out is None:
+        return outval
+    else:
+        out[:] = outval  # ty:ignore[invalid-assignment]
+        # return out instead of outval to reduce memory
+        return out
 
 
 if __name__ == "__main__":
@@ -1487,14 +1832,24 @@ if __name__ == "__main__":
         print_options(vars(options))
 
     LOGGER.info(f"Reading input: {options.input} ...")
-    image = nib.load(options.input)
+    image = cast(nibabelImage, nib.load(options.input))
 
     if not isinstance(image, nib.analyze.SpatialImage):
         sys.exit(f"ERROR: Input image is not a spatial image: {type(image).__name__}")
     if len(image.shape) > 3 and image.shape[3] != 1:
         sys.exit(f"ERROR: Multiple input frames ({image.shape[3]}) not supported!")
 
-    opt_kwargs = {
+    class _OptKwargs(TypedDict, total=False):
+        threshold_1mm: float
+
+    class OptKwargs(_OptKwargs):
+        vox_size: VoxSizeOption | None
+        img_size: ImageSizeOption | None
+        dtype: npt.DTypeLike | None
+        orientation: OrientationType | None
+        verbose: bool
+
+    opt_kwargs : OptKwargs = {
         "dtype": options.dtype if options.dtype != "any" else None,
         "vox_size":  options.vox_size,
         "img_size": options.img_size,
@@ -1533,6 +1888,7 @@ if __name__ == "__main__":
         sys.exit("conform only supports mgz and nifti.")
 
     try:
+        # new_image will be of class file_type
         new_image = conform(image, order=options.order, rescale=options.rescale, file_type=file_type, **opt_kwargs)
     except ValueError as e:
         sys.exit(e.args[0])

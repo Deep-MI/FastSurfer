@@ -1,0 +1,88 @@
+name: test
+
+# File: test.yaml
+# Author: David Kügler
+# Created on: 2025-09-08
+# Functionality: This workflow runs unit tests defined in tests/image.
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.number }}-${{ github.event.ref }}
+  cancel-in-progress: true
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  attestations: read
+  checks: read
+  contents: read
+  deployments: read
+  issues: read
+  discussions: read
+  packages: read
+  pages: read
+  pull-requests: write
+  repository-projects: read
+  security-events: read
+  statuses: read
+
+jobs:
+  image-test:
+    name: 'Run FastSurfer unit tests from test/image'
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    strategy:
+      matrix:
+        tests: ["image"]
+        pytest-flags: [""]
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Python 3.10
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+          architecture: 'x64'
+          cache: 'pip' # caching pip dependencies
+      - name: Install dependencies
+        shell: bash
+        # uses the same python environment as quicktest
+        run: |
+          echo "::group::Create python environment"
+          python -m pip install --progress-bar off --upgrade pip setuptools wheel
+          python -m pip install --progress-bar off .[quicktest]
+          echo "::endgroup::"
+      # run pytest checks for data consistency/quality
+      - name: Run pytest
+        env:
+          PYTHON_PATH: .
+          FASTSURFER_HOME: ${{ github.workspace }}
+        shell: bash
+        continue-on-error: true  # pytest only exits with code 0, if all tests pass
+        run: |
+          echo "::group::Run tests"
+          flags=("--junit-xml=/tmp/fastsurfer-unittest-${{ matrix.tests }}.junit.xml")
+          if [[ "$ACTION_RUNNER_DEBUG" == "true" ]]
+          then 
+            flags+=(-vv --log_cli_level=DEBUG)
+          fi
+          python -m pytest "${flags[@]}" ${{ matrix.pytest-flags }} test/${{ matrix.tests }}
+          echo "::endgroup::"
+      - name: Upload the JUnit XML file as an artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: fastsurfer-${{ github.sha }}-${{ matrix.tests }}-junit
+          path: /tmp/fastsurfer-unittest-${{ matrix.tests }}.junit.xml
+      - name: Annotate the results into the check
+        uses: mikepenz/action-junit-report@v5
+        with:
+          report_paths: /tmp/fastsurfer-unittest-${{ matrix.tests }}.junit.xml
+          check_name: Annotate the test results as checks
+          fail_on_failure: 'true'
+          fail_on_parse_error: 'true'
+          # here, we only add the annotations, the fail-state cannot be set here by this action because the github token
+          # does not have the required permissions in PRs from forks.
+          # See: https://github.com/mikepenz/action-junit-report?tab=readme-ov-file#pr-run-permissions
+          annotate_only: 'true'

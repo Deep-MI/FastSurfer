@@ -14,9 +14,12 @@
 
 # IMPORTS
 import os
+from collections.abc import Generator
 from contextlib import contextmanager, redirect_stderr, redirect_stdout
 from pathlib import Path
+from typing import TypeVar
 
+import numpy as np
 import torch
 
 from FastSurferCNN.utils import logging, parser_defaults
@@ -24,6 +27,7 @@ from FastSurferCNN.utils.parallel import thread_executor
 from FastSurferCNN.utils.parser_defaults import SubjectDirectoryConfig
 
 __all__ = [
+    "array_flags",
     "assert_no_root",
     "find_device",
     "handle_cuda_memory_exception",
@@ -35,6 +39,8 @@ __all__ = [
 ]
 
 LOGGER = logging.getLogger(__name__)
+
+_TA = TypeVar("_TA", bound=np.ndarray)
 
 
 @contextmanager
@@ -61,6 +67,33 @@ def suppress_stderr():
     """
     with open(os.devnull, "w") as devnull, redirect_stderr(devnull) as rdo:
         yield rdo
+
+
+@contextmanager
+def array_flags(array: _TA, **flags) -> Generator[_TA, None, None]:
+    """
+    Contextmanager that temporarily sets a flag on an array.
+
+    Parameters
+    ----------
+    array : ndarray
+        The array to set flag for.
+    **flags : dict[str, bool]
+        The flags to set, e.g. `writeable=False` or `writeable=True`.
+
+    Returns
+    -------
+    array
+        A view of the array with the flag set.
+    """
+    prev = {key: getattr(array.flags, key) for key in flags.keys()}
+    for key, val in flags.items():
+        setattr(array.flags, key, val)
+    try:
+        yield array.view()
+    finally:
+        for key, val in prev.items():
+            setattr(array.flags, key, val)
 
 
 def find_device(

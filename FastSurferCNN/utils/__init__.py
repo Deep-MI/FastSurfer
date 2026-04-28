@@ -12,10 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import sys
+from typing import Literal, TypeVar, Union, cast, get_args, get_origin
+
 __all__ = [
     "checkpoint",
     "check_literal_type",
     "common",
+    "deprecated",
     "load_config",
     "logging",
     "lr_scheduler",
@@ -38,8 +42,38 @@ __all__ = [
     "ShapeType",
 ]
 
-from contextlib import contextmanager
-from typing import Literal, TypeVar, Union, get_args, get_origin
+if sys.version_info >= (3, 13):
+    from warnings import deprecated
+else:
+    def deprecated(msg: str, *, category: type[Warning] = DeprecationWarning, stacklevel: int = 1):
+        """
+        Decorator to mark functions or classes as deprecated, backport of Python 3.13's `warnings.deprecated`.
+        """
+        def decorator_deprecated(obj):
+            import warnings
+            from functools import wraps
+
+            if isinstance(obj, type):
+                # Handle classes: wrap the __init__ method
+                original_init = obj.__init__
+
+                @wraps(original_init)
+                def new_init(self, *args, **kwargs):
+                    warnings.warn(msg, category=cast(type[Warning] | None, category), stacklevel=stacklevel + 1)
+                    original_init(self, *args, **kwargs)
+
+                obj.__init__ = new_init
+                return obj
+            else:
+                # Handle functions: wrap the function itself
+                @wraps(obj)
+                def wrapper(*args, **kwargs):
+                    warnings.warn(msg, category=cast(type[Warning] | None, category), stacklevel=stacklevel + 1)
+                    return obj(*args, **kwargs)
+
+                return wrapper
+
+        return decorator_deprecated
 
 # there are very few cases, when we do not need nibabel in any "full script" so always
 # including nibabel does not overly drag down performance

@@ -703,6 +703,7 @@ def main(
     _orig_affine = orig.affine
     if not is_conform(orig, vox_size=None, img_size=None, orientation=None):
         logger.info("Robust rescaling of input intensities.")
+        # orig will remain the same class
         orig = conform(orig, vox_size=None, img_size=None, orientation=None)
         if not np.allclose(_orig_affine, orig.affine):
             error_message = "Conforming the image should not change the affine, but it did!"

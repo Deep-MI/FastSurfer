@@ -38,7 +38,7 @@ dependencies = [
     'matplotlib>=3.7.1',
     'meshpy>=2025.1.1', # needed for FastSurfer-CC
     'monai>=1.4.0', # needed for FastSurfer-CC
-    'nibabel>=5.1.0',
+    'nibabel>=5.4.0', # needed to fix a bug in nibabel
     'numpy>=1.25',
     'packaging',
     'pandas>=1.5.3',
@@ -146,6 +146,7 @@ select = [
     "B",   # flake8-bugbear
     "I",   # isort
     # "SIM", # flake8-simplify
+    "NPY201",  # numpy 2
 ]
 
 [tool.ruff.lint.per-file-ignores]
