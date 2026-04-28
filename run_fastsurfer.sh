@@ -946,19 +946,11 @@ then
 fi
 
 lit_mask_output="${subject_dir}/mri/mask.lit.nii.gz"
-lit_mask_legacy_output="${subject_dir}/inpainting/inpainting_mask.nii.gz"
-lit_mask_legacy_output_2="${subject_dir}/inpainting/inpainting_volumes/inpainting_mask.nii.gz"
 lit_inpainting_result="${subject_dir}/mri/inpainted.lit.nii.gz"
-lit_inpainting_result_legacy="${subject_dir}/inpainting/inpainting_volumes/inpainting_result.nii.gz"
 
 if [[ "$reuse_lit_inpainting" == "true" ]]
 then
-  if [[ ! -f "$lit_inpainting_result" ]] && [[ -f "$lit_inpainting_result_legacy" ]]
-  then
-    lit_inpainting_result="$lit_inpainting_result_legacy"
-  fi
-
-  if { [[ ! -f "$lit_mask_output" ]] && [[ ! -f "$lit_mask_legacy_output" ]] && [[ ! -f "$lit_mask_legacy_output_2" ]]; } || [[ ! -f "$lit_inpainting_result" ]]
+  if [[ ! -f "$lit_mask_output" ]] || [[ ! -f "$lit_inpainting_result" ]]
   then
     {
       echo "ERROR: --lesion_mask was passed without running the segmentation pipeline,"
@@ -1016,17 +1008,14 @@ then
       cmd=("lit-inpainting" "--input_image" "$t1" "--lesion_mask" "$lesion_mask" "--sd" "$subject_dir" "--fastsurfer_dir")
       if [[ "$native_image" != "false" ]] ; then cmd+=(--keepgeom) ; fi
       echo_quoted "${cmd[@]}" | tee -a "$seg_log"
-      "${cmd[@]}" 2>&1 | tee -a "$seg_log"
-      if [[ "${PIPESTATUS[0]}" -ne 0 ]]
+      "${wrap[@]}" "${cmd[@]}" 2>&1 | tee -a "$seg_log"
+      exit_code="${PIPESTATUS[0]}"
+      if [[ "${exit_code}" != 0 ]]
       then
         echo "ERROR: LIT Inpainting failed!" | tee -a "$seg_log"
         exit 1
       fi
       inpainted_t1="$lit_inpainting_result"
-      if [[ ! -f "$inpainted_t1" ]] && [[ -f "$lit_inpainting_result_legacy" ]]
-      then
-        inpainted_t1="$lit_inpainting_result_legacy"
-      fi
       if [[ -f "$inpainted_t1" ]]
       then
         t1="$inpainted_t1"
