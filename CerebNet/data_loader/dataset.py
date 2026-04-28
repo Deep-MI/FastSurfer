@@ -276,7 +276,7 @@ class SubjectDataset(Dataset):
         }
         # crop the region of interest
         img = crop_transform(self.img_org_data, offsets=self.roi["offsets"], target_shape=self.roi["target_shape"])
-        patch_vox2vox = np.concatenate([np.eye(4)[:3], np.append(self.roi["offsets"], 1)], axis=0)
+        patch_vox2vox = np.concatenate([np.eye(4)[:3], np.append(self.roi["offsets"], 1)[None]], axis=0)
         patch_vox2ras = self.img_org.affine @ patch_vox2vox
         # reorient the data to lia
         self.native_to_lia = Reorientation.from_target_orientation(patch_vox2ras, "soft LIA", self.roi["target_shape"])

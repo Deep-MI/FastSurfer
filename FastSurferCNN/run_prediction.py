@@ -325,6 +325,7 @@ class RunModelOnData:
                     not is_conform(orig, **self.__conform_kwargs(verbose=False, dtype=None, vox_size="min")):
                 LOGGER.warning("Support for anisotropic voxels is experimental. Careful QC of all images is needed!")
             LOGGER.info("Conforming image...")
+            # orig will remain the same class
             orig = conform(orig, **self.__conform_kwargs())
             orig_data = np.asanyarray(orig.dataobj)
 

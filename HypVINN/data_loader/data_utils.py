@@ -45,7 +45,8 @@ def reorient_img(img, ref_img):
     if np.array_equal(ref_img.affine, img.affine):
         return img
     from nibabel.orientations import aff2axcodes
-    target_orientation = "soft " + aff2axcodes(ref_img.affine, AXCODES)
+    target_orientation = "soft " + "".join(aff2axcodes(ref_img.affine, AXCODES))
+    # returns the same class as img
     return conform(img, orientation=target_orientation, vox_size=None, img_size=None, dtype=None, rescale=None)
 
 

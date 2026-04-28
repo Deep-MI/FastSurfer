@@ -103,7 +103,7 @@ def load_and_conform_image(
             if not check_affine_in_nifti(cast(nib.nifti1.Nifti1Image | nib.nifti2.Nifti1Image, orig), logger=logger):
                 raise RuntimeError("Inconsistency in nifti-header!")
 
-        # conform
+        # conform ; orig will remain the same class
         orig = conform(orig, order=order, **conform_kwargs)
 
     # Return header and affine information

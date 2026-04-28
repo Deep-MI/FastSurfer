@@ -807,7 +807,7 @@ def main(args: argparse.Namespace) -> Literal[0] | str:
             except FileNotFoundError:
                 return f"Could not find the ColorLUT in {lut_file}, make sure the --lut argument is valid."
             except Exception as exception:
-                return f"ERROR: Loading the ColorLUT failed with error: {exception.args[0]}"
+                return f"ERROR: Loading the ColorLUT failed with error: {str(exception)}"
 
         if measure_only:
             # in this mode, we do not output a data table anyways, so no need to compute all these PV values.
@@ -1304,7 +1304,7 @@ def write_statsfile(
         columns = [col for col in COLUMNS if col in _dataframe.columns]
         fmt = " ".join(_column_format(k) for k in columns)
         # for some reason DataFrame.iterrows sometimes converts integers into floats
-        for values in _dataframe.itertuples():
+        for values in _dataframe.itertuples(index=False):
             data = [getattr(values, k) for k in columns]
             file.write(fmt.format(*data) + "\n")
 

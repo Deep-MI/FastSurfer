@@ -23,6 +23,7 @@ from typing import TYPE_CHECKING, Literal, TypedDict, TypeVar, cast
 
 import nibabel as nib
 import numpy as np
+import torch
 from nibabel.orientations import aff2axcodes, axcodes2ornt, io_orientation
 from numpy import typing as npt
 
@@ -729,7 +730,7 @@ def apply_vox2vox(
             # add a frame dimension to vox2vox
             _vox2vox = np.eye(5, dtype=vox2vox.dtype)
             _vox2vox[:3, :3] = vox2vox[:3, :3]
-            _vox2vox[3:, 4:] = vox2vox[:3, 3:]
+            _vox2vox[:3, 4:] = vox2vox[:3, 3:]
             vox2vox = np.linalg.inv(_vox2vox)
         else:
             raise ValueError(
@@ -955,6 +956,7 @@ def conform(
         rescale: int | float | None = 255,
         vox_eps: float = 1e-4,
         rot_eps: float = 1e-6,
+        file_type: type[nibabelImage] | None = None,
         **kwargs,
 ) -> nibabelImage:
     """Python version of mri_convert -c.
@@ -989,6 +991,8 @@ def conform(
         The epsilon for the voxelsize check.
     rot_eps : float, default=1e-6
         The epsilon for the affine rotation check.
+    file_type : class, optional
+        The class to use for the image object. If None, will use the class of `img`.
 
     Returns
     -------
@@ -1020,7 +1024,7 @@ def conform(
     __img_size: IntVector3d = np.asarray(img.shape[:3] if _img_size is None else _img_size, dtype=np.int64)
     _orientation: OrientationType = "native" if orientation is None else orientation
 
-    TargetImageClass: type[nibabelImage] = type(img)
+    TargetImageClass: type[nibabelImage] = type(img) if file_type is None else file_type
     target_header: nibabelHeader = TargetImageClass.header_class.from_header(img.header)
 
     reorient = Reorientation.from_target_orientation(img.affine, _orientation, img.shape, __vox_size, __img_size)
@@ -1688,10 +1692,13 @@ def _crop_transform_pad_fn(image: _TA, pad_tuples: list[tuple[int, int]], pad: s
         return None
 
     if isinstance(pad, str):
+        # TorchPadModes are valid for torch, NumpyPadModes are valid for numpy (exhaustive lists ignoring "constant")
         TorchPadModes = ("reflect", "replicate", "circular")
         NumpyPadModes = ("edge", "linear_ramp", "maximum", "mean", "median", "minimum", "reflect", "symmetric", "wrap")
-        if isinstance(image, np.ndarray) and pad not in NumpyPadModes or pad not in TorchPadModes:
-            raise ValueError("Invalid value for `pad`!")
+        if isinstance(image, np.ndarray) and pad not in NumpyPadModes:
+            raise ValueError("Invalid value for `pad` for numpy array!")
+        elif isinstance(image, torch.Tensor) and pad not in TorchPadModes:
+            raise ValueError("Invalid value for `pad` for torch tensor!")
         mode = pad
     else:
         mode = "constant"
@@ -1881,6 +1888,7 @@ if __name__ == "__main__":
         sys.exit("conform only supports mgz and nifti.")
 
     try:
+        # new_image will be of class file_type
         new_image = conform(image, order=options.order, rescale=options.rescale, file_type=file_type, **opt_kwargs)
     except ValueError as e:
         sys.exit(e.args[0])
