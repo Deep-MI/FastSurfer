@@ -68,6 +68,9 @@ Lesion Inpainting Tool (LIT) module
 -----------------------------------
 The LIT module is run if a lesion mask is provided via the `--lesion_mask` flag. It inpaints the lesion region, runs the downstream FastSurfer modules on the inpainted image, and then maps the lesion back into the resulting outputs. The current LIT postprocessing workflow updates the primary FastSurfer files in place and keeps the original pre-lesion outputs either as `.lit` backups or, for some surface-derived files, in the original `.mapped.*` files. Here we list the most commonly used files.
 
+> **Note:** The FastSurfer LIT integration is currently experimental. Review the LIT-modified
+> outputs before using them for downstream analyses.
+
 ### Inpainting Outputs
 These are the key files created during the initial inpainting stage. In FastSurfer mode, LIT writes
 its outputs directly into the standard subject directory layout.

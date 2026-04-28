@@ -2,6 +2,9 @@
 
 The **Lesion Inpainting Tool (LIT)** is a deep learning-based tool designed to inpaint lesions (such as tumors, cavities, or abnormalities) in T1-weighted MRI images. This allows downstream analysis tools like FastSurfer to perform more accurate whole-brain segmentation and cortical surface reconstruction in cases with significant structural alterations.
 
+> **Note:** The FastSurfer LIT integration is currently experimental. Review the LIT-modified
+> outputs before using them for downstream analyses.
+
 ## Key Features
 
 - **Shape-Independent Inpainting**: Effectively inpaints lesions regardless of their shape or appearance.

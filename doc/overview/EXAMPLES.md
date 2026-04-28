@@ -244,6 +244,9 @@ The `$HOME/my_mri_data` and the `$HOME/my_fastsurfer_analysis` directories need 
 
 For images with large lesions (e.g., tumors, surgical cavities), you can use the Lesion Inpainting Tool (LIT) to improve segmentation and surface reconstruction. To activate LIT, simply provide a binary lesion mask via the `--lesion_mask` flag.
 
+> **Note:** The FastSurfer LIT integration is currently experimental. Review the LIT-modified
+> outputs before using them for downstream analyses.
+
 ### Docker
 ```bash
 docker run --gpus all -v /home/user/my_mri_data:/data \

@@ -3,6 +3,9 @@
 FastSurfer does not ship a separate `lit` wrapper script. The Lesion Inpainting Tool (LIT) is
 enabled directly from `run_fastsurfer.sh` via the `--lesion_mask` flag:
 
+> **Note:** The FastSurfer LIT integration is currently experimental. Review the LIT-modified
+> outputs before using them for downstream analyses.
+
 ```bash
 ./run_fastsurfer.sh \
     --t1 /path/to/T1.nii.gz \

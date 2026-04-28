@@ -121,8 +121,8 @@ FLAGS:
   --t1  <T1_input>        T1 full head input (not bias corrected). Requires an
                             ABSOLUTE Path!
   --lesion_mask <mask_input>
-                          Lesion mask input for lesion inpainting. Requires an
-                            ABSOLUTE Path!
+                          Lesion mask input for experimental lesion inpainting.
+                            Requires an ABSOLUTE Path!
   --asegdkt_segfile <filename>
                           Name of the segmentation file, which includes the
                           aparc+DKTatlas-aseg segmentations.
