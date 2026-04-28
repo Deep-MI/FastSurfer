@@ -19,7 +19,7 @@
 
 function usage()
 {
-  echo "talairach-reg.sh <logfile> --dir <mri-directory> --conformed_name <conformed image file> --norm_name <norm name>"
+  echo "talairach-reg.sh <logfile> --dir <mri-directory> --conformed_name <conformed image file> --norm_name <norm name> --py <python cmd> --asegdkt_segfile <aseg dkt file>"
   echo "                 [--edits] [--long <basedir>] [--3T]"
 }
 
@@ -65,6 +65,8 @@ case $key in
   --conformed_name) if checkfile "$1" ; then exit 1 ; fi ; conformed_name="$1" ; shift ;;
   --norm_name) if checkfile "$1" ; then exit 1 ; fi ; norm_name="$1" ; shift ;;
   --long) if checkdir "$1" ; then exit 1 ; fi ; long="true" ; basedir="$1" ; shift ;;
+  --py) python="$1" ; shift ;;
+  --asegdkt_segfile) asegdkt_segfile="$1" ; shift ;;
   --edits) edits="true" ;;
   --3t) atlas3T="true" ;;
   *) echo "ERROR: Unrecognized argument $key!" ; usage ; exit 1 ;;
@@ -98,6 +100,18 @@ mkdir -p "$mdir/tmp"
 
 
 pushd "$mdir" > /dev/null || ( echo "Could not change to $mdir!" | tee -a "$LF" && exit 1)
+
+# compute prealignment
+
+prealigned_name=$mdir/prealigned.mgz
+prealigned_lta=$mdir/transforms/prealigned.lta
+reference_centroids=$binpath/segreg_centroids.json
+reference_name=$FREESURFER_HOME/average/mni305.cor.mgz
+
+segreg=$(which segreg)
+cmd=($python "$segreg" --mov "$asegdkt_segfile" --movimg "$norm_name" --mapmov "$prealigned_name" --lta "$prealigned_lta" --dof 12 --ref-centroids "$reference_centroids" --ref-geom "$reference_name")
+echo_quoted "${cmd[@]}"
+"${cmd[@]}"
 
 tal_file="$mdir/transforms/talairach"
 if [[ "$edits" == "true" ]] && [[ -f "$tal_file.xfm" ]] && { [[ ! -f "$tal_file.auto.xfm" ]] || \
@@ -143,7 +157,7 @@ else
     fi
 
     # talairach.xfm: compute talairach full head (25sec)
-    cmd=(talairach_avi --i "$norm_name" --xfm "$mdir/transforms/talairach.auto.xfm")
+    cmd=(talairach_avi --i "$prealigned_name" --xfm "$mdir/transforms/talairach.auto.xfm")
     if [[ "$atlas3T" == "true" ]]
     then
       echo "INFO: Using the 3T atlas for talairach registration."
@@ -153,6 +167,21 @@ else
     fi
     run_it "$LF" "${cmd[@]}"
   fi
+
+  # concatenate prealign and talairach transforms; will overwrite talairach.auto.xfm.lta and tailairach.auto.xfm
+
+  talairach_lta=$mdir/transforms/talairach.auto.xfm.lta
+  concatenated_lta=$mdir/transforms/talairach.auto.xfm.lta
+  lta=$(which lta)
+
+  cmd=($python "$lta" concat "$prealigned_lta" "$talairach_lta" "$concatenated_lta")
+  echo_quoted "${cmd[@]}"
+  "${cmd[@]}"
+
+  concatenated_xfm=$mdir/transforms/talairach.auto.xfm
+  cmd=($python "$lta" convert "$concatenated_lta" "$concatenated_xfm")
+  echo_quoted "${cmd[@]}"
+  "${cmd[@]}"
 
   # ALWAYS create copy
   cmd=(cp "$tal_file.auto.xfm" "$tal_file.xfm")

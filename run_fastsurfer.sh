@@ -1028,7 +1028,7 @@ then
 
     if [[ "$run_talairach_registration" == "true" ]]
     then
-      cmd=("$reconsurfdir/talairach-reg.sh" "$seg_log"
+      cmd=("$reconsurfdir/talairach-reg.sh" "$seg_log" --py "$python" --asegdkt_segfile "$asegdkt_segfile"
            --dir "$subject_dir/mri" --conformed_name "$conformed_name" --norm_name "$norm_name")
       if [[ "$long" == "true" ]] ; then cmd+=(--long "$basedir") ; fi
       if [[ "$edits" == "true" ]] ; then cmd+=(--edits) ; fi
