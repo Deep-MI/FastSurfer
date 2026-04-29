@@ -96,7 +96,7 @@ The primary output files are pial, white, and inflated surface files, the thickn
 | stats     | wmparc.DKTatlas.mapped.stats                                   | surface | table of white matter segmentation statistics                                                |
 | scripts   | recon-all.log                                                  | surface | logfile                                                                                      |
 
-Lesion Inpainting Tool (LIT) extension
+Lesion Inpainting Tool (LIT, optional)
 --------------------------------------
 When `--lesion_mask <path to file>` is provided, FastSurfer wraps the segmentation and surface
 pipelines with lesion inpainting using LIT. The extension is currently experimental. It inpaints
