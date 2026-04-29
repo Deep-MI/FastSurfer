@@ -573,7 +573,7 @@ if [[ ! -f "$mdir/transforms/talairach.lta" ]] || [[ ! -f "$mdir/transforms/tala
   # this also creates talairach.auto.xfm and talairach.xfm and talairach.xfm.lta
   # all transforms (also ltas) are the same
   cmda=("$binpath/talairach-reg.sh" "$LF"
-        --dir "$mdir" --conformed_name "$mdir/orig.mgz" --norm_name "$mdir/orig_nu.mgz")
+        --dir "$mdir" --conformed_name "$mdir/orig.mgz" --norm_name "$mdir/orig_nu.mgz" --py "$python" --asegdkt_segfile "$asegdkt_segfile")
   if [[ "$long" == "true" ]] ; then cmda+=(--long "$basedir") ; fi
   if [[ "$edits" == "true" ]] ; then cmda+=(--edits) ; fi
   if [[ "$atlas3T" == "true" ]] ; then cmda+=(--3T) ; fi
