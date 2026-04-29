@@ -502,7 +502,7 @@ Here, we have also added the <code class="docutils literal notranslate"><span cl
 <li><p><code class="docutils literal notranslate"><span class="pre">--no_hypothal</span></code>: Skip the hypothalamus segmentation.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">--no_cc</span></code>: Skip the segmentation and analysis of the corpus callosum.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">--cereb_segfile</span></code>: Name of the cerebellum segmentation file. If not provided, this intermediate DL-based segmentation will not be stored, but only the merged segmentation will be stored (see –main_segfile <filename>). Requires an ABSOLUTE Path! Default location: $SUBJECTS_DIR/$sid/mri/cerebellum.CerebNet.nii.gz</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">--no_biasfield</span></code>: Deactivate the biasfield correction and calculation of partial volume-corrected statistics in the segmentation modules.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--no_biasfield</span></code>: Deactivate the biasfield correction and calculation of partial volume-corrected statistics in the segmentation modules. HypVINN does run but expects that biasfields are corrected externally.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">--native_image</span></code> or <code class="docutils literal notranslate"><span class="pre">--keepgeom</span></code>: <strong>Only supported for <code class="docutils literal notranslate"><span class="pre">--seg_only</span></code></strong>, segment in native image space (keep orientation, image size and voxel size of the input image), this also includes experimental support for anisotropic images (no extreme anisotropy).</p></li>
 </ul>
 </section>
@@ -605,8 +605,8 @@ SEGMENTATION PIPELINE:
                             image will be saved. Requires an ABSOLUTE Path!
                             Default location:
                             $SUBJECTS_DIR/$sid/mri/orig.mgz.
-  --no_biasfield          Create a bias field corrected image and enable the
-                            calculation of partial volume-corrected stats-files.
+  --no_biasfield          Deactivate bias field correction and the calculation of
+                            partial volume-corrected stats-files.
   --norm_name &lt;nu.mgz&gt;    Name of the biasfield corrected image
                             Default location:
                             $SUBJECTS_DIR/$sid/mri/orig_nu.mgz
@@ -660,11 +660,12 @@ SEGMENTATION PIPELINE:
 
   HYPOTHALAMUS MODULE (HypVINN):
   --no_hypothal           Skip the hypothalamus segmentation.
-  --no_biasfield          This option implies --no_hypothal, as the hypothalamus
-                            sub-segmentation requires biasfield-corrected images.
-  --t2 &lt;T2_input&gt;         *Optional* T2 full head input (does not have to be bias
-                            corrected, a mandatory biasfield correction step is
-                            performed). Requires an ABSOLUTE Path!
+  --no_biasfield          Biasfield-corrected inputs are recommended for the
+                            hypothalamus sub-segmentation. This option implies images
+                            were corrected externally.
+  --t2 &lt;T2_input&gt;         *Optional* T2 full head input (must be externally biasfield
+                            corrected when called with --no_biasfield). Requires an
+                            ABSOLUTE Path!
   --reg_mode &lt;none|coreg|robust&gt;
                           Ignored, if no T2 image is passed.
                             Specifies the registration method used to register T1

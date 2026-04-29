@@ -502,7 +502,7 @@ FastSurfer is transitioning to sub-millimeter resolution support throughout the 
 <li><p>outputs a hypothalamic subsegmentation including 3rd ventricle, c. mammilare, fornix and optic tracts.</p></li>
 <li><p>a T1w image is highly recommended (<a class="reference internal" href="overview/intro.html"><span class="doc std std-ref">notes on input images</span></a>), supports high-res (up to 0.7mm, but experimental beyond that).</p></li>
 <li><p>allows the additional passing of a T2w image with <code class="docutils literal notranslate"><span class="pre">--t2</span> <span class="pre">&lt;path&gt;</span></code>, which will be registered to the T1w image (see <code class="docutils literal notranslate"><span class="pre">--reg_mode</span></code> option).</p></li>
-<li><p>calculates volume statistics corrected for partial volume effects based on the T1w image (skipped if <code class="docutils literal notranslate"><span class="pre">--no_biasfield</span></code> is passed).</p></li>
+<li><p>calculates summary statistics based on the biasfield-corrected T1w image (skipped if <code class="docutils literal notranslate"><span class="pre">--no_biasfield</span></code> is passed).</p></li>
 </ul>
 </li>
 </ol>
