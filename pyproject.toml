@@ -56,11 +56,22 @@ dependencies = [
     'torchvision>=0.22.1,<0.23',
     'tqdm>=4.65',
     'yacs>=0.1.8',
+    'monai>=1.4.0',
+    'meshpy>=2025.1.1',
+    'pyrr>=0.10.3',
+    'pip>=25.0',
 ]
 
 [project.optional-dependencies]
 qc  = [
     'whippersnappy>=2.1',
+]
+lit = [
+    'neurolit>=0.6.1',
+]
+container = [
+    'fastsurfer[qc]',
+    'fastsurfer[lit]',
 ]
 doc = [
     'fastsurfer[qc]',
@@ -97,6 +108,7 @@ all = [
     'fastsurfer[doc]',
     'fastsurfer[style]',
     'fastsurfer[qc]',
+    'fastsurfer[lit]',
     'fastsurfer[quicktest]',
 ]
 full = [

@@ -39,6 +39,7 @@ subject=""
 sd="$SUBJECTS_DIR"
 t1=""
 t2=""
+lesion_mask=""
 merged_segfile=""
 cereb_segfile=""
 asegdkt_segfile=""
@@ -73,6 +74,8 @@ run_asegdkt_module="true"
 run_cereb_module="true"
 run_hypvinn_module="true"
 run_cc_module="true"
+run_lit_module="false"
+lit_outputs_exist="false"
 threads_seg="1"
 threads_surf="1"
 # python3 -s excludes user-directory package inclusion
@@ -119,12 +122,16 @@ FLAGS:
   --sd  <subjects_dir>    Output directory \$SUBJECTS_DIR (or pass via env var)
   --t1  <T1_input>        T1 full head input (not bias corrected). Requires an
                             ABSOLUTE Path!
+  --lesion_mask <mask_input>
+                          Lesion mask input for experimental lesion inpainting.
+                            Requires an ABSOLUTE Path!
   --asegdkt_segfile <filename>
                           Name of the segmentation file, which includes the
                           aparc+DKTatlas-aseg segmentations.
                           Requires an ABSOLUTE Path! Default location:
                           \$SUBJECTS_DIR/\$sid/mri/aparc.DKTatlas+aseg.deep.mgz
-  --vox_size <0.7-1|min>  Forces processing at a specific voxel size.
+  --vox_size <0.7-1|min|keep>
+                          Forces processing at a specific voxel size.
                             If a number between 0.7 and 1 is specified (below
                             is experimental) the T1w image is conformed to
                             that voxel size and processed.
@@ -140,6 +147,9 @@ FLAGS:
                             The voxel size (whether set manually or derived)
                             determines whether the surfaces are processed with
                             highres options (below 1mm) or not.
+                            If "keep" is specified, the native voxel size is
+                            preserved. This is experimental and only compatible
+                            with the segmentation pipeline.
   --edits                 Enables manual edits by replacing select intermediate/
                             result files by manedit substitutes (*.manedit.<ext>).
                             Segmentation: <asegdkt_segfile> and <mask_name>.
@@ -180,7 +190,7 @@ SEGMENTATION PIPELINE:
   --native_image OR       Output all images and segmentations in the native image space
   --keepgeom                with its image geometry (voxel size, dimensions, orientation).
                             This setting is not compatible with the surface pipeline and
-                            requires isotropic voxels in the native image space.
+                            implies --vox_size keep. Anisotropic voxels are experimental.
 
   MODULES:
   By default, all modules are run.
@@ -406,6 +416,7 @@ case $key in
   --sd) sd="$1" ; shift ;;
   --t1) t1="$1" ; shift ;;
   --t2) t2="$1" ; shift ;;
+  --lesion_mask) lesion_mask="$1" ; run_lit_module="true" ; shift ;;
   --seg_log) seg_log="$1" ; shift ;;
   --conformed_name) conformed_name="$1" ; warn_seg_only+=("$key" "$1") ; shift ;;
   --norm_name) norm_name="$1" ; warn_seg_only+=("$key" "$1") ; shift ;;
@@ -447,7 +458,7 @@ case $key in
   #=============================================================
   --surf_only) run_seg_pipeline="false" ;;
   --no_biasfield) run_biasfield="false" ;;
-  --keepgeom|--native_image) native_image="true" ;;
+  --keepgeom|--native_image) native_image="true" ; vox_size="keep" ;;
   --tal_reg) run_talairach_registration="true" ;;
   --device) device="$1" ; shift ;;
   --batch) batch_size="$1" ; shift ;;
@@ -642,6 +653,17 @@ if [[ -z "$conformed_name" ]] ; then conformed_name="$subject_dir/mri/orig.mgz";
 if [[ -z "$conformed_name_t2" ]] ; then conformed_name_t2="$subject_dir/mri/T2orig.mgz" ; fi
 if [[ -z "$norm_name" ]] ; then norm_name="$subject_dir/mri/orig_nu.mgz" ; fi
 if [[ -z "$norm_name_t2" ]] ; then norm_name_t2="$subject_dir/mri/T2_nu.mgz" ;  fi
+# These files are created by neurolit>=0.6.1 in FastSurfer mode:
+# - lit_inpainting_result: inpainted T1w image from lit-inpainting --fastsurfer_dir.
+# - lit_mask_output: processed lesion mask from lit-inpainting --fastsurfer_dir.
+# - lit_original_mask_output: original input lesion mask copied by lit-inpainting --fastsurfer_dir.
+# - lit_postprocessing_summary: summary written by lit-postprocessing after lesion-aware stats/mapping.
+# Keep the paths centralized here for FastSurfer checks; switch to explicit
+# neurolit output-path arguments if the neurolit CLI adds them.
+lit_mask_output="${subject_dir}/mri/mask.lit.nii.gz"
+lit_inpainting_result="${subject_dir}/mri/inpainted.lit.nii.gz"
+lit_original_mask_output="${subject_dir}/mri/orig/mask.lit.nii.gz"
+lit_postprocessing_summary="${subject_dir}/stats/lesion_impact_summary.yaml"
 if [[ -z "$exec_time_log" ]] ; then exec_time_log="$subject_dir/${FASTSURFER_EXECTIMELOG:-scripts/exectime.log}" ; fi
 if [[ -z "$seg_log" ]] ; then seg_log="$subject_dir/scripts/deep-seg.log" ; fi
 if [[ -z "$build_log" ]] ; then build_log="$subject_dir/scripts/build.log" ; fi
@@ -657,14 +679,14 @@ if [[ -z "$PYTHONUNBUFFERED" ]] ; then export PYTHONUNBUFFERED=0 ; fi
 # check the vox_size setting
 if [[ "$native_image" != "false" ]]
 then
-  if [[ "$vox_size" != "min" ]] && [[ "$vox_size" != "none" ]]
+  if [[ "$vox_size" != "min" ]] && [[ "$vox_size" != "keep" ]]
   then
     {
-      echo "WARNING: Overwriting --vox_size $vox_size with --vox_size none because --keepgeom or --native_image was"
+      echo "WARNING: Overwriting --vox_size $vox_size with --vox_size keep because --keepgeom or --native_image was"
       echo "  specified."
     } | tee -a "$tmpLF"
   fi
-  vox_size="none"
+  vox_size="keep"
 elif [[ "$vox_size" =~ ^[0-9]+([.][0-9]+)?$ ]]
 then
   # a number
@@ -676,10 +698,10 @@ then
   then
     echo "WARNING: support for voxel sizes smaller than 0.7mm iso. is experimental." | tee -a "$tmpLF"
   fi
-elif [[ "$vox_size" != "min" ]] && [[ "$vox_size" != "auto" ]] && [[ "$vox_size" != "none" ]]
+elif [[ "$vox_size" != "min" ]] && [[ "$vox_size" != "auto" ]] && [[ "$vox_size" != "keep" ]]
 then
   # not a number or "min"
-  echo "ERROR: Invalid option '$vox_size' for --vox_size, only a number or 'min' are valid."
+  echo "ERROR: Invalid option '$vox_size' for --vox_size, only a number, 'min', or 'keep' are valid."
   exit 1
 fi
 
@@ -877,6 +899,59 @@ then
   exit 1
 fi
 
+if [[ -n "$lesion_mask" ]] && [[ ! -f "$lesion_mask" ]]
+then
+  echo "ERROR: Lesion mask file $lesion_mask could not be found. You must supply an existing lesion mask"
+  echo "  via --lesion_mask <absolute path and name> for generating the inpainting."
+  exit 1
+fi
+
+if [[ -f "$lit_mask_output" ]] && [[ -f "$lit_inpainting_result" ]]
+then
+  lit_outputs_exist="true"
+  {
+    echo "INFO: Detected LIT inpainting outputs in $subject_dir."
+    echo "  LIT postprocessing will be enabled for downstream processing."
+  } | tee -a "$tmpLF"
+elif [[ -f "$lit_mask_output" ]] || [[ -f "$lit_inpainting_result" ]]
+then
+  echo "ERROR: Incomplete LIT outputs detected in $subject_dir."
+  echo "  Expected both $lit_mask_output and $lit_inpainting_result."
+  exit 1
+fi
+
+if [[ "$edits" == "true" ]] && [[ "$run_lit_module" == "true" ]] && [[ "$lit_outputs_exist" != "true" ]]
+then
+  echo "ERROR: --edits was called with --lesion_mask, but no existing LIT outputs were detected."
+  echo "  Re-run without --edits to activate LIT from a clean segmentation run, or"
+  echo "  remove --lesion_mask to keep LIT activation consistent with the previous run."
+  exit 1
+fi
+
+if [[ "$edits" == "true" ]] && [[ "$lit_outputs_exist" == "true" ]] && [[ "$run_lit_module" != "true" ]]
+then
+  echo "ERROR: Existing LIT outputs were detected, but this --edits run was not called"
+  echo "  with --lesion_mask. Re-run with the same LIT activation as the previous run."
+  exit 1
+fi
+
+if [[ "$run_seg_pipeline" != "true" ]] && [[ "$run_surf_pipeline" == "true" ]] && [[ -f "$lit_postprocessing_summary" ]]
+then
+  echo "ERROR: Existing LIT postprocessing outputs were detected in $subject_dir,"
+  echo "  but --surf_only after LIT postprocessing is not supported."
+  echo "  Re-run the full pipeline with --lesion_mask if surface outputs are needed."
+  exit 1
+fi
+
+if [[ "$run_seg_pipeline" == "true" ]] && [[ "$run_surf_pipeline" != "true" ]] && [[ "$run_lit_module" == "true" ]]
+then
+  {
+    echo "WARNING: --seg_only with --lesion_mask will run LIT postprocessing for"
+    echo "  segmentation outputs. A later --surf_only run on this subject is not"
+    echo "  supported; run the full pipeline with --lesion_mask if surfaces are needed."
+  } | tee -a "$tmpLF"
+fi
+
 ## make sure +eo are unset
 set +eo > /dev/null
 
@@ -951,6 +1026,42 @@ asegdkt_segfile_manedit=$(add_file_suffix "$asegdkt_segfile" "manedit")
 
 if [[ "$run_seg_pipeline" == "true" ]]
 then
+  # ============= Running LIT Inpainting ========================================
+  if [[ "$run_lit_module" == "true" ]]
+  then
+      echo "MODULE: LIT (lesion inpainting)" >> "$exec_time_log"
+      {
+        echo "========================================================="
+        echo "Running LIT Inpainting..."
+        echo "========================================================="
+      } | tee -a "$seg_log"
+      cmd=($python -m neurolit.cli "--input_image" "$t1" "--lesion_mask" "$lesion_mask" "--sd" "$subject_dir" "--fastsurfer_dir")
+      if [[ "$native_image" != "false" ]] ; then cmd+=(--keepgeom) ; fi
+      echo_quoted "${cmd[@]}" | tee -a "$seg_log"
+      "${wrap[@]}" "${cmd[@]}" 2>&1 | tee -a "$seg_log"
+      exit_code="${PIPESTATUS[0]}"
+      if [[ "${exit_code}" != 0 ]]
+      then
+        echo "ERROR: LIT Inpainting failed!" | tee -a "$seg_log"
+        exit 1
+      fi
+      if [[ -f "$lit_inpainting_result" ]] && [[ -f "$lit_mask_output" ]]
+      then
+        lit_outputs_exist="true"
+        t1="$lit_inpainting_result"
+        {
+          echo "Using inpainted T1: $t1"
+          echo "========================================================="
+        } | tee -a "$seg_log"
+      else
+        {
+          echo "ERROR: Incomplete LIT outputs detected after inpainting."
+          echo "  Expected both $lit_inpainting_result and $lit_mask_output."
+        } | tee -a "$seg_log"
+        exit 1
+      fi
+  fi
+
 
   echo "SEGMENTATION PIPELINE" >> "$exec_time_log"
   echo "=====================" >> "$exec_time_log"
@@ -1335,6 +1446,48 @@ then
     exit 1
   fi
   popd > /dev/null || return
+fi
+
+# ============= Running LIT Postprocessing ====================================
+if [[ "$lit_outputs_exist" == "true" ]]
+then
+    {
+      echo "========================================================="
+      echo "Detected LIT outputs; running LIT postprocessing..."
+      echo "  $lit_inpainting_result"
+      echo "  $lit_mask_output"
+      echo "========================================================="
+    } | tee -a "$seg_log"
+
+    lit_post_cmd=($python -m neurolit.scripts.lesion_postprocessing --subject-id "$subject" --subjects-dir "$sd")
+
+    if [[ "$run_surf_pipeline" != "true" ]] && [[ "$run_biasfield" != "true" ]]
+    then
+        {
+          echo "INFO: Running LIT postprocessing with --skip-segstats because"
+          echo "  --seg_only and --no_biasfield were passed."
+          echo "  Lesion mapping, lesion reports, surface masking, and surface statistics"
+          echo "  will still be attempted, but volumetric segstats regeneration is skipped."
+        } | tee -a "$seg_log"
+        lit_post_cmd+=(--skip-segstats)
+    fi
+
+    # If surface pipeline was not run, skip surface masking
+    if [[ "$run_surf_pipeline" != "true" ]]
+    then
+        lit_post_cmd+=(--skip-surface-masking)
+    fi
+
+    echo "MODULE: LIT (lesion inpainting, postprocessing step)" >> "$exec_time_log"
+    echo_quoted "${lit_post_cmd[@]}" | tee -a "$seg_log"
+    "${wrap[@]}" "${lit_post_cmd[@]}" 2>&1 | tee -a "$seg_log"
+
+    if [[ "${PIPESTATUS[0]}" != 0 ]]
+    then
+      echo "ERROR: LIT Postprocessing failed!" | tee -a "$seg_log"
+      exit 1
+    fi
+    echo "========================================================="
 fi
 
 ########################################## End ########################################################

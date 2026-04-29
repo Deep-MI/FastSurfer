@@ -129,7 +129,7 @@ class RunModelOnData:
 
     Attributes
     ----------
-    vox_size : float, 'min'
+    vox_size : float, 'min', None
     current_plane : str
     models : Dict[str, Inference]
     view_ops : Dict[str, Dict[str, Any]]
@@ -163,7 +163,7 @@ class RunModelOnData:
         Getter.
     """
 
-    vox_size: float | Literal["min"]
+    vox_size: float | Literal["min"] | None
     current_plane: Plane
     models: dict[Plane, Inference]
     view_ops: dict[Plane, dict[str, Any]]
@@ -261,12 +261,9 @@ class RunModelOnData:
                 self.models[plane] = Inference(view["cfg"], ckpt=view["ckpt"], device=self.device, lut=self.lut)
 
         try:
-            __vox_size = _vox_size(vox_size)
-            if __vox_size is None:
-                raise ValueError("vox_size cannot be None")
-            self.vox_size = __vox_size
+            self.vox_size = _vox_size(vox_size)
         except (argparse.ArgumentTypeError, ValueError):
-            condition = "convertible to a float between 0 and 1 or 'min'"
+            condition = "convertible to a float between 0 and 1, 'min', or 'any'"
             raise ValueError(f"Invalid value for vox_size, must be {condition}, was '{vox_size}'.") from None
         self.conform_to_1mm_threshold = conform_to_1mm_threshold
 

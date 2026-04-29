@@ -163,7 +163,7 @@ source /venv/bin/activate
 # uv pip sync only installs "exactly" the packages in the lockfile, but does not resolve dependencies
 # therefore, we first compile the environment to resolve dependencies, and then sync to install both directly and
 # indirectly required packages
-uv pip compile --torch-backend=${DEVICE} --extra qc /install/pyproject.toml | uv pip sync --torch-backend=${DEVICE} -
+uv pip compile --torch-backend=${DEVICE} --extra container /install/pyproject.toml | uv pip sync --torch-backend=${DEVICE} -
 EOF
 
 LABEL org.opencontainers.image.authors="$AUTHOR" \
@@ -288,6 +288,8 @@ EOF
 
 # Add FreeSurfer and python Environment variables
 # DO_NOT_SEARCH_FS_LICENSE_IN_FREESURFER_HOME=true deactivates the search for FS_LICENSE in FREESURFER_HOME
+# XDG_DATA_HOME pins neurolit platformdirs data files to a deterministic,
+# runtime-writable image path outside the temporary directories.
 ENV OS=Linux \
     FS_OVERRIDE=0 \
     FIX_VERTEX_AREA="" \
@@ -295,11 +297,12 @@ ENV OS=Linux \
     FSF_OUTPUT_FORMAT=nii.gz \
     FREESURFER_HOME=/opt/freesurfer \
     PYTHONUNBUFFERED=0 \
-    MPLCONFIGDIR=/tmp \
     XDG_CACHE_HOME=/tmp/xdgcache \
     LANG=C.UTF-8 \
     LC_NUMERIC=en_US.UTF-8 \
     PATH=/venv/bin:/opt/freesurfer/bin:$PATH \
+    MPLCONFIGDIR=/tmp/matplotlib-config \
+    XDG_DATA_HOME=/var/.local/share \
     DO_NOT_SEARCH_FS_LICENSE_IN_FREESURFER_HOME="true"
 
 # Copy fastsurfer venv and pruned freesurfer from build images
@@ -320,8 +323,11 @@ ENV PYTHONPATH=/fastsurfer:/opt/freesurfer/python/packages \
 RUN <<EOF
 source /venv/bin/activate
 cd /fastsurfer
+install -d -m 0777 /var/.local "$XDG_DATA_HOME"
 # Download all remote network checkpoints already
 python3 FastSurferCNN/download_checkpoints.py --all
+# Download LIT checkpoints used by the lesion inpainting integration.
+lit-download-models
 # compile all FastSurfer scripts into bytecode
 python3 -m compileall *
 # update the build file with checkpoints md5sums and pip packages.

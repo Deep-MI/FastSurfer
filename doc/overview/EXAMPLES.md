@@ -239,3 +239,40 @@ This will create three dependent SLURM jobs, one to segment, one for surface rec
 There are many intricacies and options, so it is advised to use `--help`, `--debug` and `--dry` to inspect, what will be scheduled as well as run a test on a small subset. More control over subjects is available with `--subject_list`.
 
 The `$HOME/my_mri_data` and the `$HOME/my_fastsurfer_analysis` directories need to be accessible from cluster nodes. Most IO is performed on a work directory (automatically generated from `$HPCWORK` environment variable: `$HPCWORK/fastsurfer-processing/$(date +%Y%m%d-%H%M%S)`). Alternatively, an empty directory can be manually defined via `--work`. On successful cleanup, this directory will be removed to `$HOME/my_fastsurfer_analysis` (defined via `--sd`).
+
+## Example 7: Running FastSurfer with lesion inpainting using neurolit
+
+When T1w images contain large lesions such as tumors, surgical cavities, or other abnormalities,
+FastSurfer segmentation and surfaces can be affected by the altered anatomy. FastSurfer can be
+wrapped with the Lesion Inpainting Tool (LIT) by providing `--lesion_mask <path to file>`.
+
+> **Note:** The FastSurfer LIT extension is currently experimental. Review the LIT-modified
+> outputs before using them for downstream analyses.
+
+### Docker
+```bash
+docker run --gpus all -v /home/user/my_mri_data:/data \
+                      -v /home/user/my_fastsurfer_analysis:/output \
+                      -v /home/user/my_fs_license_dir:/fs_license \
+                      --rm --user $(id -u):$(id -g) deepmi/fastsurfer:latest \
+                      --fs_license /fs_license/license.txt \
+                      --t1 /data/subjectX/t1-weighted.nii.gz \
+                      --lesion_mask /data/subjectX/lesion_mask.nii.gz \
+                      --sid subjectX --sd /output \
+                      --threads 4
+```
+
+### Native
+```bash
+./run_fastsurfer.sh --t1 /home/user/my_mri_data/subjectX/t1-weighted.nii.gz \
+                    --lesion_mask /home/user/my_mri_data/subjectX/lesion_mask.nii.gz \
+                    --sid subjectX --sd /home/user/my_fastsurfer_analysis \
+                    --fs_license /path/to/license.txt \
+                    --threads 4
+```
+
+When using `--lesion_mask <path to file>`, FastSurfer will:
+1. Inpaint the lesion area using LIT.
+2. Run the selected parts of the segmentation and surface pipeline on the inpainted image (note that it is not compatible with `--surf_only`).
+3. Automatically map the lesion mask back into the final output files and regenerate the affected statistics.
+4. Preserve the pre-lesion outputs as `.lit` or mapped backup files and write lesion reports plus `lesion_impact_summary.yaml` in the `stats` directory.
