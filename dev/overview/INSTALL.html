@@ -535,16 +535,21 @@ git<span class="w"> </span>clone<span class="w"> </span>--branch<span class="w">
 <span class="c1"># create a .venv environment directory inside /path/to/install/FastSurfer with the FastSurfer dependencies</span>
 <span class="c1"># the minimum required python version is 3.10</span>
 uv<span class="w"> </span>venv<span class="w"> </span>--python<span class="w"> </span>python3.12
-<span class="c1"># download and install packages for the fastsurfer environment (implicitly read from requirements.txt)</span>
-uv<span class="w"> </span>pip<span class="w"> </span>sync<span class="w"> </span>pyproject.toml
+<span class="c1"># install packages with pinned versions from the last stable release (recommended)</span>
+uv<span class="w"> </span>pip<span class="w"> </span>sync<span class="w"> </span>requirements.txt
 </pre></div>
 </div>
-<p><code class="docutils literal notranslate"><span class="pre">uv</span></code> will also try to find the correct backend for your hardware, but you can manually specify the backend for testing:
-purposes:</p>
+<p><code class="docutils literal notranslate"><span class="pre">uv</span></code> will also try to find the correct backend for your hardware, but you can manually specify the backend for testing purposes:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># make sure you are in the FastSurfer directory!</span>
-uv<span class="w"> </span>pip<span class="w"> </span>sync<span class="w"> </span>pyproject.toml<span class="w"> </span>--torch-backend<span class="w"> </span>cpu
+uv<span class="w"> </span>pip<span class="w"> </span>sync<span class="w"> </span>requirements.txt<span class="w"> </span>--torch-backend<span class="w"> </span>cpu
 </pre></div>
 </div>
+<blockquote>
+<div><p><strong>For developers:</strong> To install the latest compatible dependency versions instead of the pinned stable ones, replace <code class="docutils literal notranslate"><span class="pre">requirements.txt</span></code> with <code class="docutils literal notranslate"><span class="pre">pyproject.toml</span></code> in the commands above:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>uv<span class="w"> </span>pip<span class="w"> </span>sync<span class="w"> </span>pyproject.toml
+</pre></div>
+</div>
+</div></blockquote>
 <p>You can now activate the FastSurfer environment with</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">source</span><span class="w"> </span>.venv/bin/activate
 </pre></div>
