@@ -103,9 +103,9 @@ pushd "$mdir" > /dev/null || ( echo "Could not change to $mdir!" | tee -a "$LF" 
 
 # compute prealignment
 
-prealigned_name=$mdir/prealigned.mgz
-prealigned_lta=$mdir/transforms/prealigned.lta
-reference_centroids=$binpath/segreg_centroids.json
+prealigned_name=$mdir/segreg_prealigned.mgz
+prealigned_lta=$mdir/transforms/segreg_prealigned.lta
+reference_centroids=$binpath/segreg_mni_icbm152_t1_tal_nlin_asym_09c_centroids.json
 reference_name=$FREESURFER_HOME/average/mni305.cor.mgz
 
 segreg=$(which segreg)
