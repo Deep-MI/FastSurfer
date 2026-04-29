@@ -128,7 +128,8 @@ FLAGS:
                           aparc+DKTatlas-aseg segmentations.
                           Requires an ABSOLUTE Path! Default location:
                           \$SUBJECTS_DIR/\$sid/mri/aparc.DKTatlas+aseg.deep.mgz
-  --vox_size <0.7-1|min>  Forces processing at a specific voxel size.
+  --vox_size <0.7-1|min|any>
+                          Forces processing at a specific voxel size.
                             If a number between 0.7 and 1 is specified (below
                             is experimental) the T1w image is conformed to
                             that voxel size and processed.
@@ -144,6 +145,9 @@ FLAGS:
                             The voxel size (whether set manually or derived)
                             determines whether the surfaces are processed with
                             highres options (below 1mm) or not.
+                            If "any" is specified, the native voxel size is
+                            preserved. This is experimental and only compatible
+                            with the segmentation pipeline.
   --edits                 Enables manual edits by replacing select intermediate/
                             result files by manedit substitutes (*.manedit.<ext>).
                             Segmentation: <asegdkt_segfile> and <mask_name>.
@@ -184,7 +188,7 @@ SEGMENTATION PIPELINE:
   --native_image OR       Output all images and segmentations in the native image space
   --keepgeom                with its image geometry (voxel size, dimensions, orientation).
                             This setting is not compatible with the surface pipeline and
-                            requires isotropic voxels in the native image space.
+                            support for anisotropic voxels is experimental.
 
   MODULES:
   By default, all modules are run.
@@ -661,14 +665,14 @@ if [[ -z "$PYTHONUNBUFFERED" ]] ; then export PYTHONUNBUFFERED=0 ; fi
 # check the vox_size setting
 if [[ "$native_image" != "false" ]]
 then
-  if [[ "$vox_size" != "min" ]] && [[ "$vox_size" != "none" ]]
+  if [[ "$vox_size" != "min" ]] && [[ "$vox_size" != "any" ]]
   then
     {
-      echo "WARNING: Overwriting --vox_size $vox_size with --vox_size none because --keepgeom or --native_image was"
+      echo "WARNING: Overwriting --vox_size $vox_size with --vox_size any because --keepgeom or --native_image was"
       echo "  specified."
     } | tee -a "$tmpLF"
   fi
-  vox_size="none"
+  vox_size="any"
 elif [[ "$vox_size" =~ ^[0-9]+([.][0-9]+)?$ ]]
 then
   # a number
@@ -680,10 +684,10 @@ then
   then
     echo "WARNING: support for voxel sizes smaller than 0.7mm iso. is experimental." | tee -a "$tmpLF"
   fi
-elif [[ "$vox_size" != "min" ]] && [[ "$vox_size" != "auto" ]] && [[ "$vox_size" != "none" ]]
+elif [[ "$vox_size" != "min" ]] && [[ "$vox_size" != "auto" ]] && [[ "$vox_size" != "any" ]]
 then
   # not a number or "min"
-  echo "ERROR: Invalid option '$vox_size' for --vox_size, only a number or 'min' are valid."
+  echo "ERROR: Invalid option '$vox_size' for --vox_size, only a number, 'min', or 'any' are valid."
   exit 1
 fi
 
