@@ -165,20 +165,21 @@ else
       echo "INFO: Using the default atlas (1.5T) for talairach registration."
     fi
     run_it "$LF" "${cmd[@]}"
+
+    # concatenate prealign and talairach transforms; will overwrite talairach.auto.xfm.lta and talairach.auto.xfm
+
+    intermediate_talairach_lta=$intermediate_tal_file.auto.xfm.lta
+    concatenated_lta=$tal_file.auto.xfm.lta
+    lta=$(which lta)
+
+    cmd=($python "$lta" concat "$prealigned_lta" "$intermediate_talairach_lta" "$concatenated_lta")
+    run_it "$LF" "${cmd[@]}"
+
+    concatenated_xfm=$mdir/transforms/talairach.auto.xfm
+    cmd=($python "$lta" convert "$concatenated_lta" "$concatenated_xfm")
+    run_it "$LF" "${cmd[@]}"
+
   fi
-
-  # concatenate prealign and talairach transforms; will overwrite talairach.auto.xfm.lta and talairach.auto.xfm
-
-  intermediate_talairach_lta=$intermediate_tal_file.auto.xfm.lta
-  concatenated_lta=$tal_file.auto.xfm.lta
-  lta=$(which lta)
-
-  cmd=($python "$lta" concat "$prealigned_lta" "$intermediate_talairach_lta" "$concatenated_lta")
-  run_it "$LF" "${cmd[@]}"
-
-  concatenated_xfm=$mdir/transforms/talairach.auto.xfm
-  cmd=($python "$lta" convert "$concatenated_lta" "$concatenated_xfm")
-  run_it "$LF" "${cmd[@]}"
 
   # ALWAYS create copy
   cmd=(cp "$tal_file.auto.xfm" "$tal_file.xfm")
