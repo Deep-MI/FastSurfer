@@ -66,7 +66,7 @@ case $key in
   --norm_name) if checkfile "$1" ; then exit 1 ; fi ; norm_name="$1" ; shift ;;
   --long) if checkdir "$1" ; then exit 1 ; fi ; long="true" ; basedir="$1" ; shift ;;
   --py) python="$1" ; shift ;;
-  --asegdkt_segfile) asegdkt_segfile="$1" ; shift ;;
+  --asegdkt_segfile) if checkfile "$1" ; then exit 1; fi ; asegdkt_segfile="$1" ; shift ;;
   --edits) edits="true" ;;
   --3t) atlas3T="true" ;;
   *) echo "ERROR: Unrecognized argument $key!" ; usage ; exit 1 ;;
