@@ -102,7 +102,7 @@ mkdir -p "$mdir/tmp"
 pushd "$mdir" > /dev/null || ( echo "Could not change to $mdir!" | tee -a "$LF" && exit 1)
 
 tal_file="$mdir/transforms/talairach"
-intermediate_tal_file="$mdir/transforms/intermediate_talairach"
+intermediate_tal_file="$mdir/transforms/pre2tal_avi"
 if [[ "$edits" == "true" ]] && [[ -f "$tal_file.xfm" ]] && { [[ ! -f "$tal_file.auto.xfm" ]] || \
   [[ -f "$tal_file.auto.xfm" ]] && [[ "$(md5sum "$tal_file.xfm")" != "$(md5sum "$tal_file.auto.xfm")" ]] ; }
 then
