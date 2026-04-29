@@ -168,8 +168,8 @@ SEGMENTATION PIPELINE:
                             image will be saved. Requires an ABSOLUTE Path!
                             Default location:
                             \$SUBJECTS_DIR/\$sid/mri/orig.mgz.
-  --no_biasfield          Create a bias field corrected image and enable the
-                            calculation of partial volume-corrected stats-files.
+  --no_biasfield          Deactivate bias field correction and the calculation of
+                            partial volume-corrected stats-files.
   --norm_name <nu.mgz>    Name of the biasfield corrected image
                             Default location:
                             \$SUBJECTS_DIR/\$sid/mri/orig_nu.mgz
@@ -223,11 +223,12 @@ SEGMENTATION PIPELINE:
 
   HYPOTHALAMUS MODULE (HypVINN):
   --no_hypothal           Skip the hypothalamus segmentation.
-  --no_biasfield          This option implies --no_hypothal, as the hypothalamus
-                            sub-segmentation requires biasfield-corrected images.
-  --t2 <T2_input>         *Optional* T2 full head input (does not have to be bias
-                            corrected, a mandatory biasfield correction step is
-                            performed). Requires an ABSOLUTE Path!
+  --no_biasfield          Biasfield-corrected inputs are recommended for the
+                            hypothalamus sub-segmentation. This option implies images
+                            were corrected externally.
+  --t2 <T2_input>         *Optional* T2 full head input (must be externally biasfield
+                            corrected when called with --no_biasfield). Requires an
+                            ABSOLUTE Path!
   --reg_mode <none|coreg|robust>
                           Ignored, if no T2 image is passed.
                             Specifies the registration method used to register T1
@@ -1045,7 +1046,7 @@ then
       fi
     fi
 
-    if [[ "$run_asegdkt_module" ]]
+    if [[ "$run_asegdkt_module" == "true" ]]
     then
       mask_name_manedit=$(add_file_suffix "$mask_name" "manedit")
       if [[ -e "$mask_name_manedit" ]] ; then mask_name="$mask_name_manedit" ; fi
@@ -1290,7 +1291,7 @@ then
         echo "  with the hypothal module!"
       } | tee -a "$seg_log"
       cmd+=("$t1")
-      if [[ -n "$t2" ]] ; then cmd+=(--t2 "$t2") ; fi
+      if [[ -n "$t2" ]] ; then cmd+=(--t2 "$norm_name_t2") ; fi
     fi
     echo_quoted "${cmd[@]}" | tee -a "$seg_log"
     "${wrap[@]}" "${cmd[@]}" # no tee, directly logging to $seg_log

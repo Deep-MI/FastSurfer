@@ -40,7 +40,7 @@ Optional arguments
 * `--no_hypothal`: Skip the hypothalamus segmentation.
 * `--no_cc`: Skip the segmentation and analysis of the corpus callosum.
 * `--cereb_segfile`: Name of the cerebellum segmentation file. If not provided, this intermediate DL-based segmentation will not be stored, but only the merged segmentation will be stored (see --main_segfile <filename>). Requires an ABSOLUTE Path! Default location: \$SUBJECTS_DIR/\$sid/mri/cerebellum.CerebNet.nii.gz
-* `--no_biasfield`: Deactivate the biasfield correction and calculation of partial volume-corrected statistics in the segmentation modules.
+* `--no_biasfield`: Deactivate the biasfield correction and calculation of partial volume-corrected statistics in the segmentation modules. HypVINN does run but expects that biasfields are corrected externally.
 * `--native_image` or `--keepgeom`: **Only supported for `--seg_only`**, segment in native image space (keep orientation, image size and voxel size of the input image), this also includes experimental support for anisotropic images (no extreme anisotropy).
 
 ### Surface pipeline arguments
