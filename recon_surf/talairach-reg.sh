@@ -101,17 +101,6 @@ mkdir -p "$mdir/tmp"
 
 pushd "$mdir" > /dev/null || ( echo "Could not change to $mdir!" | tee -a "$LF" && exit 1)
 
-# compute prealignment
-
-prealigned_name=$mdir/segreg_prealigned.mgz
-prealigned_lta=$mdir/transforms/segreg_prealigned.lta
-reference_centroids=$binpath/segreg_mni_icbm152_t1_tal_nlin_asym_09c_centroids.json
-reference_name=$FREESURFER_HOME/average/mni305.cor.mgz
-
-segreg=$(which segreg)
-cmd=($python "$segreg" --mov "$asegdkt_segfile" --movimg "$norm_name" --mapmov "$prealigned_name" --lta "$prealigned_lta" --dof 12 --ref-centroids "$reference_centroids" --ref-geom "$reference_name")
-run_it "$LF" "${cmd[@]}"
-
 tal_file="$mdir/transforms/talairach"
 if [[ "$edits" == "true" ]] && [[ -f "$tal_file.xfm" ]] && { [[ ! -f "$tal_file.auto.xfm" ]] || \
   [[ -f "$tal_file.auto.xfm" ]] && [[ "$(md5sum "$tal_file.xfm")" != "$(md5sum "$tal_file.auto.xfm")" ]] ; }
@@ -154,6 +143,16 @@ else
       echo "ERROR: The talairach_avi script requires tcsh, but /bin/tcsh does not exist!"
       exit 1
     fi
+
+    # compute prealignment
+    prealigned_name=$mdir/segreg_prealigned.mgz
+    prealigned_lta=$mdir/transforms/segreg_prealigned.lta
+    reference_centroids=$binpath/segreg_mni_icbm152_t1_tal_nlin_asym_09c_centroids.json
+    reference_name=$FREESURFER_HOME/average/mni305.cor.mgz
+
+    segreg=$(which segreg)
+    cmd=($python "$segreg" --mov "$asegdkt_segfile" --movimg "$norm_name" --mapmov "$prealigned_name" --lta "$prealigned_lta" --dof 12 --ref-centroids "$reference_centroids" --ref-geom "$reference_name")
+    run_it "$LF" "${cmd[@]}"
 
     # talairach.xfm: compute talairach full head (25sec)
     cmd=(talairach_avi --i "$prealigned_name" --xfm "$mdir/transforms/talairach.auto.xfm")
