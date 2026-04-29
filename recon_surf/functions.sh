@@ -190,19 +190,6 @@ function RunBatchJobs()
   fi
 }
 
-function get_script_path_python() {
-  # 1: script name, 2: providing package name for error messages, 3: optional: additional error text.
-  script_path=$(command -v "$1" 2> /dev/null)
-  if [[ "$?" != 0 ]] || [[ -z "$script_path" ]]
-  then
-    echo "ERROR: '$1' not found in PATH, this is likely because the required python package '$2' is" >&2
-    echo "  not installed in the selected python environment (python='$python')." >&2
-    if [[ -n "$3" ]]; then echo "  $3" >&2 ; fi
-    exit 1
-  fi
-  echo "$script_path"
-}
-
 function auto_detect_fs_license()
 {
   # USAGE: auto_detect_fs_license <what needs the license>

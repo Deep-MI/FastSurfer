@@ -153,7 +153,9 @@ else
     if [[ "$?" != 0 ]] ; then exit 1 ; fi
     cmd=($python "$segreg" --seg "$asegdkt_segfile" --lta "$prealigned_lta" --dof 12 --centroids "$reference_centroids")
     run_it "$LF" "${cmd[@]}"
-
+    
+    lta_script=$(get_script_path_python lta neuroreg)
+    if [[ "$?" != 0 ]] ; then exit 1 ; fi
     prealigned_xfm=$mdir/transforms/segreg_prealigned.xfm
     cmd=($python "$lta_script" convert "$prealigned_lta" "$prealigned_xfm")
     run_it "$LF" "${cmd[@]}"
