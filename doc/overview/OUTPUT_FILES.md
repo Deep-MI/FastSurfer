@@ -64,70 +64,6 @@ If a T2 image is also passed, the following images are created.
 | mri       | T2_nu.mgz     | hypvinn | biasfield-corrected T2 image   |
 | mri       | T2_nu_reg.mgz | hypvinn | co-registered T2 to orig image |
 
-Lesion Inpainting Tool (LIT) module
------------------------------------
-The LIT module is run if a lesion mask is provided via the `--lesion_mask` flag. It inpaints the lesion region, runs the downstream FastSurfer modules on the inpainted image, and then maps the lesion back into the resulting outputs. The current LIT postprocessing workflow updates the primary FastSurfer files in place and keeps the original pre-lesion outputs either as `.lit` backups or, for some surface-derived files, in the original `.mapped.*` files. Here we list the most commonly used files.
-
-> **Note:** The FastSurfer LIT integration is currently experimental. Review the LIT-modified
-> outputs before using them for downstream analyses.
-
-### Inpainting Outputs
-These are the key files created during the initial inpainting stage. In FastSurfer mode, LIT writes
-its outputs directly into the standard subject directory layout.
-
-| directory | filename | module | description |
-|:----------|----------|--------|-------------|
-| mri | inpainted.lit.nii.gz | lit | inpainted T1 image used for downstream processing |
-| mri | mask.lit.nii.gz | lit | processed lesion mask in FastSurfer image space (after any optional dilation) |
-| mri/orig | mask.lit.nii.gz | lit | original lesion mask copied into the subject directory |
-| mri/orig | inpainting_original_image.lit.nii.gz | lit | conformed original image used internally by LIT |
-| mri/orig | inpainting_masked_image.lit.nii.gz | lit | conformed masked image used internally by LIT |
-| scripts | inpainting_*.lit.png | lit | preview images from the inpainting step |
-
-### Postprocessing MRI Outputs
-These files contain the lesion-integrated segmentations. LIT overwrites the primary FastSurfer outputs and stores the pre-lesion versions as `.lit` backups.
-
-| directory | filename | module | description |
-|:----------|----------|--------|-------------|
-| mri | aparc.DKTatlas+aseg.deep.mgz | lit | lesion-integrated whole-brain segmentation |
-| mri | aparc.DKTatlas+aseg.deep.lit.mgz | lit | backup of the pre-lesion whole-brain segmentation |
-| mri | aseg.auto_noCCseg.mgz | lit | lesion-integrated subcortical segmentation used for VINN statistics |
-| mri | aseg.auto_noCCseg.lit.mgz | lit | backup of the pre-lesion subcortical segmentation |
-| mri | cerebellum.CerebNet.nii.gz | lit | lesion-integrated cerebellum segmentation when CerebNet is available |
-| mri | cerebellum.CerebNet.lit.nii.gz | lit | backup of the pre-lesion cerebellum segmentation |
-| mri | hypothalamus.HypVINN.nii.gz | lit | lesion-integrated hypothalamus segmentation when HypVINN is available |
-| mri | hypothalamus.HypVINN.lit.nii.gz | lit | backup of the pre-lesion hypothalamus segmentation |
-
-### Postprocessing Statistics and Reports
-LIT regenerates the relevant stats files after lesion mapping, keeps the pre-lesion versions as `.lit` backups where applicable, and writes lesion-specific reports.
-
-| directory | filename | module | description |
-|:----------|----------|--------|-------------|
-| stats | lesion_impact_summary.yaml | lit | machine-parseable summary of affected brain regions |
-| stats | aparc.DKTatlas+aseg.lesion_report.txt | lit | report of volumetric structures affected by the lesion |
-| stats | aseg.lesion_report.txt | lit | report of affected structures in the FreeSurfer aseg segmentation |
-| stats | aseg+DKT.VINN.stats | lit | lesion-integrated whole-brain/VINN summary statistics |
-| stats | aseg+DKT.VINN.lit.stats | lit | backup of the pre-lesion whole-brain/VINN statistics |
-| stats | aseg.VINN.stats | lit | lesion-integrated subcortical VINN statistics |
-| stats | aseg.VINN.lit.stats | lit | backup of the pre-lesion subcortical VINN statistics |
-| stats | cerebellum.CerebNet.stats | lit | lesion-integrated cerebellum statistics when CerebNet is available |
-| stats | cerebellum.CerebNet.lit.stats | lit | backup of the pre-lesion cerebellum statistics |
-| stats | hypothalamus.HypVINN.stats | lit | lesion-integrated hypothalamus statistics when HypVINN is available |
-| stats | hypothalamus.HypVINN.lit.stats | lit | backup of the pre-lesion hypothalamus statistics |
-
-### Surface-based Outputs
-If the surface pipeline is run, LIT also updates the relevant surface annotations and stats. The
-public annotation paths are kept at the standard FreeSurfer names, while the preserved pre-lesion
-surface stats remain in the corresponding `.mapped.stats` files.
-
-| directory | filename | module | description |
-|:----------|----------|--------|-------------|
-| label | {lh,rh}.aparc.DKTatlas.annot | lit | cortical parcellation with lesion projected onto the surface (symlink to `{lh,rh}.aparc.DKTatlas.mapped.annot`) |
-| label | {lh,rh}.aparc.DKTatlas.lit.annot | lit | pre-lesion cortical parcellation (symlink to `{lh,rh}.aparc.DKTatlas.mapped.lit.annot`) |
-| stats | {lh,rh}.aparc.DKTatlas.stats | lit | lesion-integrated cortical surface statistics |
-| stats | {lh,rh}.aparc.DKTatlas.mapped.stats | lit | backup of the pre-lesion cortical surface statistics |
-| stats | {lh,rh}.aparc.DKTatlas.anatomy_report.txt | lit | report of cortical structures affected by the lesion |
-
 Surface module
 --------------
 The surface module is run unless switched off by the `--seg_only` argument. It outputs a large number of files, which generally correspond to the FreeSurfer nomenclature and definition. A selection of important output files is shown in the table below, for the other files, we refer to the [FreeSurfer documentation](https://surfer.nmr.mgh.harvard.edu/fswiki). In general, the "mri" directory contains images, including segmentations, the "surf" folder contains surface files (geometries and vertex-wise overlay data), the "label" folder contains cortical parcellation labels, and the "stats" folder contains tabular summary statistics. Many files are available for the left ("lh") and right ("rh") hemisphere of the brain. Symbolic links are created to map FastSurfer files to their FreeSurfer equivalents, which may need to be present for further processing (e.g., with FreeSurfer downstream modules).
@@ -159,6 +95,74 @@ The primary output files are pial, white, and inflated surface files, the thickn
 | stats     | lh.curv.stats, rh.curv.stats                                   | surface | table of curvature statistics                                                                |
 | stats     | wmparc.DKTatlas.mapped.stats                                   | surface | table of white matter segmentation statistics                                                |
 | scripts   | recon-all.log                                                  | surface | logfile                                                                                      |
+
+Lesion Inpainting Tool (LIT) extension
+--------------------------------------
+When `--lesion_mask <path to file>` is provided, FastSurfer wraps the segmentation and surface
+pipelines with lesion inpainting using LIT. The extension is currently experimental. It inpaints
+the lesion region, runs the requested FastSurfer modules on the inpainted image, and then maps the
+lesion back into the resulting outputs. The current LIT postprocessing workflow updates the primary
+FastSurfer files in place and keeps the original pre-lesion outputs either as `.lit` backups or,
+for some surface-derived files, in the original `.mapped.*` files.
+
+For lesion mask requirements, see the [FastSurfer-LIT module documentation](modules/LIT.md).
+
+### Inpainting Outputs
+These are the key files created during the initial inpainting stage. FastSurfer with LIT writes
+these outputs directly into the standard subject directory layout.
+
+| directory | filename | module | description |
+|:----------|----------|--------|-------------|
+| mri | inpainted.lit.nii.gz | lit | inpainted T1 image used for downstream processing |
+| mri | mask.lit.nii.gz | lit | processed lesion mask in FastSurfer image space, after optional preprocessing |
+| mri/orig | mask.lit.nii.gz | lit | original lesion mask stored in the subject directory |
+| mri/orig | inpainting_original_image.lit.nii.gz | lit | conformed original image used internally by LIT |
+| mri/orig | inpainting_masked_image.lit.nii.gz | lit | conformed masked image used internally by LIT |
+| scripts | inpainting_*.lit.png | lit | preview images from the inpainting step |
+
+### Postprocessing MRI Outputs
+These files contain the lesion-integrated segmentations. LIT overwrites the primary FastSurfer outputs and stores the pre-lesion versions as `.lit` backups.
+
+| directory | filename | module | description |
+|:----------|----------|--------|-------------|
+| mri | aparc.DKTatlas+aseg.deep.mgz | lit | lesion-integrated whole-brain segmentation |
+| mri | aparc.DKTatlas+aseg.deep.lit.mgz | lit | backup of the pre-lesion whole-brain segmentation |
+| mri | aseg.auto_noCCseg.mgz | lit | lesion-integrated subcortical segmentation used for VINN statistics |
+| mri | aseg.auto_noCCseg.lit.mgz | lit | backup of the pre-lesion subcortical segmentation |
+| mri | cerebellum.CerebNet.nii.gz | lit | lesion-integrated cerebellum segmentation when CerebNet is available |
+| mri | cerebellum.CerebNet.lit.nii.gz | lit | backup of the pre-lesion cerebellum segmentation |
+| mri | hypothalamus.HypVINN.nii.gz | lit | lesion-integrated hypothalamus segmentation when HypVINN is available |
+| mri | hypothalamus.HypVINN.lit.nii.gz | lit | backup of the pre-lesion hypothalamus segmentation |
+
+### Postprocessing Statistics and Reports
+LIT regenerates the relevant stats files after lesion mapping, keeps the pre-lesion versions as `.lit` backups where applicable, and writes lesion-specific reports.
+
+| directory | filename | module | description |
+|:----------|----------|--------|-------------|
+| stats | lesion_impact_summary.yaml | lit | machine-readable summary of affected brain regions |
+| stats | aparc.DKTatlas+aseg.lesion_report.txt | lit | report of volumetric structures affected by the lesion |
+| stats | aseg.lesion_report.txt | lit | report of affected structures in the FreeSurfer aseg segmentation |
+| stats | aseg+DKT.VINN.stats | lit | lesion-integrated whole-brain/VINN summary statistics |
+| stats | aseg+DKT.VINN.lit.stats | lit | backup of the pre-lesion whole-brain/VINN statistics |
+| stats | aseg.VINN.stats | lit | lesion-integrated subcortical VINN statistics |
+| stats | aseg.VINN.lit.stats | lit | backup of the pre-lesion subcortical VINN statistics |
+| stats | cerebellum.CerebNet.stats | lit | lesion-integrated cerebellum statistics when CerebNet is available |
+| stats | cerebellum.CerebNet.lit.stats | lit | backup of the pre-lesion cerebellum statistics |
+| stats | hypothalamus.HypVINN.stats | lit | lesion-integrated hypothalamus statistics when HypVINN is available |
+| stats | hypothalamus.HypVINN.lit.stats | lit | backup of the pre-lesion hypothalamus statistics |
+
+### Surface-based Outputs
+If the surface pipeline is run, LIT also updates the relevant surface annotations and stats. The
+public annotation paths are kept at the standard FreeSurfer names, while the preserved pre-lesion
+surface stats remain in the corresponding `.mapped.stats` files.
+
+| directory | filename | module | description |
+|:----------|----------|--------|-------------|
+| label | {lh,rh}.aparc.DKTatlas.annot | lit | cortical parcellation with lesion projected onto the surface; symlink to `{lh,rh}.aparc.DKTatlas.mapped.annot` |
+| label | {lh,rh}.aparc.DKTatlas.lit.annot | lit | pre-lesion cortical parcellation; symlink to `{lh,rh}.aparc.DKTatlas.mapped.lit.annot` |
+| stats | {lh,rh}.aparc.DKTatlas.stats | lit | lesion-integrated cortical surface statistics |
+| stats | {lh,rh}.aparc.DKTatlas.mapped.stats | lit | backup of the pre-lesion cortical surface statistics |
+| stats | {lh,rh}.aparc.DKTatlas.anatomy_report.txt | lit | report of cortical structures affected by the lesion |
 
 Longitudinal Processing
 -----------------------

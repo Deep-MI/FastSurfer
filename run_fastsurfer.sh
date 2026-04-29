@@ -1003,7 +1003,7 @@ then
   # ============= Running LIT Inpainting ========================================
   if [[ "$run_lit_inpainting" == "true" ]]
   then
-      echo "MODULE: LIT inpainting" >> "$exec_time_log"
+      echo "MODULE: LIT (lesion inpainting)" >> "$exec_time_log"
       {
         echo "========================================================="
         echo "Running LIT Inpainting..."
@@ -1454,7 +1454,7 @@ then
         lit_post_cmd+=(--skip-surface-masking)
     fi
 
-    echo "MODULE: LIT postprocessing" >> "$exec_time_log"
+    echo "MODULE: LIT (lesion inpainting, postprocessing step)" >> "$exec_time_log"
     echo_quoted "${lit_post_cmd[@]}" | tee -a "$seg_log"
     "${wrap[@]}" "${lit_post_cmd[@]}" 2>&1 | tee -a "$seg_log"
 

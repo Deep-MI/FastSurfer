@@ -6,7 +6,6 @@ Scripts
 
     RUN_FASTSURFER.md
     long_fastsurfer.rst
-    lit.md
     BATCH.md
     SLURM.md
     advanced

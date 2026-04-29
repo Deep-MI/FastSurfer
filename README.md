@@ -17,7 +17,7 @@ The FastSurfer pipeline consists of two main parts for segmentation and surface 
 - the segmentation sub-pipeline (`seg`) employs advanced deep learning networks for fast, accurate segmentation and volumetric calculation of the whole brain and selected substructures.
 - the surface sub-pipeline (`recon-surf`) reconstructs cortical surfaces, maps cortical labels and performs a traditional point-wise and ROI thickness analysis. 
 
-### Segmentation Modules 
+### Segmentation Modules
 - approximately 5 minutes (GPU), `--seg_only` only runs this part. 
  
 Modules (all run by default):
@@ -37,17 +37,15 @@ Modules (all run by default):
    - a T1w image is highly recommended ([notes on input images](#requirements-to-input-images)), supports high-res (up to 0.7mm, but experimental beyond that).
    - allows the additional passing of a T2w image with `--t2 <path>`, which will be registered to the T1w image (see `--reg_mode` option).
    - calculates volume statistics corrected for partial volume effects based on the T1w image (skipped if `--no_biasfield` is passed).
-5. `neurolit`: [FastSurfer-LIT](https://github.com/Deep-MI/neurolit) for lesion inpainting (activate with `--lesion_mask <path>`)
-   - currently experimental; review LIT-modified outputs before using them for downstream analyses.
-   - specifically designed for brain images with lesions (tumors, surgical cavities, etc.).
-   - replaces lesion affected region with healthy looking tissue to improve downstream segmentation and surface reconstruction.
-   - includes automated postprocessing to mark lesion affected area in final segmentations and surfaces.
 
 ### Surface reconstruction
 - approximately 60-90 minutes, `--surf_only` runs only [the surface part](recon_surf/README.md).
 - supports high-resolution images (up to 0.7mm, experimental beyond that).
 - requires a FreeSurfer license file as it uses some FreeSurfer binaries internally.
 - requires outputs of the `asegdkt` and the `cc` modules as a prerequisite (can be included in the same run).
+
+### Extensions
+- [FastSurfer-LIT](doc/overview/modules/LIT.md) wraps the FastSurfer segmentation and surface pipelines with lesion inpainting when a lesion mask is provided via `--lesion_mask <path>`. This feature is experimental; review LIT-modified outputs before using them for downstream analyses.
 
 <!-- start of image requirements -->
 ### Requirements to input images
@@ -138,14 +136,14 @@ All installation methods use the `run_fastsurfer.sh` call interface (replace the
 <!-- start of examples -->
 Examples
 --------
-The documentation includes [several detailed Examples](doc/overview/EXAMPLES.md) on how to use FastSurfer. 
+The documentation includes [detailed Examples](doc/overview/EXAMPLES.md) on how to use FastSurfer.
 - [Example 1: FastSurfer Singularity](doc/overview/EXAMPLES.md#example-1-fastsurfer-singularity-or-apptainer)
 - [Example 2: FastSurfer Docker](doc/overview/EXAMPLES.md#example-2-fastsurfer-docker)
 - [Example 3: Native FastSurfer on subjectX with parallel processing of hemis](doc/overview/EXAMPLES.md#example-3-native-fastsurfer-on-subjectx-with-parallel-processing-of-hemis)
 - [Example 4: FastSurfer on multiple subjects](doc/overview/EXAMPLES.md#example-4-fastsurfer-on-multiple-subjects)
 - [Example 5: Quick Segmentation](doc/overview/EXAMPLES.md#example-5-quick-segmentation)
 - [Example 6: Running FastSurfer on a SLURM cluster via Singularity](doc/overview/EXAMPLES.md#example-6-running-fastsurfer-on-a-slurm-cluster-via-singularity)
-- [Example 7: Lesion Inpainting with LIT](doc/overview/EXAMPLES.md#example-7-lesion-inpainting-with-lit)
+- [Example 7: Running FastSurfer with lesion inpainting using neurolit](doc/overview/EXAMPLES.md#example-7-running-fastsurfer-with-lesion-inpainting-using-neurolit)
 
 Output files
 ------------
@@ -213,8 +211,9 @@ _Estrada S, Kuegler D, Bahrami E, Xu P, Mousa D, Breteler MMB, Aziz NA, Reuter M
 
 _Pollak C, Diers K, Estrada S, Kuegler D, Reuter M, FastSurfer-CC: A robust, accurate, and comprehensive framework for corpus callosum morphometry, pre-print on arXiv: https://doi.org/10.48550/arXiv.2511.16471_
 
+Extensions:
 
-_Pollak C, Kuegler D, Bauer T, Rueber T, Reuter M, FastSurfer-LIT: Lesion Inpainting Tool for Whole Brain MRI Segmentation with Tumors, Cavities and Abnormalities, Imaging Neuroscience 2025, https://doi.org/10.1162/imag_a_00446
+_Pollak C, Kuegler D, Bauer T, Rueber T, Reuter M. FastSurfer-LIT: Lesion Inpainting Tool for Whole Brain MRI Segmentation with Tumors, Cavities and Abnormalities. Imaging Neuroscience 2025. https://doi.org/10.1162/imag_a_00446_
 
 Stay tuned for updates and follow us on [X/Twitter](https://twitter.com/deepmilab).
 
