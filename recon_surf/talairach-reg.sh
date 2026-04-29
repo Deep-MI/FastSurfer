@@ -110,8 +110,7 @@ reference_name=$FREESURFER_HOME/average/mni305.cor.mgz
 
 segreg=$(which segreg)
 cmd=($python "$segreg" --mov "$asegdkt_segfile" --movimg "$norm_name" --mapmov "$prealigned_name" --lta "$prealigned_lta" --dof 12 --ref-centroids "$reference_centroids" --ref-geom "$reference_name")
-echo_quoted "${cmd[@]}"
-"${cmd[@]}"
+run_it "$LF" "${cmd[@]}"
 
 tal_file="$mdir/transforms/talairach"
 if [[ "$edits" == "true" ]] && [[ -f "$tal_file.xfm" ]] && { [[ ! -f "$tal_file.auto.xfm" ]] || \
@@ -168,20 +167,18 @@ else
     run_it "$LF" "${cmd[@]}"
   fi
 
-  # concatenate prealign and talairach transforms; will overwrite talairach.auto.xfm.lta and tailairach.auto.xfm
+  # concatenate prealign and talairach transforms; will overwrite talairach.auto.xfm.lta and talairach.auto.xfm
 
   talairach_lta=$mdir/transforms/talairach.auto.xfm.lta
   concatenated_lta=$mdir/transforms/talairach.auto.xfm.lta
   lta=$(which lta)
 
   cmd=($python "$lta" concat "$prealigned_lta" "$talairach_lta" "$concatenated_lta")
-  echo_quoted "${cmd[@]}"
-  "${cmd[@]}"
+  run_it "$LF" "${cmd[@]}"
 
   concatenated_xfm=$mdir/transforms/talairach.auto.xfm
   cmd=($python "$lta" convert "$concatenated_lta" "$concatenated_xfm")
-  echo_quoted "${cmd[@]}"
-  "${cmd[@]}"
+  run_it "$LF" "${cmd[@]}"
 
   # ALWAYS create copy
   cmd=(cp "$tal_file.auto.xfm" "$tal_file.xfm")
