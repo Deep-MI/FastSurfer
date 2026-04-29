@@ -19,7 +19,8 @@
 
 function usage()
 {
-  echo "talairach-reg.sh <logfile> --dir <mri-directory> --conformed_name <conformed image file> --norm_name <norm name> --py <python cmd> --asegdkt_segfile <aseg dkt file>"
+  echo "talairach-reg.sh <logfile> --dir <mri-directory> --conformed_name <conformed image file>"
+  echo "                 --norm_name <norm name> --py <python cmd> --asegdkt_segfile <aseg dkt file>"
   echo "                 [--edits] [--long <basedir>] [--3T]"
 }
 
@@ -151,7 +152,8 @@ else
     reference_centroids=$binpath/segreg_mni_icbm152_t1_tal_nlin_asym_09c_centroids.json
     reference_name=$FREESURFER_HOME/average/mni305.cor.mgz
 
-    segreg=$(which segreg)
+    segreg=$(get_script_path_python segreg neuroreg)
+    if [[ "$?" != 0 ]] ; then exit 1 ; fi
     cmd=($python "$segreg" --mov "$asegdkt_segfile" --movimg "$norm_name" --mapmov "$prealigned_name" --lta "$prealigned_lta" --dof 12 --ref-centroids "$reference_centroids" --ref-geom "$reference_name")
     run_it "$LF" "${cmd[@]}"
 
@@ -166,17 +168,21 @@ else
     fi
     run_it "$LF" "${cmd[@]}"
 
+    # remove the temporary prealigned file, as it is not needed anymore, is large-ish and redundant with the lta file
+    run_it "$LF" rm -f "$prealigned_name"
+
     # concatenate prealign and talairach transforms; will overwrite talairach.auto.xfm.lta and talairach.auto.xfm
 
     intermediate_talairach_lta=$intermediate_tal_file.auto.xfm.lta
     concatenated_lta=$tal_file.auto.xfm.lta
-    lta=$(which lta)
+    lta_script=$(get_script_path_python lta neuroreg)
+    if [[ "$?" != 0 ]] ; then exit 1 ; fi
 
-    cmd=($python "$lta" concat "$prealigned_lta" "$intermediate_talairach_lta" "$concatenated_lta")
+    cmd=($python "$lta_script" concat "$prealigned_lta" "$intermediate_talairach_lta" "$concatenated_lta")
     run_it "$LF" "${cmd[@]}"
 
     concatenated_xfm=$mdir/transforms/talairach.auto.xfm
-    cmd=($python "$lta" convert "$concatenated_lta" "$concatenated_xfm")
+    cmd=($python "$lta_script" convert "$concatenated_lta" "$concatenated_xfm")
     run_it "$LF" "${cmd[@]}"
 
   fi
