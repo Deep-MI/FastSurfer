@@ -105,7 +105,7 @@ lesion back into the resulting outputs. The current LIT postprocessing workflow 
 FastSurfer files in place and keeps the original pre-lesion outputs either as `.lit` backups or,
 for some surface-derived files, in the original `.mapped.*` files.
 
-For lesion mask requirements, see the [FastSurfer-LIT module documentation](modules/LIT.md).
+For lesion mask requirements, see the [FastSurfer-LIT module documentation](modules/LIT.md#lesion-mask-requirements).
 
 ### Inpainting Outputs
 These are the key files created during the initial inpainting stage. FastSurfer with LIT writes

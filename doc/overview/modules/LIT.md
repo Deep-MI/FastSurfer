@@ -20,7 +20,9 @@ FastSurfer runs LIT when a lesion mask is passed with `--lesion_mask <path to fi
                     --fs_license /path/to/license.txt
 ```
 
-With `--lesion_mask`, FastSurfer:
+Lesion inpainting is not compatible with separate processing of the segmentation and surfaces with `--seg_only` and `--surf_only`. If you want to run the surface pipeline, avoid `--seg_only`!
+
+With `--lesion_mask <path to file>`, FastSurfer:
 
 1. inpaints the lesion area in the input T1w image,
 2. runs the requested FastSurfer segmentation and surface pipeline on the inpainted image, and
@@ -45,7 +47,7 @@ as `.lit` backups or, for selected surface-derived files, as mapped backup files
 `lesion_impact_summary.yaml` is currently emitted as YAML by neurolit. The accompanying text
 reports provide a human-readable summary of the affected anatomical structures.
 The complete list of LIT-related output files is documented in the
-[FastSurfer output files overview](../OUTPUT_FILES.md#lesion-inpainting-tool-lit-extension).
+[FastSurfer output files overview](../OUTPUT_FILES.md#lesion-inpainting-tool-lit-optional).
 
 ## References
 

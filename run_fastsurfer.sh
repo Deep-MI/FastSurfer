@@ -75,6 +75,7 @@ run_cereb_module="true"
 run_hypvinn_module="true"
 run_cc_module="true"
 run_lit_module="false"
+lit_outputs_exist="false"
 threads_seg="1"
 threads_surf="1"
 # python3 -s excludes user-directory package inclusion
@@ -129,7 +130,7 @@ FLAGS:
                           aparc+DKTatlas-aseg segmentations.
                           Requires an ABSOLUTE Path! Default location:
                           \$SUBJECTS_DIR/\$sid/mri/aparc.DKTatlas+aseg.deep.mgz
-  --vox_size <0.7-1|min|any>
+  --vox_size <0.7-1|min|keep>
                           Forces processing at a specific voxel size.
                             If a number between 0.7 and 1 is specified (below
                             is experimental) the T1w image is conformed to
@@ -146,7 +147,7 @@ FLAGS:
                             The voxel size (whether set manually or derived)
                             determines whether the surfaces are processed with
                             highres options (below 1mm) or not.
-                            If "any" is specified, the native voxel size is
+                            If "keep" is specified, the native voxel size is
                             preserved. This is experimental and only compatible
                             with the segmentation pipeline.
   --edits                 Enables manual edits by replacing select intermediate/
@@ -189,7 +190,7 @@ SEGMENTATION PIPELINE:
   --native_image OR       Output all images and segmentations in the native image space
   --keepgeom                with its image geometry (voxel size, dimensions, orientation).
                             This setting is not compatible with the surface pipeline and
-                            support for anisotropic voxels is experimental.
+                            implies --vox_size keep. Anisotropic voxels are experimental.
 
   MODULES:
   By default, all modules are run.
@@ -456,7 +457,7 @@ case $key in
   #=============================================================
   --surf_only) run_seg_pipeline="false" ;;
   --no_biasfield) run_biasfield="false" ;;
-  --keepgeom|--native_image) native_image="true" ;;
+  --keepgeom|--native_image) native_image="true" ; vox_size="keep" ;;
   --tal_reg) run_talairach_registration="true" ;;
   --device) device="$1" ; shift ;;
   --batch) batch_size="$1" ; shift ;;
@@ -677,14 +678,14 @@ if [[ -z "$PYTHONUNBUFFERED" ]] ; then export PYTHONUNBUFFERED=0 ; fi
 # check the vox_size setting
 if [[ "$native_image" != "false" ]]
 then
-  if [[ "$vox_size" != "min" ]] && [[ "$vox_size" != "any" ]]
+  if [[ "$vox_size" != "min" ]] && [[ "$vox_size" != "keep" ]]
   then
     {
-      echo "WARNING: Overwriting --vox_size $vox_size with --vox_size any because --keepgeom or --native_image was"
+      echo "WARNING: Overwriting --vox_size $vox_size with --vox_size keep because --keepgeom or --native_image was"
       echo "  specified."
     } | tee -a "$tmpLF"
   fi
-  vox_size="any"
+  vox_size="keep"
 elif [[ "$vox_size" =~ ^[0-9]+([.][0-9]+)?$ ]]
 then
   # a number
@@ -696,10 +697,10 @@ then
   then
     echo "WARNING: support for voxel sizes smaller than 0.7mm iso. is experimental." | tee -a "$tmpLF"
   fi
-elif [[ "$vox_size" != "min" ]] && [[ "$vox_size" != "auto" ]] && [[ "$vox_size" != "any" ]]
+elif [[ "$vox_size" != "min" ]] && [[ "$vox_size" != "auto" ]] && [[ "$vox_size" != "keep" ]]
 then
   # not a number or "min"
-  echo "ERROR: Invalid option '$vox_size' for --vox_size, only a number, 'min', or 'any' are valid."
+  echo "ERROR: Invalid option '$vox_size' for --vox_size, only a number, 'min', or 'keep' are valid."
   exit 1
 fi
 
@@ -904,7 +905,6 @@ then
   exit 1
 fi
 
-lit_outputs_exist="false"
 if [[ -f "$lit_mask_output" ]] && [[ -f "$lit_inpainting_result" ]]
 then
   lit_outputs_exist="true"
@@ -914,39 +914,31 @@ then
   } | tee -a "$tmpLF"
 elif [[ -f "$lit_mask_output" ]] || [[ -f "$lit_inpainting_result" ]]
 then
-  {
-    echo "ERROR: Incomplete LIT outputs detected in $subject_dir."
-    echo "  Expected both $lit_mask_output and $lit_inpainting_result."
-  } | tee -a "$tmpLF"
+  echo "ERROR: Incomplete LIT outputs detected in $subject_dir."
+  echo "  Expected both $lit_mask_output and $lit_inpainting_result."
   exit 1
 fi
 
 if [[ "$edits" == "true" ]] && [[ "$run_lit_module" == "true" ]] && [[ "$lit_outputs_exist" != "true" ]]
 then
-  {
-    echo "ERROR: --edits was called with --lesion_mask, but no existing LIT outputs were detected."
-    echo "  Re-run without --edits to activate LIT from a clean segmentation run, or"
-    echo "  remove --lesion_mask to keep LIT activation consistent with the previous run."
-  } | tee -a "$tmpLF"
+  echo "ERROR: --edits was called with --lesion_mask, but no existing LIT outputs were detected."
+  echo "  Re-run without --edits to activate LIT from a clean segmentation run, or"
+  echo "  remove --lesion_mask to keep LIT activation consistent with the previous run."
   exit 1
 fi
 
 if [[ "$edits" == "true" ]] && [[ "$lit_outputs_exist" == "true" ]] && [[ "$run_lit_module" != "true" ]]
 then
-  {
-    echo "ERROR: Existing LIT outputs were detected, but this --edits run was not called"
-    echo "  with --lesion_mask. Re-run with the same LIT activation as the previous run."
-  } | tee -a "$tmpLF"
+  echo "ERROR: Existing LIT outputs were detected, but this --edits run was not called"
+  echo "  with --lesion_mask. Re-run with the same LIT activation as the previous run."
   exit 1
 fi
 
 if [[ "$run_seg_pipeline" != "true" ]] && [[ "$run_surf_pipeline" == "true" ]] && [[ -f "$lit_postprocessing_summary" ]]
 then
-  {
-    echo "ERROR: Existing LIT postprocessing outputs were detected in $subject_dir,"
-    echo "  but --surf_only after LIT postprocessing is not supported."
-    echo "  Re-run the full pipeline with --lesion_mask if surface outputs are needed."
-  } | tee -a "$tmpLF"
+  echo "ERROR: Existing LIT postprocessing outputs were detected in $subject_dir,"
+  echo "  but --surf_only after LIT postprocessing is not supported."
+  echo "  Re-run the full pipeline with --lesion_mask if surface outputs are needed."
   exit 1
 fi
 
