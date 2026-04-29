@@ -149,12 +149,10 @@ else
     # compute prealignment
     prealigned_name=$mdir/segreg_prealigned.mgz
     prealigned_lta=$mdir/transforms/segreg_prealigned.lta
-    reference_centroids=$binpath/segreg_mni_icbm152_t1_tal_nlin_asym_09c_centroids.json
-    reference_name=$FREESURFER_HOME/average/mni305.cor.mgz
-
+    reference_centroids=mni_icbm152_t1_tal_nlin_asym_09c
     segreg=$(get_script_path_python segreg neuroreg)
     if [[ "$?" != 0 ]] ; then exit 1 ; fi
-    cmd=($python "$segreg" --mov "$asegdkt_segfile" --movimg "$norm_name" --mapmov "$prealigned_name" --lta "$prealigned_lta" --dof 12 --ref-centroids "$reference_centroids" --ref-geom "$reference_name")
+    cmd=($python "$segreg" --mov "$asegdkt_segfile" --movimg "$norm_name" --mapmov "$prealigned_name" --lta "$prealigned_lta" --dof 12 --centroids "$reference_centroids")
     run_it "$LF" "${cmd[@]}"
 
     # talairach.xfm: compute talairach full head (25sec)
