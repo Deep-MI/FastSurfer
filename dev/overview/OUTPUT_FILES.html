@@ -201,6 +201,7 @@
 <li class="toctree-l2 current current-page"><a class="current reference internal" href="#">Output files</a></li>
 <li class="toctree-l2 has-children"><a class="reference internal" href="modules/index.html">Modules</a><input aria-label="Toggle navigation of Modules" class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l3"><a class="reference internal" href="modules/CC.html">Corpus Callosum Pipeline</a></li>
+<li class="toctree-l3"><a class="reference internal" href="modules/LIT.html">Lesion Inpainting Tool (LIT)</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="docker.html">Docker Support</a></li>
@@ -821,6 +822,237 @@
 </table>
 </div>
 </section>
+<section id="lesion-inpainting-tool-lit-optional">
+<h2>Lesion Inpainting Tool (LIT, optional)<a class="headerlink" href="#lesion-inpainting-tool-lit-optional" title="Link to this heading">¶</a></h2>
+<p>When <code class="docutils literal notranslate"><span class="pre">--lesion_mask</span> <span class="pre">&lt;path</span> <span class="pre">to</span> <span class="pre">file&gt;</span></code> is provided, FastSurfer wraps the segmentation and surface
+pipelines with lesion inpainting using LIT. The extension is currently experimental. It inpaints
+the lesion region, runs the requested FastSurfer modules on the inpainted image, and then maps the
+lesion back into the resulting outputs. The current LIT postprocessing workflow updates the primary
+FastSurfer files in place and keeps the original pre-lesion outputs either as <code class="docutils literal notranslate"><span class="pre">.lit</span></code> backups or,
+for some surface-derived files, in the original <code class="docutils literal notranslate"><span class="pre">.mapped.*</span></code> files.</p>
+<p>For lesion mask requirements, see the <a class="reference internal" href="modules/LIT.html#lesion-mask-requirements"><span class="std std-ref">FastSurfer-LIT module documentation</span></a>.</p>
+<section id="inpainting-outputs">
+<h3>Inpainting Outputs<a class="headerlink" href="#inpainting-outputs" title="Link to this heading">¶</a></h3>
+<p>These are the key files created during the initial inpainting stage. FastSurfer with LIT writes
+these outputs directly into the standard subject directory layout.</p>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head text-left"><p>directory</p></th>
+<th class="head"><p>filename</p></th>
+<th class="head"><p>module</p></th>
+<th class="head"><p>description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td class="text-left"><p>mri</p></td>
+<td><p>inpainted.lit.nii.gz</p></td>
+<td><p>lit</p></td>
+<td><p>inpainted T1 image used for downstream processing</p></td>
+</tr>
+<tr class="row-odd"><td class="text-left"><p>mri</p></td>
+<td><p>mask.lit.nii.gz</p></td>
+<td><p>lit</p></td>
+<td><p>processed lesion mask in FastSurfer image space, after optional preprocessing</p></td>
+</tr>
+<tr class="row-even"><td class="text-left"><p>mri/orig</p></td>
+<td><p>mask.lit.nii.gz</p></td>
+<td><p>lit</p></td>
+<td><p>original lesion mask stored in the subject directory</p></td>
+</tr>
+<tr class="row-odd"><td class="text-left"><p>mri/orig</p></td>
+<td><p>inpainting_original_image.lit.nii.gz</p></td>
+<td><p>lit</p></td>
+<td><p>conformed original image used internally by LIT</p></td>
+</tr>
+<tr class="row-even"><td class="text-left"><p>mri/orig</p></td>
+<td><p>inpainting_masked_image.lit.nii.gz</p></td>
+<td><p>lit</p></td>
+<td><p>conformed masked image used internally by LIT</p></td>
+</tr>
+<tr class="row-odd"><td class="text-left"><p>scripts</p></td>
+<td><p>inpainting_*.lit.png</p></td>
+<td><p>lit</p></td>
+<td><p>preview images from the inpainting step</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="postprocessing-mri-outputs">
+<h3>Postprocessing MRI Outputs<a class="headerlink" href="#postprocessing-mri-outputs" title="Link to this heading">¶</a></h3>
+<p>These files contain the lesion-integrated segmentations. LIT overwrites the primary FastSurfer outputs and stores the pre-lesion versions as <code class="docutils literal notranslate"><span class="pre">.lit</span></code> backups.</p>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head text-left"><p>directory</p></th>
+<th class="head"><p>filename</p></th>
+<th class="head"><p>module</p></th>
+<th class="head"><p>description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td class="text-left"><p>mri</p></td>
+<td><p>aparc.DKTatlas+aseg.deep.mgz</p></td>
+<td><p>lit</p></td>
+<td><p>lesion-integrated whole-brain segmentation</p></td>
+</tr>
+<tr class="row-odd"><td class="text-left"><p>mri</p></td>
+<td><p>aparc.DKTatlas+aseg.deep.lit.mgz</p></td>
+<td><p>lit</p></td>
+<td><p>backup of the pre-lesion whole-brain segmentation</p></td>
+</tr>
+<tr class="row-even"><td class="text-left"><p>mri</p></td>
+<td><p>aseg.auto_noCCseg.mgz</p></td>
+<td><p>lit</p></td>
+<td><p>lesion-integrated subcortical segmentation used for VINN statistics</p></td>
+</tr>
+<tr class="row-odd"><td class="text-left"><p>mri</p></td>
+<td><p>aseg.auto_noCCseg.lit.mgz</p></td>
+<td><p>lit</p></td>
+<td><p>backup of the pre-lesion subcortical segmentation</p></td>
+</tr>
+<tr class="row-even"><td class="text-left"><p>mri</p></td>
+<td><p>cerebellum.CerebNet.nii.gz</p></td>
+<td><p>lit</p></td>
+<td><p>lesion-integrated cerebellum segmentation when CerebNet is available</p></td>
+</tr>
+<tr class="row-odd"><td class="text-left"><p>mri</p></td>
+<td><p>cerebellum.CerebNet.lit.nii.gz</p></td>
+<td><p>lit</p></td>
+<td><p>backup of the pre-lesion cerebellum segmentation</p></td>
+</tr>
+<tr class="row-even"><td class="text-left"><p>mri</p></td>
+<td><p>hypothalamus.HypVINN.nii.gz</p></td>
+<td><p>lit</p></td>
+<td><p>lesion-integrated hypothalamus segmentation when HypVINN is available</p></td>
+</tr>
+<tr class="row-odd"><td class="text-left"><p>mri</p></td>
+<td><p>hypothalamus.HypVINN.lit.nii.gz</p></td>
+<td><p>lit</p></td>
+<td><p>backup of the pre-lesion hypothalamus segmentation</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="postprocessing-statistics-and-reports">
+<h3>Postprocessing Statistics and Reports<a class="headerlink" href="#postprocessing-statistics-and-reports" title="Link to this heading">¶</a></h3>
+<p>LIT regenerates the relevant stats files after lesion mapping, keeps the pre-lesion versions as <code class="docutils literal notranslate"><span class="pre">.lit</span></code> backups where applicable, and writes lesion-specific reports.</p>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head text-left"><p>directory</p></th>
+<th class="head"><p>filename</p></th>
+<th class="head"><p>module</p></th>
+<th class="head"><p>description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td class="text-left"><p>stats</p></td>
+<td><p>lesion_impact_summary.yaml</p></td>
+<td><p>lit</p></td>
+<td><p>machine-readable summary of affected brain regions</p></td>
+</tr>
+<tr class="row-odd"><td class="text-left"><p>stats</p></td>
+<td><p>aparc.DKTatlas+aseg.lesion_report.txt</p></td>
+<td><p>lit</p></td>
+<td><p>report of volumetric structures affected by the lesion</p></td>
+</tr>
+<tr class="row-even"><td class="text-left"><p>stats</p></td>
+<td><p>aseg.lesion_report.txt</p></td>
+<td><p>lit</p></td>
+<td><p>report of affected structures in the FreeSurfer aseg segmentation</p></td>
+</tr>
+<tr class="row-odd"><td class="text-left"><p>stats</p></td>
+<td><p>aseg+DKT.VINN.stats</p></td>
+<td><p>lit</p></td>
+<td><p>lesion-integrated whole-brain/VINN summary statistics</p></td>
+</tr>
+<tr class="row-even"><td class="text-left"><p>stats</p></td>
+<td><p>aseg+DKT.VINN.lit.stats</p></td>
+<td><p>lit</p></td>
+<td><p>backup of the pre-lesion whole-brain/VINN statistics</p></td>
+</tr>
+<tr class="row-odd"><td class="text-left"><p>stats</p></td>
+<td><p>aseg.VINN.stats</p></td>
+<td><p>lit</p></td>
+<td><p>lesion-integrated subcortical VINN statistics</p></td>
+</tr>
+<tr class="row-even"><td class="text-left"><p>stats</p></td>
+<td><p>aseg.VINN.lit.stats</p></td>
+<td><p>lit</p></td>
+<td><p>backup of the pre-lesion subcortical VINN statistics</p></td>
+</tr>
+<tr class="row-odd"><td class="text-left"><p>stats</p></td>
+<td><p>cerebellum.CerebNet.stats</p></td>
+<td><p>lit</p></td>
+<td><p>lesion-integrated cerebellum statistics when CerebNet is available</p></td>
+</tr>
+<tr class="row-even"><td class="text-left"><p>stats</p></td>
+<td><p>cerebellum.CerebNet.lit.stats</p></td>
+<td><p>lit</p></td>
+<td><p>backup of the pre-lesion cerebellum statistics</p></td>
+</tr>
+<tr class="row-odd"><td class="text-left"><p>stats</p></td>
+<td><p>hypothalamus.HypVINN.stats</p></td>
+<td><p>lit</p></td>
+<td><p>lesion-integrated hypothalamus statistics when HypVINN is available</p></td>
+</tr>
+<tr class="row-even"><td class="text-left"><p>stats</p></td>
+<td><p>hypothalamus.HypVINN.lit.stats</p></td>
+<td><p>lit</p></td>
+<td><p>backup of the pre-lesion hypothalamus statistics</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="surface-based-outputs">
+<h3>Surface-based Outputs<a class="headerlink" href="#surface-based-outputs" title="Link to this heading">¶</a></h3>
+<p>If the surface pipeline is run, LIT also updates the relevant surface annotations and stats. The
+public annotation paths are kept at the standard FreeSurfer names, while the preserved pre-lesion
+surface stats remain in the corresponding <code class="docutils literal notranslate"><span class="pre">.mapped.stats</span></code> files.</p>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head text-left"><p>directory</p></th>
+<th class="head"><p>filename</p></th>
+<th class="head"><p>module</p></th>
+<th class="head"><p>description</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td class="text-left"><p>label</p></td>
+<td><p>{lh,rh}.aparc.DKTatlas.annot</p></td>
+<td><p>lit</p></td>
+<td><p>cortical parcellation with lesion projected onto the surface; symlink to <code class="docutils literal notranslate"><span class="pre">{lh,rh}.aparc.DKTatlas.mapped.annot</span></code></p></td>
+</tr>
+<tr class="row-odd"><td class="text-left"><p>label</p></td>
+<td><p>{lh,rh}.aparc.DKTatlas.lit.annot</p></td>
+<td><p>lit</p></td>
+<td><p>pre-lesion cortical parcellation; symlink to <code class="docutils literal notranslate"><span class="pre">{lh,rh}.aparc.DKTatlas.mapped.lit.annot</span></code></p></td>
+</tr>
+<tr class="row-even"><td class="text-left"><p>stats</p></td>
+<td><p>{lh,rh}.aparc.DKTatlas.stats</p></td>
+<td><p>lit</p></td>
+<td><p>lesion-integrated cortical surface statistics</p></td>
+</tr>
+<tr class="row-odd"><td class="text-left"><p>stats</p></td>
+<td><p>{lh,rh}.aparc.DKTatlas.mapped.stats</p></td>
+<td><p>lit</p></td>
+<td><p>backup of the pre-lesion cortical surface statistics</p></td>
+</tr>
+<tr class="row-even"><td class="text-left"><p>stats</p></td>
+<td><p>{lh,rh}.aparc.DKTatlas.anatomy_report.txt</p></td>
+<td><p>lit</p></td>
+<td><p>report of cortical structures affected by the lesion</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+</section>
 <section id="longitudinal-processing">
 <h2>Longitudinal Processing<a class="headerlink" href="#longitudinal-processing" title="Link to this heading">¶</a></h2>
 <p>When running the <a class="reference internal" href="LONG.html"><span class="std std-doc">longitudinal pipeline</span></a> the output will be as above for the individual time point directories. Note that the templateID directory for the within-subject template will not contain all files and usually is not looked at or analyzed, as it represents an intermediate step in the longitudinal pipeline.</p>
@@ -894,6 +1126,13 @@
 <li><a class="reference internal" href="#cerebnet-module">CerebNet module</a></li>
 <li><a class="reference internal" href="#hypvinn-module">HypVINN module</a></li>
 <li><a class="reference internal" href="#surface-module">Surface module</a></li>
+<li><a class="reference internal" href="#lesion-inpainting-tool-lit-optional">Lesion Inpainting Tool (LIT, optional)</a><ul>
+<li><a class="reference internal" href="#inpainting-outputs">Inpainting Outputs</a></li>
+<li><a class="reference internal" href="#postprocessing-mri-outputs">Postprocessing MRI Outputs</a></li>
+<li><a class="reference internal" href="#postprocessing-statistics-and-reports">Postprocessing Statistics and Reports</a></li>
+<li><a class="reference internal" href="#surface-based-outputs">Surface-based Outputs</a></li>
+</ul>
+</li>
 <li><a class="reference internal" href="#longitudinal-processing">Longitudinal Processing</a></li>
 </ul>
 </li>

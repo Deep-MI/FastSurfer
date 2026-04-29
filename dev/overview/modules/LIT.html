@@ -3,10 +3,10 @@
   <head><meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
-<link rel="index" title="Index" href="../../genindex.html"><link rel="search" title="Search" href="../../search.html"><link rel="next" title="Corpus Callosum Pipeline" href="CC.html"><link rel="prev" title="Output files" href="../OUTPUT_FILES.html">
+<link rel="index" title="Index" href="../../genindex.html"><link rel="search" title="Search" href="../../search.html"><link rel="next" title="Docker Support" href="../docker.html"><link rel="prev" title="Corpus Callosum Pipeline" href="CC.html">
 
     <!-- Generated with Sphinx 7.4.7 and Furo 2025.12.19 -->
-        <title>Modules - FastSurfer</title>
+        <title>Lesion Inpainting Tool (LIT) - FastSurfer</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
@@ -174,7 +174,7 @@
           <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
         </button>
       </div>
-      <label class="toc-overlay-icon toc-header-icon no-toc" for="__toc">
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
         <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
       </label>
     </div>
@@ -199,9 +199,9 @@
 <li class="toctree-l2"><a class="reference internal" href="../INSTALL.html">Installation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../EXAMPLES.html">Examples</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../OUTPUT_FILES.html">Output files</a></li>
-<li class="toctree-l2 current has-children current-page"><a class="current reference internal" href="#">Modules</a><input aria-label="Toggle navigation of Modules" checked="" class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2 current has-children"><a class="reference internal" href="index.html">Modules</a><input aria-label="Toggle navigation of Modules" checked="" class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul class="current">
 <li class="toctree-l3"><a class="reference internal" href="CC.html">Corpus Callosum Pipeline</a></li>
-<li class="toctree-l3"><a class="reference internal" href="LIT.html">Lesion Inpainting Tool (LIT)</a></li>
+<li class="toctree-l3 current current-page"><a class="current reference internal" href="#">Lesion Inpainting Tool (LIT)</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../docker.html">Docker Support</a></li>
@@ -441,7 +441,7 @@
         </a>
         <div class="content-icon-container">
           <div class="view-this-page">
-  <a class="muted-link" href="../../_sources/overview/modules/index.rst.txt" title="View this page">
+  <a class="muted-link" href="../../_sources/overview/modules/LIT.md.txt" title="View this page">
     <svg><use href="#svg-eye"></use></svg>
     <span class="visually-hidden">View this page</span>
   </a>
@@ -454,30 +454,63 @@
               <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
             </button>
           </div>
-          <label class="toc-overlay-icon toc-content-icon no-toc" for="__toc">
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
             <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
           </label>
         </div>
         <article role="main" id="furo-main-content">
-          <section id="modules">
-<h1>Modules<a class="headerlink" href="#modules" title="Link to this heading">¶</a></h1>
-<p>FastSurfer includes several specialized deep learning modules that can be run independently or as part of the main pipeline. These modules provide detailed sub-segmentations and analyses for specific brain regions.</p>
-<div class="toctree-wrapper compound">
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="CC.html">Corpus Callosum Pipeline</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="CC.html#overview">Overview</a></li>
-<li class="toctree-l2"><a class="reference internal" href="CC.html#json-output-structure">JSON Output Structure</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="LIT.html">Lesion Inpainting Tool (LIT)</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="LIT.html#fastsurfer-usage">FastSurfer Usage</a></li>
-<li class="toctree-l2"><a class="reference internal" href="LIT.html#lesion-mask-requirements">Lesion Mask Requirements</a></li>
-<li class="toctree-l2"><a class="reference internal" href="LIT.html#output-behavior">Output Behavior</a></li>
-<li class="toctree-l2"><a class="reference internal" href="LIT.html#references">References</a></li>
-</ul>
-</li>
-</ul>
+          <section id="lesion-inpainting-tool-lit">
+<h1>Lesion Inpainting Tool (LIT)<a class="headerlink" href="#lesion-inpainting-tool-lit" title="Link to this heading">¶</a></h1>
+<p>With the <strong>Lesion Inpainting Tool (LIT)</strong> extension, FastSurfer is able to process T1-weighted
+images with lesions, such as tumors, cavities, or abnormalities. Since the deep learning-based
+tool LIT is designed to paint healthy-looking tissue into those lesions, downstream analysis with
+FastSurfer can produce more reliable whole-brain segmentation and cortical surface reconstruction
+in cases with significant structural alterations.</p>
+<blockquote>
+<div><p><strong>Note:</strong> The FastSurfer LIT extension is currently experimental. Review the LIT-modified
+outputs before using them for downstream analyses.</p>
+</div></blockquote>
+<section id="fastsurfer-usage">
+<h2>FastSurfer Usage<a class="headerlink" href="#fastsurfer-usage" title="Link to this heading">¶</a></h2>
+<p>FastSurfer runs LIT when a lesion mask is passed with <code class="docutils literal notranslate"><span class="pre">--lesion_mask</span> <span class="pre">&lt;path</span> <span class="pre">to</span> <span class="pre">file&gt;</span></code>:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>./run_fastsurfer.sh<span class="w"> </span>--t1<span class="w"> </span>/path/to/T1.nii.gz<span class="w"> </span><span class="se">\</span>
+<span class="w">                    </span>--lesion_mask<span class="w"> </span>/path/to/lesion_mask.nii.gz<span class="w"> </span><span class="se">\</span>
+<span class="w">                    </span>--sid<span class="w"> </span>subject_id<span class="w"> </span>--sd<span class="w"> </span>/path/to/output_dir<span class="w"> </span><span class="se">\</span>
+<span class="w">                    </span>--fs_license<span class="w"> </span>/path/to/license.txt
+</pre></div>
 </div>
+<p>Lesion inpainting is not compatible with separate processing of the segmentation and surfaces with <code class="docutils literal notranslate"><span class="pre">--seg_only</span></code> and <code class="docutils literal notranslate"><span class="pre">--surf_only</span></code>. If you want to run the surface pipeline, avoid <code class="docutils literal notranslate"><span class="pre">--seg_only</span></code>!</p>
+<p>With <code class="docutils literal notranslate"><span class="pre">--lesion_mask</span> <span class="pre">&lt;path</span> <span class="pre">to</span> <span class="pre">file&gt;</span></code>, FastSurfer:</p>
+<ol class="arabic simple">
+<li><p>inpaints the lesion area in the input T1w image,</p></li>
+<li><p>runs the requested FastSurfer segmentation and surface pipeline on the inpainted image, and</p></li>
+<li><p>maps the lesion into the final FastSurfer outputs and regenerates affected statistics.</p></li>
+</ol>
+</section>
+<section id="lesion-mask-requirements">
+<h2>Lesion Mask Requirements<a class="headerlink" href="#lesion-mask-requirements" title="Link to this heading">¶</a></h2>
+<p>The lesion annotation must match the MRI volume passed as <code class="docutils literal notranslate"><span class="pre">--t1</span></code>: it should use the same voxel
+grid and vox2ras/affine, and it should be an integer or binary-compatible numeric image. Non-zero
+voxels are treated as lesion. The mask defines which voxels are inpainted and later marked in the
+FastSurfer outputs.</p>
+<p>Underestimation of lesion areas affects the segmentation more than oversegmentation of lesion masks,
+hence we recommend generous annotation of all damaged tissue and potentially dilating the mask.</p>
+</section>
+<section id="output-behavior">
+<h2>Output Behavior<a class="headerlink" href="#output-behavior" title="Link to this heading">¶</a></h2>
+<p>FastSurfer with LIT updates the standard subject directory instead of writing a separate LIT output
+tree. The primary FastSurfer files are lesion-integrated, while pre-lesion versions are preserved
+as <code class="docutils literal notranslate"><span class="pre">.lit</span></code> backups or, for selected surface-derived files, as mapped backup files.</p>
+<p><code class="docutils literal notranslate"><span class="pre">lesion_impact_summary.yaml</span></code> is currently emitted as YAML by neurolit. The accompanying text
+reports provide a human-readable summary of the affected anatomical structures.
+The complete list of LIT-related output files is documented in the
+<a class="reference internal" href="../OUTPUT_FILES.html#lesion-inpainting-tool-lit-optional"><span class="std std-ref">FastSurfer output files overview</span></a>.</p>
+</section>
+<section id="references">
+<h2>References<a class="headerlink" href="#references" title="Link to this heading">¶</a></h2>
+<p>If you use LIT in your research, please cite:</p>
+<p><em>Pollak C, Kuegler D, Bauer T, Rueber T, Reuter M, FastSurfer-LIT: Lesion Inpainting Tool for Whole Brain MRI Segmentation with Tumors, Cavities and Abnormalities, Imaging Neuroscience 2025. https://doi.org/10.1162/imag_a_00446</em></p>
+</section>
 </section>
 
         </article>
@@ -485,23 +518,23 @@
       <footer>
         
         <div class="related-pages">
-          <a class="next-page" href="CC.html">
+          <a class="next-page" href="../docker.html">
               <div class="page-info">
                 <div class="context">
                   <span>Next</span>
                 </div>
-                <div class="title">Corpus Callosum Pipeline</div>
+                <div class="title">Docker Support</div>
               </div>
               <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
             </a>
-          <a class="prev-page" href="../OUTPUT_FILES.html">
+          <a class="prev-page" href="CC.html">
               <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
               <div class="page-info">
                 <div class="context">
                   <span>Previous</span>
                 </div>
                 
-                <div class="title">Output files</div>
+                <div class="title">Corpus Callosum Pipeline</div>
                 
               </div>
             </a>
@@ -529,8 +562,30 @@
         
       </footer>
     </div>
-    <aside class="toc-drawer no-toc">
+    <aside class="toc-drawer">
       
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">Lesion Inpainting Tool (LIT)</a><ul>
+<li><a class="reference internal" href="#fastsurfer-usage">FastSurfer Usage</a></li>
+<li><a class="reference internal" href="#lesion-mask-requirements">Lesion Mask Requirements</a></li>
+<li><a class="reference internal" href="#output-behavior">Output Behavior</a></li>
+<li><a class="reference internal" href="#references">References</a></li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
       
       
     </aside>

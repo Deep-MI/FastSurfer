@@ -201,6 +201,7 @@
 <li class="toctree-l2"><a class="reference internal" href="OUTPUT_FILES.html">Output files</a></li>
 <li class="toctree-l2 has-children"><a class="reference internal" href="modules/index.html">Modules</a><input aria-label="Toggle navigation of Modules" class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l3"><a class="reference internal" href="modules/CC.html">Corpus Callosum Pipeline</a></li>
+<li class="toctree-l3"><a class="reference internal" href="modules/LIT.html">Lesion Inpainting Tool (LIT)</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="docker.html">Docker Support</a></li>
@@ -471,7 +472,7 @@ recommended Docker or Singularity images. But first let us tell you why we think
 <li><p>It is compatible with FreeSurfer, enabling FreeSurfer downstream tools to work directly.</p></li>
 <li><p>It is much faster and provides increased reliability and sensitivity of the derived measures.</p></li>
 <li><p>It natively supports high-resolution images (down to around 0.7mm) at high accuracy.</p></li>
-<li><p>It has modules for full-brain (aseg+DKT), cerebellum and hypothalamic sub-segmentations.</p></li>
+<li><p>It has modules for full-brain (aseg+DKT), cerebellum, corpus callosum and hypothalamic sub-segmentations.</p></li>
 <li><p>The segmentation modules run within minutes and provide partial-volume corrected stats.</p></li>
 <li><p>It has an optimized surface stream for cortical thickness analysis and improved correspondence.</p></li>
 </ul>
@@ -523,7 +524,7 @@ option. These modes require different system and video memory capacities, see th
 <section id="expert-usage">
 <h2>Expert usage<a class="headerlink" href="#expert-usage" title="Link to this heading">¶</a></h2>
 <p>Individual modules and the surface pipeline can be run independently of the full pipeline script documented in this documentation.
-This is documented in READMEs in subfolders, for example: <a class="reference internal" href="../scripts/fastsurfercnn.run_model.html"><span class="doc std std-ref">whole brain segmentation only with FastSurferVINN</span></a>, <a class="reference internal" href="../scripts/cerebnet.html"><span class="doc std std-ref">cerebellum sub-segmentation</span></a>, <a class="reference internal" href="../scripts/hypvinn.html"><span class="doc std std-ref">hypothalamic sub-segmentation</span></a>, <a class="reference internal" href="../scripts/fastsurfer_cc.html"><span class="doc std std-ref">corpus callosum analysis</span></a> and <a class="reference internal" href="../scripts/recon_surf.html"><span class="doc std std-ref">surface pipeline only (recon-surf)</span></a>.</p>
+This is documented in READMEs in subfolders, for example: <a class="reference internal" href="../scripts/fastsurfercnn.html"><span class="doc std std-ref">whole brain segmentation only with FastSurferVINN</span></a>, <a class="reference internal" href="../scripts/cerebnet.html"><span class="doc std std-ref">cerebellum sub-segmentation</span></a>, <a class="reference internal" href="../scripts/hypvinn.html"><span class="doc std std-ref">hypothalamic sub-segmentation</span></a>, <a class="reference internal" href="../scripts/fastsurfer_cc.html"><span class="doc std std-ref">corpus callosum analysis</span></a> and <a class="reference internal" href="../scripts/recon_surf.html"><span class="doc std std-ref">surface pipeline only (recon-surf)</span></a>.</p>
 <p>Specifically, the segmentation modules feature options for optimized parallelization of batch processing.</p>
 </section>
 <section id="freesurfer-downstream-modules">
@@ -547,6 +548,8 @@ This is documented in READMEs in subfolders, for example: <a class="reference in
 <p><em>Faber J*, Kuegler D*, Bahrami E*, et al. (*co-first). CerebNet: A fast and reliable deep-learning pipeline for detailed cerebellum sub-segmentation. NeuroImage 264 (2022), 119703. https://doi.org/10.1016/j.neuroimage.2022.119703</em></p>
 <p><em>Estrada S, Kuegler D, Bahrami E, Xu P, Mousa D, Breteler MMB, Aziz NA, Reuter M. FastSurfer-HypVINN: Automated sub-segmentation of the hypothalamus and adjacent structures on high-resolutional brain MRI. Imaging Neuroscience 2023; 1 1–32. https://doi.org/10.1162/imag_a_00034</em></p>
 <p><em>Pollak C, Diers K, Estrada S, Kuegler D, Reuter M, FastSurfer-CC: A robust, accurate, and comprehensive framework for corpus callosum morphometry, pre-print on arXiv: https://doi.org/10.48550/arXiv.2511.16471</em></p>
+<p>Extensions:</p>
+<p><em>Pollak C, Kuegler D, Bauer T, Rueber T, Reuter M. FastSurfer-LIT: Lesion Inpainting Tool for Whole Brain MRI Segmentation with Tumors, Cavities and Abnormalities. Imaging Neuroscience 2025. https://doi.org/10.1162/imag_a_00446</em></p>
 <p>Stay tuned for updates and follow us on <a class="reference external" href="https://twitter.com/deepmilab">X/Twitter</a>.</p>
 <!-- start of acknowledgements -->
 </section>

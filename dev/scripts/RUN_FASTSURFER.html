@@ -201,6 +201,7 @@
 <li class="toctree-l2"><a class="reference internal" href="../overview/OUTPUT_FILES.html">Output files</a></li>
 <li class="toctree-l2 has-children"><a class="reference internal" href="../overview/modules/index.html">Modules</a><input aria-label="Toggle navigation of Modules" class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l3"><a class="reference internal" href="../overview/modules/CC.html">Corpus Callosum Pipeline</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../overview/modules/LIT.html">Lesion Inpainting Tool (LIT)</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../overview/docker.html">Docker Support</a></li>
@@ -501,6 +502,7 @@ Here, we have also added the <code class="docutils literal notranslate"><span cl
 <li><p><code class="docutils literal notranslate"><span class="pre">--no_cereb</span></code>: Switch off the cerebellum sub-segmentation.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">--no_hypothal</span></code>: Skip the hypothalamus segmentation.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">--no_cc</span></code>: Skip the segmentation and analysis of the corpus callosum.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--lesion_mask</span> <span class="pre">&lt;path</span> <span class="pre">to</span> <span class="pre">file&gt;</span></code>: Path to a binary lesion mask in the same space as the T1 input. If provided, FastSurfer will wrap the segmentation and surface pipelines with lesion inpainting using LIT. This experimental feature is useful for images with tumors or other large lesions; review LIT-modified outputs before downstream use.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">--cereb_segfile</span></code>: Name of the cerebellum segmentation file. If not provided, this intermediate DL-based segmentation will not be stored, but only the merged segmentation will be stored (see –main_segfile <filename>). Requires an ABSOLUTE Path! Default location: $SUBJECTS_DIR/$sid/mri/cerebellum.CerebNet.nii.gz</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">--no_biasfield</span></code>: Deactivate the biasfield correction and calculation of partial volume-corrected statistics in the segmentation modules. HypVINN does run but expects that biasfields are corrected externally.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">--native_image</span></code> or <code class="docutils literal notranslate"><span class="pre">--keepgeom</span></code>: <strong>Only supported for <code class="docutils literal notranslate"><span class="pre">--seg_only</span></code></strong>, segment in native image space (keep orientation, image size and voxel size of the input image), this also includes experimental support for anisotropic images (no extreme anisotropy).</p></li>
@@ -556,12 +558,16 @@ FLAGS:
   --sd  &lt;subjects_dir&gt;    Output directory $SUBJECTS_DIR (or pass via env var)
   --t1  &lt;T1_input&gt;        T1 full head input (not bias corrected). Requires an
                             ABSOLUTE Path!
+  --lesion_mask &lt;mask_input&gt;
+                          Lesion mask input for experimental lesion inpainting.
+                            Requires an ABSOLUTE Path!
   --asegdkt_segfile &lt;filename&gt;
                           Name of the segmentation file, which includes the
                           aparc+DKTatlas-aseg segmentations.
                           Requires an ABSOLUTE Path! Default location:
                           $SUBJECTS_DIR/$sid/mri/aparc.DKTatlas+aseg.deep.mgz
-  --vox_size &lt;0.7-1|min&gt;  Forces processing at a specific voxel size.
+  --vox_size &lt;0.7-1|min|keep&gt;
+                          Forces processing at a specific voxel size.
                             If a number between 0.7 and 1 is specified (below
                             is experimental) the T1w image is conformed to
                             that voxel size and processed.
@@ -577,6 +583,9 @@ FLAGS:
                             The voxel size (whether set manually or derived)
                             determines whether the surfaces are processed with
                             highres options (below 1mm) or not.
+                            If &quot;keep&quot; is specified, the native voxel size is
+                            preserved. This is experimental and only compatible
+                            with the segmentation pipeline.
   --edits                 Enables manual edits by replacing select intermediate/
                             result files by manedit substitutes (*.manedit.&lt;ext&gt;).
                             Segmentation: &lt;asegdkt_segfile&gt; and &lt;mask_name&gt;.
@@ -617,7 +626,7 @@ SEGMENTATION PIPELINE:
   --native_image OR       Output all images and segmentations in the native image space
   --keepgeom                with its image geometry (voxel size, dimensions, orientation).
                             This setting is not compatible with the surface pipeline and
-                            requires isotropic voxels in the native image space.
+                            implies --vox_size keep. Anisotropic voxels are experimental.
 
   MODULES:
   By default, all modules are run.

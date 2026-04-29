@@ -7,3 +7,4 @@ FastSurfer includes several specialized deep learning modules that can be run in
     :maxdepth: 2
 
     CC
+    LIT

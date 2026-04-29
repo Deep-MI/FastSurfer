@@ -201,6 +201,7 @@
 <li class="toctree-l2"><a class="reference internal" href="OUTPUT_FILES.html">Output files</a></li>
 <li class="toctree-l2 has-children"><a class="reference internal" href="modules/index.html">Modules</a><input aria-label="Toggle navigation of Modules" class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l3"><a class="reference internal" href="modules/CC.html">Corpus Callosum Pipeline</a></li>
+<li class="toctree-l3"><a class="reference internal" href="modules/LIT.html">Lesion Inpainting Tool (LIT)</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="docker.html">Docker Support</a></li>
@@ -700,6 +701,47 @@ docker<span class="w"> </span>run<span class="w"> </span>--gpus<span class="w"> 
 There are many intricacies and options, so it is advised to use <code class="docutils literal notranslate"><span class="pre">--help</span></code>, <code class="docutils literal notranslate"><span class="pre">--debug</span></code> and <code class="docutils literal notranslate"><span class="pre">--dry</span></code> to inspect, what will be scheduled as well as run a test on a small subset. More control over subjects is available with <code class="docutils literal notranslate"><span class="pre">--subject_list</span></code>.</p>
 <p>The <code class="docutils literal notranslate"><span class="pre">$HOME/my_mri_data</span></code> and the <code class="docutils literal notranslate"><span class="pre">$HOME/my_fastsurfer_analysis</span></code> directories need to be accessible from cluster nodes. Most IO is performed on a work directory (automatically generated from <code class="docutils literal notranslate"><span class="pre">$HPCWORK</span></code> environment variable: <code class="docutils literal notranslate"><span class="pre">$HPCWORK/fastsurfer-processing/$(date</span> <span class="pre">+%Y%m%d-%H%M%S)</span></code>). Alternatively, an empty directory can be manually defined via <code class="docutils literal notranslate"><span class="pre">--work</span></code>. On successful cleanup, this directory will be removed to <code class="docutils literal notranslate"><span class="pre">$HOME/my_fastsurfer_analysis</span></code> (defined via <code class="docutils literal notranslate"><span class="pre">--sd</span></code>).</p>
 </section>
+<section id="example-7-running-fastsurfer-with-lesion-inpainting-using-neurolit">
+<h2>Example 7: Running FastSurfer with lesion inpainting using neurolit<a class="headerlink" href="#example-7-running-fastsurfer-with-lesion-inpainting-using-neurolit" title="Link to this heading">¶</a></h2>
+<p>When T1w images contain large lesions such as tumors, surgical cavities, or other abnormalities,
+FastSurfer segmentation and surfaces can be affected by the altered anatomy. FastSurfer can be
+wrapped with the Lesion Inpainting Tool (LIT) by providing <code class="docutils literal notranslate"><span class="pre">--lesion_mask</span> <span class="pre">&lt;path</span> <span class="pre">to</span> <span class="pre">file&gt;</span></code>.</p>
+<blockquote>
+<div><p><strong>Note:</strong> The FastSurfer LIT extension is currently experimental. Review the LIT-modified
+outputs before using them for downstream analyses.</p>
+</div></blockquote>
+<section id="id1">
+<h3>Docker<a class="headerlink" href="#id1" title="Link to this heading">¶</a></h3>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>docker<span class="w"> </span>run<span class="w"> </span>--gpus<span class="w"> </span>all<span class="w"> </span>-v<span class="w"> </span>/home/user/my_mri_data:/data<span class="w"> </span><span class="se">\</span>
+<span class="w">                      </span>-v<span class="w"> </span>/home/user/my_fastsurfer_analysis:/output<span class="w"> </span><span class="se">\</span>
+<span class="w">                      </span>-v<span class="w"> </span>/home/user/my_fs_license_dir:/fs_license<span class="w"> </span><span class="se">\</span>
+<span class="w">                      </span>--rm<span class="w"> </span>--user<span class="w"> </span><span class="k">$(</span>id<span class="w"> </span>-u<span class="k">)</span>:<span class="k">$(</span>id<span class="w"> </span>-g<span class="k">)</span><span class="w"> </span>deepmi/fastsurfer:latest<span class="w"> </span><span class="se">\</span>
+<span class="w">                      </span>--fs_license<span class="w"> </span>/fs_license/license.txt<span class="w"> </span><span class="se">\</span>
+<span class="w">                      </span>--t1<span class="w"> </span>/data/subjectX/t1-weighted.nii.gz<span class="w"> </span><span class="se">\</span>
+<span class="w">                      </span>--lesion_mask<span class="w"> </span>/data/subjectX/lesion_mask.nii.gz<span class="w"> </span><span class="se">\</span>
+<span class="w">                      </span>--sid<span class="w"> </span>subjectX<span class="w"> </span>--sd<span class="w"> </span>/output<span class="w"> </span><span class="se">\</span>
+<span class="w">                      </span>--threads<span class="w"> </span><span class="m">4</span>
+</pre></div>
+</div>
+</section>
+<section id="id2">
+<h3>Native<a class="headerlink" href="#id2" title="Link to this heading">¶</a></h3>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>./run_fastsurfer.sh<span class="w"> </span>--t1<span class="w"> </span>/home/user/my_mri_data/subjectX/t1-weighted.nii.gz<span class="w"> </span><span class="se">\</span>
+<span class="w">                    </span>--lesion_mask<span class="w"> </span>/home/user/my_mri_data/subjectX/lesion_mask.nii.gz<span class="w"> </span><span class="se">\</span>
+<span class="w">                    </span>--sid<span class="w"> </span>subjectX<span class="w"> </span>--sd<span class="w"> </span>/home/user/my_fastsurfer_analysis<span class="w"> </span><span class="se">\</span>
+<span class="w">                    </span>--fs_license<span class="w"> </span>/path/to/license.txt<span class="w"> </span><span class="se">\</span>
+<span class="w">                    </span>--threads<span class="w"> </span><span class="m">4</span>
+</pre></div>
+</div>
+<p>When using <code class="docutils literal notranslate"><span class="pre">--lesion_mask</span> <span class="pre">&lt;path</span> <span class="pre">to</span> <span class="pre">file&gt;</span></code>, FastSurfer will:</p>
+<ol class="arabic simple">
+<li><p>Inpaint the lesion area using LIT.</p></li>
+<li><p>Run the selected parts of the segmentation and surface pipeline on the inpainted image (note that it is not compatible with <code class="docutils literal notranslate"><span class="pre">--surf_only</span></code>).</p></li>
+<li><p>Automatically map the lesion mask back into the final output files and regenerate the affected statistics.</p></li>
+<li><p>Preserve the pre-lesion outputs as <code class="docutils literal notranslate"><span class="pre">.lit</span></code> or mapped backup files and write lesion reports plus <code class="docutils literal notranslate"><span class="pre">lesion_impact_summary.yaml</span></code> in the <code class="docutils literal notranslate"><span class="pre">stats</span></code> directory.</p></li>
+</ol>
+</section>
+</section>
 </section>
 
         </article>
@@ -787,6 +829,11 @@ There are many intricacies and options, so it is advised to use <code class="doc
 </li>
 <li><a class="reference internal" href="#example-5-quick-segmentation">Example 5: Quick Segmentation</a></li>
 <li><a class="reference internal" href="#example-6-running-fastsurfer-on-a-slurm-cluster-via-singularity">Example 6: Running FastSurfer on a SLURM cluster via Singularity</a></li>
+<li><a class="reference internal" href="#example-7-running-fastsurfer-with-lesion-inpainting-using-neurolit">Example 7: Running FastSurfer with lesion inpainting using neurolit</a><ul>
+<li><a class="reference internal" href="#id1">Docker</a></li>
+<li><a class="reference internal" href="#id2">Native</a></li>
+</ul>
+</li>
 </ul>
 </li>
 </ul>

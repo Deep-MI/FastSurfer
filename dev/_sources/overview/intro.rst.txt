@@ -14,7 +14,7 @@ recommended Docker or Singularity images. But first let us tell you why we think
 * It is compatible with FreeSurfer, enabling FreeSurfer downstream tools to work directly.
 * It is much faster and provides increased reliability and sensitivity of the derived measures.
 * It natively supports high-resolution images (down to around 0.7mm) at high accuracy.
-* It has modules for full-brain (aseg+DKT), cerebellum and hypothalamic sub-segmentations.
+* It has modules for full-brain (aseg+DKT), cerebellum, corpus callosum and hypothalamic sub-segmentations.
 * The segmentation modules run within minutes and provide partial-volume corrected stats.
 * It has an optimized surface stream for cortical thickness analysis and improved correspondence.
 
