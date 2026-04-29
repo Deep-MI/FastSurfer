@@ -14,7 +14,7 @@
 
 # IMPORTS
 from numbers import Number
-from typing import Generic, Literal, TypedDict, TypeVar
+from typing import Literal, TypedDict, TypeVar, cast
 
 import h5py
 import numpy as np
@@ -28,13 +28,13 @@ from CerebNet.datasets.load_data import SubjectLoader
 from CerebNet.datasets.utils import bounding_volume_offset
 from FastSurferCNN.data_loader.conform import Reorientation, crop_transform
 from FastSurferCNN.data_loader.data_utils import get_thick_slices, transform_axial, transform_sagittal
-from FastSurferCNN.utils import AffineMatrix4x4, Mask3d, Plane, Shape3d, ShapeType, logging, nibabelImage
+from FastSurferCNN.utils import AffineMatrix4x4, Mask3d, Plane, Shape3d, logging, nibabelImage
 
 ROIKeys = Literal["source_shape", "offsets", "target_shape"]
-class LocalizerROI(TypedDict, Generic[ShapeType]):
-    source_shape: ShapeType
-    offsets: ShapeType
-    target_shape: ShapeType
+class LocalizerROI(TypedDict):
+    source_shape: Shape3d
+    offsets: Shape3d
+    target_shape: Shape3d
 
 NT = TypeVar("NT", bound=Number)
 
@@ -231,7 +231,7 @@ class SubjectDataset(Dataset):
 
     """
 
-    roi = LocalizerROI[Shape3d]
+    roi: LocalizerROI
 
     def __init__(
         self,
@@ -269,14 +269,14 @@ class SubjectDataset(Dataset):
         bbox = self.locate_mask_bbox(cereb_aseg_mask)
 
         # create the roi from cereb_aseg (where labels after interpolation > 0.05 --> membership rounded to 1 decimal)
-        self.roi: LocalizerROI = {
-            "source_shape": img_org.shape,
-            "offsets": bounding_volume_offset(bbox, patch_size, image_shape=cereb_aseg_mask.shape),
-            "target_shape": patch_size,
-        }
+        self.roi = LocalizerROI(
+            source_shape=cast(Shape3d, img_org.shape),
+            offsets=cast(Shape3d, bounding_volume_offset(bbox, patch_size, image_shape=cereb_aseg_mask.shape)),
+            target_shape=cast(Shape3d, patch_size),
+        )
         # crop the region of interest
         img = crop_transform(self.img_org_data, offsets=self.roi["offsets"], target_shape=self.roi["target_shape"])
-        patch_vox2vox = np.concatenate([np.eye(4)[:3], np.append(self.roi["offsets"], 1)[None]], axis=0)
+        patch_vox2vox = np.concatenate([np.eye(4)[:, :3], np.append(self.roi["offsets"], 1)[:, None]], axis=1)
         patch_vox2ras = self.img_org.affine @ patch_vox2vox
         # reorient the data to lia
         self.native_to_lia = Reorientation.from_target_orientation(patch_vox2ras, "soft LIA", self.roi["target_shape"])
@@ -320,7 +320,7 @@ class SubjectDataset(Dataset):
     def get_nibabel_img(self):
         return self.img_org
 
-    def get_bounding_offsets(self) -> LocalizerROI[Shape3d]:
+    def get_bounding_offsets(self) -> LocalizerROI:
         return self.roi
 
     def set_plane(self, plane: Plane):
