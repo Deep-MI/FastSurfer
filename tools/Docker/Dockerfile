@@ -163,7 +163,7 @@ source /venv/bin/activate
 # uv pip sync only installs "exactly" the packages in the lockfile, but does not resolve dependencies
 # therefore, we first compile the environment to resolve dependencies, and then sync to install both directly and
 # indirectly required packages
-uv pip compile --torch-backend=${DEVICE} --extra qc /install/pyproject.toml | uv pip sync --torch-backend=${DEVICE} -
+uv pip compile --torch-backend=${DEVICE} --extra container /install/pyproject.toml | uv pip sync --torch-backend=${DEVICE} -
 EOF
 
 LABEL org.opencontainers.image.authors="$AUTHOR" \
