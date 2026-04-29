@@ -102,6 +102,7 @@ mkdir -p "$mdir/tmp"
 pushd "$mdir" > /dev/null || ( echo "Could not change to $mdir!" | tee -a "$LF" && exit 1)
 
 tal_file="$mdir/transforms/talairach"
+intermediate_tal_file="$mdir/transforms/intermediate_talairach"
 if [[ "$edits" == "true" ]] && [[ -f "$tal_file.xfm" ]] && { [[ ! -f "$tal_file.auto.xfm" ]] || \
   [[ -f "$tal_file.auto.xfm" ]] && [[ "$(md5sum "$tal_file.xfm")" != "$(md5sum "$tal_file.auto.xfm")" ]] ; }
 then
@@ -155,7 +156,7 @@ else
     run_it "$LF" "${cmd[@]}"
 
     # talairach.xfm: compute talairach full head (25sec)
-    cmd=(talairach_avi --i "$prealigned_name" --xfm "$mdir/transforms/talairach.auto.xfm")
+    cmd=(talairach_avi --i "$prealigned_name" --xfm "$intermediate_tal_file.auto.xfm")
     if [[ "$atlas3T" == "true" ]]
     then
       echo "INFO: Using the 3T atlas for talairach registration."
@@ -168,11 +169,11 @@ else
 
   # concatenate prealign and talairach transforms; will overwrite talairach.auto.xfm.lta and talairach.auto.xfm
 
-  talairach_lta=$mdir/transforms/talairach.auto.xfm.lta
-  concatenated_lta=$mdir/transforms/talairach.auto.xfm.lta
+  intermediate_talairach_lta=$intermediate_tal_file.auto.xfm.lta
+  concatenated_lta=$tal_file.auto.xfm.lta
   lta=$(which lta)
 
-  cmd=($python "$lta" concat "$prealigned_lta" "$talairach_lta" "$concatenated_lta")
+  cmd=($python "$lta" concat "$prealigned_lta" "$intermediate_talairach_lta" "$concatenated_lta")
   run_it "$LF" "${cmd[@]}"
 
   concatenated_xfm=$mdir/transforms/talairach.auto.xfm
