@@ -12,7 +12,7 @@ fi
 
 source "$FASTSURFER_HOME/venv/bin/activate"
 "$PYTHON" -m pip install --upgrade pip
-"$PYTHON" -m pip install -r "$FASTSURFER_HOME/requirements.mac.txt"
+"$PYTHON" -m pip install "$FASTSURFER_HOME[qc]"
 
 export PYTHONPATH="${FASTSURFER_HOME}:${PYTHONPATH}"
 "$PYTHON" "$FASTSURFER_HOME/FastSurferCNN/download_checkpoints.py" --all
