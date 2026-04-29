@@ -224,10 +224,11 @@ SEGMENTATION PIPELINE:
   HYPOTHALAMUS MODULE (HypVINN):
   --no_hypothal           Skip the hypothalamus segmentation.
   --no_biasfield          Biasfield-corrected inputs are recommended for the
-                            hypothalamus sub-segmentation, but not required.
-  --t2 <T2_input>         *Optional* T2 full head input (does not have to be bias
-                            corrected; FastSurfer preprocesses it before HypVINN).
-                            Requires an ABSOLUTE Path!
+                            hypothalamus sub-segmentation. This option implies images
+                            were corrected externally.
+  --t2 <T2_input>         *Optional* T2 full head input (must be externally biasfield
+                            corrected when called with --no_biasfield). Requires an
+                            ABSOLUTE Path!
   --reg_mode <none|coreg|robust>
                           Ignored, if no T2 image is passed.
                             Specifies the registration method used to register T1

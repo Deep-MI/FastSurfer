@@ -36,7 +36,7 @@ Modules (all run by default):
    - outputs a hypothalamic subsegmentation including 3rd ventricle, c. mammilare, fornix and optic tracts.
    - a T1w image is highly recommended ([notes on input images](#requirements-to-input-images)), supports high-res (up to 0.7mm, but experimental beyond that).
    - allows the additional passing of a T2w image with `--t2 <path>`, which will be registered to the T1w image (see `--reg_mode` option).
-   - calculates summary statistics based on the T1w image; biasfield-corrected inputs are recommended for best results.
+   - calculates summary statistics based on the biasfield-corrected T1w image (skipped if `--no_biasfield` is passed).
 
 ### Surface reconstruction
 - approximately 60-90 minutes, `--surf_only` runs only [the surface part](recon_surf/README.md).
