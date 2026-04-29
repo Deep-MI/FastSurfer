@@ -153,15 +153,10 @@ else
     if [[ "$?" != 0 ]] ; then exit 1 ; fi
     cmd=($python "$segreg" --seg "$asegdkt_segfile" --lta "$prealigned_lta" --dof 12 --centroids "$reference_centroids")
     run_it "$LF" "${cmd[@]}"
-    
-    lta_script=$(get_script_path_python lta neuroreg)
-    if [[ "$?" != 0 ]] ; then exit 1 ; fi
-    prealigned_xfm=$mdir/transforms/segreg_prealigned.xfm
-    cmd=($python "$lta_script" convert "$prealigned_lta" "$prealigned_xfm")
-    run_it "$LF" "${cmd[@]}"
 
     prealigned_name=$mdir/segreg_prealigned.mgz
-    cmd=(mri_convert --apply_transform "$prealigned_xfm" "$norm_name" "$prealigned_name")
+    target_geom="$FREESURFER_HOME/average/mni305.cor.mgz" # only used for its conformed 1mm header; does not imply registration to this template
+    cmd=(mri_convert --apply_transform "$prealigned_lta" --reslice_like "$target_geom" "$norm_name" "$prealigned_name")
     run_it "$LF" "${cmd[@]}"
 
     # talairach.xfm: compute talairach full head (25sec)
@@ -178,7 +173,7 @@ else
     # remove the temporary prealigned file, as it is not needed anymore, is large-ish and redundant with the lta file
     run_it "$LF" rm -f "$prealigned_name"
 
-    # concatenate prealign and talairach transforms; will overwrite talairach.auto.xfm.lta and talairach.auto.xfm
+    # concatenate prealign and talairach transforms
 
     intermediate_talairach_lta=$intermediate_tal_file.auto.xfm.lta
     concatenated_lta=$tal_file.auto.xfm.lta
