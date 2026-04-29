@@ -94,15 +94,19 @@ Create a new environment and install FastSurfer dependencies:
 # create a .venv environment directory inside /path/to/install/FastSurfer with the FastSurfer dependencies
 # the minimum required python version is 3.10
 uv venv --python python3.12
-# download and install packages for the fastsurfer environment (implicitly read from requirements.txt)
-uv pip sync pyproject.toml
+# install packages with pinned versions from the last stable release (recommended)
+uv pip sync requirements.txt
 ```
-`uv` will also try to find the correct backend for your hardware, but you can manually specify the backend for testing:
-purposes:
+`uv` will also try to find the correct backend for your hardware, but you can manually specify the backend for testing purposes:
 ```bash
 # make sure you are in the FastSurfer directory!
-uv pip sync pyproject.toml --torch-backend cpu
+uv pip sync requirements.txt --torch-backend cpu
 ```
+
+> **For developers:** To install the latest compatible dependency versions instead of the pinned stable ones, replace `requirements.txt` with `pyproject.toml` in the commands above:
+> ```bash
+> uv pip sync pyproject.toml
+> ```
 You can now activate the FastSurfer environment with
 ```bash
 source .venv/bin/activate
