@@ -149,9 +149,8 @@ else
     # compute prealignment
     prealigned_lta=$mdir/transforms/segreg_prealigned.lta
     reference_centroids=mni_icbm152_t1_tal_nlin_asym_09c
-    segreg=$(get_script_path_python segreg neuroreg)
-    if [[ "$?" != 0 ]] ; then exit 1 ; fi
-    cmd=($python "$segreg" --seg "$asegdkt_segfile" --lta "$prealigned_lta" --dof 12 --centroids "$reference_centroids")
+    cmd=($python -m "neuroreg.cli.segreg" --seg "$asegdkt_segfile" --lta "$prealigned_lta" --dof 12
+         --centroids "$reference_centroids")
     run_it "$LF" "${cmd[@]}"
 
     prealigned_name=$mdir/segreg_prealigned.mgz
@@ -177,14 +176,12 @@ else
 
     intermediate_talairach_lta=$intermediate_tal_file.auto.xfm.lta
     concatenated_lta=$tal_file.auto.xfm.lta
-    lta_script=$(get_script_path_python lta neuroreg)
-    if [[ "$?" != 0 ]] ; then exit 1 ; fi
 
-    cmd=($python "$lta_script" concat "$prealigned_lta" "$intermediate_talairach_lta" "$concatenated_lta")
+    cmd=($python -m "neuroreg.cli.lta" concat "$prealigned_lta" "$intermediate_talairach_lta" "$concatenated_lta")
     run_it "$LF" "${cmd[@]}"
 
     concatenated_xfm=$mdir/transforms/talairach.auto.xfm
-    cmd=($python "$lta_script" convert "$concatenated_lta" "$concatenated_xfm")
+    cmd=($python "neuroreg.cli.lta" convert "$concatenated_lta" "$concatenated_xfm")
     run_it "$LF" "${cmd[@]}"
 
   fi
