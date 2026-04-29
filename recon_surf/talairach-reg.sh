@@ -161,7 +161,7 @@ else
     run_it "$LF" "${cmd[@]}"
 
     prealigned_name=$mdir/segreg_prealigned.mgz
-    cmd=(mri_convert --apply_transform "$norm_name" "$prealigned_name")
+    cmd=(mri_convert --apply_transform "$prealigned_xfm" "$norm_name" "$prealigned_name")
     run_it "$LF" "${cmd[@]}"
 
     # talairach.xfm: compute talairach full head (25sec)
