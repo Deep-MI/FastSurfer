@@ -20,8 +20,8 @@
 function usage()
 {
   echo "talairach-reg.sh <logfile> --dir <mri-directory> --conformed_name <conformed image file>"
-  echo "                 --norm_name <norm name> --py <python cmd> --asegdkt_segfile <aseg dkt file>"
-  echo "                 [--edits] [--long <basedir>] [--3T]"
+  echo "                 --norm_name <norm name> [--asegdkt_segfile <aseg dkt file>|--long <basedir>]"
+  echo "                 [--edits] [--3T] [--py <python cmd>]"
 }
 
 function checkdir()
@@ -49,6 +49,8 @@ function checkfile()
 long="false"
 edits="false"
 atlas3T="false"
+python="python3 -s"
+
 
 LF="$1"
 shift
@@ -83,6 +85,11 @@ do
     exit 1
   fi
 done
+
+if [[ "$long" != "true" ]] && [[ -z "$asegdkt_segfile" ]] ; then
+  echo "ERROR: --asegdkt_segfile is a required argument for non-longitudinal processing, but no value was passed!"
+  exit 1
+fi
 
 if [ -z "$FASTSURFER_HOME" ]
 then
@@ -169,19 +176,25 @@ else
     fi
     run_it "$LF" "${cmd[@]}"
 
+    # convert intermediate xfm to lta (must be done before removing prealigned_name, which provides src geometry)
+    intermediate_talairach_lta=$intermediate_tal_file.auto.xfm.lta
+    cmd=(lta_convert --src "$prealigned_name" --trg "$FREESURFER_HOME/average/mni305.cor.mgz"
+         --inxfm "$intermediate_tal_file.auto.xfm" --outlta "$intermediate_talairach_lta"
+         --subject fsaverage --ltavox2vox)
+    run_it "$LF" "${cmd[@]}"
+
     # remove the temporary prealigned file, as it is not needed anymore, is large-ish and redundant with the lta file
     run_it "$LF" rm -f "$prealigned_name"
 
     # concatenate prealign and talairach transforms
 
-    intermediate_talairach_lta=$intermediate_tal_file.auto.xfm.lta
     concatenated_lta=$tal_file.auto.xfm.lta
 
     cmd=($python -m "neuroreg.cli.lta" concat "$prealigned_lta" "$intermediate_talairach_lta" "$concatenated_lta")
     run_it "$LF" "${cmd[@]}"
 
     concatenated_xfm=$mdir/transforms/talairach.auto.xfm
-    cmd=($python "neuroreg.cli.lta" convert "$concatenated_lta" "$concatenated_xfm")
+    cmd=($python -m "neuroreg.cli.lta" convert "$concatenated_lta" "$concatenated_xfm")
     run_it "$LF" "${cmd[@]}"
 
   fi
@@ -232,4 +245,4 @@ fi
 cmd=(mri_add_xform_to_header -c "$tal_file.xfm" "$src_nu_file" "$mdir/nu.mgz")
 run_it "$LF" "${cmd[@]}"
 
-popd > /dev/null || return
+popd > /dev/null || exit $?
