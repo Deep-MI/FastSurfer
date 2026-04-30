@@ -373,12 +373,22 @@ class Reorientation:
         # by setting only the 3x3 rotational part here, we force from_target_affine to determine the translation
         # (as center-conserving)
         _reorder_ornt = axcodes2ornt(_target_orientation, AXCODES)
-        target_strict_affine: AffineMatrix3x3 = ornt2vox2vox(_reorder_ornt, (1,) * 3, vox_size)[:3, :3]
+
+        # strict version of the source vox2ras so can generate a soft transform
+        _source_affine = ornt2vox2vox(io_orientation(source_affine), shape,source_vox_size)
+
+        # first, target affine without voxelsize to determine the reordering of voxel sizes
+        target_strict_affine: AffineMatrix3x3 = ornt2vox2vox(_reorder_ornt, (1,) * 3, )[:3, :3]
+        matrix = np.pad(np.linalg.inv(_source_affine[:3, :3]) @ target_strict_affine, ((0, 1), (0, 1)))
+        reorder = io_orientation(matrix)
+
+        vox_size_in_target = vox_size[reorder.astype(np.int16)[:, 0]]
+
+        # second run, now with correct ordering of output voxel sizes in vox2ras
+        target_strict_affine: AffineMatrix3x3 = ornt2vox2vox(_reorder_ornt, (1,) * 3, vox_size_in_target)[:3, :3]
         if not is_soft:
             return cls.from_target_affine(source_affine, target_strict_affine, shape, target_shape, tol)
 
-        # soft transform
-        _source_affine = ornt2vox2vox(io_orientation(source_affine), shape,source_vox_size)
         rot_mat = np.linalg.inv(_source_affine[:3, :3]) @ target_strict_affine
 
         if np.allclose(rot_mat, np.round(rot_mat), atol=tol):
@@ -559,7 +569,7 @@ class Reorientation:
                 self.target_affine,
                 np.linalg.inv(self.vox2vox),
                 self.target_shape,
-                self.source_shape,
+                self.reorder_axes(self.source_shape),
                 self.tol,
             )
 
