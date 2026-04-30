@@ -178,9 +178,11 @@ else
 
     # convert intermediate xfm to lta (must be done before removing prealigned_name, which provides src geometry)
     intermediate_talairach_lta=$intermediate_tal_file.auto.xfm.lta
-    cmd=(lta_convert --src "$prealigned_name" --trg "$FREESURFER_HOME/average/mni305.cor.mgz"
-         --inxfm "$intermediate_tal_file.auto.xfm" --outlta "$intermediate_talairach_lta"
-         --subject fsaverage --ltavox2vox)
+    cmd=($python -m "neuroreg.cli.lta" convert
+         "$intermediate_tal_file.auto.xfm" "$intermediate_talairach_lta"
+         --src-img "$prealigned_name"
+         --dst-img "$FREESURFER_HOME/average/mni305.cor.mgz"
+         --out-type vox2vox)
     run_it "$LF" "${cmd[@]}"
 
     # remove the temporary prealigned file, as it is not needed anymore, is large-ish and redundant with the lta file
