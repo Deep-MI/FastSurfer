@@ -16,38 +16,13 @@
 # IMPORTS
 import numpy as np
 
-from FastSurferCNN.data_loader.conform import AXCODES, conform, getscale, scalecrop
+from FastSurferCNN.data_loader.conform import getscale, scalecrop
 from FastSurferCNN.utils import ShapeType
 from HypVINN.config.hypvinn_global_var import FS_CLASS_NAMES, HYPVINN_CLASS_NAMES, SAG2FULL_MAP, hyposubseg_labels
 
 ##
 # Helper Functions
 ##
-
-
-def reorient_img(img, ref_img):
-    """
-    Reorient a Nibabel image based on the orientation of a reference nibabel image.
-
-    Parameters
-    ----------
-    img : nibabel.Nifti1Image
-        Nibabel Image to reorient.
-    ref_img : nibabel.Nifti1Image
-        Reference orientation nibabel image.
-
-    Returns
-    -------
-    img : nibabel.Nifti1Image
-        Reoriented image.
-    """
-    # if the affines are the same, no reorientation is required and we can skip this
-    if np.array_equal(ref_img.affine, img.affine):
-        return img
-    from nibabel.orientations import aff2axcodes
-    target_orientation = "soft " + "".join(aff2axcodes(ref_img.affine, AXCODES))
-    # returns the same class as img
-    return conform(img, orientation=target_orientation, vox_size=None, img_size=None, dtype=None, rescale=None)
 
 
 def transform_axial2coronal(vol: np.ndarray, axial2coronal: bool = True) -> np.ndarray:

@@ -948,8 +948,8 @@ def rescale(
 def conform(
         img: nibabelImage,
         order: int = 1,
-        vox_size: VoxSizeOption | None = 1.0,
-        img_size: ImageSizeOption | None = 256,
+        vox_size: VoxSizeOption = 1.0,
+        img_size: ImageSizeOption = 256,
         dtype: npt.DTypeLike | None = np.uint8,
         orientation: OrientationType | None = "lia",
         threshold_1mm: float | None = None,
@@ -1234,8 +1234,8 @@ def does_vox2vox_rot_require_interpolation(
 
 def is_conform(
         img: nibabelImage,
-        vox_size: VoxSizeOption | None = 1.0,
-        img_size: ImageSizeOption | None = 256,
+        vox_size: VoxSizeOption = 1.0,
+        img_size: ImageSizeOption = 256,
         dtype: npt.DTypeLike | None = np.uint8,
         orientation: OrientationType | None = "lia",
         verbose: bool = True,
@@ -1437,8 +1437,8 @@ def is_orientation(
 
 def conformed_vox_img_size(
         img: nibabelImage,
-        vox_size: VoxSizeOption | None,
-        img_size: ImageSizeOption | None,
+        vox_size: VoxSizeOption,
+        img_size: ImageSizeOption,
         threshold_1mm: float | None = None,
         vox_eps: float = 1e-4,
         **kwargs,
@@ -1483,7 +1483,7 @@ def conformed_vox_img_size(
     target_img_size: IntVector3d | None
     MAX_VOX_SIZE = 1.0
     MAX_DIMENSION = 256
-    # this is similar to mri_convert --conform_min
+    # this is similar to mri_convert --conform_min, note, vox_size == 'auto' is extra, but not covered by VoxSizeOption
     if isinstance(vox_size, str) and (vox_size := cast(VoxSizeOption, vox_size.lower())) in ["min", "auto"]:
         # find minimal voxel side length
         min_vox_size = np.round(np.min(img.header.get_zooms()[:3]), decimals=int(np.ceil(-np.log10(vox_eps))))
@@ -1498,7 +1498,7 @@ def conformed_vox_img_size(
     elif vox_size is None:
         target_vox_size = None
     else:
-        raise ValueError("Invalid value for vox_size passed.")
+        raise ValueError(f"Invalid value for vox_size passed: {vox_size}.")
     if img_size is None and target_vox_size is not None:
         # if we did specify a vox_size, no image size. use the field of view (which is essentially the old image size
         # scaled with the voxel size)
@@ -1843,8 +1843,8 @@ if __name__ == "__main__":
         threshold_1mm: float
 
     class OptKwargs(_OptKwargs):
-        vox_size: VoxSizeOption | None
-        img_size: ImageSizeOption | None
+        vox_size: VoxSizeOption
+        img_size: ImageSizeOption
         dtype: npt.DTypeLike | None
         orientation: OrientationType | None
         verbose: bool

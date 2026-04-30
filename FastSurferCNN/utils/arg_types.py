@@ -19,8 +19,8 @@ from typing import Literal, cast
 import nibabel as nib
 import numpy as np
 
-VoxSizeOption = float | Literal["min"]
-ImageSizeOption = int | Literal["fov", "auto"]
+VoxSizeOption = float | Literal["min"] | None
+ImageSizeOption = int | Literal["fov", "auto"] | None
 
 __axcode = ("rl", "ap", "si")
 __orders = tuple(permutations(range(3)))
@@ -81,7 +81,7 @@ def string_to_bool(a: str) -> bool:
         return bool(a)
     return a.lower() in ("on", "true", "yes", "y", "1")
 
-def vox_size(a: str | float | None) -> VoxSizeOption | None:
+def vox_size(a: str | float | None) -> VoxSizeOption:
     """
     Convert the vox_size argument to 'min' or a valid voxel size.
 
@@ -95,14 +95,14 @@ def vox_size(a: str | float | None) -> VoxSizeOption | None:
     str or float or None
         If 'auto' or 'min' is provided, it returns a string('auto' or 'min').
         If a valid voxel size (between 0 and 1) is provided, it returns a float.
-        If 'any', it returns None.
+        If 'any' or 'keep', it returns None.
 
     Raises
     ------
     ValueError
         If the argument is not "min", "auto" or convertible to a float between 0 and 1.
     """
-    if a is None or isinstance(a, str) and a.lower() == "any":
+    if a is None or isinstance(a, str) and a.lower() in ["any", "keep"]:
         return None
     if isinstance(a, str) and a.lower() in ["auto", "min"]:
         return "min"
@@ -111,7 +111,7 @@ def vox_size(a: str | float | None) -> VoxSizeOption | None:
     except ValueError as e:
         raise ValueError(e.args[0] + " Additionally, vox_size may be 'min'.") from None
 
-def img_size(a: str) -> ImageSizeOption | None:
+def img_size(a: str) -> ImageSizeOption:
     """
     Convert the img_size argument to 'fov', 'auto' or int as a valid image size.
 
@@ -125,7 +125,7 @@ def img_size(a: str) -> ImageSizeOption | None:
     str or int
         If 'auto' or 'fov' is provided, it returns a string('auto' or 'fov').
         If a valid image size (greater than 0) is provided, it returns an int.
-        If 'any', it returns None.
+        If 'any' or 'keep', it returns None.
 
     Raises
     ------
@@ -134,7 +134,7 @@ def img_size(a: str) -> ImageSizeOption | None:
     """
     if a.lower() in ("auto", "fov"):
         return cast(ImageSizeOption, a.lower())
-    if a.lower() == "any":
+    if a.lower() in ("any", "keep"):
         return None
     try:
         return int_gt_zero(a)
