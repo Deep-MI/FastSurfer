@@ -463,7 +463,7 @@
 <span id="hypvinn-data-loader-data-utils"></span><h1>HypVINN.data_loader.data_utils<a class="headerlink" href="#module-HypVINN.data_loader.data_utils" title="Link to this heading">¶</a></h1>
 <dl class="py function">
 <dt class="sig sig-object py" id="HypVINN.data_loader.data_utils.hypo_map_label2subseg">
-<span class="sig-prename descclassname"><span class="pre">HypVINN.data_loader.data_utils.</span></span><span class="sig-name descname"><span class="pre">hypo_map_label2subseg</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mapped_subseg</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//HypVINN/data_loader/data_utils.py#L140-L164"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#HypVINN.data_loader.data_utils.hypo_map_label2subseg" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">HypVINN.data_loader.data_utils.</span></span><span class="sig-name descname"><span class="pre">hypo_map_label2subseg</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mapped_subseg</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//HypVINN/data_loader/data_utils.py#L115-L139"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#HypVINN.data_loader.data_utils.hypo_map_label2subseg" title="Link to this definition">¶</a></dt>
 <dd><p>Perform look-up table mapping from label space to subseg space.</p>
 <p>This function is used to perform a look-up table mapping from label space to subseg
 space.</p>
@@ -485,7 +485,7 @@ space.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="HypVINN.data_loader.data_utils.hypo_map_prediction_sagittal2full">
-<span class="sig-prename descclassname"><span class="pre">HypVINN.data_loader.data_utils.</span></span><span class="sig-name descname"><span class="pre">hypo_map_prediction_sagittal2full</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">prediction_sag</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//HypVINN/data_loader/data_utils.py#L167-L190"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#HypVINN.data_loader.data_utils.hypo_map_prediction_sagittal2full" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">HypVINN.data_loader.data_utils.</span></span><span class="sig-name descname"><span class="pre">hypo_map_prediction_sagittal2full</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">prediction_sag</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//HypVINN/data_loader/data_utils.py#L142-L165"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#HypVINN.data_loader.data_utils.hypo_map_prediction_sagittal2full" title="Link to this definition">¶</a></dt>
 <dd><p>Remap the prediction on the sagittal network to full label space.</p>
 <p>This function is used to remap the prediction on the sagittal network to the full
 label space used by the coronal and axial networks.</p>
@@ -507,7 +507,7 @@ label space used by the coronal and axial networks.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="HypVINN.data_loader.data_utils.hypo_map_subseg_2_fsseg">
-<span class="sig-prename descclassname"><span class="pre">HypVINN.data_loader.data_utils.</span></span><span class="sig-name descname"><span class="pre">hypo_map_subseg_2_fsseg</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">subseg</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reverse</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//HypVINN/data_loader/data_utils.py#L193-L229"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#HypVINN.data_loader.data_utils.hypo_map_subseg_2_fsseg" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">HypVINN.data_loader.data_utils.</span></span><span class="sig-name descname"><span class="pre">hypo_map_subseg_2_fsseg</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">subseg</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reverse</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//HypVINN/data_loader/data_utils.py#L168-L204"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#HypVINN.data_loader.data_utils.hypo_map_subseg_2_fsseg" title="Link to this definition">¶</a></dt>
 <dd><p>Remap HypVINN internal labels to FastSurfer Labels and vice versa.</p>
 <p>This function is used to remap HypVINN internal labels to FastSurfer Labels and vice
 versa. If the <code class="xref py py-obj docutils literal notranslate"><span class="pre">reverse</span></code> parameter is set to False, the function will map HypVINN
@@ -533,30 +533,8 @@ labels to FastSurfer labels. If True, remap FastSurfer labels to HypVINN labels.
 </dd></dl>
 
 <dl class="py function">
-<dt class="sig sig-object py" id="HypVINN.data_loader.data_utils.reorient_img">
-<span class="sig-prename descclassname"><span class="pre">HypVINN.data_loader.data_utils.</span></span><span class="sig-name descname"><span class="pre">reorient_img</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">img</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ref_img</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//HypVINN/data_loader/data_utils.py#L28-L50"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#HypVINN.data_loader.data_utils.reorient_img" title="Link to this definition">¶</a></dt>
-<dd><p>Reorient a Nibabel image based on the orientation of a reference nibabel image.</p>
-<dl class="field-list">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><dl>
-<dt><strong>img</strong><span class="classifier"><code class="xref py py-obj docutils literal notranslate"><span class="pre">nibabel.Nifti1Image</span></code></span></dt><dd><p>Nibabel Image to reorient.</p>
-</dd>
-<dt><strong>ref_img</strong><span class="classifier"><code class="xref py py-obj docutils literal notranslate"><span class="pre">nibabel.Nifti1Image</span></code></span></dt><dd><p>Reference orientation nibabel image.</p>
-</dd>
-</dl>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><dl>
-<dt><strong>img</strong><span class="classifier"><code class="xref py py-obj docutils literal notranslate"><span class="pre">nibabel.Nifti1Image</span></code></span></dt><dd><p>Reoriented image.</p>
-</dd>
-</dl>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py function">
 <dt class="sig sig-object py" id="HypVINN.data_loader.data_utils.rescale_image">
-<span class="sig-prename descclassname"><span class="pre">HypVINN.data_loader.data_utils.</span></span><span class="sig-name descname"><span class="pre">rescale_image</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">img_data</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//HypVINN/data_loader/data_utils.py#L112-L137"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#HypVINN.data_loader.data_utils.rescale_image" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">HypVINN.data_loader.data_utils.</span></span><span class="sig-name descname"><span class="pre">rescale_image</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">img_data</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//HypVINN/data_loader/data_utils.py#L87-L112"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#HypVINN.data_loader.data_utils.rescale_image" title="Link to this definition">¶</a></dt>
 <dd><p>Rescale the image data to the range [0, 255].</p>
 <p>This function rescales the input image data to the range [0, 255].</p>
 <dl class="field-list">
@@ -577,7 +555,7 @@ labels to FastSurfer labels. If True, remap FastSurfer labels to HypVINN labels.
 
 <dl class="py function">
 <dt class="sig sig-object py" id="HypVINN.data_loader.data_utils.transform_axial2coronal">
-<span class="sig-prename descclassname"><span class="pre">HypVINN.data_loader.data_utils.</span></span><span class="sig-name descname"><span class="pre">transform_axial2coronal</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">vol</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">axial2coronal</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//HypVINN/data_loader/data_utils.py#L53-L79"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#HypVINN.data_loader.data_utils.transform_axial2coronal" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">HypVINN.data_loader.data_utils.</span></span><span class="sig-name descname"><span class="pre">transform_axial2coronal</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">vol</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">axial2coronal</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//HypVINN/data_loader/data_utils.py#L28-L54"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#HypVINN.data_loader.data_utils.transform_axial2coronal" title="Link to this definition">¶</a></dt>
 <dd><p>Transforms a volume into the coronal axis and back.</p>
 <p>This function is used to transform a volume into the coronal axis and back. The
 transformation is done by moving the axes of the volume. If the <code class="xref py py-obj docutils literal notranslate"><span class="pre">axial2coronal</span></code>
@@ -604,7 +582,7 @@ axial to coronal. If False, transform from coronal to axial. (Default: True).</p
 
 <dl class="py function">
 <dt class="sig sig-object py" id="HypVINN.data_loader.data_utils.transform_axial2sagittal">
-<span class="sig-prename descclassname"><span class="pre">HypVINN.data_loader.data_utils.</span></span><span class="sig-name descname"><span class="pre">transform_axial2sagittal</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">vol</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">axial2sagittal</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//HypVINN/data_loader/data_utils.py#L82-L109"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#HypVINN.data_loader.data_utils.transform_axial2sagittal" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">HypVINN.data_loader.data_utils.</span></span><span class="sig-name descname"><span class="pre">transform_axial2sagittal</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">vol</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">axial2sagittal</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//HypVINN/data_loader/data_utils.py#L57-L84"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#HypVINN.data_loader.data_utils.transform_axial2sagittal" title="Link to this definition">¶</a></dt>
 <dd><p>Transforms a volume into the sagittal axis and back.</p>
 <p>This function is used to transform a volume into the sagittal axis and back. The
 transformation is done by moving the axes of the volume. If the <code class="xref py py-obj docutils literal notranslate"><span class="pre">axial2sagittal</span></code>
@@ -696,7 +674,6 @@ axial to sagittal. If False, transform from sagittal to axial. (Default: True).<
 <li><a class="reference internal" href="#HypVINN.data_loader.data_utils.hypo_map_label2subseg"><code class="docutils literal notranslate"><span class="pre">hypo_map_label2subseg()</span></code></a></li>
 <li><a class="reference internal" href="#HypVINN.data_loader.data_utils.hypo_map_prediction_sagittal2full"><code class="docutils literal notranslate"><span class="pre">hypo_map_prediction_sagittal2full()</span></code></a></li>
 <li><a class="reference internal" href="#HypVINN.data_loader.data_utils.hypo_map_subseg_2_fsseg"><code class="docutils literal notranslate"><span class="pre">hypo_map_subseg_2_fsseg()</span></code></a></li>
-<li><a class="reference internal" href="#HypVINN.data_loader.data_utils.reorient_img"><code class="docutils literal notranslate"><span class="pre">reorient_img()</span></code></a></li>
 <li><a class="reference internal" href="#HypVINN.data_loader.data_utils.rescale_image"><code class="docutils literal notranslate"><span class="pre">rescale_image()</span></code></a></li>
 <li><a class="reference internal" href="#HypVINN.data_loader.data_utils.transform_axial2coronal"><code class="docutils literal notranslate"><span class="pre">transform_axial2coronal()</span></code></a></li>
 <li><a class="reference internal" href="#HypVINN.data_loader.data_utils.transform_axial2sagittal"><code class="docutils literal notranslate"><span class="pre">transform_axial2sagittal()</span></code></a></li>
