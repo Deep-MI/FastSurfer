@@ -18,3 +18,5 @@ fastsurfer.egg-info
 uv.lock
 /doc/api/generated/
 /tools/debug-helpers
+.agentbridge/
+.agent-work/
