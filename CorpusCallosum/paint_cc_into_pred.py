@@ -25,7 +25,7 @@ import numpy as np
 from scipy import ndimage
 
 from CorpusCallosum.data.constants import FORNIX_LABEL, SUBSEGMENT_LABELS
-from FastSurferCNN.data_loader.conform import is_conform
+from FastSurferCNN.data_loader.conform import Reorientation, is_conform
 from FastSurferCNN.data_loader.data_utils import load_image
 from FastSurferCNN.reduce_to_aseg import reduce_to_aseg_and_save
 from FastSurferCNN.utils import Mask2d, Mask3d, Shape3d, logging
@@ -104,6 +104,15 @@ def make_parser() -> argparse.ArgumentParser:
         required=False,
         help="optionally also reduce the resulting segmentation to aseg and save separately.",
         default=None,
+    )
+    parser.add_argument(
+        "--keepgeom",
+        "--native_image",
+        dest="keepgeom",
+        action="store_true",
+        help="Keep native geometry (orientation and voxel size). If set, allows processing "
+             "images with matching native geometry.",
+        default=False,
     )
     return parser
 
@@ -385,6 +394,59 @@ def correct_wm_ventricles(
     return corrected_pred
 
 
+def correct_wm_ventricles_in_lia(
+    aseg_cc: np.ndarray[Shape3d, np.dtype[int]],
+    fornix_mask: Mask3d,
+    affine: np.ndarray,
+    voxel_size: tuple[float, float, float],
+    close_gap_size_mm: float = 3.0,
+) -> np.ndarray[Shape3d, np.dtype[int]]:
+    """Run WM/ventricle gap correction in LIA orientation and map back.
+
+    Parameters
+    ----------
+    aseg_cc : np.ndarray
+        Segmentation with CC already painted in, in native orientation.
+    fornix_mask : np.ndarray
+        Fornix mask in native orientation.
+    affine : np.ndarray
+        Native image affine.
+    voxel_size : tuple[float, float, float]
+        Native voxel sizes.
+    close_gap_size_mm : float, default=3.0
+        Maximum size of the gap to fill in millimeters.
+
+    Returns
+    -------
+    np.ndarray
+        Corrected segmentation map in the original/native orientation.
+    """
+    native_to_lia = Reorientation.from_target_orientation(
+        affine,
+        "soft LIA",
+        aseg_cc.shape,
+        np.asarray(voxel_size),
+    )
+
+    if not native_to_lia.is_identity():
+        logger.info(
+            "Running WM/ventricle gap correction in temporary LIA orientation; output will be mapped back to native geometry."
+        )
+
+    aseg_cc_lia = native_to_lia(aseg_cc, order=0)
+    fornix_mask_lia = native_to_lia(fornix_mask, order=0)
+    voxel_size_lia = tuple(native_to_lia.reorder_axes(np.asarray(voxel_size)).tolist())
+
+    corrected_lia = correct_wm_ventricles(
+        aseg_cc_lia,
+        fornix_mask_lia,
+        voxel_size_lia,
+        close_gap_size_mm=close_gap_size_mm,
+    )
+    corrected_native = native_to_lia.inverse(corrected_lia, order=0)
+    return corrected_native.astype(aseg_cc.dtype, copy=False)
+
+
 if __name__ == "__main__":
 
     # Command Line options are error checking done here
@@ -398,7 +460,11 @@ if __name__ == "__main__":
     (cc_seg_image, cc_seg_data), (aseg_image, aseg_data) = tmap(load_image, (options.input_cc, options.input_pred))
 
     def _is_conform(img, dtype, verbose):
-        return is_conform(img, vox_size=None, img_size=None, verbose=verbose, dtype=dtype)
+        # When keepgeom is True, skip orientation check (allow any orientation and voxel size)
+        # When keepgeom is False, check only dtype and LIA orientation (voxel size/dimensions still ignored)
+        # This allows processing of slightly anisotropic data in both modes
+        orientation = None if options.keepgeom else "lia"
+        return is_conform(img, vox_size=None, img_size=None, verbose=verbose, dtype=dtype, orientation=orientation)
 
     conform_args = (cc_seg_image, aseg_image), (np.uint8, np.integer)
     conform_checks = list(thread_executor().map(partial(_is_conform, verbose=False), *conform_args))
@@ -411,10 +477,17 @@ if __name__ == "__main__":
                 _is_conform(img, dtype, verbose=True)
                 names.append(name)
                 dtypes.append(dtype.name if hasattr(dtype, "name") else str(dtype))
-        sys.exit(
-            f"Error: {' and '.join(names)} input image is not conformed (LIA orientation, {'/'.join(dtypes)} dtype). "
-            "Please conform the image(s) using the conform.py script."
-        )
+        error_msg = f"Error: {' and '.join(names)} input image"
+        if options.keepgeom:
+            error_msg += f" has incorrect dtype (expected {'/'.join(dtypes)})."
+        else:
+            error_msg += f" is not conformed (LIA orientation, {'/'.join(dtypes)} dtype). "
+            error_msg += "Please conform the image(s) using the conform.py script or use --keepgeom/--native_image."
+        sys.exit(error_msg)
+
+    if cc_seg_data.shape != aseg_data.shape:
+        sys.exit("Error: The aseg and corpus callosum images do not have the same shape.")
+
     if not np.allclose(cc_seg_image.affine, aseg_image.affine):
         sys.exit("Error: The affine matrices of the aseg and the corpus callosum images are not the same.")
 
@@ -429,8 +502,13 @@ if __name__ == "__main__":
 
     # Apply ventricle gap filling corrections
     fornix_mask = cc_seg_data == FORNIX_LABEL
-    voxel_size = tuple(aseg_image.header.get_zooms())
-    pred_corrected = correct_wm_ventricles(aseg_data, fornix_mask, voxel_size)
+    voxel_size = tuple(aseg_image.header.get_zooms()[:3])
+    pred_corrected = correct_wm_ventricles_in_lia(
+        aseg_data,
+        fornix_mask,
+        aseg_image.affine,
+        voxel_size,
+    )
 
     logger.info(f"Writing segmentation with corpus callosum to: {options.output}")
     pred_with_cc_fin = nib.MGHImage(pred_corrected, aseg_image.affine, aseg_image.header)

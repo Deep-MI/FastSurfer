@@ -1310,6 +1310,7 @@ then
       # add CC into aparc.DKTatlas+aseg.deep.mgz and aseg.auto.mgz as mri_cc did before.
       cmd=($python "$CorpusCallosumDir/paint_cc_into_pred.py" -in_cc "$callosum_seg" -in_pred "$asegdkt_segfile"
            "-out" "$asegdkt_withcc_segfile" "-aseg" "$aseg_auto_segfile")
+      if [[ "$native_image" != "false" ]] ; then cmd+=(--keepgeom) ; fi
       echo_quoted "${cmd[@]}"
       "${wrap[@]}" "${cmd[@]}"
       if [[ "${PIPESTATUS[0]}" != 0 ]] ; then echo "ERROR: asegdkt cc inpainting failed!" ; exit 1 ; fi
