@@ -957,7 +957,7 @@ def main(
     additional_metrics["cc_num_failed_slices"] = num_failed_slices
 
     # get ac and pc in all spaces
-    ac_coords_vox_3d, pc_coords_vox_3d = [np.hstack((0, c)) for c in (ac_coords_vox, pc_coords_vox)]
+    ac_coords_vox_3d, pc_coords_vox_3d = (np.hstack((0, c)) for c in (ac_coords_vox, pc_coords_vox))
     ac_coords_3d, pc_coords_3d = nib.affines.apply_affine(
         np.linalg.inv(fsavg2midslice_vox2vox),
         (ac_coords_vox_3d, pc_coords_vox_3d),

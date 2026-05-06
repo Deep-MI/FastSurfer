@@ -690,7 +690,7 @@ def refine_midplane_with_distance_maps(
     z = candidate_coords[:, 2].astype(float)
     design = np.column_stack([y, z, np.ones_like(x)])
     coeffs, *_ = np.linalg.lstsq(design, x, rcond=None)
-    a_coef, b_coef, c_coef = [float(c) for c in coeffs]
+    a_coef, b_coef, c_coef = (float(c) for c in coeffs)
     fitted_x = design @ coeffs
     rmse = float(np.sqrt(np.mean((fitted_x - x) ** 2)))
 

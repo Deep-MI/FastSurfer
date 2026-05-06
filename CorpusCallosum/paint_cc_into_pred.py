@@ -430,7 +430,8 @@ def correct_wm_ventricles_in_lia(
 
     if not native_to_lia.is_identity():
         logger.info(
-            "Running WM/ventricle gap correction in temporary LIA orientation; output will be mapped back to native geometry."
+            "Running WM/ventricle gap correction in temporary LIA orientation; "
+            "output will be mapped back to native geometry."
         )
 
     aseg_cc_lia = native_to_lia(aseg_cc, order=0)

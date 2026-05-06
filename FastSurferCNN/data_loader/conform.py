@@ -738,7 +738,10 @@ def apply_vox2vox(
                 else:
                     raise TypeError("image_data has a device attribute but is not a torch.Tensor!")
             else:
-                image_data = np.squeeze(image_data, axis=tuple(range(3, image_data.ndim)))  # ty:ignore[invalid-assignment]
+                image_data = np.squeeze(  # ty:ignore[invalid-assignment]
+                    image_data,
+                    axis=tuple(range(3, image_data.ndim)),
+                )
         # if the output has the same number of frames as the input
         elif image_data.shape[3:] == out_shape[3:]:
             # add a frame dimension to vox2vox
@@ -1189,11 +1192,11 @@ def ornt2vox2vox(ornt: OrntArrayType, shape: npt.ArrayLike, scale: npt.ArrayLike
     dim = _ornt.shape[0]
     if scale is None:
         _scale = np.ones((dim,))
-    elif isinstance(scale, (int, float)):
+    elif isinstance(scale, int | float):
         _scale = np.full((dim,), scale)
     else:
         _scale = np.asarray(scale).flatten()
-        if not isinstance(_scale, (Sequence, np.ndarray)) or not np.issubdtype(_scale.dtype, np.number):
+        if not isinstance(_scale, Sequence | np.ndarray) or not np.issubdtype(_scale.dtype, np.number):
             raise ValueError("scale must be None, a scalar or an sequence/array of shape (ornt.shape[0])!")
         elif _scale.size == 1:
             _scale = np.full((dim,), _scale.item())
@@ -1356,7 +1359,7 @@ def is_conform(
         checks["Dtype None"] = "IGNORED", dtype_text
     else:
         _dtype: npt.DTypeLike = to_dtype(dtype)
-        if isinstance(_dtype, (str, np.dtype)):
+        if isinstance(_dtype, str | np.dtype):
             _dtype_name = np.dtype(_dtype).name
         elif isinstance(_dtype, type):
             _dtype_name = _dtype.__name__

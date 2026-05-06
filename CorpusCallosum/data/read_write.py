@@ -97,7 +97,7 @@ def convert_numpy_to_json_serializable(obj: object) -> object:
         return [convert_numpy_to_json_serializable(item) for item in obj]
     elif isinstance(obj, np.ndarray):
         return obj.tolist()
-    elif isinstance(obj, (np.integer, np.floating)):
+    elif isinstance(obj, np.integer | np.floating):
         # Handle numpy scalar types
         return obj.item()
     else:
