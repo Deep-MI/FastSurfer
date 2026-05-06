@@ -200,6 +200,28 @@ def test_affine_from_target_orientation(random_affine: AffineMatrix4x4, img_size
     assert actual == expected, f"affine_for_target_orientation did not yield a transformation to {orientation}!"
 
 
+def test_affine_from_target_orientation_soft_non_cubic_roundtrip():
+    """Soft reorientation on non-cubic inputs must remain a discrete reorder/flip without cropping."""
+    shape = (5, 3, 7)
+    source_ornt = nib.orientations.axcodes2ornt("prs", ("lr", "pa", "is"))
+    target_ornt = nib.orientations.axcodes2ornt("lia", ("lr", "pa", "is"))
+    affine = np.eye(4)
+    affine[:3, :3] = 0
+    affine[source_ornt[:, 0].astype(np.int16), np.arange(3)] = source_ornt[:, 1]
+
+    obj = Reorientation.from_target_orientation(affine, "soft LIA", shape)
+    expected = nib.orientations.inv_ornt_aff(nib.orientations.ornt_transform(source_ornt, target_ornt), shape)
+    assert obj.vox2vox == approx(expected)
+
+    data = np.zeros(shape, dtype=np.uint8)
+    data[1:4, 1:3, 2:6] = 1
+
+    lia = apply_vox2vox(data, obj.vox2vox, out_shape=obj.target_shape, order=0)
+    back = apply_vox2vox(lia, obj.inverse.vox2vox, out_shape=obj.inverse.target_shape, order=0)
+
+    assert back == approx(data), "Soft reorientation roundtrip cropped or shifted non-cubic input data."
+
+
 def test_Reorientation_target_shape(
         strict_orientation: StrictOrientationType,
         in_shape: Shape3d,

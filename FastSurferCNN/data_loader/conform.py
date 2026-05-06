@@ -24,7 +24,13 @@ from typing import TYPE_CHECKING, Literal, TypedDict, TypeVar, cast
 import nibabel as nib
 import numpy as np
 import torch
-from nibabel.orientations import aff2axcodes, axcodes2ornt, io_orientation
+from nibabel.orientations import (
+    aff2axcodes,
+    axcodes2ornt,
+    inv_ornt_aff,
+    io_orientation,
+    ornt_transform,
+)
 from numpy import typing as npt
 
 from FastSurferCNN.utils import (
@@ -389,12 +395,10 @@ class Reorientation:
         if not is_soft:
             return cls.from_target_affine(source_affine, target_strict_affine, shape, target_shape, tol)
 
-        rot_mat = np.linalg.inv(_source_affine[:3, :3]) @ target_strict_affine
-
-        if np.allclose(rot_mat, np.round(rot_mat), atol=tol):
-            rot_mat = np.round(rot_mat)
-
-        return cls.from_vox2vox(source_affine, rot_mat, shape, target_shape, tol)
+        source_ornt = io_orientation(source_affine)
+        target_ornt = axcodes2ornt(_target_orientation, AXCODES)
+        vox2vox = inv_ornt_aff(ornt_transform(source_ornt, target_ornt), shape)
+        return cls.from_vox2vox(source_affine, vox2vox, shape, target_shape, tol)
 
     @classmethod
     def from_target_affine(
