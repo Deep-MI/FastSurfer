@@ -827,8 +827,7 @@ fi
 
 if [[ "$run_surf_pipeline" == "true" ]] && [[ "$native_image" != "false" ]]
 then
-  echo "ERROR: The surface pipeline is not compatible with the options --native_image or "
-  echo "  --keepgeom."
+  echo "ERROR: The surface pipeline is not compatible with --native_image (alias --keepgeom)."
   exit 1
 fi
 
