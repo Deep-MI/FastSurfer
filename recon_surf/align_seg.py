@@ -19,13 +19,13 @@
 import optparse
 import sys
 
-import align_points as align
-import image_io as iio
-import numpy as np
 import SimpleITK as sitk
+import numpy as np
+from neuroreg import LTA
 from numpy import typing as npt
 
-from FastSurferCNN.utils.lta import write_lta
+import align_points as align
+import image_io as iio
 
 HELPTEXT = """
 
@@ -52,7 +52,6 @@ and rotation (rigid) or affine. The output is a FreeSurfer LTA registration file
 Original Author: Martin Reuter
 Date: Aug-24-2022
 """
-
 
 h_srcseg = "path to source segmentation (e.g. aparc+aseg.mgz)"
 h_trgseg = "path to target segmentation "
@@ -90,9 +89,9 @@ def options_parse():
     parser.add_option("--outlta", dest="outlta", help=h_outlta)
     (options, args) = parser.parse_args()
     if (
-        options.srcseg is None
-        or (options.trgseg is None and not options.flipped)
-        or options.outlta is None
+            options.srcseg is None
+            or (options.trgseg is None and not options.flipped)
+            or options.outlta is None
     ):
         sys.exit(
             "\nERROR: Please specify srcseg and trgseg (or flipped)" \
@@ -196,7 +195,7 @@ def align_seg_centroids(
     return T
 
 
-def get_vox2ras(img:sitk.Image) -> npt.NDArray:
+def get_vox2ras(img: sitk.Image) -> npt.NDArray:
     """
     Extract voxel to RAS (affine) from sitk image.
     
@@ -210,20 +209,21 @@ def get_vox2ras(img:sitk.Image) -> npt.NDArray:
     vox2ras
         VOX2RAS (affine) transformation matrix.
     """
-    vox2ras = np.zeros((4,4))
-    vox2ras[3,3] = 1.0
+    vox2ras = np.zeros((4, 4))
+    vox2ras[3, 3] = 1.0
     # Rotation
     cosines = img.GetDirection()
-    vox2ras[0,0:3] = cosines[0:3] * np.array([-1, -1, -1])
-    vox2ras[1,0:3] = cosines[3:6] * np.array([-1, -1, -1])
-    vox2ras[2,0:3] = cosines[6:9] 
+    vox2ras[0, 0:3] = cosines[0:3] * np.array([-1, -1, -1])
+    vox2ras[1, 0:3] = cosines[3:6] * np.array([-1, -1, -1])
+    vox2ras[2, 0:3] = cosines[6:9]
     # Scaling (multiply rows, hope this is correct)
     # not tested for anisotropic images
     spacing = img.GetSpacing()
-    vox2ras[0:3,0:3] = spacing * vox2ras[0:3,0:3]
+    vox2ras[0:3, 0:3] = spacing * vox2ras[0:3, 0:3]
     # Translation
-    vox2ras[0:3,3] = img.GetOrigin() * np.array([-1, -1, 1])
+    vox2ras[0:3, 3] = img.GetOrigin() * np.array([-1, -1, 1])
     return vox2ras
+
 
 def align_flipped(seg: sitk.Image, mid_slice: float | None = None) -> npt.NDArray:
     """
@@ -334,14 +334,14 @@ def align_flipped(seg: sitk.Image, mid_slice: float | None = None) -> npt.NDArra
     # instead we could also fix this to be 128 independent of width
     # like mri_cc does. 
     if not mid_slice:
-        middle = 0.5*(seg.GetWidth()-1.0)
+        middle = 0.5 * (seg.GetWidth() - 1.0)
     else:
         middle = mid_slice
     print(f"Mid slice will be at: {middle}")
 
     # negate right-left by flipping across middle of image (as make_upright would do it)
     centroids_flipped = centroids.copy()
-    centroids_flipped[:,0] = -1 * (centroids[:,0] - middle) + middle
+    centroids_flipped[:, 0] = -1 * (centroids[:, 0] - middle) + middle
 
     # now right is left and left is right (re-order)
     centroids_flipped = np.concatenate(
@@ -356,8 +356,8 @@ def align_flipped(seg: sitk.Image, mid_slice: float | None = None) -> npt.NDArra
     print(f"Matrix sqrt diff: {np.linalg.norm(T - (Tsqrt @ Tsqrt))}")
 
     # convert vox2vox to ras2ras:
-    Tsqrt = vox2ras @ Tsqrt @ ras2vox 
-    #print(Tsqrt)
+    Tsqrt = vox2ras @ Tsqrt @ ras2vox
+    # print(Tsqrt)
 
     return Tsqrt
 
@@ -398,9 +398,13 @@ if __name__ == "__main__":
 
     # write transform lta
     print(f"writing: {options.outlta}")
-    write_lta(
-        options.outlta, T, options.srcseg, srcheader, options.trgseg, trgheader
-    )
+    LTA.from_matrix(
+        T,
+        options.srcseg,
+        srcheader,
+        options.trgseg if options.trgseg is not None else "None",
+        trgheader,
+    ).write(options.outlta)
 
     print("...done\n")
 

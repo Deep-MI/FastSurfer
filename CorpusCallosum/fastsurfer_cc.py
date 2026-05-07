@@ -24,6 +24,7 @@ import nibabel as nib
 import numpy as np
 import torch
 from monai.networks.nets import DenseNet
+from neuroreg import LTA
 from nibabel.freesurfer.mghformat import MGHHeader
 from scipy.ndimage import affine_transform
 
@@ -67,7 +68,6 @@ from FastSurferCNN.utils import (
 )
 from FastSurferCNN.utils.arg_types import path_or_none
 from FastSurferCNN.utils.common import SubjectDirectory, find_device
-from FastSurferCNN.utils.lta import write_lta
 from FastSurferCNN.utils.parallel import get_num_threads, serial_executor, shutdown_executors, thread_executor
 from FastSurferCNN.utils.parser_defaults import modify_argument
 
@@ -154,18 +154,18 @@ def make_parser() -> argparse.ArgumentParser:
         metavar="FRAC",
         default=_FixFloatFormattingList([1 / 6, 1 / 2, 2 / 3, 3 / 4], ".3f"),
         help="List of subdivision fractions for the corpus callosum subsegmentation."
-        "The method allows for an arbitrary number of fractions."
-        "By default it uses following Hofer-Frahms convention.",
+             "The method allows for an arbitrary number of fractions."
+             "By default it uses following Hofer-Frahms convention.",
     )
     parser.add_argument(
         "--subdivision_method",
         default=_do_not_print("shape"),
         help="Method for contour subdivision. Options: <br>"
-        "- shape (default): Intercallosal subdivision perpendicular to intercallosal line, <br>"
-        "- vertical: orthogonal to the most anterior and posterior points in the AC/PC standardized CC contour, "
-        "<br>"
-        "- angular: subdivision based on equally spaced angles, as proposed by Hampel and colleagues, <br>"
-        "- eigenvector: primary direction, same as FreeSurfers mri_cc.",
+             "- shape (default): Intercallosal subdivision perpendicular to intercallosal line, <br>"
+             "- vertical: orthogonal to the most anterior and posterior points in the AC/PC standardized CC contour, "
+             "<br>"
+             "- angular: subdivision based on equally spaced angles, as proposed by Hampel and colleagues, <br>"
+             "- eigenvector: primary direction, same as FreeSurfers mri_cc.",
         choices=["shape", "vertical", "angular", "eigenvector"],
     )
     parser.add_argument(
@@ -173,7 +173,7 @@ def make_parser() -> argparse.ArgumentParser:
         type=int,
         default=5,
         help="Gaussian sigma for smoothing during contour detection. Higher values mean a smoother CC outline, at the "
-        "cost of precision.",
+             "cost of precision.",
     )
 
     def _slice_selection(a: str) -> SliceSelection:
@@ -193,7 +193,7 @@ def make_parser() -> argparse.ArgumentParser:
     advanced = parser.add_argument_group(
         title="Advanced options",
         description="Custom output paths, useful if no standard case directory is used. Relative paths are always "
-        "relative to the subject_dir defined via --sd and --sid!",
+                    "relative to the subject_dir defined via --sd and --sid!",
     )
     add_arguments(advanced, ["threads"])
     advanced.add_argument(
@@ -225,7 +225,7 @@ def make_parser() -> argparse.ArgumentParser:
         "--upright_lta",
         type=path_or_none,
         help="Output path for upright LTA transform. This makes sure the midplane is at 128 in LR direction, "
-        "but no nodding correction is applied.",
+             "but no nodding correction is applied.",
         default=DEFAULT_OUTPUT_PATHS["upright_lta"],
     )
     advanced.add_argument(
@@ -238,8 +238,8 @@ def make_parser() -> argparse.ArgumentParser:
         "--orient_volume_lta",
         type=path_or_none,
         help="Output path for orientation volume LTA transform. This makes sure the midplane is the volume center, "
-        "the anterior and posterior commissures are on the coordinate line, and the posterior commissure is "
-        "at the origin - standardizing the head position.",
+             "the anterior and posterior commissures are on the coordinate line, and the posterior commissure is "
+             "at the origin - standardizing the head position.",
         default=DEFAULT_OUTPUT_PATHS["orient_volume_lta"],
     )
     advanced.add_argument(
@@ -247,10 +247,10 @@ def make_parser() -> argparse.ArgumentParser:
         choices=["center", "fsaverage", "fsaverage_symmetry", "fsaverage_distance_map"],
         default="fsaverage_symmetry",
         help="Midsagittal plane finding method. "
-        "'center': center slice of the input volume, no alignment; "
-        "'fsaverage': centroid-based alignment to fsaverage template; "
-        "'fsaverage_symmetry': fsaverage alignment + LR label-symmetry shift refinement (default); "
-        "'fsaverage_distance_map': fsaverage alignment + distance-map plane-fitting refinement.",
+             "'center': center slice of the input volume, no alignment; "
+             "'fsaverage': centroid-based alignment to fsaverage template; "
+             "'fsaverage_symmetry': fsaverage alignment + LR label-symmetry shift refinement (default); "
+             "'fsaverage_distance_map': fsaverage alignment + distance-map plane-fitting refinement.",
     )
     advanced.add_argument(
         "--qc_image",
@@ -262,7 +262,7 @@ def make_parser() -> argparse.ArgumentParser:
         "--save_template_dir",
         type=path_or_none,
         help="Directory path where to save contours.txt and thickness_values.txt files. These files can be used to "
-        "visualize the CC shape and volume with the cc_visualization.py script.",
+             "visualize the CC shape and volume with the cc_visualization.py script.",
         default=None,
     )
     advanced.add_argument(
@@ -276,14 +276,14 @@ def make_parser() -> argparse.ArgumentParser:
         dest="cc_surf",
         type=path_or_none,
         help="Output path for surf file for visualization in freeview, use --save_template_dir and contours.txt to "
-        "obtain source CC contours.",
+             "obtain source CC contours.",
         default=DEFAULT_OUTPUT_PATHS["cc_surf"],
     )
     advanced.add_argument(
         "--thickness_overlay",
         type=path_or_none,
         help="Output path for corpus callosum thickness overlay file for visualization in freeview, use "
-        "--save_template_dir and thickness_values.txt to obtain source CC thickness values.",
+             "--save_template_dir and thickness_values.txt to obtain source CC thickness values.",
         default=DEFAULT_OUTPUT_PATHS["cc_thickness_overlay"],
     )
     advanced.add_argument(
@@ -298,28 +298,28 @@ def make_parser() -> argparse.ArgumentParser:
         "--cc_surf_vtk",
         type=path_or_none,
         help=f"Output path for vtk file, showing the CC 3D mesh for visualization, use --save_template_dir and "
-        f"contours.txt to obtain source CC contours. Example: {DEFAULT_OUTPUT_PATHS['cc_surf_vtk']}.",
+             f"contours.txt to obtain source CC contours. Example: {DEFAULT_OUTPUT_PATHS['cc_surf_vtk']}.",
         default=None,
     )
     advanced.add_argument(
         "--softlabels_cc",
         type=path_or_none,
         help=f"Output path for corpus callosum softlabels, which contains the soft labels of each voxel. "
-        f"Example: {DEFAULT_OUTPUT_PATHS['softlabels_cc']}.",
+             f"Example: {DEFAULT_OUTPUT_PATHS['softlabels_cc']}.",
         default=None,
     )
     advanced.add_argument(
         "--softlabels_fn",
         type=path_or_none,
         help=f"Output path for fornix softlabels, which contains the soft labels of each voxel. "
-        f"Example: {DEFAULT_OUTPUT_PATHS['softlabels_fn']}.",
+             f"Example: {DEFAULT_OUTPUT_PATHS['softlabels_fn']}.",
         default=None,
     )
     advanced.add_argument(
         "--softlabels_background",
         type=path_or_none,
         help=f"Output path for background softlabels, which contains the probability of each voxel. "
-        f"Example: {DEFAULT_OUTPUT_PATHS['softlabels_background']}.",
+             f"Example: {DEFAULT_OUTPUT_PATHS['softlabels_background']}.",
         default=None,
     )
     ############ END OF OUTPUT PATHS ############
@@ -410,13 +410,12 @@ def options_parse() -> argparse.Namespace:
     return args
 
 
-
 def localize_ac_pc(
-    orig_data: Image3d,
-    aseg_nib: nibabelImage,
-    orig2midslice_vox2vox: AffineMatrix4x4,
-    model_localization: DenseNet,
-    resample_shape: Shape3d,
+        orig_data: Image3d,
+        aseg_nib: nibabelImage,
+        orig2midslice_vox2vox: AffineMatrix4x4,
+        model_localization: DenseNet,
+        resample_shape: Shape3d,
 ) -> tuple[Vector2d, Vector2d]:
     """Localize anterior and posterior commissure points in the brain.
 
@@ -444,7 +443,7 @@ def localize_ac_pc(
         PC voxel coordinates with shape (2,) containing its [y,x] positions.
     """
     num_slices_to_analyze = resample_shape[0]
-    resample_shape = (num_slices_to_analyze + 2,) + resample_shape[1:] # 2 for context slices
+    resample_shape = (num_slices_to_analyze + 2,) + resample_shape[1:]  # 2 for context slices
     _midslices_fut = thread_executor().submit(
         affine_transform,
         orig_data,
@@ -472,11 +471,11 @@ def localize_ac_pc(
 
 
 def segment_cc(
-    midslices: Image3d,
-    ac_coords: Vector2d,
-    pc_coords: Vector2d,
-    aseg_nib: nibabelImage,
-    model_segmentation: "torch.nn.Module",
+        midslices: Image3d,
+        ac_coords: Vector2d,
+        pc_coords: Vector2d,
+        aseg_nib: nibabelImage,
+        model_segmentation: "torch.nn.Module",
 ) -> tuple[Mask3d, Image4d]:
     """Segment the corpus callosum using a trained model.
 
@@ -526,33 +525,33 @@ def segment_cc(
 
 
 def main(
-    conf_name: str | Path,
-    aseg_name: str | Path,
-    subject_dir: str | Path,
-    slice_selection: SliceSelection = "middle",
-    num_thickness_points: int = 100,
-    subdivisions: list[float] | None = None,
-    subdivision_method: SubdivisionMethod = "shape",
-    contour_smoothing: int = 5,
-    save_template_dir: str | Path | None = None,
-    device: str | torch.device = "auto",
-    upright_volume: str | Path | None = None,
-    segmentation: str | Path | None = None,
-    cc_measures: str | Path | None = None,
-    cc_mid_measures: str | Path | None = None,
-    upright_lta: str | Path | None = None,
-    orient_volume_lta: str | Path | None = None,
-    midplane_method: str = "fsaverage_symmetry",
-    cc_surf: str | Path | None = None,
-    cc_thickness_overlay: str | Path | None = None,
-    cc_html: str | Path | None = None,
-    cc_surf_vtk: str | Path | None = None,
-    segmentation_in_orig: str | Path | None = None,
-    qc_image: str | Path | None = None,
-    thickness_image: str | Path | None = None,
-    softlabels_cc: str | Path | None = None,
-    softlabels_fn: str | Path | None = None,
-    softlabels_background: str | Path | None = None,
+        conf_name: str | Path,
+        aseg_name: str | Path,
+        subject_dir: str | Path,
+        slice_selection: SliceSelection = "middle",
+        num_thickness_points: int = 100,
+        subdivisions: list[float] | None = None,
+        subdivision_method: SubdivisionMethod = "shape",
+        contour_smoothing: int = 5,
+        save_template_dir: str | Path | None = None,
+        device: str | torch.device = "auto",
+        upright_volume: str | Path | None = None,
+        segmentation: str | Path | None = None,
+        cc_measures: str | Path | None = None,
+        cc_mid_measures: str | Path | None = None,
+        upright_lta: str | Path | None = None,
+        orient_volume_lta: str | Path | None = None,
+        midplane_method: str = "fsaverage_symmetry",
+        cc_surf: str | Path | None = None,
+        cc_thickness_overlay: str | Path | None = None,
+        cc_html: str | Path | None = None,
+        cc_surf_vtk: str | Path | None = None,
+        segmentation_in_orig: str | Path | None = None,
+        qc_image: str | Path | None = None,
+        thickness_image: str | Path | None = None,
+        softlabels_cc: str | Path | None = None,
+        softlabels_fn: str | Path | None = None,
+        softlabels_background: str | Path | None = None,
 ) -> Literal[0] | str:
     """Main pipeline function for corpus callosum analysis.
 
@@ -1034,13 +1033,14 @@ def main(
         logger.info(f"Saving LTA to fsaverage space: {sd.filename_by_attribute('upright_lta')}")
         futures.append(
             thread_executor().submit(
-                write_lta,
+                LTA.from_matrix(
+                    orig2fsavg_ras2ras,
+                    str(sd.filename_by_attribute("aseg_name")),
+                    aseg_img.header,
+                    "fsaverage",
+                    fsavg_header,
+                ).write,
                 sd.filename_by_attribute("upright_lta"),
-                orig2fsavg_ras2ras,
-                sd.filename_by_attribute("aseg_name"),
-                aseg_img.header,
-                "fsaverage",
-                fsavg_header,
             )
         )
 
@@ -1048,18 +1048,19 @@ def main(
         sd.filename_by_attribute("cc_orient_volume_lta").parent.mkdir(exist_ok=True, parents=True)
         # save lta to standardized space (fsaverage + nodding + ac to center)
         fsavg2standardized_ras2ras = (
-            fsavg_vox2ras @ np.linalg.inv(standardized2orig_vox2vox) @ np.linalg.inv(orig.affine)
+                fsavg_vox2ras @ np.linalg.inv(standardized2orig_vox2vox) @ np.linalg.inv(orig.affine)
         )
         logger.info(f"Saving LTA to standardized space: {sd.filename_by_attribute('cc_orient_volume_lta')}")
         futures.append(
             thread_executor().submit(
-                write_lta,
+                LTA.from_matrix(
+                    fsavg2standardized_ras2ras,
+                    str(sd.conf_name),
+                    orig.header,
+                    "standardized",
+                    fsavg_header,
+                ).write,
                 sd.filename_by_attribute("cc_orient_volume_lta"),
-                fsavg2standardized_ras2ras,
-                sd.conf_name,
-                orig.header,
-                "standardized",
-                fsavg_header,
             )
         )
 
