@@ -7,8 +7,6 @@ recon_surf
 .. autosummary::
     :toctree: generated/
 
-    align_points
-    align_seg
     create_annotation
     fs_balabels
     image_io
