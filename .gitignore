@@ -5,6 +5,7 @@
 /rough_work/**
 /scripts/**
 /doc-build/**
+/checkpoints/**
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
