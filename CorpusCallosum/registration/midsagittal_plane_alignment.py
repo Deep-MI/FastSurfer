@@ -4,6 +4,7 @@ from dataclasses import dataclass
 
 import nibabel as nib
 import numpy as np
+from neuroreg.segreg.points import find_rigid
 from scipy.ndimage import affine_transform, binary_fill_holes, distance_transform_edt
 from skimage.morphology import convex_hull_image
 
@@ -19,7 +20,6 @@ from CorpusCallosum.shape.postprocessing import offset_affine
 from FastSurferCNN.utils import AffineMatrix4x4, Shape3d, logging, nibabelImage
 from FastSurferCNN.utils.brainvolstats import hemi_masks_from_aseg
 from FastSurferCNN.utils.parallel import thread_executor
-from recon_surf.align_points import find_rigid
 
 logger = logging.get_logger(__name__)
 
