@@ -533,7 +533,7 @@ def read_and_close_version(project_file: TextIO | PathLike | None = None) -> str
         _project_file = open(DEFAULTS.PROJECT_TOML)
     elif hasattr(project_file, "read"):
         _project_file = cast(TextIO, project_file)
-    elif isinstance(project_file, (PathLike, Path)):
+    elif isinstance(project_file, PathLike | Path):
         _project_file = open(project_file)
     else:
         raise TypeError("project_file must be TextIO, PathLike, or None!")

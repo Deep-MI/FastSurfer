@@ -551,7 +551,7 @@ class CCMesh(lapy.TriaMesh):
             from nibabel.freesurfer.mghformat import MGHHeader
 
             # if header is a file, load its header from the file
-            if isinstance(ref_header, (str, Path)):
+            if isinstance(ref_header, str | Path):
                 ref_header = nib.load(ref_header).header
             # if header is not already an MGHHeader, convert it to MGHHeader, so we have the get_vox2ras_tkr function
             mgh_header = ref_header if isinstance(ref_header, MGHHeader) else MGHHeader.from_header(ref_header)

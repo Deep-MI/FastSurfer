@@ -259,7 +259,7 @@ def plot_contours(
 
         if output_path is None:
             return plt.show()
-        for _output_path in (output_path if isinstance(output_path, (list, tuple)) else [output_path]):
+        for _output_path in (output_path if isinstance(output_path, list | tuple) else [output_path]):
             Path(_output_path).parent.mkdir(parents=True, exist_ok=True)
             fig.savefig(_output_path, dpi=300, bbox_inches="tight")
     return None

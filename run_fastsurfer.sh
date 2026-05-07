@@ -385,6 +385,8 @@ function verify_threads() {
 
 # PARSE Command line
 inputargs=("$@")
+printf -v invocation_command '%q ' "$THIS_SCRIPT" "${inputargs[@]}"
+invocation_command="${invocation_command% }"
 POSITIONAL=()
 while [[ $# -gt 0 ]]
 do
@@ -825,8 +827,7 @@ fi
 
 if [[ "$run_surf_pipeline" == "true" ]] && [[ "$native_image" != "false" ]]
 then
-  echo "ERROR: The surface pipeline is not compatible with the options --native_image or "
-  echo "  --keepgeom."
+  echo "ERROR: The surface pipeline is not compatible with --native_image (alias --keepgeom)."
   exit 1
 fi
 
@@ -973,6 +974,7 @@ if [[ -f "$seg_log" ]]; then log_existed="true" ; else log_existed="false" ; fi
   date 2>&1
   echo ""
   echo "Log file for FastSurfer pipeline, run_fastsurfer.sh and segmentation(s)"
+  echo "Invocation: $invocation_command"
 } | tee -a "$seg_log"
 
 ### IF tmpLF exists, it has been created with a warning or similar, copy that warning to seg_log now
@@ -985,8 +987,19 @@ trap "{ echo \"run_fastsurfer.sh terminated via signal at \$(date -R)!\" | tee -
 
 # create the build log, file with all version info in parallel
 # uses ${version_cache_args}, which is filled exactly if a build_cache file exists
-printf "%s %s\n%s\n" "$THIS_SCRIPT" "${inputargs[*]}" "$(date -R)" >> "$build_log"
-timeout 20 $python "$FASTSURFER_HOME/FastSurferCNN/version.py" --sections all -o "$build_log" "${version_cache_args[@]}" &
+(
+  if timeout 20 $python "$FASTSURFER_HOME/FastSurferCNN/version.py" --sections all -o "$build_log" "${version_cache_args[@]}"
+  then
+    {
+      echo ""
+      echo "=========="
+      echo "invocation:"
+      echo "=========="
+      echo "$invocation_command"
+      date -R
+    } >> "$build_log"
+  fi
+) &
 
 if [[ "$run_seg_pipeline" != "true" ]]
 then
@@ -1296,6 +1309,7 @@ then
       # add CC into aparc.DKTatlas+aseg.deep.mgz and aseg.auto.mgz as mri_cc did before.
       cmd=($python "$CorpusCallosumDir/paint_cc_into_pred.py" -in_cc "$callosum_seg" -in_pred "$asegdkt_segfile"
            "-out" "$asegdkt_withcc_segfile" "-aseg" "$aseg_auto_segfile")
+      if [[ "$native_image" != "false" ]] ; then cmd+=(--keepgeom) ; fi
       echo_quoted "${cmd[@]}"
       "${wrap[@]}" "${cmd[@]}"
       if [[ "${PIPESTATUS[0]}" != 0 ]] ; then echo "ERROR: asegdkt cc inpainting failed!" ; exit 1 ; fi

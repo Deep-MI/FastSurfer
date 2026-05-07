@@ -4,7 +4,7 @@ from logging import getLogger
 import nibabel as nib
 import numpy as np
 import pytest
-from nibabel.orientations import aff2axcodes
+from nibabel.orientations import aff2axcodes, io_orientation
 from numpy import typing as npt
 from pytest import approx
 from scipy.ndimage import affine_transform
@@ -198,6 +198,60 @@ def test_affine_from_target_orientation(random_affine: AffineMatrix4x4, img_size
     actual = "".join(aff2axcodes(combined, ("lr", "pa", "is")))
     expected = orientation.lower().removeprefix("soft").lstrip("-_ ")
     assert actual == expected, f"affine_for_target_orientation did not yield a transformation to {orientation}!"
+
+
+def test_affine_from_target_orientation_soft_non_cubic_roundtrip():
+    """Soft reorientation on non-cubic inputs must remain a discrete reorder/flip without cropping."""
+    shape = (5, 3, 7)
+    source_ornt = nib.orientations.axcodes2ornt("prs", ("lr", "pa", "is"))
+    target_ornt = nib.orientations.axcodes2ornt("lia", ("lr", "pa", "is"))
+    affine = np.eye(4)
+    affine[:3, :3] = 0
+    affine[source_ornt[:, 0].astype(np.int16), np.arange(3)] = source_ornt[:, 1]
+
+    obj = Reorientation.from_target_orientation(affine, "soft LIA", shape)
+    expected = nib.orientations.inv_ornt_aff(nib.orientations.ornt_transform(source_ornt, target_ornt), shape)
+    assert obj.vox2vox == approx(expected)
+
+    data = np.zeros(shape, dtype=np.uint8)
+    data[1:4, 1:3, 2:6] = 1
+
+    lia = apply_vox2vox(data, obj.vox2vox, out_shape=obj.target_shape, order=0)
+    back = apply_vox2vox(lia, obj.inverse.vox2vox, out_shape=obj.inverse.target_shape, order=0)
+
+    assert back == approx(data), "Soft reorientation roundtrip cropped or shifted non-cubic input data."
+
+
+def test_affine_from_target_orientation_soft_keepgeom_roundtrip():
+    """Soft reorientation with native geometry must stay discrete for keepgeom-like cases."""
+    shape = (32, 24, 32)
+    target_ornt = nib.orientations.axcodes2ornt("lia", ("lr", "pa", "is"))
+
+    affine = np.eye(4)
+    affine[:3, :3] = np.asarray(
+        [
+            [-0.02, 0.80, 0.05],
+            [-0.79, -0.03, 0.13],
+            [0.13, -0.05, 0.79],
+        ]
+    )
+    zooms = np.linalg.norm(affine[:3, :3], axis=0)
+    source_ornt = io_orientation(affine)
+
+    obj = Reorientation.from_target_orientation(affine, "soft LIA", shape, zooms)
+    expected = nib.orientations.inv_ornt_aff(nib.orientations.ornt_transform(source_ornt, target_ornt), shape)
+
+    assert obj.vox2vox == approx(expected)
+    assert "".join(aff2axcodes(affine, ("lr", "pa", "is"))).lower() == "prs"
+    assert "".join(aff2axcodes(obj.target_affine, ("lr", "pa", "is"))).lower() == "lia"
+
+    data = np.zeros(shape, dtype=np.uint8)
+    data[8:16, 6:14, 10:22] = 1
+
+    lia = apply_vox2vox(data, obj.vox2vox, out_shape=obj.target_shape, order=0)
+    back = apply_vox2vox(lia, obj.inverse.vox2vox, out_shape=obj.inverse.target_shape, order=0)
+
+    assert back == approx(data), "Soft keepgeom reorientation should roundtrip exactly for label data."
 
 
 def test_Reorientation_target_shape(
