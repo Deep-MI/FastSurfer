@@ -397,8 +397,17 @@ class Reorientation:
 
         source_ornt = io_orientation(source_affine)
         target_ornt = axcodes2ornt(_target_orientation, AXCODES)
-        vox2vox = inv_ornt_aff(ornt_transform(source_ornt, target_ornt), shape)
-        return cls.from_vox2vox(source_affine, vox2vox, shape, target_shape, tol)
+        discrete_vox2vox = inv_ornt_aff(ornt_transform(source_ornt, target_ornt), shape)
+        soft_rot_mat = np.linalg.inv(_source_affine[:3, :3]) @ target_strict_affine
+
+        if np.allclose(soft_rot_mat, np.round(soft_rot_mat), atol=tol):
+            soft_rot_mat = np.round(soft_rot_mat)
+
+        same_target_shape = target_shape is None or np.array_equal(np.asarray(target_shape), np.asarray(shape))
+        if same_target_shape and not does_vox2vox_rot_require_interpolation(soft_rot_mat, vox_eps=tol, rot_eps=tol):
+            return cls.from_vox2vox(source_affine, discrete_vox2vox, shape, target_shape, tol)
+
+        return cls.from_vox2vox(source_affine, soft_rot_mat, shape, target_shape, tol)
 
     @classmethod
     def from_target_affine(
