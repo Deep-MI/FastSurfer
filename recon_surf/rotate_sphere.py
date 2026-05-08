@@ -26,11 +26,11 @@ from neuroreg.segreg.points import find_rotation
 from numpy import typing as npt
 
 
-def rmat2angles(R: npt.NDArray) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+def rmat2angles(R: npt.NDArray) -> tuple[float, float, float]:
     """Extract rotation angles (alpha, beta, gamma) in FreeSurfer format for mris_register."""
-    alpha = np.degrees(-np.arctan2(R[1, 0], R[0, 0]))
-    beta = np.degrees(np.arcsin(R[2, 0]))
-    gamma = np.degrees(np.arctan2(R[2, 1], R[2, 2]))
+    alpha = float(np.degrees(-np.arctan2(R[1, 0], R[0, 0])))
+    beta = float(np.degrees(np.arcsin(R[2, 0])))
+    gamma = float(np.degrees(np.arctan2(R[2, 1], R[2, 2])))
     return (alpha, beta, gamma)
 
 
@@ -137,7 +137,7 @@ def align_aparc_centroids(
     R : npt.NDArray[float]
         Rotation Matrix.
     """
-    # inferiorparietal, inferiortemporal, lateraloccipital, postcentral, posteriorsingulate
+    # inferiorparietal, inferiortemporal, lateraloccipital, postcentral, posteriorcingulate
     #  precentral, precuneus, superiorfrontal, supramarginal
     # lids=np.array([8,9,11,22,23,24,25,28,31])
     # lids=np.array([8,9,22,24,31])
