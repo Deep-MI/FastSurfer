@@ -5,6 +5,7 @@ from dataclasses import dataclass
 import nibabel as nib
 import numpy as np
 from neuroreg.segreg import segreg
+from nibabel.freesurfer.mghformat import MGHHeader
 from scipy.ndimage import affine_transform, binary_fill_holes, distance_transform_edt
 from skimage.morphology import convex_hull_image
 
@@ -54,6 +55,15 @@ class MidplaneDebugVolumes:
     candidate_mask: np.ndarray
     left_mask: np.ndarray
     right_mask: np.ndarray
+
+
+def _mgh_header_from_dict(reference_header: nib.filebasedimages.FileBasedHeader, header_dict: MGHHeaderDict) -> MGHHeader:
+    """Create an MGH header from serialized header metadata."""
+    header = MGHHeader.from_header(reference_header)
+    header["dims"] = np.append(header_dict["dims"], [1])
+    for key in ("delta", "Pxyz_c", "Mdc"):
+        header[key] = header_dict[key]
+    return header
 
 
 @dataclass(frozen=True)
@@ -556,11 +566,10 @@ def register_centroids_to_fsavg(
         dof=6,
         labels=list(FSAVERAGE_REGISTRATION_LABELS),
     )
-    if registration.target_affine is None or registration.target_geometry is None:
+    if registration.target_geometry is None:
         raise ValueError("Pinned fsaverage target did not provide target geometry.")
 
     aseg2fsaverage_ras2ras = np.asarray(registration.r2r, dtype=np.float64)
-    fsaverage_vox2ras = np.asarray(registration.target_affine, dtype=np.float64)
     atlas_header = registration.target_geometry
     fsavg_header: MGHHeaderDict = {
         "dims": [int(v) for v in atlas_header["dims"]],
@@ -568,6 +577,8 @@ def register_centroids_to_fsavg(
         "Mdc": np.asarray(atlas_header["Mdc"], dtype=np.float64).copy(),
         "Pxyz_c": np.asarray(atlas_header["Pxyz_c"], dtype=np.float64).copy(),
     }
+    # Downstream CC mapping expects FreeSurfer's MGH/tkregister affine convention.
+    fsaverage_vox2ras = np.asarray(_mgh_header_from_dict(aseg_nib.header, fsavg_header).get_vox2ras(), dtype=np.float64)
 
     aseg_zooms_ras = np.asarray(nib.as_closest_canonical(aseg_nib).header.get_zooms()[:3])
     resolution_trans: AffineMatrix4x4 = np.diagflat(np.append(aseg_zooms_ras[[0, 2, 1]], [1])).astype(float)
