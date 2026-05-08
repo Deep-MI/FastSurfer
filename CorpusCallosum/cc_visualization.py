@@ -220,8 +220,8 @@ def main(
     # we need to get the upright image header, which is the same as cc_up.lta applied to orig.
     elif Path(template_dir / "mri/orig.mgz").exists() and Path(template_dir / "mri/transforms/cc_up.lta").exists():
         image = nib.load(template_dir / "mri" / "orig.mgz")
-        image.affine = LTA.read(template_dir / "mri/transforms/cc_up.lta").r2r() @ image.affine
-        header = image.header
+        transformed_affine = LTA.read(template_dir / "mri/transforms/cc_up.lta").r2r() @ image.affine
+        header = nib.MGHImage(image.dataobj, transformed_affine, header=image.header.copy()).header
     else:
         header = None
 
