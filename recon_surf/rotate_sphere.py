@@ -137,7 +137,7 @@ def align_aparc_centroids(
     R : npt.NDArray[float]
         Rotation Matrix.
     """
-    # nferiorparietal, inferiortemporal, lateraloccipital, postcentral, posteriorsingulate
+    # inferiorparietal, inferiortemporal, lateraloccipital, postcentral, posteriorsingulate
     #  precentral, precuneus, superiorfrontal, supramarginal
     # lids=np.array([8,9,11,22,23,24,25,28,31])
     # lids=np.array([8,9,22,24,31])
