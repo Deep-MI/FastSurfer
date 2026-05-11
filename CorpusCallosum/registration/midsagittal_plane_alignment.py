@@ -57,7 +57,10 @@ class MidplaneDebugVolumes:
     right_mask: np.ndarray
 
 
-def _mgh_header_from_dict(reference_header: nib.filebasedimages.FileBasedHeader, header_dict: MGHHeaderDict) -> MGHHeader:
+def _mgh_header_from_dict(
+        reference_header: nib.filebasedimages.FileBasedHeader,
+        header_dict: MGHHeaderDict
+) -> MGHHeader:
     """Create an MGH header from serialized header metadata."""
     header = MGHHeader.from_header(reference_header)
     header["dims"] = np.append(header_dict["dims"], [1])
