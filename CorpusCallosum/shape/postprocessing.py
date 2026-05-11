@@ -551,6 +551,24 @@ def test_left_of_line(
     return np.greater(cross_products, 0)
 
 
+def test_posterior_of_line(
+        coords_as: Points2dType,
+        line_start: Vector2d,
+        line_end: Vector2d,
+) -> np.ndarray[tuple[int], np.dtype[np.bool_]]:
+    """Test whether points in AS coordinates are posterior to a subdivision line.
+
+    Subdivision lines are stored as the two intersections with the contour. The
+    order of those intersections depends on contour traversal and is not an
+    anatomical direction. Determine which side is anterior by testing a point one
+    millimeter anterior to the line midpoint, then return the opposite side.
+    """
+    left_of_line = test_left_of_line(coords_as, line_start, line_end)
+    anterior_probe = (line_start + line_end) / 2.0 + np.array([1.0, 0.0])
+    anterior_is_left = bool(test_left_of_line(anterior_probe, line_start, line_end))
+    return np.logical_not(left_of_line) if anterior_is_left else left_of_line
+
+
 def make_subdivision_mask(
     slice_shape: Shape2d,
     subdivision_lines: list[Points2dType],
@@ -609,13 +627,13 @@ def make_subdivision_mask(
         # line_start and line_end are the intersection points of the CC subsegmentation boundary and the contour line
         line_start, line_end = segment_points
 
-        # --> find all voxels posterior to the line in question
-        # Vectorized test: find all points to the right of line (line_start->line_end)
-        # right_of_line == posterior to line
-        points_left_of_line = test_left_of_line(coords_ras[0, ..., 1:], line_start, line_end)
+        # Find all voxels posterior to the line in question. The line endpoint
+        # order is not anatomically stable, so do not use a raw left/right test
+        # of line_start -> line_end here.
+        points_posterior_of_line = test_posterior_of_line(coords_ras[0, ..., 1:], line_start, line_end)
         
-        # All points to the right of this line belong to the next segment or beyond
-        subdivision_mask[points_left_of_line] = label
+        # All points posterior to this line belong to the next segment or beyond.
+        subdivision_mask[points_posterior_of_line] = label
         
         if plot: # interactive debug plot
             import matplotlib.pyplot as plt
