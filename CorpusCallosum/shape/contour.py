@@ -37,6 +37,7 @@ import scipy.interpolate
 from scipy.ndimage import gaussian_filter1d
 
 import FastSurferCNN.utils.logging as logging
+from CorpusCallosum.data.constants import CC_ANALYSIS_WIDTH_MM
 from CorpusCallosum.shape.endpoint_heuristic import find_cc_endpoints, smooth_contour
 from CorpusCallosum.shape.thickness import cc_thickness
 from CorpusCallosum.utils.types import Points2dType
@@ -832,7 +833,7 @@ class CCContour:
         return cls(contour_ras[:, 1:], None, endpoint_idx, z_position=slice_vox2ras[0, 3])
 
 
-def calculate_volume(contours: list[CCContour], width: float = 5.0) -> float:
+def calculate_volume(contours: list[CCContour], width: float = CC_ANALYSIS_WIDTH_MM) -> float:
     """Calculate the volume of the corpus callosum.
 
     This method calculates the volume of a slab of the CC centered on the midplane.
@@ -842,7 +843,7 @@ def calculate_volume(contours: list[CCContour], width: float = 5.0) -> float:
 
     Parameters
     ----------
-    width : float, default=5.0
+    width : float, default=CC_ANALYSIS_WIDTH_MM
         The width of the slab centered on the midplane to calculate the volume for (in mm).
 
     Returns
@@ -883,3 +884,40 @@ def calculate_volume(contours: list[CCContour], width: float = 5.0) -> float:
         volume += areas[i] * effective_width
 
     return volume
+
+
+def contours_for_analysis_width(contours: list[CCContour]) -> list[CCContour]:
+    """Return contour copies with LR positions spanning a fixed display width.
+
+    The CC segmentation mask is sampled on image slices, so its realized width
+    depends on the voxel size and the odd number of slices needed to cover the
+    requested analysis slab. The surface representation, however, is the
+    continuous slab itself. For meshes we therefore place the available contours
+    evenly across that physical width.
+
+    The contour list follows increasing slab voxel index order. In the upright
+    CC volume, the slab voxel axis has a negative RAS left/right direction, so
+    increasing slice indices correspond to decreasing mesh LR RAS coordinates.
+    Assign the display positions from ``+CC_ANALYSIS_WIDTH_MM / 2`` down to
+    ``-CC_ANALYSIS_WIDTH_MM / 2`` to preserve that orientation.
+
+    This function intentionally returns copies. Measurement code can continue to
+    use the original slice-center coordinates, while visualization/surface
+    output gets the fixed physical slab width expected by Freeview inspection.
+    """
+    if not contours:
+        return []
+
+    surface_contours = [contour.copy() for contour in contours]
+    if len(surface_contours) == 1:
+        surface_contours[0].z_position = 0.0
+        return surface_contours
+
+    half_width = CC_ANALYSIS_WIDTH_MM / 2.0
+    for contour, z_position in zip(
+        surface_contours,
+        np.linspace(half_width, -half_width, len(surface_contours)),
+        strict=True,
+    ):
+        contour.z_position = float(z_position)
+    return surface_contours

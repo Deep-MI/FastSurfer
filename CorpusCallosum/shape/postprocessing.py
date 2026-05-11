@@ -18,12 +18,11 @@ from pathlib import Path
 from typing import get_args
 
 import numpy as np
-from nibabel.freesurfer.mghformat import MGHHeader
 from numpy import typing as npt
 
 import FastSurferCNN.utils.logging as logging
 from CorpusCallosum.data.constants import CC_LABEL, SUBSEGMENT_LABELS
-from CorpusCallosum.shape.contour import CCContour
+from CorpusCallosum.shape.contour import CCContour, contours_for_analysis_width
 from CorpusCallosum.shape.curvature import calculate_curvature_metrics
 from CorpusCallosum.shape.endpoint_heuristic import connect_diagonally_connected_components
 from CorpusCallosum.shape.mesh import CCMesh
@@ -43,7 +42,7 @@ from CorpusCallosum.utils.types import (
     SubdivisionMethod,
 )
 from CorpusCallosum.utils.visualization import plot_contours
-from FastSurferCNN.utils import AffineMatrix4x4, Image3d, Mask2d, Shape2d, Shape3d, Vector2d
+from FastSurferCNN.utils import AffineMatrix4x4, Image3d, Mask2d, Shape2d, Shape3d, Vector2d, nibabelHeader
 from FastSurferCNN.utils.common import SubjectDirectory, update_docstring
 from FastSurferCNN.utils.parallel import process_executor, thread_executor
 
@@ -86,7 +85,7 @@ def offset_affine(offset: npt.ArrayLike) -> AffineMatrix4x4:
 def recon_cc_surf_measures_multi(
     segmentation: np.ndarray[Shape3d, np.dtype[np.int_]],
     slice_selection: SliceSelection,
-    upright_header: MGHHeader,
+    orig_header: nibabelHeader,
     fsavg2midslab_vox2vox: AffineMatrix4x4,
     fsavg_vox2ras: AffineMatrix4x4,
     orig2fsavg_vox2vox: AffineMatrix4x4,
@@ -107,8 +106,9 @@ def recon_cc_surf_measures_multi(
         3D segmentation array in LIA orientation.
     slice_selection : str
         Which slices to process ('middle', 'all', or slice number).
-    upright_header : MGHHeader
-        The header of the upright image.
+    orig_header : nibabelHeader
+        Header of the conformed orig image. Surface files intended for
+        inspection with orig.mgz must be written with this geometry metadata.
     fsavg2midslab_vox2vox : AffineMatrix4x4
         The vox2vox transformation matrix from fsaverage (upright) space to the segmentation slab.
     fsavg_vox2ras : np.ndarray
@@ -262,7 +262,10 @@ def recon_cc_surf_measures_multi(
     mesh_outputs = ("html", "mesh", "thickness_overlay", "surf", "thickness_image")
     if len(cc_contours) > 1 and any(wants_output(f"cc_{n}") for n in mesh_outputs):
         _cc_contours = thread_executor().map(_resample_thickness, cc_contours)
-        cc_mesh = CCMesh.from_contours(list(_cc_contours), smooth=1)
+        # Surface vertices represent the continuous analysis slab. The
+        # discrete segmentation mask can be slightly wider/narrower depending on
+        # voxel size, so do not reuse slice-center spacing for mesh output.
+        cc_mesh = CCMesh.from_contours(contours_for_analysis_width(list(_cc_contours)), smooth=1)
         if wants_output("cc_html"):
             logger.info(f"Saving CC 3D visualization to {output_path('cc_html')}")
             io_futures.append(run(cc_mesh.plot_mesh, output_path=output_path("cc_html")))
@@ -278,20 +281,24 @@ def recon_cc_surf_measures_multi(
             io_futures.append(run(cc_mesh.write_morph_data, overlay_file_path))
 
         if any(wants_output(f"cc_{n}") for n in ("thickness_image", "surf")):
-            # the mesh is generated in upright coordinates, so we need to also transform to orig coordinates
-            # Mesh is fsavg_midplane (RAS); we need to transform to voxel coordinates
-            # fsavg ras is also on the midslice, so this is fine and we multiply in the IA and SP offsets
+            # The mesh is generated in upright/fsaverage RAS coordinates.
+            # Convert it to orig voxel coordinates, then pass orig_header to
+            # write_fssurf/snap_cc_picture. Lapy interprets vertices as voxel
+            # coordinates when an image/header is supplied and converts them to
+            # FreeSurfer tkRAS while stamping the surface with that header's
+            # volume_info. Using an upright-volume header here makes Freeview
+            # place the surface relative to that volume instead of orig.mgz.
             cc_mesh_orig = cc_mesh.to_vox_coordinates(mesh_ras2vox=np.linalg.inv(fsavg_vox2ras @ orig2fsavg_vox2vox))
             if wants_output("cc_surf"):
                 surf_file_path = output_path("cc_surf")
                 logger.info(f"Saving surf file to {surf_file_path}")
-                io_futures.append(run(cc_mesh_orig.write_fssurf, surf_file_path, image=upright_header))
+                io_futures.append(run(cc_mesh_orig.write_fssurf, surf_file_path, image=orig_header))
 
             if wants_output("cc_thickness_image"):
                 thickness_image_path = output_path("cc_thickness_image")
                 logger.info(f"Saving thickness image to {thickness_image_path}")
                 try:
-                    cc_mesh_orig.snap_cc_picture(thickness_image_path, ref_header=upright_header)
+                    cc_mesh_orig.snap_cc_picture(thickness_image_path, ref_header=orig_header)
                 except Exception as e:
                     logger.error(
                         "Generation of the thickness image failed (see below). Please ensure that whippersnappy and "

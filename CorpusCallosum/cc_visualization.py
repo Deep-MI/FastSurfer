@@ -8,7 +8,7 @@ import numpy as np
 from neuroreg import LTA
 
 from CorpusCallosum.data.fsaverage_cc_template import load_fsaverage_cc_template
-from CorpusCallosum.shape.contour import CCContour
+from CorpusCallosum.shape.contour import CCContour, contours_for_analysis_width
 from CorpusCallosum.shape.mesh import CCMesh
 from FastSurferCNN.utils.logging import get_logger, setup_logging
 
@@ -48,7 +48,7 @@ def make_parser() -> argparse.ArgumentParser:
         "--resolution",
         type=float,
         default=1.0,
-        help="Resolution in mm for the mesh.",
+        help="Legacy spacing in mm used when template contour files do not store slice positions.",
         metavar="RESOLUTION"
     )
     parser.add_argument(
@@ -173,6 +173,40 @@ def load_contours_from_template_dir(
     return contours
 
 
+def _upright_reference_from_template(
+        template_dir: Path,
+        output_dir: Path,
+) -> tuple[nib.spatialimages.SpatialHeader | None, np.ndarray | None]:
+    """Return the display header and RAS-to-voxel transform for CC mesh output.
+
+    ``CCMesh.from_contours`` creates vertices in the CC upright/fsaverage RAS
+    coordinate system. FreeSurfer surface files, however, store vertices in
+    surface RAS (tkRAS). Lapy's ``write_fssurf(..., image=header)`` performs
+    that voxel-to-tkRAS conversion and stamps the surface with the supplied
+    header's volume_info. Therefore callers must first convert mesh RAS to voxel
+    coordinates in the same volume whose header is passed to ``write_fssurf``.
+
+    For Freeview inspection with orig.mgz, the preferred path uses orig.mgz plus
+    ``cc_up.lta``. The LTA maps orig scanner RAS to upright/fsaverage RAS, so
+    ``inv(LTA @ orig.affine)`` maps mesh RAS directly to orig voxel coordinates.
+    If only an upright volume is available, the fallback writes a surface for
+    that upright volume instead.
+    """
+    orig_image = template_dir / "mri" / "orig.mgz"
+    upright_lta = template_dir / "mri" / "transforms" / "cc_up.lta"
+    if orig_image.exists() and upright_lta.exists():
+        image = nib.load(orig_image)
+        upright_vox2ras = LTA.read(upright_lta).r2r() @ image.affine
+        return image.header, np.linalg.inv(upright_vox2ras)
+
+    upright_image = output_dir / "mri" / "upright.mgz"
+    if upright_image.exists():
+        image = nib.load(upright_image)
+        return image.header, np.linalg.inv(image.affine)
+
+    return None, None
+
+
 def main(
         template_dir: str | Path,
         output_dir: str | Path,
@@ -184,11 +218,12 @@ def main(
         twoD: bool = False,
 ) -> Literal[0] | str:
     """Visualize corpus callosum templates in 2D or 3D."""
+    template_dir = Path(template_dir)
     output_dir = Path(output_dir)
     color_range = tuple(color_range) if color_range is not None else None
 
     contours = load_contours_from_template_dir(
-        Path(template_dir), resolution=resolution, smoothing_window=smoothing_window,
+        template_dir, resolution=resolution, smoothing_window=smoothing_window,
     )
 
     # 2D visualization
@@ -213,17 +248,19 @@ def main(
         return 0
 
     # 3D visualization
-    cc_mesh = CCMesh.from_contours(contours, smooth=0)
+    surface_mesh = CCMesh.from_contours(contours_for_analysis_width(contours), smooth=0)
+    header, mesh_ras2vox = _upright_reference_from_template(template_dir, output_dir)
 
-    if Path(output_dir / "mri" / "upright.mgz").exists():
-        header = nib.load(output_dir / "mri" / "upright.mgz").header
-    # we need to get the upright image header, which is the same as cc_up.lta applied to orig.
-    elif Path(template_dir / "mri/orig.mgz").exists() and Path(template_dir / "mri/transforms/cc_up.lta").exists():
-        image = nib.load(template_dir / "mri" / "orig.mgz")
-        transformed_affine = LTA.read(template_dir / "mri/transforms/cc_up.lta").r2r() @ image.affine
-        header = nib.MGHImage(image.dataobj, transformed_affine, header=image.header.copy()).header
+    if mesh_ras2vox is not None:
+        # Convert from CC upright/fsaverage RAS into the voxel coordinates of
+        # the same volume whose header is passed below.
+        # write_fssurf/snap_cc_picture then use the header's vox2ras-tkr to
+        # write/display vertices in the FreeSurfer coordinate frame expected by
+        # Freeview. Skipping this step treats millimeter RAS coordinates as voxel
+        # indices and shifts the surface far away from the MRI.
+        freeview_mesh = surface_mesh.to_vox_coordinates(mesh_ras2vox)
     else:
-        header = None
+        freeview_mesh = surface_mesh
 
     plot_kwargs = dict(
         colormap=colormap,
@@ -231,17 +268,17 @@ def main(
         thickness_overlay=True,
         legend=legend or "",
     )
-    cc_mesh.plot_mesh(**plot_kwargs)
-    cc_mesh.plot_mesh(output_path=str(output_dir / "cc_mesh.html"), **plot_kwargs)
+    surface_mesh.plot_mesh(**plot_kwargs)
+    surface_mesh.plot_mesh(output_path=str(output_dir / "cc_mesh.html"), **plot_kwargs)
 
     logger.info(f"Writing vtk file to {output_dir / 'cc_mesh.vtk'}")
-    cc_mesh.write_vtk(str(output_dir / "cc_mesh.vtk"))
+    surface_mesh.write_vtk(str(output_dir / "cc_mesh.vtk"))
     logger.info(f"Writing freesurfer surface file to {output_dir / 'cc_mesh.fssurf'}")
-    cc_mesh.write_fssurf(str(output_dir / "cc_mesh.fssurf"), image=header)
+    freeview_mesh.write_fssurf(str(output_dir / "cc_mesh.fssurf"), image=header)
     logger.info(f"Writing freesurfer overlay file to {output_dir / 'cc_mesh_overlay.curv'}")
-    cc_mesh.write_morph_data(str(output_dir / "cc_mesh_overlay.curv"))
+    surface_mesh.write_morph_data(str(output_dir / "cc_mesh_overlay.curv"))
     try:
-        cc_mesh.snap_cc_picture(str(output_dir / "cc_mesh_snap.png"), ref_header=header)
+        freeview_mesh.snap_cc_picture(str(output_dir / "cc_mesh_snap.png"), ref_header=header)
         logger.info(f"Writing 3D snapshot image to {output_dir / 'cc_mesh_snap.png'}")
     except Exception:
         logger.warning("The cc_visualization script requires whippersnappy>=2.1 to makes screenshots, install with "

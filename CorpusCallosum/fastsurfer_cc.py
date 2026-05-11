@@ -29,6 +29,7 @@ from nibabel.freesurfer.mghformat import MGHHeader
 from scipy.ndimage import affine_transform
 
 from CorpusCallosum.data.constants import (
+    CC_ANALYSIS_WIDTH_MM,
     CC_LABEL,
     DEFAULT_INPUT_PATHS,
     DEFAULT_OUTPUT_PATHS,
@@ -460,7 +461,8 @@ def localize_ac_pc(
     third_ventricle_center = np.argwhere(third_ventricle_mask).mean(axis=0)
     third_ventricle_center_vox = apply_transform_to_pt(third_ventricle_center, orig2midslice_vox2vox, inv=False)
 
-    # get 5 mm of slices with 3 slices per inference (cropping num_slices_to_analyze + 2 slices around the center)
+    # Get the analysis-width slab with 3 slices per inference
+    # (cropping num_slices_to_analyze + 2 slices around the center).
     ac_coords, pc_coords = localization_inference.run_inference_on_slice(
         model_localization,
         _midslices_fut.result(),
@@ -709,16 +711,17 @@ def main(
             logger.error(error_message)
             return error_message
 
-    # 5 mm around the midplane (guaranteed to be aligned RAS by as_closest_canonical)
+    # Analysis-width slab around the midplane (guaranteed to be aligned RAS by as_closest_canonical).
     vox_size_ras: tuple[float, float, float] = nib.as_closest_canonical(orig).header.get_zooms()
     vox_size = vox_size_ras[0], vox_size_ras[2], vox_size_ras[1]  # convert from RAS to LIA
-    slices_to_analyze = int(np.ceil(5 / vox_size[0]))
+    slices_to_analyze = int(np.ceil(CC_ANALYSIS_WIDTH_MM / vox_size[0]))
     # slices_to_analyze must be odd
     if slices_to_analyze % 2 == 0:
         slices_to_analyze += 1
 
     logger.info(
-        f"Segmenting {slices_to_analyze} slices (5 mm width at {vox_size[0]:.3f} mm resolution, "
+        f"Segmenting {slices_to_analyze} slices ({CC_ANALYSIS_WIDTH_MM:g} mm width at "
+        f"{vox_size[0]:.3f} mm resolution, "
         "center around the mid-sagittal plane)"
     )
 
@@ -834,7 +837,7 @@ def main(
         slice_results, slice_io_futures, cc_contours, num_failed_slices = recon_cc_surf_measures_multi(
             segmentation=cc_fn_seg_labels,
             slice_selection=slice_selection,
-            upright_header=fsavg_header,
+            orig_header=orig.header,
             fsavg2midslab_vox2vox=fsavg2midslab_vox2vox,
             fsavg_vox2ras=fsavg_vox2ras,
             orig2fsavg_vox2vox=orig2fsavg_vox2vox,
@@ -933,7 +936,7 @@ def main(
     additional_metrics = {}
 
     cc_num_voxel = segmentation_postprocessing.get_cc_num_voxel(
-        desired_width_mm=5,
+        desired_width_mm=CC_ANALYSIS_WIDTH_MM,
         cc_mask=np.equal(cc_fn_seg_labels, CC_LABEL),
         voxel_size=vox_size,  # in LIA order
     )
@@ -946,7 +949,7 @@ def main(
             f"CC voxel count: {cc_num_voxel} at {voxel_volume:.2f} mm^3 voxel volume => "
             f"{cc_num_voxel * voxel_volume:.2f} mm^3"
         )
-        cc_volume_contour = calculate_cc_volume_contour(valid_cc_contours, width=5.0)
+        cc_volume_contour = calculate_cc_volume_contour(valid_cc_contours, width=CC_ANALYSIS_WIDTH_MM)
         logger.info(f"CC volume contour: {cc_volume_contour}")
     else:
         cc_volume_contour = None
