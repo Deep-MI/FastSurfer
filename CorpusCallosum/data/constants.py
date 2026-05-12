@@ -23,6 +23,8 @@ FSAVERAGE_REGISTRATION_LABELS = (
     251, 252, 253, 254, 255,
 )
 FSAVERAGE_MIDDLE = 128  # Middle slice index in fsaverage space
+# Width of the corpus callosum slab used for segmentation, measures, and surfaces.
+CC_ANALYSIS_WIDTH_MM = 5.0
 CC_LABEL = 192  # Label value for corpus callosum in segmentation
 FORNIX_LABEL = 250  # Label value for fornix in segmentation
 THIRD_VENTRICLE_LABEL = 4  # Label value for third ventricle in segmentation
