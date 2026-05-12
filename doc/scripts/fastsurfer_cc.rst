@@ -1,9 +1,9 @@
 CorpusCallosum: fastsurfer_cc.py
 ================================
 .. note::
-   We recommend to run FastSurfer-CC with the standard `run_fastsurfer.sh` interfaces (see :doc:`/overview/FLAGS`)!
+   We recommend running FastSurfer-CC with the standard ``run_fastsurfer.sh`` interface (see :doc:`RUN_FASTSURFER`)!
 
-   This is an expert documentation for of FastSurfer CC, which can be run independently with the advanced interface provided here. However, the FastSurfer segmentation is still required as input.
+   This page documents expert usage of FastSurfer-CC, which can be run independently with the advanced interface provided here. However, the FastSurfer segmentation is still required as input.
 
 
 ..
@@ -53,7 +53,7 @@ An example call with all quality control outputs is:
 
     python3 fastsurfer_cc.py --sd /data/subjects --sid sub001 \
         --qc_image /data/qc/sub001/qc_snapshots/callosum.png \
-        --thickness_image /data/qc/sub001/qc_snapshots/callosum_thickness.png \
+        --thickness_image /data/qc/sub001/qc_snapshots/callosum.thickness.png \
         --upright_volume /data/qc/sub001/mri/upright_volume.mgz
 
 Custom Subdivision Schemes
