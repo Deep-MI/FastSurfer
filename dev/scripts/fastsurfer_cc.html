@@ -459,8 +459,8 @@
 <h1>CorpusCallosum: fastsurfer_cc.py<a class="headerlink" href="#corpuscallosum-fastsurfer-cc-py" title="Link to this heading">¶</a></h1>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>We recommend to run FastSurfer-CC with the standard <code class="xref py py-obj docutils literal notranslate"><span class="pre">run_fastsurfer.sh</span></code> interfaces (see <a class="reference internal" href="index.html"><span class="doc">Scripts</span></a>)!</p>
-<p>This is an expert documentation for of FastSurfer CC, which can be run independently with the advanced interface provided here. However, the FastSurfer segmentation is still required as input.</p>
+<p>We recommend running FastSurfer-CC with the standard <code class="docutils literal notranslate"><span class="pre">run_fastsurfer.sh</span></code> interface (see <a class="reference internal" href="RUN_FASTSURFER.html"><span class="doc">run_fastsurfer.sh</span></a>)!</p>
+<p>This page documents expert usage of FastSurfer-CC, which can be run independently with the advanced interface provided here. However, the FastSurfer segmentation is still required as input.</p>
 </div>
 <p>FastSurfer-CC is a deep learning-based pipeline for automated segmentation, analysis, and shape analysis of the corpus callosum in brain MRI scans.
 Also segments the fornix, localizes the anterior and posterior commissure (AC and PC) and standardizes the orientation of the brain.</p>
@@ -654,7 +654,7 @@ In this image the mid-sagittal plane is at voxel coordinate 128 in the LR direct
 .. code-block:: bash</p>
 <blockquote>
 <div><dl class="simple">
-<dt>python3 fastsurfer_cc.py –sd /data/subjects –sid sub001 </dt><dd><p>–qc_image /data/qc/sub001/qc_snapshots/callosum.png –thickness_image /data/qc/sub001/qc_snapshots/callosum_thickness.png –upright_volume /data/qc/sub001/mri/upright_volume.mgz</p>
+<dt>python3 fastsurfer_cc.py –sd /data/subjects –sid sub001 </dt><dd><p>–qc_image /data/qc/sub001/qc_snapshots/callosum.png –thickness_image /data/qc/sub001/qc_snapshots/callosum.thickness.png –upright_volume /data/qc/sub001/mri/upright_volume.mgz</p>
 </dd>
 </dl>
 </div></blockquote>

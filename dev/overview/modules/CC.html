@@ -469,9 +469,17 @@ Also segments the fornix, localizes the anterior and posterior commissure (AC an
 <li><p>Perform advanced morphometry for corpus callosum, including subdivision, thickness analysis, and various shape metrics</p></li>
 <li><p>Generate visualizations and measurements</p></li>
 </ol>
+<p>FastSurfer-CC identifies the midsagittal slab for corpus callosum analysis, segments the corpus callosum and fornix,
+localizes AC and PC landmarks for head-pose standardization, and derives area, thickness, length, curvature, volume,
+and subdivision measures for downstream statistical analysis.</p>
 <p>The output files are described <a class="reference internal" href="../OUTPUT_FILES.html#corpus-callosum-module"><span class="std std-ref">here</span></a>.
 The structure of the JSON files describing corpus callosum measures is documented below.
 Advanced options, like custom subdivision schemes and quality control are described in the <a class="reference internal" href="../../scripts/fastsurfer_cc.html"><span class="std std-doc">FastSurfer-CC documentation</span></a>.</p>
+</section>
+<section id="references">
+<h2>References<a class="headerlink" href="#references" title="Link to this heading">¶</a></h2>
+<p>If you use FastSurfer-CC in your research, please cite:</p>
+<p><em>Pollak C, Diers K, Estrada S, Kuegler D, Reuter M. FastSurfer-CC: A robust, accurate, and comprehensive framework for corpus callosum morphometry. Imaging Neuroscience 2026. https://doi.org/10.1162/IMAG.a.1221</em></p>
 </section>
 <section id="json-output-structure">
 <h2>JSON Output Structure<a class="headerlink" href="#json-output-structure" title="Link to this heading">¶</a></h2>
@@ -613,6 +621,7 @@ Advanced options, like custom subdivision schemes and quality control are descri
             <ul>
 <li><a class="reference internal" href="#">Corpus Callosum Pipeline</a><ul>
 <li><a class="reference internal" href="#overview">Overview</a></li>
+<li><a class="reference internal" href="#references">References</a></li>
 <li><a class="reference internal" href="#json-output-structure">JSON Output Structure</a><ul>
 <li><a class="reference internal" href="#stats-callosum-cc-midslice-json-middle-slice-analysis"><code class="docutils literal notranslate"><span class="pre">stats/callosum.CC.midslice.json</span></code> (Middle Slice Analysis)</a><ul>
 <li><a class="reference internal" href="#shape-measurements-single-values"><strong>Shape Measurements (single values):</strong></a></li>
