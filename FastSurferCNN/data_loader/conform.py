@@ -813,7 +813,7 @@ def getscale(
     """
     Get offset and scale of image intensities to robustly rescale to dst_min..dst_max.
 
-    Equivalent to how mri_convert conforms images.
+    Similar to the intensity rescaling used during FreeSurfer-style conforming.
 
     Parameters
     ----------
@@ -985,10 +985,11 @@ def conform(
         file_type: type[nibabelImage] | None = None,
         **kwargs,
 ) -> nibabelImage:
-    """Python version of mri_convert -c.
+    """Conform an image to the geometry and dtype conventions expected by FastSurfer.
 
-    mri_convert -c by default turns image intensity values into UCHAR, reslices images to standard position, fills up
-    slices to standard 256x256x256 format and enforces 1mm or minimum isotropic voxel sizes.
+    This follows the general behavior of ``mri_convert -c``: it turns image intensity values into UCHAR, reslices
+    images to standard position, places them into a cubic target grid (typically 256x256x256 at 1 mm and larger cubes
+    for higher-resolution isotropic inputs) and enforces 1mm or minimum isotropic voxel sizes.
 
     Parameters
     ----------
@@ -1034,8 +1035,9 @@ def conform(
 
     Notes
     -----
-    Unlike mri_convert -c, we first interpolate (float image), and then rescale to uchar. mri_convert is doing it the
-    other way around. However, we compute the scale factor from the input to increase similarity.
+    This implementation is similar to ``mri_convert -c``, but not intended to reproduce it exactly. In particular, we
+    first interpolate (float image) and then rescale to uchar, while ``mri_convert -c`` does this in the opposite
+    order. We compute the scale factor from the input to keep the behavior similar overall.
     """
     if "conform_to_1mm_threshold" in kwargs:
         LOGGER.warning("conform_to_1mm_threshold is deprecated, replaced by threshold_1mm and will be removed.")

@@ -22,7 +22,7 @@ Required arguments
 ------------------
 * `--sd`: Output directory \$SUBJECTS_DIR (equivalent to FreeSurfer setup --> $SUBJECTS_DIR/sid/mri; $SUBJECTS_DIR/sid/surf ... will be created).
 * `--sid`: Subject ID for directory inside \$SUBJECTS_DIR to be created ($SUBJECTS_DIR/sid/...)
-* `--t1`: T1 full head input (does not need to be bias corrected, global path). The network was trained with conformed images (UCHAR, 256x256x256, 0.7mm - 1mm voxels and standard slice orientation). These specifications are checked in the run_prediction.py script and the image is automatically conformed if it does not comply. Note, outputs will be in the conformed space (following the FreeSurfer standard).
+* `--t1`: T1 full head input (does not need to be bias corrected, global path). The network was trained with conformed images (UCHAR, cubic volume, 0.7mm - 1mm voxels and standard slice orientation; typically 256x256x256 at 1mm and larger cubes for higher-resolution isotropic inputs). These specifications are checked in the run_prediction.py script and the image is automatically conformed if it does not comply. Note, outputs will be in the conformed space used by FastSurfer, which is similar to FreeSurfer conform space but not guaranteed to match `mri_convert -c` exactly.
 
 ### Conditionally required
 Required for Docker when running surface module:
