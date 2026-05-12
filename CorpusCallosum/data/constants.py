@@ -16,15 +16,19 @@ from FastSurferCNN.utils.parser_defaults import FASTSURFER_ROOT
 
 ### Constants
 WEIGHTS_PATH = FASTSURFER_ROOT / "checkpoints"
-FSAVERAGE_CENTROIDS_PATH = FASTSURFER_ROOT / "CorpusCallosum" / "data" / "fsaverage_centroids.json"
-# Contains both affine and header
-FSAVERAGE_DATA_PATH = FASTSURFER_ROOT / "CorpusCallosum" / "data" / "fsaverage_data.json"
+FSAVERAGE_TARGET_PATH = FASTSURFER_ROOT / "CorpusCallosum" / "data" / "fsaverage_target.json"
+FSAVERAGE_REGISTRATION_LABELS = (
+    2, 3, 4, 5, 7, 8, 10, 11, 12, 13, 14, 15, 16, 17, 18, 24, 26, 28, 30, 31,
+    41, 42, 43, 44, 46, 47, 49, 50, 51, 52, 53, 54, 58, 60, 62, 63, 77, 85,
+    251, 252, 253, 254, 255,
+)
 FSAVERAGE_MIDDLE = 128  # Middle slice index in fsaverage space
-CC_LABEL = 192          # Label value for corpus callosum in segmentation
-FORNIX_LABEL = 250      # Label value for fornix in segmentation
-THIRD_VENTRICLE_LABEL = 4 # Label value for third ventricle in segmentation
-SUBSEGMENT_LABELS = [251, 252, 253, 254, 255] # labels for subsegments in segmentation
-
+# Width of the corpus callosum slab used for segmentation, measures, and surfaces.
+CC_ANALYSIS_WIDTH_MM = 5.0
+CC_LABEL = 192  # Label value for corpus callosum in segmentation
+FORNIX_LABEL = 250  # Label value for fornix in segmentation
+THIRD_VENTRICLE_LABEL = 4  # Label value for third ventricle in segmentation
+SUBSEGMENT_LABELS = [251, 252, 253, 254, 255]  # labels for subsegments in segmentation
 
 DEFAULT_INPUT_PATHS = {
     "conf_name": "mri/orig.mgz",
@@ -47,9 +51,9 @@ DEFAULT_OUTPUT_PATHS = {
     "upright_lta": "mri/transforms/cc_up.lta",  # lta transform from orig to upright space
     "orient_volume_lta": "mri/transforms/orient_volume.lta",  # lta transform from orig to upright+acpc corrected space
     ## qc
-    "qc_image": None, #"callosum.png",  # debug image of cc contours
-    "thickness_image": None, # "callosum.thickness.png",  # whippersnappy 3D image of cc thickness
-    "cc_html": None, # "corpus_callosum.html",  # plotly cc visualization
+    "qc_image": None,  # "callosum.png",  # debug image of cc contours
+    "thickness_image": None,  # "callosum.thickness.png",  # whippersnappy 3D image of cc thickness
+    "cc_html": None,  # "corpus_callosum.html",  # plotly cc visualization
     ## surface
     "cc_surf": "surf/callosum.surf",  # cc surface file
     "cc_thickness_overlay": "surf/callosum.thickness.w",  # cc surface overlay file

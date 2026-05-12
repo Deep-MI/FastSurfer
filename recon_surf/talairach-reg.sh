@@ -212,8 +212,11 @@ else
     # regular processing (cross and base)
 
     # talairach.lta: convert to lta
-    cmd=(lta_convert --src "$conformed_name" --trg "$FREESURFER_HOME/average/mni305.cor.mgz"
-         --inxfm "$tal_file.xfm" --outlta "$tal_file.xfm.lta" --subject fsaverage --ltavox2vox)
+    cmd=($python -m "neuroreg.cli.lta" convert
+         "$tal_file.xfm" "$tal_file.xfm.lta"
+         --src-img "$conformed_name"
+         --dst-img "$FREESURFER_HOME/average/mni305.cor.mgz"
+         --out-type vox2vox)
     run_it "$LF" "${cmd[@]}"
 
     # FS would here create better nu.mgz using talairach transform (finds wm and maps it to approx 110)

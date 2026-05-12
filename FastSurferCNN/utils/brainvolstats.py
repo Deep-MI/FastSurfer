@@ -147,24 +147,6 @@ def read_mesh_file(path: Path) -> "lapy.TriaMesh":
     return mesh
 
 
-def read_lta_transform_file(path: Path) -> AffineMatrix4x4:
-    """
-    Read and extract the first lta transform from an LTA file.
-
-    Parameters
-    ----------
-    path : Path
-        The path of the LTA file.
-
-    Returns
-    -------
-    matrix : AffineMatrix4x4
-        Matrix of shape (4, 4).
-    """
-    from FastSurferCNN.utils.lta import read_lta
-    return read_lta(path)["lta"][0, 0]
-
-
 def read_xfm_transform_file(path: Path) -> AffineMatrix4x4:
     """
     Read XFM talairach transform.
@@ -214,7 +196,9 @@ def read_transform_file(path: Path) -> AffineMatrix4x4:
         The talairach transform matrix.
     """
     if path.suffix == ".lta":
-        return read_lta_transform_file(path)
+        from neuroreg import LTA
+
+        return LTA.read(path).r2r()
     elif path.suffix == ".xfm":
         return read_xfm_transform_file(path)
     else:
@@ -1531,7 +1515,7 @@ class ETIVMeasure(TransformMeasure):
             Human-readable description of the measure.
         unit : str
             Unit string (typically ``'mm^3'``).
-        read_lta : ReadFileHook[LTADict], optional
+        read_lta : ReadFileHook[AffineMatrix4x4], optional
             Custom file-reading hook; defaults to :func:`read_transform_file` wrapped by :meth:`Manager.make_read_hook`.
         etiv_scale_factor : float, optional
             FreeSurfer eTIV scale factor in mm³; defaults to ``1948106.0`` (1948.106 cm³ × 10³ mm³/cm³).

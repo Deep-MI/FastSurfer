@@ -443,10 +443,7 @@ fi # more than one time point
 odir=${SUBJECTS_DIR}/$tid/mri/transforms
 for s in "${tpids[@]}"
 do
-  cmd="mri_concatenate_lta -invert1"
-  cmd="$cmd $odir/${s}_to_${tid}.lta"
-  cmd="$cmd identity.nofile"
-  cmd="$cmd $odir/${tid}_to_${s}.lta"
+  cmd="$python -m neuroreg.cli.lta invert $odir/${s}_to_${tid}.lta $odir/${tid}_to_${s}.lta"
   RunIt "$cmd" "$LF"
 done
 

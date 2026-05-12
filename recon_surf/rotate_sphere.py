@@ -20,10 +20,19 @@
 import optparse
 import sys
 
-import align_points as align
 import nibabel.freesurfer.io as fs
 import numpy as np
+from neuroreg.segreg.points import find_rotation
 from numpy import typing as npt
+
+
+def rmat2angles(R: npt.NDArray) -> tuple[float, float, float]:
+    """Extract rotation angles (alpha, beta, gamma) in FreeSurfer format for mris_register."""
+    alpha = float(np.degrees(-np.arctan2(R[1, 0], R[0, 0])))
+    beta = float(np.degrees(np.arcsin(R[2, 0])))
+    gamma = float(np.degrees(np.arctan2(R[2, 1], R[2, 2])))
+    return (alpha, beta, gamma)
+
 
 HELPTEXT = """
 
@@ -52,7 +61,6 @@ initialization.
 Original Author: Martin Reuter
 Date: Jun-8-2022
 """
-
 
 # In the future, maybe add a way to specify what labels to align as a list or
 # txt file to pass to the routine.
@@ -86,11 +94,11 @@ def options_parse():
     (options, args) = parser.parse_args()
 
     if (
-        options.srcsphere is None
-        or options.srcaparc is None
-        or options.trgsphere is None
-        or options.trgaparc is None
-        or options.out is None
+            options.srcsphere is None
+            or options.srcaparc is None
+            or options.trgsphere is None
+            or options.trgaparc is None
+            or options.out is None
     ):
         sys.exit(
             "\nERROR: Please specify src and target sphere and parcellation" \
@@ -129,7 +137,7 @@ def align_aparc_centroids(
     R : npt.NDArray[float]
         Rotation Matrix.
     """
-    #nferiorparietal, inferiortemporal, lateraloccipital, postcentral, posteriorsingulate
+    # inferiorparietal, inferiortemporal, lateraloccipital, postcentral, posteriorcingulate
     #  precentral, precuneus, superiorfrontal, supramarginal
     # lids=np.array([8,9,11,22,23,24,25,28,31])
     # lids=np.array([8,9,22,24,31])
@@ -151,13 +159,13 @@ def align_aparc_centroids(
         counter = counter + 1
     # map back to sphere of radius 100
     centroids_mov = (100 / np.sqrt(np.sum(centroids_mov * centroids_mov, axis=1)))[
-        :, np.newaxis
-    ] * centroids_mov
+                        :, np.newaxis
+                    ] * centroids_mov
     centroids_dst = (100 / np.sqrt(np.sum(centroids_dst * centroids_dst, axis=1)))[
-        :, np.newaxis
-    ] * centroids_dst
+                        :, np.newaxis
+                    ] * centroids_dst
     # find rotation
-    R = align.find_rotation(centroids_mov, centroids_dst)
+    R = find_rotation(centroids_mov, centroids_dst)
     return R
 
 
@@ -185,7 +193,7 @@ if __name__ == "__main__":
     trgaparc = fs.read_annot(options.trgaparc)
 
     R = align_aparc_centroids(srcsphere[0], srcaparc[0], trgsphere[0], trgaparc[0])
-    alpha, beta, gamma = align.rmat2angles(R)
+    alpha, beta, gamma = rmat2angles(R)
     print(f"\nalpha {alpha:.1f}   beta {beta:.1f}   gamma {gamma:.1f}\n")
 
     # write angles

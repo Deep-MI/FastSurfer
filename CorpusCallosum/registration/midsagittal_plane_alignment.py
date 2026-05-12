@@ -4,22 +4,16 @@ from dataclasses import dataclass
 
 import nibabel as nib
 import numpy as np
+from neuroreg.segreg import segreg
+from nibabel.freesurfer.mghformat import MGHHeader
 from scipy.ndimage import affine_transform, binary_fill_holes, distance_transform_edt
 from skimage.morphology import convex_hull_image
 
-from CorpusCallosum.data.constants import FSAVERAGE_CENTROIDS_PATH, FSAVERAGE_DATA_PATH, FSAVERAGE_MIDDLE
-from CorpusCallosum.data.read_write import (
-    MGHHeaderDict,
-    calc_ras_centroids_from_seg,
-    convert_numpy_to_json_serializable,
-    load_fsaverage_centroids,
-    load_fsaverage_data,
-)
+from CorpusCallosum.data.constants import FSAVERAGE_MIDDLE, FSAVERAGE_REGISTRATION_LABELS, FSAVERAGE_TARGET_PATH
+from CorpusCallosum.data.read_write import MGHHeaderDict, convert_numpy_to_json_serializable
 from CorpusCallosum.shape.postprocessing import offset_affine
 from FastSurferCNN.utils import AffineMatrix4x4, Shape3d, logging, nibabelImage
 from FastSurferCNN.utils.brainvolstats import hemi_masks_from_aseg
-from FastSurferCNN.utils.parallel import thread_executor
-from recon_surf.align_points import find_rigid
 
 logger = logging.get_logger(__name__)
 
@@ -61,6 +55,18 @@ class MidplaneDebugVolumes:
     candidate_mask: np.ndarray
     left_mask: np.ndarray
     right_mask: np.ndarray
+
+
+def _mgh_header_from_dict(
+        reference_header: nib.filebasedimages.FileBasedHeader,
+        header_dict: MGHHeaderDict
+) -> MGHHeader:
+    """Create an MGH header from serialized header metadata."""
+    header = MGHHeader.from_header(reference_header)
+    header["dims"] = np.append(header_dict["dims"], [1])
+    for key in ("delta", "Pxyz_c", "Mdc"):
+        header[key] = header_dict[key]
+    return header
 
 
 @dataclass(frozen=True)
@@ -117,9 +123,9 @@ class MidplaneTransformResult:
 
 
 def resample_segmentation_to_fsavg(
-    seg_data: np.ndarray,
-    orig2fsavg_vox2vox: AffineMatrix4x4,
-    fsavg_shape: Shape3d,
+        seg_data: np.ndarray,
+        orig2fsavg_vox2vox: AffineMatrix4x4,
+        fsavg_shape: Shape3d,
 ) -> np.ndarray:
     """Resample a segmentation into fsaverage voxel space.
 
@@ -191,7 +197,7 @@ def _make_fsavg_convex_hull_mask(brain_mask: np.ndarray) -> np.ndarray:
             x0 = int(x_min[src_y, src_z])
             x1 = int(x_max[src_y, src_z])
         if x1 >= x0:
-            hull_mask[x0 : x1 + 1, y_idx, z_idx] = True
+            hull_mask[x0: x1 + 1, y_idx, z_idx] = True
     return hull_mask
 
 
@@ -326,12 +332,12 @@ def _prepare_lr_pair_labels(seg_data: np.ndarray) -> tuple[np.ndarray, np.ndarra
 
 
 def _score_midline_shift(
-    seg_in_fsavg: np.ndarray,
-    left_ids: np.ndarray,
-    right_ids: np.ndarray,
-    base_middle_vox: float,
-    shift_vox: int,
-    max_pairs_per_slice: int = 64,
+        seg_in_fsavg: np.ndarray,
+        left_ids: np.ndarray,
+        right_ids: np.ndarray,
+        base_middle_vox: float,
+        shift_vox: int,
+        max_pairs_per_slice: int = 64,
 ) -> tuple[float, int]:
     """Score a candidate LR shift by mirrored label consistency near the midline.
 
@@ -404,12 +410,12 @@ def _score_midline_shift(
 
 
 def refine_midline_lr_shift(
-    orig2fsavg_vox2vox: AffineMatrix4x4,
-    aseg_data: np.ndarray,
-    fsavg_shape: Shape3d,
-    base_middle_vox: float,
-    max_shift_vox: int = 6,
-    step_vox: int = 1,
+        orig2fsavg_vox2vox: AffineMatrix4x4,
+        aseg_data: np.ndarray,
+        fsavg_shape: Shape3d,
+        base_middle_vox: float,
+        max_shift_vox: int = 6,
+        step_vox: int = 1,
 ) -> tuple[AffineMatrix4x4, int, float, dict[str, object]]:
     """Refine midsagittal alignment by searching small LR translations.
 
@@ -502,16 +508,16 @@ def refine_midline_lr_shift(
     insufficient_support = best_support < min_support
     no_baseline = not np.isfinite(zero_shift_score)
     small_improvement = (
-        np.isfinite(best_raw_score)
-        and np.isfinite(zero_shift_score)
-        and (zero_shift_score - best_raw_score) < min_improvement
+            np.isfinite(best_raw_score)
+            and np.isfinite(zero_shift_score)
+            and (zero_shift_score - best_raw_score) < min_improvement
     )
     reject_shift = (
-        best_shift == 0
-        or not np.isfinite(best_raw_score)
-        or at_boundary
-        or insufficient_support
-        or (not no_baseline and small_improvement)
+            best_shift == 0
+            or not np.isfinite(best_raw_score)
+            or at_boundary
+            or insufficient_support
+            or (not no_baseline and small_improvement)
     )
 
     diagnostics["no_baseline"] = no_baseline
@@ -542,7 +548,7 @@ def refine_midline_lr_shift(
 
 
 def register_centroids_to_fsavg(
-    aseg_nib: nibabelImage,
+        aseg_nib: nibabelImage,
 ) -> tuple[AffineMatrix4x4, AffineMatrix4x4, AffineMatrix4x4, MGHHeaderDict]:
     """Estimate a rigid subject-to-fsaverage alignment from aseg centroids.
 
@@ -557,45 +563,60 @@ def register_centroids_to_fsavg(
         ``(aseg2fsavg_vox2vox, aseg2fsavg_ras2ras, fsavg_hires_vox2ras, fsavg_header)``.
     """
     logger.info("Starting centroid registration")
+    registration = segreg(
+        aseg_nib,
+        centroids=FSAVERAGE_TARGET_PATH,
+        dof=6,
+        labels=list(FSAVERAGE_REGISTRATION_LABELS),
+    )
+    if registration.target_geometry is None:
+        raise ValueError("Pinned fsaverage target did not provide target geometry.")
 
-    fsaverage_data_future = thread_executor().submit(load_fsaverage_data, FSAVERAGE_DATA_PATH)
-    ras_centroids_dst = load_fsaverage_centroids(FSAVERAGE_CENTROIDS_PATH)
-
-    ras_centroids_mov = calc_ras_centroids_from_seg(aseg_nib, label_ids=list(ras_centroids_dst.keys()))
-    joint_centroid_labels = [lbl for lbl, v in ras_centroids_mov.items() if v is not None]
-
-    ras_centroids_mov = np.array([ras_centroids_mov[lbl] for lbl in joint_centroid_labels]).T
-    ras_centroids_dst = np.array([ras_centroids_dst[lbl] for lbl in joint_centroid_labels]).T
-
-    aseg2fsaverage_ras2ras: AffineMatrix4x4 = find_rigid(p_mov=ras_centroids_mov.T, p_dst=ras_centroids_dst.T)
+    aseg2fsaverage_ras2ras = np.asarray(registration.r2r, dtype=np.float64)
+    atlas_header = registration.target_geometry
+    fsavg_header: MGHHeaderDict = {
+        "dims": [int(v) for v in atlas_header["dims"]],
+        "delta": [float(v) for v in atlas_header["delta"]],
+        "Mdc": np.asarray(atlas_header["Mdc"], dtype=np.float64).copy(),
+        "Pxyz_c": np.asarray(atlas_header["Pxyz_c"], dtype=np.float64).copy(),
+    }
+    # Downstream CC mapping expects FreeSurfer's MGH/tkregister affine convention.
+    fsaverage_vox2ras = np.asarray(_mgh_header_from_dict(aseg_nib.header, fsavg_header).get_vox2ras(), dtype=np.float64)
 
     aseg_zooms_ras = np.asarray(nib.as_closest_canonical(aseg_nib).header.get_zooms()[:3])
     resolution_trans: AffineMatrix4x4 = np.diagflat(np.append(aseg_zooms_ras[[0, 2, 1]], [1])).astype(float)
 
-    fsaverage_vox2ras, fsavg_header = fsaverage_data_future.result()
     fsavg_header["delta"] = aseg_zooms_ras[[0, 2, 1]]
     fsavg_hires_vox2ras: AffineMatrix4x4 = np.concatenate(
         [(resolution_trans @ fsaverage_vox2ras)[:, :3], fsaverage_vox2ras[:, 3:4]],
         axis=1,
     )
-    fsavg_header["dims"] = np.ceil(fsavg_header["dims"] @ np.linalg.inv(resolution_trans[:3, :3])).astype(int).tolist()
+    fsavg_header["dims"] = (
+        np.ceil(np.asarray(fsavg_header["dims"], dtype=np.float64) @ np.linalg.inv(resolution_trans[:3, :3]))
+        .astype(int)
+        .tolist()
+    )
     fsavg_header["Pxyz_c"] += (aseg_zooms_ras - 1) / 2 @ fsavg_header["Mdc"]
 
     aseg2fsavg_vox2vox: AffineMatrix4x4 = np.linalg.inv(fsavg_hires_vox2ras) @ aseg2fsaverage_ras2ras @ aseg_nib.affine
-    logger.info("Centroid registration successful!")
+    logger.info(
+        "Centroid registration successful via neuroreg using %d pinned labels (%d matched)!",
+        len(FSAVERAGE_REGISTRATION_LABELS),
+        len(registration.labels),
+    )
     return aseg2fsavg_vox2vox, aseg2fsaverage_ras2ras, fsavg_hires_vox2ras, fsavg_header
 
 
 def refine_midplane_with_distance_maps(
-    orig2fsavg_vox2vox: AffineMatrix4x4,
-    aseg_data: np.ndarray,
-    fsavg_shape: Shape3d,
-    base_middle_vox: float,
-    zero_band_vox: float = 0.5,
-    support_distance_vox: float = 24.0,
-    fit_band_vox: float = 20.0,
-    max_tilt_deg: float = 7.5,
-    max_center_shift_vox: float = 8.0,
+        orig2fsavg_vox2vox: AffineMatrix4x4,
+        aseg_data: np.ndarray,
+        fsavg_shape: Shape3d,
+        base_middle_vox: float,
+        zero_band_vox: float = 0.5,
+        support_distance_vox: float = 24.0,
+        fit_band_vox: float = 20.0,
+        max_tilt_deg: float = 7.5,
+        max_center_shift_vox: float = 8.0,
 ) -> MidplaneRefinementResult:
     """Fit a midsagittal plane from LR distance-map symmetry in fsaverage space.
 
@@ -651,10 +672,10 @@ def refine_midplane_with_distance_maps(
     right_distance = distance_transform_edt(~right_mask)
     distance_diff = left_distance - right_distance
     candidate_mask = (
-        hull_mask
-        & (np.abs(distance_diff) <= zero_band_vox)
-        & (np.minimum(left_distance, right_distance) <= support_distance_vox)
-        & (np.abs(np.arange(fsavg_shape[0])[:, np.newaxis, np.newaxis] - base_middle_vox) <= fit_band_vox)
+            hull_mask
+            & (np.abs(distance_diff) <= zero_band_vox)
+            & (np.minimum(left_distance, right_distance) <= support_distance_vox)
+            & (np.abs(np.arange(fsavg_shape[0])[:, np.newaxis, np.newaxis] - base_middle_vox) <= fit_band_vox)
     )
     debug_volumes = MidplaneDebugVolumes(
         distance_diff=distance_diff.astype(np.float32),
@@ -771,9 +792,9 @@ def refine_midplane_with_distance_maps(
 
 
 def find_midplane_transform(
-    orig: nibabelImage,
-    aseg_img: nibabelImage,
-    midplane_method: str,
+        orig: nibabelImage,
+        aseg_img: nibabelImage,
+        midplane_method: str,
 ) -> MidplaneTransformResult:
     """Resolve the fsaverage midplane transform for a selected refinement method.
 

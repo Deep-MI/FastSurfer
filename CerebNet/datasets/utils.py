@@ -124,9 +124,9 @@ def map_size_leg(arr, base_shape, return_border=False):
     new_arr = np.zeros(new_shape, dtype=arr.dtype)
     final_arr = np.zeros(base_shape, dtype=arr.dtype)
     new_arr[
-        borders[0, 0] : borders[0, 1],
-        borders[1, 0] : borders[1, 1],
-        borders[2, 0] : borders[2, 1],
+        borders[0, 0]: borders[0, 1],
+        borders[1, 0]: borders[1, 1],
+        borders[2, 0]: borders[2, 1],
     ] = arr[:]
     middle_point = [
         int(new_arr.shape[0] // 2),
@@ -137,9 +137,9 @@ def map_size_leg(arr, base_shape, return_border=False):
     low_border = np.array((np.array(middle_point) - np.array(padd)), dtype=int)
     high_border = np.array(np.array(low_border) + np.array(base_shape), dtype=int)
     final_arr = new_arr[
-        low_border[0] : high_border[0],
-        low_border[1] : high_border[1],
-        low_border[2] : high_border[2],
+        low_border[0]: high_border[0],
+        low_border[1]: high_border[1],
+        low_border[2]: high_border[2],
     ]
 
     if return_border:
@@ -147,9 +147,9 @@ def map_size_leg(arr, base_shape, return_border=False):
         high_back_border = low_back_border + np.array(arr.shape)
         back_borders = np.vstack((low_back_border, high_back_border)).T
         back_arr = final_arr[
-            back_borders[0, 0] : back_borders[0, 1],
-            back_borders[1, 0] : back_borders[1, 1],
-            back_borders[2, 0] : back_borders[2, 1],
+            back_borders[0, 0]: back_borders[0, 1],
+            back_borders[1, 0]: back_borders[1, 1],
+            back_borders[2, 0]: back_borders[2, 1],
         ]
 
         assert np.all(
@@ -162,9 +162,9 @@ def map_size_leg(arr, base_shape, return_border=False):
 
 
 def bounding_volume_offset(
-    img: np.ndarray | Sequence[int],
-    target_img_size: tuple[int, ...],
-    image_shape: tuple[int, ...] | None = None,
+        img: np.ndarray | Sequence[int],
+        target_img_size: tuple[int, ...],
+        image_shape: tuple[int, ...] | None = None,
 ) -> tuple[int, ...]:
     """Find the center of the non-zero values in img and returns offsets so this center is in the center of a bounding
     volume of size target_img_size."""
@@ -177,7 +177,7 @@ def bounding_volume_offset(
         bbox = img
     center = (
         (_max + _min) / 2
-        for _min, _max in zip(bbox[: len(bbox) // 2], bbox[len(bbox) // 2 :], strict=False)
+        for _min, _max in zip(bbox[: len(bbox) // 2], bbox[len(bbox) // 2:], strict=False)
     )
     offset = tuple(
         max(0, int(round(c - ts / 2))) for c, ts in zip(center, target_img_size, strict=False)
@@ -195,7 +195,8 @@ def bounding_volume_offset(
         # if it does not fit fully inside, warn
         if any(min(left, right) < 0 for left, right in _offset):
             logger.warning(f"The image is not large enough to cut a {target_img_size} patch, padding!")
-        offset = tuple(min(left, right) if min(left, right) >= 0 else int((left + right)/2) for left, right in _offset)
+        offset = tuple(
+            min(left, right) if min(left, right) >= 0 else int((left + right) / 2) for left, right in _offset)
     return offset
 
 
@@ -329,9 +330,9 @@ def apply_warp_field(dform_field, img, interpol_order=3):
 
 def load_talairach_coordinates(tala_path, img_shape, vox2ras):
     """Load talairach coordinates from file."""
-    from FastSurferCNN.utils.lta import read_lta
+    from neuroreg import LTA
 
-    tala_lta = read_lta(tala_path)
+    tala_lta = LTA.read(tala_path)
     # create image grid p
     x, y, z = np.meshgrid(
         np.arange(img_shape[0]),
@@ -342,8 +343,8 @@ def load_talairach_coordinates(tala_path, img_shape, vox2ras):
     p = np.array([x.flatten(), y.flatten(), z.flatten()]).transpose()
     p1 = np.concatenate((p, np.ones((p.shape[0], 1))), axis=1)
 
-    assert tala_lta["type"] == 1, "talairach not in ras2ras"  # ras2ras
-    m = np.matmul(tala_lta["lta"][0, 0], vox2ras)
+    assert tala_lta.type == 1, "talairach not in ras2ras"  # ras2ras
+    m = np.matmul(tala_lta.r2r(), vox2ras)
 
     tala_coordinates = np.matmul(m, p1.transpose()).transpose()
     tala_coordinates = tala_coordinates[:, :-1]
