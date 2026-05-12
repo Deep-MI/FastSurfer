@@ -27,7 +27,9 @@ def make_parser() -> argparse.ArgumentParser:
             "thickness_values_<idx>.txt, and optionally contour_<idx>.txt "
             "and thickness_measurement_points_<idx>.txt. If contour_<idx>.txt "
             "and thickness_measurement_points_<idx>.txt are not provided, "
-            "uses fsaverage template."
+            "uses fsaverage template. For FreeSurfer surfaces in orig.mgz "
+            "reference space, also provide mri/orig.mgz and "
+            "mri/transforms/cc_up.lta in this directory."
         ),
         metavar="TEMPLATE_DIR",
         default=None,
@@ -41,7 +43,10 @@ def make_parser() -> argparse.ArgumentParser:
                              "cc_mesh.vtk - VTK mesh file format "
                              "cc_mesh.fssurf - FreeSurfer surface file "
                              "cc_mesh_overlay.curv - FreeSurfer curvature overlay file "
-                             "cc_mesh_snap.png - Screenshot/snapshot of the 3D mesh (requires whippersnappy>=2.1)",
+                             "cc_mesh_snap.png - Screenshot/snapshot of the 3D mesh (requires whippersnappy>=2.1). "
+                             "If template_dir does not contain orig.mgz and cc_up.lta, "
+                             "output_dir/mri/upright.mgz is used as the fallback reference when available; "
+                             "otherwise FreeSurfer surfaces are written without a reference space.",
                         metavar="OUTPUT_DIR"
                         )
     parser.add_argument(
@@ -260,6 +265,12 @@ def main(
         # indices and shifts the surface far away from the MRI.
         freeview_mesh = surface_mesh.to_vox_coordinates(mesh_ras2vox)
     else:
+        logger.warning(
+            "Writing FreeSurfer surface outputs without a reference space. "
+            "The surface vertices remain in CC upright RAS coordinates and may not align with an MRI in Freeview. "
+            "Provide template_dir/mri/orig.mgz with template_dir/mri/transforms/cc_up.lta, "
+            "or output_dir/mri/upright.mgz, to write the surface in a reference space.",
+        )
         freeview_mesh = surface_mesh
 
     plot_kwargs = dict(

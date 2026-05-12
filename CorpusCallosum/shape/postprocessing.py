@@ -259,8 +259,18 @@ def recon_cc_surf_measures_multi(
             io_futures.append(run(cc_contours[j].save_contour, template_dir / f"contour_{j}.txt"))
             io_futures.append(run(cc_contours[j].save_thickness_values, template_dir / f"thickness_values_{j}.txt"))
 
+    num_failed_slices = num_slices - len(cc_contours)
+
     mesh_outputs = ("html", "mesh", "thickness_overlay", "surf", "thickness_image")
     if len(cc_contours) > 1 and any(wants_output(f"cc_{n}") for n in mesh_outputs):
+        if num_failed_slices > 0:
+            logger.warning(
+                "Skipping CC surface/mesh outputs because morphometry failed for "
+                f"{num_failed_slices} of {num_slices} requested slices. "
+                "Surface generation requires a complete slice set to preserve the physical slab spacing.",
+            )
+            return slice_cc_measures, io_futures, cc_contours, num_failed_slices
+
         _cc_contours = thread_executor().map(_resample_thickness, cc_contours)
         # Surface vertices represent the continuous analysis slab. The
         # discrete segmentation mask can be slightly wider/narrower depending on
@@ -310,7 +320,7 @@ def recon_cc_surf_measures_multi(
             logger.error("Error: No valid slices were found for postprocessing")
             raise ValueError("No valid slices were found for postprocessing")
 
-    return slice_cc_measures, io_futures, cc_contours, num_slices - len(cc_contours)
+    return slice_cc_measures, io_futures, cc_contours, num_failed_slices
 
 
 def _resample_thickness(contour: CCContour) -> CCContour:
