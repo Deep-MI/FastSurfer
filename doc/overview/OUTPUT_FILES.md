@@ -32,7 +32,7 @@ The Corpus Callosum module outputs the files in the table shown below. It create
 | stats           | callosum.CC.midslice.json      | cc     | measurements from the mid-sagittal slice (landmarks, area, thickness, etc.)                               |
 | stats           | callosum.CC.all_slices.json    | cc     | comprehensive per-slice analysis       |
 | qc_snapshots    | callosum.png                   | cc     | debug visualization of CC contours, AC, PC and thickness (only with run_fastsurfer.sh `--qc_snap`)                                       |
-| qc_snapshots    | callosum_thickness.png         | cc     | 3D thickness visualization (only with run_fastsurfer.sh `--qc_snap`)                                                   |
+| qc_snapshots    | callosum.thickness.png         | cc     | 3D thickness visualization (only with run_fastsurfer.sh `--qc_snap`)                                                   |
 | qc_snapshots    | corpus_callosum.html           | cc     | interactive 3D mesh visualization (only with run_fastsurfer.sh `--qc_snap`)                                                    |
 | surf            | callosum.surf                  | cc     | 3D Corpus Callosum mesh in FreeSurfer surface format (open with freeview)              |
 | surf            | callosum.thickness.w           | cc     | FreeSurfer overlay file containing thickness values (open with callosum.surf in freeview)                   |

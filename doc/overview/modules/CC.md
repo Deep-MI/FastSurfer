@@ -12,9 +12,19 @@ This pipeline combines localization and segmentation deep learning models to:
 4. Perform advanced morphometry for corpus callosum, including subdivision, thickness analysis, and various shape metrics
 5. Generate visualizations and measurements
 
+FastSurfer-CC identifies the midsagittal slab for corpus callosum analysis, segments the corpus callosum and fornix,
+localizes AC and PC landmarks for head-pose standardization, and derives area, thickness, length, curvature, volume,
+and subdivision measures for downstream statistical analysis.
+
 The output files are described [here](../OUTPUT_FILES.md#corpus-callosum-module).
 The structure of the JSON files describing corpus callosum measures is documented below.
 Advanced options, like custom subdivision schemes and quality control are described in the [FastSurfer-CC documentation](../../scripts/fastsurfer_cc.rst).
+
+References
+----------
+If you use FastSurfer-CC in your research, please cite:
+
+*Pollak C, Diers K, Estrada S, Kuegler D, Reuter M. FastSurfer-CC: A robust, accurate, and comprehensive framework for corpus callosum morphometry. Imaging Neuroscience 2026. https://doi.org/10.1162/IMAG.a.1221*
 
 JSON Output Structure
 ---------------------
