@@ -3,7 +3,7 @@
   <head><meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
-<link rel="index" title="Index" href="../../genindex.html"><link rel="search" title="Search" href="../../search.html"><link rel="next" title="CorpusCallosum.localization" href="../CorpusCallosum.localization.html"><link rel="prev" title="CorpusCallosum.data.generate_fsaverage_centroids" href="CorpusCallosum.data.generate_fsaverage_centroids.html">
+<link rel="index" title="Index" href="../../genindex.html"><link rel="search" title="Search" href="../../search.html"><link rel="next" title="CorpusCallosum.localization" href="../CorpusCallosum.localization.html"><link rel="prev" title="CorpusCallosum.data.fsaverage_cc_template" href="CorpusCallosum.data.fsaverage_cc_template.html">
 
     <!-- Generated with Sphinx 7.4.7 and Furo 2025.12.19 -->
         <title>CorpusCallosum.data.read_write - FastSurfer</title>
@@ -284,7 +284,6 @@
 <li class="toctree-l3"><a class="reference internal" href="FastSurferCNN.utils.load_config.html">FastSurferCNN.utils.load_config</a></li>
 <li class="toctree-l3"><a class="reference internal" href="FastSurferCNN.utils.logging.html">FastSurferCNN.utils.logging</a></li>
 <li class="toctree-l3"><a class="reference internal" href="FastSurferCNN.utils.lr_scheduler.html">FastSurferCNN.utils.lr_scheduler</a></li>
-<li class="toctree-l3"><a class="reference internal" href="FastSurferCNN.utils.lta.html">FastSurferCNN.utils.lta</a></li>
 <li class="toctree-l3"><a class="reference internal" href="FastSurferCNN.utils.mapper.html">FastSurferCNN.utils.mapper</a></li>
 <li class="toctree-l3"><a class="reference internal" href="FastSurferCNN.utils.meters.html">FastSurferCNN.utils.meters</a></li>
 <li class="toctree-l3"><a class="reference internal" href="FastSurferCNN.utils.metrics.html">FastSurferCNN.utils.metrics</a></li>
@@ -336,7 +335,6 @@
 <li class="toctree-l2 current has-children"><a class="reference internal" href="../CorpusCallosum.data.html">CorpusCallosum.data</a><input aria-label="Toggle navigation of CorpusCallosum.data" checked="" class="toctree-checkbox" id="toctree-checkbox-18" name="toctree-checkbox-18" role="switch" type="checkbox"/><label for="toctree-checkbox-18"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul class="current">
 <li class="toctree-l3"><a class="reference internal" href="CorpusCallosum.data.constants.html">CorpusCallosum.data.constants</a></li>
 <li class="toctree-l3"><a class="reference internal" href="CorpusCallosum.data.fsaverage_cc_template.html">CorpusCallosum.data.fsaverage_cc_template</a></li>
-<li class="toctree-l3"><a class="reference internal" href="CorpusCallosum.data.generate_fsaverage_centroids.html">CorpusCallosum.data.generate_fsaverage_centroids</a></li>
 <li class="toctree-l3 current current-page"><a class="current reference internal" href="#">CorpusCallosum.data.read_write</a></li>
 </ul>
 </li>
@@ -402,8 +400,6 @@
 </ul>
 </li>
 <li class="toctree-l2 has-children"><a class="reference internal" href="../recon_surf.html">recon_surf</a><input aria-label="Toggle navigation of recon_surf" class="toctree-checkbox" id="toctree-checkbox-29" name="toctree-checkbox-29" role="switch" type="checkbox"/><label for="toctree-checkbox-29"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
-<li class="toctree-l3"><a class="reference internal" href="recon_surf.align_points.html">recon_surf.align_points</a></li>
-<li class="toctree-l3"><a class="reference internal" href="recon_surf.align_seg.html">recon_surf.align_seg</a></li>
 <li class="toctree-l3"><a class="reference internal" href="recon_surf.create_annotation.html">recon_surf.create_annotation</a></li>
 <li class="toctree-l3"><a class="reference internal" href="recon_surf.fs_balabels.html">recon_surf.fs_balabels</a></li>
 <li class="toctree-l3"><a class="reference internal" href="recon_surf.image_io.html">recon_surf.image_io</a></li>
@@ -463,8 +459,8 @@
 <span id="corpuscallosum-data-read-write"></span><h1>CorpusCallosum.data.read_write<a class="headerlink" href="#module-CorpusCallosum.data.read_write" title="Link to this heading">¶</a></h1>
 <dl class="py class">
 <dt class="sig sig-object py" id="CorpusCallosum.data.read_write.MGHHeaderDict">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">CorpusCallosum.data.read_write.</span></span><span class="sig-name descname"><span class="pre">MGHHeaderDict</span></span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//CorpusCallosum/data/read_write.py#L29-L34"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CorpusCallosum.data.read_write.MGHHeaderDict" title="Link to this definition">¶</a></dt>
-<dd><p>A dictionary with the four required fields of a MGH Header</p>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">CorpusCallosum.data.read_write.</span></span><span class="sig-name descname"><span class="pre">MGHHeaderDict</span></span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//CorpusCallosum/data/read_write.py#L22-L28"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CorpusCallosum.data.read_write.MGHHeaderDict" title="Link to this definition">¶</a></dt>
+<dd><p>A dictionary with the four required fields of a MGH Header.</p>
 <p class="rubric">Methods</p>
 <div class="table-wrapper autosummary longtable docutils container">
 <table class="autosummary longtable docutils align-default">
@@ -508,30 +504,8 @@
 </dd></dl>
 
 <dl class="py function">
-<dt class="sig sig-object py" id="CorpusCallosum.data.read_write.calc_ras_centroids_from_seg">
-<span class="sig-prename descclassname"><span class="pre">CorpusCallosum.data.read_write.</span></span><span class="sig-name descname"><span class="pre">calc_ras_centroids_from_seg</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">seg_img</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">label_ids</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//CorpusCallosum/data/read_write.py#L37-L78"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CorpusCallosum.data.read_write.calc_ras_centroids_from_seg" title="Link to this definition">¶</a></dt>
-<dd><p>Get centroids of segmentation labels in RAS coordinates, accepts any affine/data layout.</p>
-<dl class="field-list">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><dl>
-<dt><strong>seg_img</strong><span class="classifier"><code class="xref py py-obj docutils literal notranslate"><span class="pre">nibabel.analyze.SpatialImage</span></code></span></dt><dd><p>Input segmentation image.</p>
-</dd>
-<dt><strong>label_ids</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">list</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">int</span></code></a>], <code class="xref py py-obj docutils literal notranslate"><span class="pre">optional</span></code></span></dt><dd><p>List of label IDs to extract centroids for. If None, extracts all non-zero labels.</p>
-</dd>
-</dl>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><dl class="simple">
-<dt><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">dict</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">int</span></code></a>, <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.4)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a> | <a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">None</span></code></a>]</dt><dd><p>A dict mapping label IDs to their centroids (x,y,z) in RAS coordinates, None if label did not exist.</p>
-</dd>
-</dl>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py function">
 <dt class="sig sig-object py" id="CorpusCallosum.data.read_write.convert_numpy_to_json_serializable">
-<span class="sig-prename descclassname"><span class="pre">CorpusCallosum.data.read_write.</span></span><span class="sig-name descname"><span class="pre">convert_numpy_to_json_serializable</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">obj</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//CorpusCallosum/data/read_write.py#L81-L104"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CorpusCallosum.data.read_write.convert_numpy_to_json_serializable" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">CorpusCallosum.data.read_write.</span></span><span class="sig-name descname"><span class="pre">convert_numpy_to_json_serializable</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">obj</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//CorpusCallosum/data/read_write.py#L31-L52"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CorpusCallosum.data.read_write.convert_numpy_to_json_serializable" title="Link to this definition">¶</a></dt>
 <dd><p>Convert numpy types to JSON serializable types.</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -543,102 +517,6 @@
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><dl class="simple">
 <dt><a class="reference external" href="https://docs.python.org/3/library/functions.html#object" title="(in Python v3.14)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">object</span></code></a></dt><dd><p>JSON serializable version of the input object.</p>
-</dd>
-</dl>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="CorpusCallosum.data.read_write.load_fsaverage_affine">
-<span class="sig-prename descclassname"><span class="pre">CorpusCallosum.data.read_write.</span></span><span class="sig-name descname"><span class="pre">load_fsaverage_affine</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">affine_path</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//CorpusCallosum/data/read_write.py#L132-L155"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CorpusCallosum.data.read_write.load_fsaverage_affine" title="Link to this definition">¶</a></dt>
-<dd><p>Load fsaverage affine matrix from static text file.</p>
-<dl class="field-list">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><dl>
-<dt><strong>affine_path</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a> or <a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.14)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Path</span></code></a></span></dt><dd><p>Path to the text file containing affine matrix.</p>
-</dd>
-</dl>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><dl class="simple">
-<dt><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.4)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></dt><dd><p>4x4 affine transformation matrix.</p>
-</dd>
-</dl>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="CorpusCallosum.data.read_write.load_fsaverage_centroids">
-<span class="sig-prename descclassname"><span class="pre">CorpusCallosum.data.read_write.</span></span><span class="sig-name descname"><span class="pre">load_fsaverage_centroids</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">centroids_path</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//CorpusCallosum/data/read_write.py#L107-L129"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CorpusCallosum.data.read_write.load_fsaverage_centroids" title="Link to this definition">¶</a></dt>
-<dd><p>Load fsaverage centroids from static JSON file.</p>
-<dl class="field-list">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><dl>
-<dt><strong>centroids_path</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a> or <a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.14)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Path</span></code></a></span></dt><dd><p>Path to the JSON file containing centroids.</p>
-</dd>
-</dl>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><dl class="simple">
-<dt><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">dict</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">int</span></code></a>, <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.4)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a>]</dt><dd><p>Dictionary mapping label IDs to their centroids in RAS coordinates.</p>
-</dd>
-</dl>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="CorpusCallosum.data.read_write.load_fsaverage_data">
-<span class="sig-prename descclassname"><span class="pre">CorpusCallosum.data.read_write.</span></span><span class="sig-name descname"><span class="pre">load_fsaverage_data</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data_path</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//CorpusCallosum/data/read_write.py#L158-L221"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CorpusCallosum.data.read_write.load_fsaverage_data" title="Link to this definition">¶</a></dt>
-<dd><p>Load fsaverage affine matrix and header fields from static JSON file.</p>
-<dl class="field-list">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><dl>
-<dt><strong>data_path</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a> or <a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.14)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Path</span></code></a></span></dt><dd><p>Path to the JSON file containing combined data.</p>
-</dd>
-</dl>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><dl>
-<dt><strong>affine_matrix</strong><span class="classifier"><code class="xref py py-obj docutils literal notranslate"><span class="pre">AffineMatrix4x4</span></code></span></dt><dd><p>4x4 affine transformation matrix.</p>
-</dd>
-<dt><strong>header_fields</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">dict</span></code></a></span></dt><dd><dl class="simple">
-<dt>Header fields needed for LTA:</dt><dd><ul class="simple">
-<li><dl class="simple">
-<dt>dims<span class="classifier">list[int]</span></dt><dd><p>Volume dimensions [x,y,z].</p>
-</dd>
-</dl>
-</li>
-<li><dl class="simple">
-<dt>delta<span class="classifier">list[float]</span></dt><dd><p>Voxel size in mm [x,y,z].</p>
-</dd>
-</dl>
-</li>
-<li><dl class="simple">
-<dt>Mdc<span class="classifier">np.ndarray</span></dt><dd><p>3x3 direction cosines matrix.</p>
-</dd>
-</dl>
-</li>
-<li><dl class="simple">
-<dt>Pxyz_c<span class="classifier">np.ndarray</span></dt><dd><p>RAS center coordinates [x,y,z].</p>
-</dd>
-</dl>
-</li>
-</ul>
-</dd>
-</dl>
-</dd>
-</dl>
-</dd>
-<dt class="field-odd">Raises<span class="colon">:</span></dt>
-<dd class="field-odd"><dl class="simple">
-<dt><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#FileNotFoundError" title="(in Python v3.14)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FileNotFoundError</span></code></a></dt><dd><p>If the data file doesn’t exist.</p>
-</dd>
-<dt><a class="reference external" href="https://docs.python.org/3/library/json.html#json.JSONDecodeError" title="(in Python v3.14)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">json.JSONDecodeError</span></code></a></dt><dd><p>If the file is not valid JSON.</p>
-</dd>
-<dt><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.14)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ValueError</span></code></a></dt><dd><p>If required fields are missing.</p>
 </dd>
 </dl>
 </dd>
@@ -661,14 +539,14 @@
               </div>
               <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
             </a>
-          <a class="prev-page" href="CorpusCallosum.data.generate_fsaverage_centroids.html">
+          <a class="prev-page" href="CorpusCallosum.data.fsaverage_cc_template.html">
               <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
               <div class="page-info">
                 <div class="context">
                   <span>Previous</span>
                 </div>
                 
-                <div class="title">CorpusCallosum.data.generate_fsaverage_centroids</div>
+                <div class="title">CorpusCallosum.data.fsaverage_cc_template</div>
                 
               </div>
             </a>
@@ -710,11 +588,7 @@
             <ul>
 <li><a class="reference internal" href="#">CorpusCallosum.data.read_write</a><ul>
 <li><a class="reference internal" href="#CorpusCallosum.data.read_write.MGHHeaderDict"><code class="docutils literal notranslate"><span class="pre">MGHHeaderDict</span></code></a></li>
-<li><a class="reference internal" href="#CorpusCallosum.data.read_write.calc_ras_centroids_from_seg"><code class="docutils literal notranslate"><span class="pre">calc_ras_centroids_from_seg()</span></code></a></li>
 <li><a class="reference internal" href="#CorpusCallosum.data.read_write.convert_numpy_to_json_serializable"><code class="docutils literal notranslate"><span class="pre">convert_numpy_to_json_serializable()</span></code></a></li>
-<li><a class="reference internal" href="#CorpusCallosum.data.read_write.load_fsaverage_affine"><code class="docutils literal notranslate"><span class="pre">load_fsaverage_affine()</span></code></a></li>
-<li><a class="reference internal" href="#CorpusCallosum.data.read_write.load_fsaverage_centroids"><code class="docutils literal notranslate"><span class="pre">load_fsaverage_centroids()</span></code></a></li>
-<li><a class="reference internal" href="#CorpusCallosum.data.read_write.load_fsaverage_data"><code class="docutils literal notranslate"><span class="pre">load_fsaverage_data()</span></code></a></li>
 </ul>
 </li>
 </ul>

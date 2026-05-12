@@ -284,7 +284,6 @@
 <li class="toctree-l3"><a class="reference internal" href="FastSurferCNN.utils.load_config.html">FastSurferCNN.utils.load_config</a></li>
 <li class="toctree-l3"><a class="reference internal" href="FastSurferCNN.utils.logging.html">FastSurferCNN.utils.logging</a></li>
 <li class="toctree-l3"><a class="reference internal" href="FastSurferCNN.utils.lr_scheduler.html">FastSurferCNN.utils.lr_scheduler</a></li>
-<li class="toctree-l3"><a class="reference internal" href="FastSurferCNN.utils.lta.html">FastSurferCNN.utils.lta</a></li>
 <li class="toctree-l3"><a class="reference internal" href="FastSurferCNN.utils.mapper.html">FastSurferCNN.utils.mapper</a></li>
 <li class="toctree-l3"><a class="reference internal" href="FastSurferCNN.utils.meters.html">FastSurferCNN.utils.meters</a></li>
 <li class="toctree-l3"><a class="reference internal" href="FastSurferCNN.utils.metrics.html">FastSurferCNN.utils.metrics</a></li>
@@ -336,7 +335,6 @@
 <li class="toctree-l2 has-children"><a class="reference internal" href="../CorpusCallosum.data.html">CorpusCallosum.data</a><input aria-label="Toggle navigation of CorpusCallosum.data" class="toctree-checkbox" id="toctree-checkbox-18" name="toctree-checkbox-18" role="switch" type="checkbox"/><label for="toctree-checkbox-18"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l3"><a class="reference internal" href="CorpusCallosum.data.constants.html">CorpusCallosum.data.constants</a></li>
 <li class="toctree-l3"><a class="reference internal" href="CorpusCallosum.data.fsaverage_cc_template.html">CorpusCallosum.data.fsaverage_cc_template</a></li>
-<li class="toctree-l3"><a class="reference internal" href="CorpusCallosum.data.generate_fsaverage_centroids.html">CorpusCallosum.data.generate_fsaverage_centroids</a></li>
 <li class="toctree-l3"><a class="reference internal" href="CorpusCallosum.data.read_write.html">CorpusCallosum.data.read_write</a></li>
 </ul>
 </li>
@@ -402,8 +400,6 @@
 </ul>
 </li>
 <li class="toctree-l2 has-children"><a class="reference internal" href="../recon_surf.html">recon_surf</a><input aria-label="Toggle navigation of recon_surf" class="toctree-checkbox" id="toctree-checkbox-29" name="toctree-checkbox-29" role="switch" type="checkbox"/><label for="toctree-checkbox-29"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
-<li class="toctree-l3"><a class="reference internal" href="recon_surf.align_points.html">recon_surf.align_points</a></li>
-<li class="toctree-l3"><a class="reference internal" href="recon_surf.align_seg.html">recon_surf.align_seg</a></li>
 <li class="toctree-l3"><a class="reference internal" href="recon_surf.create_annotation.html">recon_surf.create_annotation</a></li>
 <li class="toctree-l3"><a class="reference internal" href="recon_surf.fs_balabels.html">recon_surf.fs_balabels</a></li>
 <li class="toctree-l3"><a class="reference internal" href="recon_surf.image_io.html">recon_surf.image_io</a></li>
@@ -474,7 +470,7 @@ measured.</p></li>
 </ul>
 <dl class="py class">
 <dt class="sig sig-object py" id="CorpusCallosum.shape.contour.CCContour">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">CorpusCallosum.shape.contour.</span></span><span class="sig-name descname"><span class="pre">CCContour</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">points</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">thickness_values</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">endpoint_idxs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">z_position</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//CorpusCallosum/shape/contour.py#L51-L832"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CorpusCallosum.shape.contour.CCContour" title="Link to this definition">¶</a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">CorpusCallosum.shape.contour.</span></span><span class="sig-name descname"><span class="pre">CCContour</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">points</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">thickness_values</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">endpoint_idxs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">z_position</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//CorpusCallosum/shape/contour.py#L52-L833"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CorpusCallosum.shape.contour.CCContour" title="Link to this definition">¶</a></dt>
 <dd><p>A class for representing and manipulating corpus callosum (CC) contours.</p>
 <p>This class provides functionality for manipulating and analyzing corpus callosum contours.</p>
 <p class="rubric">Attributes</p>
@@ -556,13 +552,13 @@ measured.</p></li>
 </div>
 <dl class="py method">
 <dt class="sig sig-object py" id="CorpusCallosum.shape.contour.CCContour.copy">
-<span class="sig-name descname"><span class="pre">copy</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//CorpusCallosum/shape/contour.py#L152-L160"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CorpusCallosum.shape.contour.CCContour.copy" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">copy</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//CorpusCallosum/shape/contour.py#L153-L161"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CorpusCallosum.shape.contour.CCContour.copy" title="Link to this definition">¶</a></dt>
 <dd><p>Copy the contour.</p>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="CorpusCallosum.shape.contour.CCContour.create_levelpaths">
-<span class="sig-name descname"><span class="pre">create_levelpaths</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">num_points</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inplace</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//CorpusCallosum/shape/contour.py#L179-L228"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CorpusCallosum.shape.contour.CCContour.create_levelpaths" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">create_levelpaths</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">num_points</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inplace</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//CorpusCallosum/shape/contour.py#L180-L229"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CorpusCallosum.shape.contour.CCContour.create_levelpaths" title="Link to this definition">¶</a></dt>
 <dd><p>Calculate thickness and level paths for the CC contour using Laplace equation.</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -596,7 +592,7 @@ measured.</p></li>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="CorpusCallosum.shape.contour.CCContour.fill_thickness_values">
-<span class="sig-name descname"><span class="pre">fill_thickness_values</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//CorpusCallosum/shape/contour.py#L266-L329"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CorpusCallosum.shape.contour.CCContour.fill_thickness_values" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">fill_thickness_values</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//CorpusCallosum/shape/contour.py#L267-L330"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CorpusCallosum.shape.contour.CCContour.fill_thickness_values" title="Link to this definition">¶</a></dt>
 <dd><p>Interpolate missing thickness values using weighted averaging.</p>
 <p class="rubric">Notes</p>
 <p>The function:
@@ -612,7 +608,7 @@ points have more influence on the interpolated value.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="CorpusCallosum.shape.contour.CCContour.from_contour_file">
-<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_contour_file</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">thickness_values_path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">z_position</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//CorpusCallosum/shape/contour.py#L638-L694"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CorpusCallosum.shape.contour.CCContour.from_contour_file" title="Link to this definition">¶</a></dt>
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_contour_file</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">thickness_values_path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">z_position</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//CorpusCallosum/shape/contour.py#L639-L695"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CorpusCallosum.shape.contour.CCContour.from_contour_file" title="Link to this definition">¶</a></dt>
 <dd><p>Load contour from a CSV file.</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -642,7 +638,7 @@ points have more influence on the interpolated value.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="CorpusCallosum.shape.contour.CCContour.from_mask_and_acpc">
-<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_mask_and_acpc</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cc_mask</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ac_2d</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pc_2d</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">slice_vox2ras</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">contour_smoothing</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//CorpusCallosum/shape/contour.py#L783-L832"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CorpusCallosum.shape.contour.CCContour.from_mask_and_acpc" title="Link to this definition">¶</a></dt>
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_mask_and_acpc</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cc_mask</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ac_2d</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pc_2d</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">slice_vox2ras</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">contour_smoothing</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//CorpusCallosum/shape/contour.py#L784-L833"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CorpusCallosum.shape.contour.CCContour.from_mask_and_acpc" title="Link to this definition">¶</a></dt>
 <dd><p>Extracts the contour of the CC using marching squares, smooth and transform to RAS coordinates.</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -672,7 +668,7 @@ points have more influence on the interpolated value.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="CorpusCallosum.shape.contour.CCContour.get_contour_edge_lengths">
-<span class="sig-name descname"><span class="pre">get_contour_edge_lengths</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//CorpusCallosum/shape/contour.py#L162-L177"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CorpusCallosum.shape.contour.CCContour.get_contour_edge_lengths" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">get_contour_edge_lengths</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//CorpusCallosum/shape/contour.py#L163-L178"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CorpusCallosum.shape.contour.CCContour.get_contour_edge_lengths" title="Link to this definition">¶</a></dt>
 <dd><p>Get the lengths of the edges of a contour.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
@@ -690,7 +686,7 @@ first point.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="CorpusCallosum.shape.contour.CCContour.load_thickness_values">
-<span class="sig-name descname"><span class="pre">load_thickness_values</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_path</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//CorpusCallosum/shape/contour.py#L718-L735"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CorpusCallosum.shape.contour.CCContour.load_thickness_values" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">load_thickness_values</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_path</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//CorpusCallosum/shape/contour.py#L719-L736"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CorpusCallosum.shape.contour.CCContour.load_thickness_values" title="Link to this definition">¶</a></dt>
 <dd><p>Load thickness values from a CSV file.</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -711,7 +707,7 @@ or if number of slices is inconsistent.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="CorpusCallosum.shape.contour.CCContour.plot_contour">
-<span class="sig-name descname"><span class="pre">plot_contour</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">output_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//CorpusCallosum/shape/contour.py#L350-L395"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CorpusCallosum.shape.contour.CCContour.plot_contour" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">plot_contour</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">output_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//CorpusCallosum/shape/contour.py#L351-L396"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CorpusCallosum.shape.contour.CCContour.plot_contour" title="Link to this definition">¶</a></dt>
 <dd><p>Plot a single contour with thickness values.</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -731,7 +727,7 @@ or if number of slices is inconsistent.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="CorpusCallosum.shape.contour.CCContour.plot_contour_colorfill">
-<span class="sig-name descname"><span class="pre">plot_contour_colorfill</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">plot_values</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">title</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">save_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">colorbar</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'p-value'</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//CorpusCallosum/shape/contour.py#L397-L594"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CorpusCallosum.shape.contour.CCContour.plot_contour_colorfill" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">plot_contour_colorfill</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">plot_values</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">title</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">save_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">colorbar</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'p-value'</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//CorpusCallosum/shape/contour.py#L398-L595"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CorpusCallosum.shape.contour.CCContour.plot_contour_colorfill" title="Link to this definition">¶</a></dt>
 <dd><p>Plot a contour with levelset visualization.</p>
 <p>Creates a visualization of a contour with interpolated levelsets, useful for
 analyzing the thickness distribution across the corpus callosum.</p>
@@ -761,7 +757,7 @@ analyzing the thickness distribution across the corpus callosum.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="CorpusCallosum.shape.contour.CCContour.save_contour">
-<span class="sig-name descname"><span class="pre">save_contour</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">output_path</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//CorpusCallosum/shape/contour.py#L611-L636"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CorpusCallosum.shape.contour.CCContour.save_contour" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">save_contour</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">output_path</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//CorpusCallosum/shape/contour.py#L612-L637"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CorpusCallosum.shape.contour.CCContour.save_contour" title="Link to this definition">¶</a></dt>
 <dd><p>Save the contours to a CSV file.</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -780,7 +776,7 @@ analyzing the thickness distribution across the corpus callosum.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="CorpusCallosum.shape.contour.CCContour.save_thickness_values">
-<span class="sig-name descname"><span class="pre">save_thickness_values</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">output_path</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//CorpusCallosum/shape/contour.py#L696-L716"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CorpusCallosum.shape.contour.CCContour.save_thickness_values" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">save_thickness_values</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">output_path</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//CorpusCallosum/shape/contour.py#L697-L717"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CorpusCallosum.shape.contour.CCContour.save_thickness_values" title="Link to this definition">¶</a></dt>
 <dd><p>Save thickness values to a CSV file.</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -799,7 +795,7 @@ analyzing the thickness distribution across the corpus callosum.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="CorpusCallosum.shape.contour.CCContour.set_thickness_values">
-<span class="sig-name descname"><span class="pre">set_thickness_values</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">thickness_values</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_measurement_points</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//CorpusCallosum/shape/contour.py#L230-L264"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CorpusCallosum.shape.contour.CCContour.set_thickness_values" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">set_thickness_values</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">thickness_values</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_measurement_points</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//CorpusCallosum/shape/contour.py#L231-L265"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CorpusCallosum.shape.contour.CCContour.set_thickness_values" title="Link to this definition">¶</a></dt>
 <dd><p>Set the thickness values for the contour.
 This is useful to update the thickness values for specific plots.</p>
 <dl class="field-list">
@@ -816,7 +812,7 @@ This is useful to update the thickness values for specific plots.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="CorpusCallosum.shape.contour.CCContour.smooth_contour">
-<span class="sig-name descname"><span class="pre">smooth_contour</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">window_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//CorpusCallosum/shape/contour.py#L138-L150"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CorpusCallosum.shape.contour.CCContour.smooth_contour" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">smooth_contour</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">window_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//CorpusCallosum/shape/contour.py#L139-L151"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CorpusCallosum.shape.contour.CCContour.smooth_contour" title="Link to this definition">¶</a></dt>
 <dd><p>Smooth a contour using a moving average filter.</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -832,7 +828,7 @@ This is useful to update the thickness values for specific plots.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="CorpusCallosum.shape.contour.CCContour.smooth_thickness_values">
-<span class="sig-name descname"><span class="pre">smooth_thickness_values</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">iterations</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//CorpusCallosum/shape/contour.py#L331-L348"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CorpusCallosum.shape.contour.CCContour.smooth_thickness_values" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">smooth_thickness_values</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">iterations</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//CorpusCallosum/shape/contour.py#L332-L349"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CorpusCallosum.shape.contour.CCContour.smooth_thickness_values" title="Link to this definition">¶</a></dt>
 <dd><p>Smooth the thickness values using a Gaussian filter.</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -849,7 +845,7 @@ along the contour.</p>
 
 <dl class="py property">
 <dt class="sig sig-object py" id="CorpusCallosum.shape.contour.CCContour.area">
-<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">area</span></span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//CorpusCallosum/shape/contour.py#L123-L136"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CorpusCallosum.shape.contour.CCContour.area" title="Link to this definition">¶</a></dt>
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">area</span></span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//CorpusCallosum/shape/contour.py#L124-L137"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CorpusCallosum.shape.contour.CCContour.area" title="Link to this definition">¶</a></dt>
 <dd><p>Calculate the area of the contour using the shoelace formula.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
@@ -865,7 +861,7 @@ along the contour.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="CorpusCallosum.shape.contour.calculate_volume">
-<span class="sig-prename descclassname"><span class="pre">CorpusCallosum.shape.contour.</span></span><span class="sig-name descname"><span class="pre">calculate_volume</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">contours</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">width</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5.0</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//CorpusCallosum/shape/contour.py#L835-L885"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CorpusCallosum.shape.contour.calculate_volume" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">CorpusCallosum.shape.contour.</span></span><span class="sig-name descname"><span class="pre">calculate_volume</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">contours</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">width</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5.0</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//CorpusCallosum/shape/contour.py#L836-L886"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CorpusCallosum.shape.contour.calculate_volume" title="Link to this definition">¶</a></dt>
 <dd><p>Calculate the volume of the corpus callosum.</p>
 <p>This method calculates the volume of a slab of the CC centered on the midplane.
 It multiplies the area of each cross-sectional slice by the width it
@@ -874,7 +870,7 @@ around the midplane (z=0).</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><dl>
-<dt><strong>width</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a>, default=5.0</span></dt><dd><p>The width of the slab centered on the midplane to calculate the volume for (in mm).</p>
+<dt><strong>width</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a>, default=CC_ANALYSIS_WIDTH_MM</span></dt><dd><p>The width of the slab centered on the midplane to calculate the volume for (in mm).</p>
 </dd>
 </dl>
 </dd>
@@ -885,6 +881,25 @@ around the midplane (z=0).</p>
 </dl>
 </dd>
 </dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="CorpusCallosum.shape.contour.contours_for_analysis_width">
+<span class="sig-prename descclassname"><span class="pre">CorpusCallosum.shape.contour.</span></span><span class="sig-name descname"><span class="pre">contours_for_analysis_width</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">contours</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//CorpusCallosum/shape/contour.py#L889-L923"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CorpusCallosum.shape.contour.contours_for_analysis_width" title="Link to this definition">¶</a></dt>
+<dd><p>Return contour copies with LR positions spanning a fixed display width.</p>
+<p>The CC segmentation mask is sampled on image slices, so its realized width
+depends on the voxel size and the odd number of slices needed to cover the
+requested analysis slab. The surface representation, however, is the
+continuous slab itself. For meshes we therefore place the available contours
+evenly across that physical width.</p>
+<p>The contour list follows increasing slab voxel index order. In the upright
+CC volume, the slab voxel axis has a negative RAS left/right direction, so
+increasing slice indices correspond to decreasing mesh LR RAS coordinates.
+Assign the display positions from <code class="docutils literal notranslate"><span class="pre">+CC_ANALYSIS_WIDTH_MM</span> <span class="pre">/</span> <span class="pre">2</span></code> down to
+<code class="docutils literal notranslate"><span class="pre">-CC_ANALYSIS_WIDTH_MM</span> <span class="pre">/</span> <span class="pre">2</span></code> to preserve that orientation.</p>
+<p>This function intentionally returns copies. Measurement code can continue to
+use the original slice-center coordinates, while visualization/surface
+output gets the fixed physical slab width expected by Freeview inspection.</p>
 </dd></dl>
 
 </section>
@@ -970,6 +985,7 @@ around the midplane (z=0).</p>
 </ul>
 </li>
 <li><a class="reference internal" href="#CorpusCallosum.shape.contour.calculate_volume"><code class="docutils literal notranslate"><span class="pre">calculate_volume()</span></code></a></li>
+<li><a class="reference internal" href="#CorpusCallosum.shape.contour.contours_for_analysis_width"><code class="docutils literal notranslate"><span class="pre">contours_for_analysis_width()</span></code></a></li>
 </ul>
 </li>
 </ul>

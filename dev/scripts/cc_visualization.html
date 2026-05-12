@@ -284,7 +284,6 @@
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/FastSurferCNN.utils.load_config.html">FastSurferCNN.utils.load_config</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/FastSurferCNN.utils.logging.html">FastSurferCNN.utils.logging</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/FastSurferCNN.utils.lr_scheduler.html">FastSurferCNN.utils.lr_scheduler</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../api/generated/FastSurferCNN.utils.lta.html">FastSurferCNN.utils.lta</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/FastSurferCNN.utils.mapper.html">FastSurferCNN.utils.mapper</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/FastSurferCNN.utils.meters.html">FastSurferCNN.utils.meters</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/FastSurferCNN.utils.metrics.html">FastSurferCNN.utils.metrics</a></li>
@@ -336,7 +335,6 @@
 <li class="toctree-l2 has-children"><a class="reference internal" href="../api/CorpusCallosum.data.html">CorpusCallosum.data</a><input aria-label="Toggle navigation of CorpusCallosum.data" class="toctree-checkbox" id="toctree-checkbox-18" name="toctree-checkbox-18" role="switch" type="checkbox"/><label for="toctree-checkbox-18"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/CorpusCallosum.data.constants.html">CorpusCallosum.data.constants</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/CorpusCallosum.data.fsaverage_cc_template.html">CorpusCallosum.data.fsaverage_cc_template</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../api/generated/CorpusCallosum.data.generate_fsaverage_centroids.html">CorpusCallosum.data.generate_fsaverage_centroids</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/CorpusCallosum.data.read_write.html">CorpusCallosum.data.read_write</a></li>
 </ul>
 </li>
@@ -402,8 +400,6 @@
 </ul>
 </li>
 <li class="toctree-l2 has-children"><a class="reference internal" href="../api/recon_surf.html">recon_surf</a><input aria-label="Toggle navigation of recon_surf" class="toctree-checkbox" id="toctree-checkbox-29" name="toctree-checkbox-29" role="switch" type="checkbox"/><label for="toctree-checkbox-29"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
-<li class="toctree-l3"><a class="reference internal" href="../api/generated/recon_surf.align_points.html">recon_surf.align_points</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../api/generated/recon_surf.align_seg.html">recon_surf.align_seg</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/recon_surf.create_annotation.html">recon_surf.create_annotation</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/recon_surf.fs_balabels.html">recon_surf.fs_balabels</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/recon_surf.image_io.html">recon_surf.image_io</a></li>
@@ -475,13 +471,13 @@
 <h2>Named Arguments<a class="headerlink" href="#CorpusCallosum.cc_visualization-make_parser-named-arguments" title="Link to this heading">¶</a></h2>
 <dl class="option-list">
 <dt><kbd>--template_dir</kbd></dt>
-<dd><p>Path to a template directory containing per-slice files named thickness_values_&lt;idx&gt;.txt, and optionally contour_&lt;idx&gt;.txt and thickness_measurement_points_&lt;idx&gt;.txt. If contour_&lt;idx&gt;.txt and thickness_measurement_points_&lt;idx&gt;.txt are not provided, uses fsaverage template.</p>
+<dd><p>Path to a template directory containing per-slice files named thickness_values_&lt;idx&gt;.txt, and optionally contour_&lt;idx&gt;.txt and thickness_measurement_points_&lt;idx&gt;.txt. If contour_&lt;idx&gt;.txt and thickness_measurement_points_&lt;idx&gt;.txt are not provided, uses fsaverage template. For FreeSurfer surfaces in orig.mgz reference space, also provide mri/orig.mgz and mri/transforms/cc_up.lta in this directory.</p>
 </dd>
 <dt><kbd>--output_dir</kbd></dt>
-<dd><p>Directory for output files. Writes: cc_mesh.html - Interactive 3D mesh visualization (HTML file) midslice_2d.png - 2D midslice visualization of the corpus callosum cc_mesh.vtk - VTK mesh file format cc_mesh.fssurf - FreeSurfer surface file cc_mesh_overlay.curv - FreeSurfer curvature overlay file cc_mesh_snap.png - Screenshot/snapshot of the 3D mesh (requires whippersnappy&gt;=2.1)</p>
+<dd><p>Directory for output files. Writes: cc_mesh.html - Interactive 3D mesh visualization (HTML file) midslice_2d.png - 2D midslice visualization of the corpus callosum cc_mesh.vtk - VTK mesh file format cc_mesh.fssurf - FreeSurfer surface file cc_mesh_overlay.curv - FreeSurfer curvature overlay file cc_mesh_snap.png - Screenshot/snapshot of the 3D mesh (requires whippersnappy&gt;=2.1). If template_dir does not contain orig.mgz and cc_up.lta, output_dir/mri/upright.mgz is used as the fallback reference when available; otherwise FreeSurfer surfaces are written without a reference space.</p>
 </dd>
 <dt><kbd>--resolution</kbd></dt>
-<dd><p>Resolution in mm for the mesh.</p>
+<dd><p>Legacy spacing in mm used when template contour files do not store slice positions.</p>
 <p>Default: <code class="docutils literal notranslate"><span class="pre">1.0</span></code></p>
 </dd>
 <dt><kbd>--smoothing_window</kbd></dt>
