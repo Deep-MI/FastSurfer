@@ -9,7 +9,9 @@ that specifically tailor network performance towards accurate segmentation of bo
 
 The network was trained with conformed images (UCHAR, 1-0.7 mm voxels and standard slice orientation). These 
 specifications are checked in the run_prediction.py script and the image is automatically conformed if it does not 
-comply.
+comply. The default strict path follows FreeSurfer-style conforming semantics for the resampling grid, while the
+native/soft orientation path keeps voxel-center semantics so reorder/flip-only transforms can roundtrip native
+geometry.
 
 <!-- before inference -->
 1. Inference
@@ -24,8 +26,10 @@ which certain options can be selected and set via the command line:
 * `--in_dir`: Path to the input volume directory (e.g `/your/path/to/ADNI/fs60`) or 
 * `--csv_file`: Path to csv-file listing input volume directories
 * `--t1`: name of the T1-weighted MRI_volume (like `mri_volume.mgz`, default: `orig.mgz`)
-* `--conformed_name`: name of the conformed MRI_volume (the input volume is always first conformed, if not already, and 
-  the result is saved under the given name, default: `orig.mgz`)
+* `--conformed_name`: name of the conformed MRI_volume (the input volume is prepared for inference first and the 
+  result is saved under the given name, default: `orig.mgz`). In the standard path this is the FastSurfer conform
+  image; for native/keepgeom-style processing the saved image stays in native geometry, with only intensity scaling
+  and dtype conversion as needed, while any soft reordering is temporary and only used internally for inference.
 * `--t`: search tag limits processing to subjects matching the pattern (e.g. sub-* or 1030*...)
 * `--sd`: Path to output directory (where should predictions be saved). Will be created if it does not already exist.
 * `--seg_log`: name of log-file (information about processing is stored here; If not set, logs will not be saved). Saved
