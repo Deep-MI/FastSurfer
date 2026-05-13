@@ -474,7 +474,7 @@ FastSurfer is transitioning to sub-millimeter resolution support throughout the 
 </ul>
 <p>Modules (all run by default):</p>
 <ol class="arabic simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">asegdkt:</span></code> <a class="reference internal" href="scripts/fastsurfercnn.run_model.html"><span class="doc std std-ref">FastSurferVINN</span></a> for whole brain segmentation (deactivate with <code class="docutils literal notranslate"><span class="pre">--no_asegdkt</span></code>)</p>
+<li><p><code class="docutils literal notranslate"><span class="pre">asegdkt:</span></code> <a class="reference internal" href="scripts/fastsurfercnn.html"><span class="doc std std-ref">FastSurferVINN</span></a> for whole brain segmentation (deactivate with <code class="docutils literal notranslate"><span class="pre">--no_asegdkt</span></code>)</p>
 <ul class="simple">
 <li><p>the core, outputs anatomical segmentation and cortical parcellation and statistics of 95 classes, mimics FreeSurfer’s DKTatlas.</p></li>
 <li><p>requires a T1w image (<a class="reference internal" href="overview/intro.html"><span class="doc std std-ref">notes on input images</span></a>), supports high-res (up to 0.7mm, experimental beyond that).</p></li>
@@ -483,7 +483,7 @@ FastSurfer is transitioning to sub-millimeter resolution support throughout the 
 </li>
 <li><p><code class="docutils literal notranslate"><span class="pre">cc</span></code>: <a class="reference internal" href="scripts/fastsurfer_cc.html"><span class="doc std std-ref">CorpusCallosum</span></a> for corpus callosum segmentation and shape analysis (deactivate with <code class="docutils literal notranslate"><span class="pre">--no_cc</span></code>)</p>
 <ul class="simple">
-<li><p>requires <code class="docutils literal notranslate"><span class="pre">asegdkt_segfile</span></code> (segmentation) and conformed mri (orig.mgz), outputs CC segmentation, thickness, and shape metrics.</p></li>
+<li><p>requires <code class="docutils literal notranslate"><span class="pre">asegdkt_segfile</span></code> (segmentation) and <code class="docutils literal notranslate"><span class="pre">orig.mgz</span></code> from the segmentation stage. In the standard pipeline this image is in FastSurfer conform space; with <code class="docutils literal notranslate"><span class="pre">--seg_only</span> <span class="pre">--keepgeom</span></code> it stays in native geometry, with only intensity scaling and dtype conversion as needed. Outputs include CC segmentation, thickness, and shape metrics.</p></li>
 <li><p>standardizes brain orientation based on AC/PC landmarks (orient_volume.lta).</p></li>
 </ul>
 </li>

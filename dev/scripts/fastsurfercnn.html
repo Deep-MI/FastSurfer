@@ -470,8 +470,10 @@ which certain options can be selected and set via the command line:</p>
 <li><p><code class="docutils literal notranslate"><span class="pre">--in_dir</span></code>: Path to the input volume directory (e.g <code class="docutils literal notranslate"><span class="pre">/your/path/to/ADNI/fs60</span></code>) or</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">--csv_file</span></code>: Path to csv-file listing input volume directories</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">--t1</span></code>: name of the T1-weighted MRI_volume (like <code class="docutils literal notranslate"><span class="pre">mri_volume.mgz</span></code>, default: <code class="docutils literal notranslate"><span class="pre">orig.mgz</span></code>)</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">--conformed_name</span></code>: name of the conformed MRI_volume (the input volume is always first conformed, if not already, and
-the result is saved under the given name, default: <code class="docutils literal notranslate"><span class="pre">orig.mgz</span></code>)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--conformed_name</span></code>: name of the conformed MRI_volume (the input volume is prepared for inference first and the
+result is saved under the given name, default: <code class="docutils literal notranslate"><span class="pre">orig.mgz</span></code>). In the standard path this is the FastSurfer conform
+image; for native/keepgeom-style processing the saved image stays in native geometry, with only intensity scaling
+and dtype conversion as needed, while any soft reordering is temporary and only used internally for inference.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">--t</span></code>: search tag limits processing to subjects matching the pattern (e.g. sub-* or 1030*…)</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">--sd</span></code>: Path to output directory (where should predictions be saved). Will be created if it does not already exist.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">--seg_log</span></code>: name of log-file (information about processing is stored here; If not set, logs will not be saved). Saved
