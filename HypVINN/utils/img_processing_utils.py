@@ -78,7 +78,12 @@ def save_segmentation(
     pred_arr = hypo_map_subseg_2_fsseg(pred_arr)
     orig_img = cast(nibabelImage, nib.load(orig_path))
 
-    reorient = Reorientation.from_target_affine(ras_affine, orig_img.affine, labels_cc.shape)
+    reorient = Reorientation.from_target_affine(
+        ras_affine,
+        orig_img.affine,
+        labels_cc.shape,
+        voxel_center=False,
+    )
     LOGGER.info(f"Orig data orientation : {aff2axcodes(orig_img.affine)}")
 
     for data, name in ((pred_arr, "segmentation"), (labels_cc, "mask")):
@@ -152,7 +157,12 @@ def save_logits(
     LOGGER.info(f"Orig data orientation: {aff2axcodes(orig_img.affine)}")
     header: nibabelHeader = Nifti1Image.header_class.from_header(orig_img.header)
     header.set_data_type(np.float32)
-    reorient = Reorientation.from_target_affine(ras_affine, orig_img.affine, logits.shape)
+    reorient = Reorientation.from_target_affine(
+        ras_affine,
+        orig_img.affine,
+        logits.shape,
+        voxel_center=False,
+    )
     nifti_img = nib.Nifti1Image(
         reorient(logits.astype(np.float32)),
         affine=orig_img.affine,

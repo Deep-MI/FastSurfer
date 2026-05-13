@@ -26,7 +26,7 @@ Modules (all run by default):
    - requires a T1w image ([notes on input images](#requirements-to-input-images)), supports high-res (up to 0.7mm, experimental beyond that).
    - performs bias-field correction and calculates volume statistics corrected for partial volume effects (skipped if `--no_biasfield` is passed).
 2. `cc`: [CorpusCallosum](CorpusCallosum/README.md) for corpus callosum segmentation and shape analysis (deactivate with `--no_cc`)
-   - requires `asegdkt_segfile` (segmentation) and conformed mri (orig.mgz), outputs CC segmentation, thickness, and shape metrics.
+   - requires `asegdkt_segfile` (segmentation) and `orig.mgz` from the segmentation stage. In the standard pipeline this image is in FastSurfer conform space; with `--seg_only --keepgeom` it stays in native geometry, with only intensity scaling and dtype conversion as needed. Outputs include CC segmentation, thickness, and shape metrics.
    - standardizes brain orientation based on AC/PC landmarks (orient_volume.lta).
 3. `cereb:` [CerebNet](CerebNet/README.md) for cerebellum sub-segmentation (deactivate with `--no_cereb`)
    - requires `asegdkt_segfile`, outputs cerebellar sub-segmentation with detailed WM/GM delineation.
