@@ -282,6 +282,10 @@ class Reorientation:
     """
     A class to organize data reorientation to canonical orientations.
 
+    Strict conform-style reorientations default to the same image-center convention as FreeSurfer
+    (``shape / 2``). Soft/native reorientations that only reorder or flip axes opt into the voxel-center
+    convention (``(shape - 1) / 2``) explicitly so they can roundtrip native geometry without resampling.
+
     Attributes
     ----------
     source_affine : AffineMatrix4x4
@@ -304,6 +308,7 @@ class Reorientation:
         self.source_shape = source_shape
         self.target_shape = source_shape
         self.tol = tol
+        self.voxel_center = False
 
     @property
     def vox2vox(self) -> AffineMatrix4x4:
@@ -334,7 +339,10 @@ class Reorientation:
         """
         Determine the affine matrix to reorder and flip/interpolate data from source_affine to orientation.
 
-        The resulting transform is a vox2vox from source to target.
+        The resulting transform is a vox2vox from source to target. Strict orientations (for example ``"LIA"``)
+        use the FreeSurfer conform center convention by default, while ``"soft-..."`` and ``"native"``
+        reorientations preserve the voxel-center convention explicitly so discrete reorder/flip transforms can
+        be mapped back to native space exactly.
 
         Parameters
         ----------
@@ -393,7 +401,13 @@ class Reorientation:
         # second run, now with correct ordering of output voxel sizes in vox2ras
         target_strict_affine: AffineMatrix3x3 = ornt2vox2vox(_reorder_ornt, (1,) * 3, vox_size_in_target)[:3, :3]
         if not is_soft:
-            return cls.from_target_affine(source_affine, target_strict_affine, shape, target_shape, tol)
+            return cls.from_target_affine(
+                source_affine,
+                target_strict_affine,
+                shape,
+                target_shape,
+                tol,
+            )
 
         source_ornt = io_orientation(source_affine)
         target_ornt = axcodes2ornt(_target_orientation, AXCODES)
@@ -405,9 +419,9 @@ class Reorientation:
 
         same_target_shape = target_shape is None or np.array_equal(np.asarray(target_shape), np.asarray(shape))
         if same_target_shape and not does_vox2vox_rot_require_interpolation(soft_rot_mat, vox_eps=tol, rot_eps=tol):
-            return cls.from_vox2vox(source_affine, discrete_vox2vox, shape, target_shape, tol)
+            return cls.from_vox2vox(source_affine, discrete_vox2vox, shape, target_shape, tol, voxel_center=True)
 
-        return cls.from_vox2vox(source_affine, soft_rot_mat, shape, target_shape, tol)
+        return cls.from_vox2vox(source_affine, soft_rot_mat, shape, target_shape, tol, voxel_center=True)
 
     @classmethod
     def from_target_affine(
@@ -417,6 +431,8 @@ class Reorientation:
             shape: npt.ArrayLike,
             target_shape: npt.ArrayLike | None = None,
             tol: float = 1e-6,
+            *,
+            voxel_center: bool = False,
     ) -> SelfReorientation:
         """
         Determine the affine matrix to reorder and flip/interpolate data from source_affine to orientation.
@@ -441,6 +457,12 @@ class Reorientation:
         Reorientation
             An object holding the source_affine and the vox2vox transform to reorient data from source_affine to
             target_orientation.
+
+        Other Parameters
+        ----------------
+        voxel_center : bool, default=False
+            Whether to use the voxel-center convention ``(shape - 1) / 2``. The default ``False`` matches
+            FreeSurfer-style strict conforming. Soft/native callers should pass ``True``.
         """
         if target_affine.shape == (4, 4):
             v2v = np.linalg.inv(source_affine) @ target_affine
@@ -456,7 +478,14 @@ class Reorientation:
         else:
             raise ValueError(f"target_affine must be of shape (3, 3), (4, 4) or (3, 4), but was {target_affine.shape}.")
 
-        return cls.from_vox2vox(source_affine, v2v, shape, target_shape, tol)
+        return cls.from_vox2vox(
+            source_affine,
+            v2v,
+            shape,
+            target_shape,
+            tol,
+            voxel_center=voxel_center,
+        )
 
     @classmethod
     def from_vox2vox(
@@ -466,6 +495,8 @@ class Reorientation:
             shape: npt.ArrayLike,
             target_shape: npt.ArrayLike | None = None,
             tol: float = 1e-6,
+            *,
+            voxel_center: bool = False,
     ) -> SelfReorientation:
         """
         Determine the affine matrix to reorder and flip/interpolate data from source_affine to orientation.
@@ -493,6 +524,12 @@ class Reorientation:
             An object holding the source_affine and the vox2vox transform to reorient data from source_affine to
             target_orientation.
 
+        Other Parameters
+        ----------------
+        voxel_center : bool, default=False
+            Whether to use the voxel-center convention ``(shape - 1) / 2``. The default ``False`` matches
+            FreeSurfer-style strict conforming. Soft/native callers should pass ``True``.
+
         See Also
         --------
         FastSurferCNN.data_loader.conform.apply_vox2vox : Apply a vox2vox matrix to a 3D image.
@@ -503,9 +540,15 @@ class Reorientation:
         obj = cls(source_affine, _shape, tol)
 
         _target_shape = _shape if target_shape is None else np.asarray(target_shape, dtype=np.int64)
+        obj.voxel_center = voxel_center
         if vox2vox.shape == (3, 3):
-            # make center stay consistent, so in_voxcenter and and out_voxcenter should have same ras coordinates
-            translation = _translation_to_fix_center(vox2vox, _shape, _target_shape)
+            # make center stay consistent, so in_voxcenter and out_voxcenter should have same ras coordinates
+            translation = _translation_to_fix_center(
+                vox2vox,
+                _shape,
+                _target_shape,
+                voxel_center=voxel_center,
+            )
 
             # expand the rotation matrix to 4x4 by 0 and translation
             rot_cols = np.concatenate([vox2vox, np.zeros((1, 3))], axis=0)
@@ -584,6 +627,7 @@ class Reorientation:
                 self.target_shape,
                 self.reorder_axes(self.source_shape),
                 self.tol,
+                voxel_center=self.voxel_center,
             )
 
     def reorder_axes(self, vector: np.ndarray[tuple[Literal[3]], np.dtype[ScalarType]]) \
@@ -1121,9 +1165,14 @@ def _translation_to_fix_center(
         vox2vox_o2i: AffineMatrix4x4 | AffineMatrix3x3,
         shape: IntVector3d,
         target_shape: IntVector3d | None = None,
+        *,
+        voxel_center: bool = True,
 ) -> Vector3d:
     """
     Calculate the translation to keep the center of the image fixed after applying the vox2vox transformation.
+
+    This low-level helper keeps the voxel-center convention by default because it is also used by
+    discrete orientation helpers such as :func:`ornt2vox2vox`.
 
     Parameters
     ----------
@@ -1133,6 +1182,9 @@ def _translation_to_fix_center(
         The shape of the input data.
     target_shape: IntVector3d, optional
         The shape of the output data (in input data order, not target order), defaults to the same as shape.
+    voxel_center : bool, default=True
+        Whether to conserve the voxel-center convention ``(shape - 1) / 2``. Set to ``False`` to use the
+        FreeSurfer conform convention ``shape / 2`` instead.
 
     Returns
     -------
@@ -1140,9 +1192,12 @@ def _translation_to_fix_center(
         The translation to keep the center of the image fixed after applying the vox2vox transformation.
     """
     _target_shape = shape if target_shape is None else target_shape
-    in_voxcenter = (np.asarray(shape) - 1) / 2
+    center_offset = 1 if voxel_center else 0
+    in_voxcenter = (np.asarray(shape) - center_offset) / 2
     vox2vox4 = np.pad(vox2vox_o2i[:3, :3], ((0, 1), (0, 1)))
-    out_voxcenter = (_target_shape[io_orientation(vox2vox4.T)[:, 0].astype(np.int64)] - 1) / 2
+    out_voxcenter = (
+        _target_shape[io_orientation(vox2vox4.T)[:, 0].astype(np.int64)] - center_offset
+    ) / 2
     #    voxO2ras @ voxO2voxI @ voxI_coord = voxO2ras @ voxO_coord
     # => voxO_coord = voxI2voxO @ voxI_coord = voxI2voxO_rot @ voxI_coord + voxI2voxO_trans
     # => voxO2voxI_trans = voxO_coord - voxI2voxO_rot @ voxI_coord
@@ -1171,6 +1226,9 @@ def target_shape_from_shape_scale(shape: npt.ArrayLike, scale: npt.ArrayLike) ->
 def ornt2vox2vox(ornt: OrntArrayType, shape: npt.ArrayLike, scale: npt.ArrayLike | None = None) -> AffineMatrix4x4:
     """
     Calculate the mid-centered vox2vox matrix of the orientation transform `ornt` (operation, not target orientation).
+
+    This helper keeps the voxel-center convention ``(shape - 1) / 2`` so pure axis reorder/flip transforms
+    stay compatible with nibabel orientation utilities and can be inverted without introducing a half-voxel shift.
 
     Parameters
     ----------
@@ -1217,10 +1275,6 @@ def ornt2vox2vox(ornt: OrntArrayType, shape: npt.ArrayLike, scale: npt.ArrayLike
     if _shape.size != dim:
         raise ValueError(f"The length of shape needs to be equal ornt.shape[0] ({dim})!")
     target_shape = target_shape_from_shape_scale(_shape, _scale)
-    if scale is None:
-        _out_center = (_shape - 1) / 2
-    else:
-        _out_center = (target_shape - 1) / 2
 
     # reorder, then flip
     vox2vox = np.zeros((dim + 1,) * 2, dtype=float)

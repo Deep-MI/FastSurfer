@@ -54,7 +54,7 @@ def test_translation_fix_center(
         in_shape: Shape3d,
         out_shape: Shape3d,
 ):
-    """Tests whether the translation fix for a vox2vox transformation matrix is correct"""
+    """Low-level center fixing keeps the historical voxel-center convention used by ornt2vox2vox."""
     _in_shape = np.asarray(in_shape)
     _out_shape = np.asarray(out_shape)
 
@@ -67,7 +67,12 @@ def test_translation_fix_center(
     # expected vox center
     expected = (_out_shape - 1) / 2
     # Note, translation_to_fix_center wants the shape in input order space!
-    vox2vox_ras2strict[:3, 3] = _translation_to_fix_center(vox2vox_ras2strict, _in_shape, _out_shape[ornt[:, 0]])
+    vox2vox_ras2strict[:3, 3] = _translation_to_fix_center(
+        vox2vox_ras2strict,
+        _in_shape,
+        _out_shape[ornt[:, 0]],
+        voxel_center=True,
+    )
     # actual center
     actual = (np.linalg.inv(vox2vox_ras2strict) @ np.append((_in_shape - 1) / 2, 1))[:3]
     assert actual == approx(expected), "Inconsistent image centers to fix center from ornt2vox2vox!"
@@ -252,6 +257,31 @@ def test_affine_from_target_orientation_soft_keepgeom_roundtrip():
     back = apply_vox2vox(lia, obj.inverse.vox2vox, out_shape=obj.inverse.target_shape, order=0)
 
     assert back == approx(data), "Soft keepgeom reorientation should roundtrip exactly for label data."
+
+
+def test_affine_from_target_orientation_strict_uses_freesurfer_center():
+    """Strict conform should keep FreeSurfer's shape/2 center convention for resampling."""
+    shape = (256, 256, 196)
+    target_shape = (256, 256, 256)
+    affine = np.array(
+        [
+            [0.0, 0.0, 1.2, -112.942001],
+            [-1.0547, 0.0, 0.0, 169.707001],
+            [0.0, -1.0547, 0.0, 86.2425],
+            [0.0, 0.0, 0.0, 1.0],
+        ]
+    )
+
+    obj = Reorientation.from_target_orientation(affine, "LIA", shape, np.ones((3,)), target_shape)
+    rotation = obj.target_affine[:3, :3]
+
+    fs_expected = (affine @ np.append(np.asarray(shape) / 2, 1))[:3] - rotation @ (np.asarray(obj.target_shape) / 2)
+    voxel_center_expected = (
+        affine @ np.append((np.asarray(shape) - 1) / 2, 1)
+    )[:3] - rotation @ ((np.asarray(obj.target_shape) - 1) / 2)
+
+    assert obj.target_affine[:3, 3] == approx(fs_expected)
+    assert obj.target_affine[:3, 3] != approx(voxel_center_expected)
 
 
 def test_Reorientation_target_shape(
