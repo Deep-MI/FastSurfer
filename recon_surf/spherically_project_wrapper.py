@@ -48,7 +48,19 @@ def setup_options():
 
 if __name__ == "__main__":
     import sys
+    from os import environ
     opts = setup_options()
+
+    # The spectral projection is sensitive to tiny threaded BLAS/eigensolver
+    # differences, and those can be amplified by later topology correction.
+    for var in (
+        "OMP_NUM_THREADS",
+        "OPENBLAS_NUM_THREADS",
+        "MKL_NUM_THREADS",
+        "NUMEXPR_NUM_THREADS",
+        "VECLIB_MAXIMUM_THREADS",
+    ):
+        environ[var] = "1"
 
     # identify whether sksparse is installed (in which case we can use_cholmod in LaPy
     try:
@@ -59,8 +71,6 @@ if __name__ == "__main__":
         has_sksparse = False
         # First try to run standard spherical project
     try:
-        from os import environ
-
         from recon_surf.spherically_project import spherically_project_surface
 
         source_surface = opts.sd / opts.subject / "surf" / f"{opts.hemi}.smoothwm.nofix"
