@@ -407,6 +407,7 @@ class Reorientation:
                 shape,
                 target_shape,
                 tol,
+                voxel_center=False,
             )
 
         source_ornt = io_orientation(source_affine)
