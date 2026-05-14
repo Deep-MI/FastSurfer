@@ -442,6 +442,9 @@ function wait_async_cmdfs()
   then
     echo "Async PIDs (${ASYNC_PIDS[*]}) completed successfully! Their logs have been appended." | tee -a "$LF"
   fi
+  ASYNC_PIDS=()
+  ASYNC_LOGS=()
+  ASYNC_CMDFS=()
 }
 
 { # all output tee -a "$LF"
@@ -762,13 +765,10 @@ for hemi in lh rh ; do
       #cmd="$python ${binpath}rewrite_mc_surface.py --input $outmesh --output $outmesh --filename_pretess $mdir/filled-pretess$hemivalue.mgz"
       #RunIt "$cmd" "$LF" "$CMDF"
 
-      # Check if the surfaceRAS was correctly set and exit otherwise (sanity check in case nibabel changes their default header behaviour)
-      {
-        cmd="mris_info $outmesh | tr -s ' ' | grep -q 'vertex locs : surfaceRAS'"
-        echo "echo \"$cmd\""
-        echo "$timecmd $cmd"
-      } | tee -a "$CMDF"
-      echo "if [ \${PIPESTATUS[1]} -ne 0 ] ; then echo \"Incorrect header information detected in $outmesh: vertex locs is not set to surfaceRAS. Exiting... \" ; exit 1 ; fi" >> "$CMDF"
+      # Check that mri_mc wrote valid surface volume metadata.  This replaces a
+      # full mris_info scan with a direct nibabel metadata read.
+      cmda=($python "${binpath}check_surface_volume_info.py" "$outmesh")
+      run_it_cmdf "$LF" "$CMDF" "${cmda[@]}"
 
       # Reduce to largest component (usually there should only be one)
       cmd="mris_extract_main_component $outmesh $outmesh"
@@ -814,9 +814,12 @@ for hemi in lh rh ; do
       echo "echo \"\""
     } | tee -a "$CMDF"
 
-    #surface inflation (54sec both hemis) (needed for qsphere and for topo-fixer)
-    cmd="recon-all -subject $subject -hemi $hemi -inflate1 -no-isrunning -umask $(umask) $hiresflag $fsthreads"
+    # surface inflation (needed for qsphere and for topo-fixer).  Run the
+    # underlying command directly to avoid recon-all wrapper overhead.
+    cmd="mris_inflate -no-save-sulc $sdir/$hemi.smoothwm.nofix $sdir/$hemi.inflated.nofix"
     RunIt "$cmd" "$LF" "$CMDF"
+    echo "mkdir -p $SUBJECTS_DIR/$subject/touch" >> "$CMDF"
+    echo "echo \"mris_inflate -no-save-sulc ../surf/${hemi}.smoothwm.nofix ../surf/${hemi}.inflated.nofix\" > $SUBJECTS_DIR/$subject/touch/${hemi}.inflate1.touch" >> "$CMDF"
 
     if [ "$fsqsphere" == "true" ]
     then
@@ -854,8 +857,15 @@ for hemi in lh rh ; do
     RunIt "$cmd" "$LF" "$CMDF"
 
     # create first WM surface white.preaparc from topo fixed orig surf
-    cmd="recon-all -subject $subject -hemi $hemi -autodetgwstats -white-preaparc -no-isrunning -umask $(umask) $hiresflag $fsthreads"
+    echo "pushd $mdir > /dev/null || exit 1" >> "$CMDF"
+    cmd="mris_autodet_gwstats --o ../surf/autodet.gw.stats.$hemi.dat --i brain.finalsurfs.mgz --wm wm.mgz --surf ../surf/$hemi.orig.premesh"
     RunIt "$cmd" "$LF" "$CMDF"
+    echo "mkdir -p $SUBJECTS_DIR/$subject/touch" >> "$CMDF"
+    echo "echo \"mris_autodet_gwstats --o ../surf/autodet.gw.stats.${hemi}.dat --i brain.finalsurfs.mgz --wm wm.mgz --surf ../surf/${hemi}.orig.premesh\" > $SUBJECTS_DIR/$subject/touch/${hemi}.autodet.gw.stats.touch" >> "$CMDF"
+    cmd="mris_place_surface --adgws-in ../surf/autodet.gw.stats.$hemi.dat --wm wm.mgz --threads $threads_hemi --invol brain.finalsurfs.mgz --$hemi --i ../surf/$hemi.orig --o ../surf/$hemi.white.preaparc --white --seg aseg.presurf.mgz --nsmooth 5"
+    RunIt "$cmd" "$LF" "$CMDF"
+    echo "echo \"mris_place_surface --adgws-in ../surf/autodet.gw.stats.${hemi}.dat --wm wm.mgz --threads $threads_hemi --invol brain.finalsurfs.mgz --${hemi} --i ../surf/${hemi}.orig --o ../surf/${hemi}.white.preaparc --white --seg aseg.presurf.mgz --nsmooth 5\" > $SUBJECTS_DIR/$subject/touch/${hemi}.white.preaparc.touch" >> "$CMDF"
+    echo "popd > /dev/null || exit 1" >> "$CMDF"
 
   else # longitudinal stream
     # ... we skip topo fix
@@ -882,9 +892,39 @@ for hemi in lh rh ; do
 
   # create cortex label (1min)
   # create nicer inflated surface from topo fixed (not needed, just later for visualization)
-  # identical for long processing
-  cmd="recon-all -subject $subject -hemi $hemi -cortex-label -smooth2 -inflate2 -curvHK -no-isrunning -umask $(umask) $hiresflag $fsthreads"
+  # identical for long processing. Run the underlying commands directly to avoid
+  # repeated recon-all wrapper/update-check overhead.
+  echo "pushd $mdir > /dev/null || exit 1" >> "$CMDF"
+  cmd="mri_label2label --label-cortex ../surf/$hemi.white.preaparc aseg.presurf.mgz 0 ../label/$hemi.cortex.label"
   RunIt "$cmd" "$LF" "$CMDF"
+  echo "mkdir -p $SUBJECTS_DIR/$subject/touch" >> "$CMDF"
+  echo "echo \"mri_label2label --label-cortex ../surf/${hemi}.white.preaparc aseg.presurf.mgz 0 ../label/${hemi}.cortex.label\" > $SUBJECTS_DIR/$subject/touch/${hemi}.cortex.touch" >> "$CMDF"
+  cmd="mri_label2label --label-cortex ../surf/$hemi.white.preaparc aseg.presurf.mgz 1 ../label/$hemi.cortex+hipamyg.label"
+  RunIt "$cmd" "$LF" "$CMDF"
+  echo "echo \"mri_label2label --label-cortex ../surf/${hemi}.white.preaparc aseg.presurf.mgz 1 ../label/${hemi}.cortex+hipamyg.label\" > $SUBJECTS_DIR/$subject/touch/${hemi}.cortex+hipamyg.touch" >> "$CMDF"
+  echo "popd > /dev/null || exit 1" >> "$CMDF"
+  cmd="mris_smooth -n 3 -nw -seed 1234 $sdir/$hemi.white.preaparc $sdir/$hemi.smoothwm"
+  RunIt "$cmd" "$LF" "$CMDF"
+  echo "echo \"mris_smooth -n 3 -nw -seed 1234 ../surf/${hemi}.white.preaparc ../surf/${hemi}.smoothwm\" > $SUBJECTS_DIR/$subject/touch/${hemi}.smoothwm2.touch" >> "$CMDF"
+  cmd="mris_inflate $sdir/$hemi.smoothwm $sdir/$hemi.inflated"
+  RunIt "$cmd" "$LF" "$CMDF"
+  echo "echo \"mris_inflate ../surf/${hemi}.smoothwm ../surf/${hemi}.inflated\" > $SUBJECTS_DIR/$subject/touch/${hemi}.inflate2.touch" >> "$CMDF"
+  echo "pushd $sdir > /dev/null || exit 1" >> "$CMDF"
+  cmd="mris_curvature -w -seed 1234 $hemi.white.preaparc"
+  RunIt "$cmd" "$LF" "$CMDF"
+  cmd="rm -f $hemi.white.H"
+  RunIt "$cmd" "$LF" "$CMDF"
+  cmd="ln -s $hemi.white.preaparc.H $hemi.white.H"
+  RunIt "$cmd" "$LF" "$CMDF"
+  cmd="rm -f $hemi.white.K"
+  RunIt "$cmd" "$LF" "$CMDF"
+  cmd="ln -s $hemi.white.preaparc.K $hemi.white.K"
+  RunIt "$cmd" "$LF" "$CMDF"
+  echo "echo \"mris_curvature -w -seed 1234 ${hemi}.white.preaparc\" > $SUBJECTS_DIR/$subject/touch/${hemi}.white.H.K.touch" >> "$CMDF"
+  cmd="mris_curvature -seed 1234 -thresh .999 -n -a 5 -w -distances 10 10 $hemi.inflated"
+  RunIt "$cmd" "$LF" "$CMDF"
+  echo "echo \"mris_curvature -seed 1234 -thresh .999 -n -a 5 -w -distances 10 10 ${hemi}.inflated\" > $SUBJECTS_DIR/$subject/touch/${hemi}.inflate.H.K.touch" >> "$CMDF"
+  echo "popd > /dev/null || exit 1" >> "$CMDF"
 
 
 # ============================= MAP-DKT ==========================================================
@@ -981,8 +1021,13 @@ for hemi in lh rh ; do
 
     # in all cases where sphere.reg is available, create jacobian white (distortion to sphere)
     # and avgcurv (map atlas curvature to subject):
-    cmd="recon-all -subject $subject -hemi $hemi -jacobian_white -avgcurv -no-isrunning -umask $(umask) $hiresflag $fsthreads"
+    cmd="mris_jacobian $sdir/$hemi.white.preaparc $sdir/$hemi.sphere.reg $sdir/$hemi.jacobian_white"
     RunIt "$cmd" "$LF" "$CMDF"
+    echo "mkdir -p $SUBJECTS_DIR/$subject/touch" >> "$CMDF"
+    echo "echo \"mris_jacobian ../surf/${hemi}.white.preaparc ../surf/${hemi}.sphere.reg ../surf/${hemi}.jacobian_white\" > $SUBJECTS_DIR/$subject/touch/${hemi}.jacobian_white.touch" >> "$CMDF"
+    cmd="mrisp_paint -a 5 $FREESURFER_HOME/average/${hemi}.folding.atlas.acfb40.noaparc.i12.2016-08-02.tif#6 $sdir/$hemi.sphere.reg $sdir/$hemi.avg_curv"
+    RunIt "$cmd" "$LF" "$CMDF"
+    echo "echo \"mrisp_paint -a 5 $FREESURFER_HOME/average/${hemi}.folding.atlas.acfb40.noaparc.i12.2016-08-02.tif#6 ../surf/${hemi}.sphere.reg ../surf/${hemi}.avg_curv\" > $SUBJECTS_DIR/$subject/touch/${hemi}.avgcurv.touch" >> "$CMDF"
 
   fi
 
@@ -1094,9 +1139,18 @@ for hemi in lh rh ; do
 
 # ============================= CURVSTATS ===============================================
 
-  # in FS7 curvstats moves here
-  cmd="recon-all -subject $subject -hemi $hemi -curvstats -no-isrunning -umask $(umask) $hiresflag $fsthreads"
+  # in FS7 curvstats moves here.  The maps above already exist, so run the
+  # data-producing curvstats commands directly and skip recon-all update checks.
+  cmd="mris_calc -o $sdir/$hemi.area.mid $sdir/$hemi.area add $sdir/$hemi.area.pial"
   RunIt "$cmd" "$LF" "$CMDF"
+  cmd="mris_calc -o $sdir/$hemi.area.mid $sdir/$hemi.area.mid div 2"
+  RunIt "$cmd" "$LF" "$CMDF"
+  cmd="mris_convert --volume $subject $hemi $sdir/$hemi.volume"
+  RunIt "$cmd" "$LF" "$CMDF"
+  cmd="mris_curvature_stats -m --writeCurvatureFiles -G -o $statsdir/$hemi.curv.stats -F smoothwm $subject $hemi curv sulc"
+  RunIt "$cmd" "$LF" "$CMDF"
+  echo "mkdir -p $SUBJECTS_DIR/$subject/touch" >> "$CMDF"
+  echo "echo \"mris_curvature_stats -m --writeCurvatureFiles -G -o ../stats/${hemi}.curv.stats -F smoothwm $subject $hemi curv sulc\" > $SUBJECTS_DIR/$subject/touch/${hemi}.curvstats.touch" >> "$CMDF"
 
   if [[ "$ParallelHemi" == "false" ]]
   then
@@ -1260,20 +1314,93 @@ then
       softlink_or_copy "lh.aparc.DKTatlas.mapped.annot" "lh.aparc.annot" "$LF"
       softlink_or_copy "rh.aparc.DKTatlas.mapped.annot" "rh.aparc.annot" "$LF"
     popd > /dev/null || (echo "Could not popd" ; exit 1)
+
+    PCTSURFCON_CMDF="$SUBJECTS_DIR/$subject/scripts/pctsurfcon.cmdf"
+    rm -f "$PCTSURFCON_CMDF"
+    {
+      echo "#!/bin/bash"
+      echo "echo \"\""
+      echo "echo \"===================== Creating surfaces - pctsurfcon =====================\""
+      echo "echo \"\""
+    } > "$PCTSURFCON_CMDF"
     for hemi in lh rh ; do
       cmd="pctsurfcon --s $subject --$hemi-only"
-      RunIt "$cmd" "$LF"
+      RunIt "$cmd" "$LF" "$PCTSURFCON_CMDF"
     done
+    start_async_cmdf "$PCTSURFCON_CMDF"
+
+    # -hyporelabel creates aseg.presurf.hypos.mgz from aseg.presurf.mgz.
+    # -apas2aseg creates aseg.mgz by editing aseg.presurf.hypos.mgz with surfaces.
+    # Run the underlying commands directly to avoid recon-all wrapper/update-check overhead.
+    pushd "$mdir" > /dev/null || (echo "Could not cd to $mdir" ; exit 1)
+      cmd="mri_relabel_hypointensities aseg.presurf.mgz ../surf aseg.presurf.hypos.mgz"
+      RunIt "$cmd" "$LF"
+      mkdir -p "$SUBJECTS_DIR/$subject/touch"
+      echo "mri_relabel_hypointensities aseg.presurf.mgz ../surf aseg.presurf.hypos.mgz" > "$SUBJECTS_DIR/$subject/touch/relabelhypos.touch"
+      cmd="mri_surf2volseg --o aseg.mgz --i aseg.presurf.hypos.mgz --fix-presurf-with-ribbon $mdir/ribbon.mgz --threads $threads --lh-cortex-mask $ldir/lh.cortex.label --lh-white $sdir/lh.white --lh-pial $sdir/lh.pial --rh-cortex-mask $ldir/rh.cortex.label --rh-white $sdir/rh.white --rh-pial $sdir/rh.pial"
+      RunIt "$cmd" "$LF"
+      echo "mri_surf2volseg --o aseg.mgz --i aseg.presurf.hypos.mgz --fix-presurf-with-ribbon ../mri/ribbon.mgz --threads $threads --lh-cortex-mask ../label/lh.cortex.label --lh-white ../surf/lh.white --lh-pial ../surf/lh.pial --rh-cortex-mask ../label/rh.cortex.label --rh-white ../surf/rh.white --rh-pial ../surf/rh.pial" > "$SUBJECTS_DIR/$subject/touch/apas2aseg.touch"
+    popd > /dev/null || (echo "Could not popd" ; exit 1)
+
+    wait_async_cmdfs
+
     pushd "$ldir" > /dev/null || (echo "Could not cd to $ldir" ; exit 1)
       cmd="rm *h.aparc.annot"
       RunIt "$cmd" "$LF"
     popd > /dev/null || (echo "Could not popd" ; exit 1)
+  fi
 
-    # 25 sec hyporelabel run whatever else can be done without sphere, cortical ribbon and segmentations
-    # -hyporelabel creates aseg.presurf.hypos.mgz from aseg.presurf.mgz
-    # -apas2aseg creates aseg.mgz by editing aseg.presurf.hypos.mgz with surfaces
-    cmd="recon-all -subject $subject -hyporelabel -apas2aseg -umask $(umask) $hiresflag $fsthreads"
-    RunIt "$cmd" "$LF"
+  ASYNC_ASEG_STATS="false"
+  if [[ "$segstats_legacy" != "true" ]]
+  then
+    ASEG_STATS_CMDF="$SUBJECTS_DIR/$subject/scripts/aseg_stats.cmdf"
+    rm -f "$ASEG_STATS_CMDF"
+    {
+      echo "#!/bin/bash"
+      echo "echo \"\""
+      echo "echo \"===================== Creating surfaces - aseg stats =====================\""
+      echo "echo \"\""
+    } > "$ASEG_STATS_CMDF"
+
+    printf -v mask_measure "%q" "Mask($mask)"
+    cmda=($python "$FASTSURFER_HOME/FastSurferCNN/segstats.py" --sid "$subject"
+          --segfile "$mdir/aseg.mgz" --segstatsfile "$statsdir/aseg.stats"
+          --pvfile "$mdir/norm.mgz" --normfile "$mdir/norm.mgz" --threads "$threads"
+          --excludeid 0 2 3 41 42
+          --lut "$FREESURFER_HOME/ASegStatsLUT.txt" --empty
+          measures --compute "BrainSeg" "BrainSegNotVent" "VentricleChoroidVol"
+                             "lhCortex" "rhCortex" "Cortex" "lhCerebralWhiteMatter"
+                             "rhCerebralWhiteMatter" "CerebralWhiteMatter"
+                             "SubCortGray" "TotalGray" "SupraTentorial"
+                             "SupraTentorialNotVent" "$mask_measure"
+                             "BrainSegVol-to-eTIV" "MaskVol-to-eTIV")
+    if [[ "$long" == "false" ]] ; then cmda+=("lhSurfaceHoles" "rhSurfaceHoles" "SurfaceHoles") ; fi
+    cmda+=("EstimatedTotalIntraCranialVol")
+    run_it_cmdf "$LF" "$ASEG_STATS_CMDF" "${cmda[@]}"
+
+    echo "echo \"Extract the brainvol stats section from segstats output.\"" >> "$ASEG_STATS_CMDF"
+    cmda=($python "$FASTSURFER_HOME/FastSurferCNN/segstats.py" --sid "$subject"
+          --segfile "$mdir/aseg.mgz" --pvfile "$mdir/norm.mgz"
+          --measure_only --threads "$threads" --segstatsfile "$statsdir/brainvol.stats"
+          measures --file "$statsdir/aseg.stats"
+                   --import "BrainSeg" "BrainSegNotVent" "SupraTentorial"
+                            "SupraTentorialNotVent" "SubCortGray" "lhCortex" "rhCortex"
+                            "Cortex" "TotalGray" "lhCerebralWhiteMatter"
+                            "rhCerebralWhiteMatter" "CerebralWhiteMatter" "Mask"
+                   --compute "SupraTentorialNotVentVox" "BrainSegNotVentSurf"
+                             "VentricleChoroidVol")
+    run_it_cmdf "$LF" "$ASEG_STATS_CMDF" "${cmda[@]}"
+
+    cmda=($python "$FASTSURFER_HOME/FastSurferCNN/segstats.py" --sid "$subject"
+          --segfile "$mdir/aseg.presurf.hypos.mgz" --normfile "$mdir/norm.mgz"
+          --pvfile "$mdir/norm.mgz" --segstatsfile "$statsdir/aseg.presurf.hypos.stats"
+          --excludeid 0 2 3 41 42
+          --lut "$FREESURFER_HOME/ASegStatsLUT.txt" --threads "$threads" --empty
+          --volume_precision 1
+          measures --file "$statsdir/aseg.stats" --import "all")
+    run_it_cmdf "$LF" "$ASEG_STATS_CMDF" "${cmda[@]}"
+    start_async_cmdf "$ASEG_STATS_CMDF"
+    ASYNC_ASEG_STATS="true"
   fi
 
 
@@ -1286,6 +1413,11 @@ then
 
 
 # ============================= FASTSURFER - STATS =========================================
+
+  if [[ "$ASYNC_ASEG_STATS" == "true" ]]
+  then
+    echo "Aseg and brain-volume stats are running asynchronously." | tee -a "$LF"
+  else
 
   # get stats for the aseg (note these are surface fine tuned, that may be good or bad, below we also do the stats for the input aseg (plus some processing)
   # cmd="recon-all -subject $subject -segstats $hiresflag $fsthreads"
@@ -1339,6 +1471,8 @@ then
   fi
   run_it "$LF" "${cmda[@]}"
 
+  fi
+
 
 # ============================= MAPPED-WMPARC =========================================
   {
@@ -1347,6 +1481,8 @@ then
     echo ""
   } | tee -a "$LF"
 
+  if [[ "$ASYNC_ASEG_STATS" != "true" ]]
+  then
   if [[ "$segstats_legacy" == "true" ]] ; then
     # 1m 11sec also create stats for aseg.presurf.hypos (which is basically the aseg derived from the input with CC and
     # hypos) difference between this and the surface improved one above are probably tiny, so the surface improvement
@@ -1370,9 +1506,13 @@ then
           measures --file "$statsdir/aseg.stats" --import "all")
   fi
   run_it "$LF" "${cmda[@]}"
+  fi
+
   # -wmparc based on mapped aparc labels (from input asegdkt_segfile) (1min40sec) needs ribbon and we need to point it to aparc.mapped:
   cmd="mri_surf2volseg --o $mdir/wmparc.DKTatlas.mapped.mgz --label-wm --i $mdir/aparc.DKTatlas+aseg.mapped.mgz --threads $threads --lh-annot $ldir/lh.aparc.DKTatlas.mapped.annot 3000 --lh-cortex-mask $ldir/lh.cortex.label --lh-white $sdir/lh.white --lh-pial $sdir/lh.pial --rh-annot $ldir/rh.aparc.DKTatlas.mapped.annot 4000 --rh-cortex-mask $ldir/rh.cortex.label --rh-white $sdir/rh.white --rh-pial $sdir/rh.pial"
   RunIt "$cmd" "$LF"
+
+  wait_async_cmdfs
 
   # stats of the wmparc DKTatlas mapped
   #cmd="mri_segstats --seed 1234 --seg $mdir/wmparc.DKTatlas.mapped.mgz --sum $mdir/../stats/wmparc.DKTatlas.mapped.stats --pv $mdir/norm.mgz --excludeid 0 --brainmask $mdir/brainmask.mgz --in $mdir/norm.mgz --in-intensity-name norm --in-intensity-units MR --subject $subject --surf-wm-vol --ctab $FREESURFER_HOME/WMParcStatsLUT.txt"
