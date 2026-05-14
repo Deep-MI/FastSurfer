@@ -1182,6 +1182,49 @@ if [[ "$ParallelHemi" == "true" ]] ; then
   RunBatchJobs "$LF" "${CMDFS[@]}"
 fi
 
+ASYNC_BALABELS_STARTED="false"
+if [[ "$base" != "true" && "$fssurfreg" == "true" ]]
+then
+  BALABELS_CMDF="$SUBJECTS_DIR/$subject/scripts/balabels.cmdf"
+  rm -f "$BALABELS_CMDF"
+  {
+    echo "#!/bin/bash"
+    echo "echo \"\""
+    echo "echo \"===================== Creating surfaces - BA labels ============================\""
+    echo "echo \"\""
+  } > "$BALABELS_CMDF"
+
+  # BA labels depend on completed surface registration and geometry, not on the
+  # ribbon volume, so overlap them with ribbon construction.
+  cmd="$python ${binpath}/fs_balabels.py --sd $SUBJECTS_DIR --sid $subject"
+  RunIt "$cmd" "$LF" "$BALABELS_CMDF"
+  start_async_cmdf "$BALABELS_CMDF"
+  ASYNC_BALABELS_STARTED="true"
+fi
+
+ASYNC_HYPORELABEL_STARTED="false"
+if [[ "$base" != "true" && "$fsaparc" == "false" ]]
+then
+  HYPORELABEL_CMDF="$SUBJECTS_DIR/$subject/scripts/hyporelabel.cmdf"
+  rm -f "$HYPORELABEL_CMDF"
+  {
+    echo "#!/bin/bash"
+    echo "echo \"\""
+    echo "echo \"===================== Creating surfaces - hyporelabel ==========================\""
+    echo "echo \"\""
+    echo "pushd $mdir > /dev/null || exit 1"
+  } > "$HYPORELABEL_CMDF"
+  cmd="mri_relabel_hypointensities aseg.presurf.mgz ../surf aseg.presurf.hypos.mgz"
+  RunIt "$cmd" "$LF" "$HYPORELABEL_CMDF"
+  {
+    echo "mkdir -p $SUBJECTS_DIR/$subject/touch"
+    echo "echo \"mri_relabel_hypointensities aseg.presurf.mgz ../surf aseg.presurf.hypos.mgz\" > $SUBJECTS_DIR/$subject/touch/relabelhypos.touch"
+    echo "popd > /dev/null || exit 1"
+  } >> "$HYPORELABEL_CMDF"
+  start_async_cmdf "$HYPORELABEL_CMDF"
+  ASYNC_HYPORELABEL_STARTED="true"
+fi
+
 
 # ============================= RIBBON ===============================================
 
@@ -1207,6 +1250,11 @@ then
   echo "$cmd" > "$SUBJECTS_DIR/$subject/touch/cortical_ribbon.touch"
 
 fi # skip in base
+
+if [[ "$ASYNC_BALABELS_STARTED" == "true" || "$ASYNC_HYPORELABEL_STARTED" == "true" ]]
+then
+  wait_async_cmdfs
+fi
 
 # ============================= FSAPARC - parc23 surfcon hypo ... =========================================
 
@@ -1282,7 +1330,7 @@ then
   done
   start_async_cmdf "$MAPPED_STATS_CMDF"
 
-  if [[ "$fssurfreg" == "true" ]]
+  if [[ "$fssurfreg" == "true" && "$ASYNC_BALABELS_STARTED" != "true" ]]
   then
     BALABELS_CMDF="$SUBJECTS_DIR/$subject/scripts/balabels.cmdf"
     rm -f "$BALABELS_CMDF"
@@ -1333,10 +1381,13 @@ then
     # -apas2aseg creates aseg.mgz by editing aseg.presurf.hypos.mgz with surfaces.
     # Run the underlying commands directly to avoid recon-all wrapper/update-check overhead.
     pushd "$mdir" > /dev/null || (echo "Could not cd to $mdir" ; exit 1)
-      cmd="mri_relabel_hypointensities aseg.presurf.mgz ../surf aseg.presurf.hypos.mgz"
-      RunIt "$cmd" "$LF"
-      mkdir -p "$SUBJECTS_DIR/$subject/touch"
-      echo "mri_relabel_hypointensities aseg.presurf.mgz ../surf aseg.presurf.hypos.mgz" > "$SUBJECTS_DIR/$subject/touch/relabelhypos.touch"
+      if [[ "$ASYNC_HYPORELABEL_STARTED" != "true" ]]
+      then
+        cmd="mri_relabel_hypointensities aseg.presurf.mgz ../surf aseg.presurf.hypos.mgz"
+        RunIt "$cmd" "$LF"
+        mkdir -p "$SUBJECTS_DIR/$subject/touch"
+        echo "mri_relabel_hypointensities aseg.presurf.mgz ../surf aseg.presurf.hypos.mgz" > "$SUBJECTS_DIR/$subject/touch/relabelhypos.touch"
+      fi
       cmd="mri_surf2volseg --o aseg.mgz --i aseg.presurf.hypos.mgz --fix-presurf-with-ribbon $mdir/ribbon.mgz --threads $threads --lh-cortex-mask $ldir/lh.cortex.label --lh-white $sdir/lh.white --lh-pial $sdir/lh.pial --rh-cortex-mask $ldir/rh.cortex.label --rh-white $sdir/rh.white --rh-pial $sdir/rh.pial"
       RunIt "$cmd" "$LF"
       echo "mri_surf2volseg --o aseg.mgz --i aseg.presurf.hypos.mgz --fix-presurf-with-ribbon ../mri/ribbon.mgz --threads $threads --lh-cortex-mask ../label/lh.cortex.label --lh-white ../surf/lh.white --lh-pial ../surf/lh.pial --rh-cortex-mask ../label/rh.cortex.label --rh-white ../surf/rh.white --rh-pial ../surf/rh.pial" > "$SUBJECTS_DIR/$subject/touch/apas2aseg.touch"
