@@ -1001,8 +1001,10 @@ for hemi in lh rh ; do
 
 # ============================= SPHERE - SURFREG (optional) ==============================================
 
-  # if we segment with FS or if surface registration is requested do it here:
-  if [[ "$fsaparc" == "true" ]] || [[ "$fssurfreg" == "true" ]]
+  # If FreeSurfer aparc is requested, sphere.reg is needed before surface placement.
+  # The default FastSurfer DKT path does not consume sphere.reg for white/pial
+  # placement, so it is deferred below to overlap with ribbon construction.
+  if [[ "$fsaparc" == "true" ]]
   then
     {
       echo "echo \" \""
@@ -1204,6 +1206,54 @@ for hemi in lh rh ; do
   RunIt "$cmd" "$LF" "$CMDF"
   echo "mkdir -p $SUBJECTS_DIR/$subject/touch" >> "$CMDF"
   echo "echo \"mris_curvature_stats -m --writeCurvatureFiles -G -o ../stats/${hemi}.curv.stats -F smoothwm $subject $hemi curv sulc\" > $SUBJECTS_DIR/$subject/touch/${hemi}.curvstats.touch" >> "$CMDF"
+
+  if [[ "$fsaparc" == "false" && "$fssurfreg" == "true" ]]
+  then
+    {
+      echo "echo \" \""
+      echo "echo \"============ Creating surfaces $hemi - FS sphere, surfreg ===============\""
+      echo "echo \" \""
+    } | tee -a "$CMDF"
+
+    if [[ "$long" == "false" ]]
+    then
+      cmd="env OMP_NUM_THREADS=$threads ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS=1 \
+        mris_sphere -seed 1234 $sdir/${hemi}.inflated $sdir/${hemi}.sphere"
+      RunIt "$cmd" "$LF" "$CMDF"
+      echo "mkdir -p $SUBJECTS_DIR/$subject/touch" >> "$CMDF"
+      echo "echo \"mris_sphere -seed 1234 ../surf/${hemi}.inflated ../surf/${hemi}.sphere\" > $SUBJECTS_DIR/$subject/touch/${hemi}.sphmorph.touch" >> "$CMDF"
+
+      cmd="$python ${binpath}/rotate_sphere.py \
+           --srcsphere $sdir/${hemi}.sphere \
+           --srcaparc $ldir/$hemi.aparc.DKTatlas.mapped.annot \
+           --trgsphere $FREESURFER_HOME/subjects/fsaverage/surf/${hemi}.sphere \
+           --trgaparc $FREESURFER_HOME/subjects/fsaverage/label/${hemi}.aparc.annot \
+           --out $sdir/${hemi}.angles.txt"
+      RunIt "$cmd" "$LF" "$CMDF"
+      cmd="mris_register -curv -norot -rotate \`cat $sdir/${hemi}.angles.txt\` \
+           $sdir/${hemi}.sphere \
+           $FREESURFER_HOME/average/${hemi}.folding.atlas.acfb40.noaparc.i12.2016-08-02.tif \
+           $sdir/${hemi}.sphere.reg"
+      RunIt "$cmd" "$LF" "$CMDF"
+    else
+      cmd="cp $basedir/surf/$hemi.sphere $sdir/$hemi.sphere"
+      RunIt "$cmd" "$LF" "$CMDF"
+      cmd="mris_register -curv -nosulc -norot \
+           -threads $threads_hemi \
+           $basedir/surf/${hemi}.sphere.reg \
+           $FREESURFER_HOME/average/${hemi}.folding.atlas.acfb40.noaparc.i12.2016-08-02.tif \
+           $sdir/${hemi}.sphere.reg"
+      RunIt "$cmd" "$LF" "$CMDF"
+    fi
+
+    cmd="mris_jacobian $sdir/$hemi.white.preaparc $sdir/$hemi.sphere.reg $sdir/$hemi.jacobian_white"
+    RunIt "$cmd" "$LF" "$CMDF"
+    echo "mkdir -p $SUBJECTS_DIR/$subject/touch" >> "$CMDF"
+    echo "echo \"mris_jacobian ../surf/${hemi}.white.preaparc ../surf/${hemi}.sphere.reg ../surf/${hemi}.jacobian_white\" > $SUBJECTS_DIR/$subject/touch/${hemi}.jacobian_white.touch" >> "$CMDF"
+    cmd="mrisp_paint -a 5 $FREESURFER_HOME/average/${hemi}.folding.atlas.acfb40.noaparc.i12.2016-08-02.tif#6 $sdir/$hemi.sphere.reg $sdir/$hemi.avg_curv"
+    RunIt "$cmd" "$LF" "$CMDF"
+    echo "echo \"mrisp_paint -a 5 $FREESURFER_HOME/average/${hemi}.folding.atlas.acfb40.noaparc.i12.2016-08-02.tif#6 ../surf/${hemi}.sphere.reg ../surf/${hemi}.avg_curv\" > $SUBJECTS_DIR/$subject/touch/${hemi}.avgcurv.touch" >> "$CMDF"
+  fi
 
   if [[ "$ParallelHemi" == "false" ]]
   then
