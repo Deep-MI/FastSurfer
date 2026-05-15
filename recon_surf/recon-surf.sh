@@ -1119,6 +1119,8 @@ for hemi in lh rh ; do
   echo "pushd $sdir > /dev/null" >> "$CMDF"
   softlink_or_copy "$hemi.pial.T1" "$hemi.pial" "$LF" "$CMDF"
   echo "popd > /dev/null" >> "$CMDF"
+  echo "mkdir -p $SUBJECTS_DIR/$subject/touch" >> "$CMDF"
+  echo "touch $SUBJECTS_DIR/$subject/touch/${hemi}.pial.ready" >> "$CMDF"
 
   # these are run automatically in fs7* recon-all and cannot be called directly without -pial flag (or other t2 flags)
   # they are the same for fsaparc and long
@@ -1173,7 +1175,32 @@ export ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS=$threads
 # define the fsthreads variable for the joint section (again)
 if [[ "$threads" -gt 1 ]] ; then fsthreads="-threads $threads -itkthreads $threads" ; else fsthreads="" ; fi
 
+ASYNC_RIBBON_STARTED="false"
 if [[ "$ParallelHemi" == "true" ]] ; then
+  if [[ "$base" != "true" ]]
+  then
+    RIBBON_CMDF="$SUBJECTS_DIR/$subject/scripts/ribbon.cmdf"
+    rm -f "$RIBBON_CMDF"
+    mkdir -p "$SUBJECTS_DIR/$subject/touch"
+    rm -f "$SUBJECTS_DIR/$subject/touch/lh.pial.ready" "$SUBJECTS_DIR/$subject/touch/rh.pial.ready"
+    {
+      echo "#!/bin/bash"
+      echo "echo \"\""
+      echo "echo \"============================ Creating surfaces - ribbon ===========================\""
+      echo "echo \"\""
+      echo "while [[ ! -f $SUBJECTS_DIR/$subject/touch/lh.pial.ready || ! -f $SUBJECTS_DIR/$subject/touch/rh.pial.ready ]] ; do sleep 1 ; done"
+    } > "$RIBBON_CMDF"
+
+    cmd="mris_volmask --aseg_name aseg.presurf --label_left_white 2 --label_left_ribbon 3 \
+      --label_right_white 41 --label_right_ribbon 42 --save_ribbon --cap_distance 2"
+    if [[ "$threads" -gt 1 ]] ; then cmd="$cmd --parallel" ; fi
+    cmd="$cmd $subject"
+    RunIt "$cmd" "$LF" "$RIBBON_CMDF"
+    echo "echo \"$cmd\" > $SUBJECTS_DIR/$subject/touch/cortical_ribbon.touch" >> "$RIBBON_CMDF"
+    start_async_cmdf "$RIBBON_CMDF"
+    ASYNC_RIBBON_STARTED="true"
+  fi
+
   {
     echo ""
     echo " RUNNING HEMIs in PARALLEL !!! "
@@ -1232,28 +1259,38 @@ fi
 if [[ "$base" != "true" ]]
 then
 
-  {
-    echo ""
-    echo "============================ Creating surfaces - ribbon ==========================="
-    echo ""
-  } | tee -a "$LF"
-  # -cortribbon 4 minutes, ribbon is used in mris_anatomical stats to remove voxels from surface based volumes that should not be cortex
-  # anatomical stats can run without ribbon, but will omit some surface based measures then
-  # wmparc needs ribbon, probably other stuff (aparc to aseg etc).
-  # So lets run it to have these measures below.
-  cmd="mris_volmask --aseg_name aseg.presurf --label_left_white 2 --label_left_ribbon 3 \
-    --label_right_white 41 --label_right_ribbon 42 --save_ribbon --cap_distance 2"
-  if [[ "$threads" -gt 1 ]] ; then cmd="$cmd --parallel" ; fi
-  cmd="$cmd $subject"
-  RunIt "$cmd" "$LF"
-  mkdir -p "$SUBJECTS_DIR/$subject/touch"
-  echo "$cmd" > "$SUBJECTS_DIR/$subject/touch/cortical_ribbon.touch"
+  if [[ "$ASYNC_RIBBON_STARTED" != "true" ]]
+  then
+    {
+      echo ""
+      echo "============================ Creating surfaces - ribbon ==========================="
+      echo ""
+    } | tee -a "$LF"
+    # -cortribbon 4 minutes, ribbon is used in mris_anatomical stats to remove voxels from surface based volumes that should not be cortex
+    # anatomical stats can run without ribbon, but will omit some surface based measures then
+    # wmparc needs ribbon, probably other stuff (aparc to aseg etc).
+    # So lets run it to have these measures below.
+    cmd="mris_volmask --aseg_name aseg.presurf --label_left_white 2 --label_left_ribbon 3 \
+      --label_right_white 41 --label_right_ribbon 42 --save_ribbon --cap_distance 2"
+    if [[ "$threads" -gt 1 ]] ; then cmd="$cmd --parallel" ; fi
+    cmd="$cmd $subject"
+    RunIt "$cmd" "$LF"
+    mkdir -p "$SUBJECTS_DIR/$subject/touch"
+    echo "$cmd" > "$SUBJECTS_DIR/$subject/touch/cortical_ribbon.touch"
+  else
+    echo "Ribbon construction is already running asynchronously." | tee -a "$LF"
+  fi
 
 fi # skip in base
 
-if [[ "$ASYNC_BALABELS_STARTED" == "true" || "$ASYNC_HYPORELABEL_STARTED" == "true" ]]
+if [[ "$ASYNC_RIBBON_STARTED" == "true" || "$ASYNC_BALABELS_STARTED" == "true" || "$ASYNC_HYPORELABEL_STARTED" == "true" ]]
 then
   wait_async_cmdfs
+fi
+if [[ "$ASYNC_RIBBON_STARTED" == "true" ]]
+then
+  cmd="rm -f $RIBBON_CMDF $SUBJECTS_DIR/$subject/touch/lh.pial.ready $SUBJECTS_DIR/$subject/touch/rh.pial.ready"
+  RunIt "$cmd" "$LF"
 fi
 
 # ============================= FSAPARC - parc23 surfcon hypo ... =========================================
