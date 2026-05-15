@@ -1242,7 +1242,7 @@ then
   # wmparc needs ribbon, probably other stuff (aparc to aseg etc).
   # So lets run it to have these measures below.
   cmd="mris_volmask --aseg_name aseg.presurf --label_left_white 2 --label_left_ribbon 3 \
-    --label_right_white 41 --label_right_ribbon 42 --save_ribbon"
+    --label_right_white 41 --label_right_ribbon 42 --save_ribbon --cap_distance 2"
   if [[ "$threads" -gt 1 ]] ; then cmd="$cmd --parallel" ; fi
   cmd="$cmd $subject"
   RunIt "$cmd" "$LF"
@@ -1471,13 +1471,15 @@ then
   # then merge those WM labels into the mapped aparc volume below.
   wmparc_threads=$((threads / 2))
   if [[ "$wmparc_threads" -lt 1 ]] ; then wmparc_threads=1 ; fi
-  cmd="mri_surf2volseg --o $mdir/wmparc.DKTatlas.mapped.wmonly.mgz --label-wm --i $mdir/aseg.mgz --threads $wmparc_threads --lh-annot $ldir/lh.aparc.DKTatlas.mapped.annot 3000 --lh-cortex-mask $ldir/lh.cortex.label --lh-white $sdir/lh.white --lh-pial $sdir/lh.pial --rh-annot $ldir/rh.aparc.DKTatlas.mapped.annot 4000 --rh-cortex-mask $ldir/rh.cortex.label --rh-white $sdir/rh.white --rh-pial $sdir/rh.pial"
+  cmd="mri_surf2volseg --o $mdir/wmparc.DKTatlas.mapped.wmonly.mgz --label-wm --i $mdir/aseg.mgz --threads $wmparc_threads --hashres 8 --lh-annot $ldir/lh.aparc.DKTatlas.mapped.annot 3000 --lh-cortex-mask $ldir/lh.cortex.label --lh-white $sdir/lh.white --lh-pial $sdir/lh.pial --rh-annot $ldir/rh.aparc.DKTatlas.mapped.annot 4000 --rh-cortex-mask $ldir/rh.cortex.label --rh-white $sdir/rh.white --rh-pial $sdir/rh.pial"
   RunIt "$cmd" "$LF" "$WMPARC_VOL_CMDF"
   start_async_cmdf "$WMPARC_VOL_CMDF"
 
   # creating aparc.DKTatlas+aseg.mapped.mgz by mapping aparc.DKTatlas.mapped from surface to aseg.mgz
   # (should be a nicer aparc+aseg compared to orig CNN segmentation, due to surface updates)
-  cmd="mri_surf2volseg --o $mdir/aparc.DKTatlas+aseg.mapped.mgz --label-cortex --i $mdir/aseg.mgz --threads $threads --lh-annot $ldir/lh.aparc.DKTatlas.mapped.annot 1000 --lh-cortex-mask $ldir/lh.cortex.label --lh-white $sdir/lh.white --lh-pial $sdir/lh.pial --rh-annot $ldir/rh.aparc.DKTatlas.mapped.annot 2000 --rh-cortex-mask $ldir/rh.cortex.label --rh-white $sdir/rh.white --rh-pial $sdir/rh.pial"
+  surf2volseg_threads=$threads
+  if [[ "$threads" -ge 8 ]] ; then surf2volseg_threads=$((threads + threads / 2)) ; fi
+  cmd="mri_surf2volseg --o $mdir/aparc.DKTatlas+aseg.mapped.mgz --label-cortex --i $mdir/aseg.mgz --threads $surf2volseg_threads --hashres 8 --lh-annot $ldir/lh.aparc.DKTatlas.mapped.annot 1000 --lh-cortex-mask $ldir/lh.cortex.label --lh-white $sdir/lh.white --lh-pial $sdir/lh.pial --rh-annot $ldir/rh.aparc.DKTatlas.mapped.annot 2000 --rh-cortex-mask $ldir/rh.cortex.label --rh-white $sdir/rh.white --rh-pial $sdir/rh.pial"
   RunIt "$cmd" "$LF"
   wait_async_cmdfs
   cmda=($python "${binpath}merge_wmparc_aparc.py"
