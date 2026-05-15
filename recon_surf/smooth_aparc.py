@@ -204,8 +204,6 @@ def mode_filter(
     # create sparse matrix with labels at neighbors
     nlabels = sparse.csr_matrix((labels[JJ], (II, JJ)))
     # print("nlabels: {}".format(nlabels))
-    from scipy.stats import mode
-
     if not isinstance(nlabels, sparse.csr_matrix):
         raise ValueError("Matrix must be CSR format.")
     # novote = [-1,0,fillonlylabel]
@@ -227,19 +225,16 @@ def mode_filter(
         rr = np.isin(nlabels.data, novote)
         nlabels.data[rr] = 0
         nlabels.eliminate_zeros()
-    # run over all rows and compute mode (maybe vectorize later)
+    # Run over all rows and compute mode.  The labels are non-negative at
+    # this point; bincount().argmax() matches scipy.stats.mode's smallest-value
+    # tie behavior without the heavy per-row SciPy dispatch.
     rempty = 0
     for row in rows:
         rvals = nlabels.data[nlabels.indptr[row] : nlabels.indptr[row + 1]]
         if rvals.size == 0:
             rempty += 1
             continue
-        # print(str(rvals))
-        mvals = mode(rvals, keepdims=True)[0]
-        # print(str(mvals))
-        if mvals.size != 0:
-            # print(str(row)+' '+str(ids[row])+' '+str(mvals[0]))
-            labels_new[ids[row]] = mvals[0]
+        labels_new[ids[row]] = np.bincount(rvals).argmax()
     if rempty > 0:
         # should not happen
         print("WARNING: row empty: " + str(rempty))
