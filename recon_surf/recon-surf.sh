@@ -972,9 +972,9 @@ for hemi in lh rh ; do
   cmd="ln -s $hemi.white.preaparc.K $hemi.white.K"
   RunIt "$cmd" "$LF" "$CMDF"
   echo "echo \"mris_curvature -w -seed 1234 ${hemi}.white.preaparc\" > $SUBJECTS_DIR/$subject/touch/${hemi}.white.H.K.touch" >> "$CMDF"
-  cmd="mris_curvature -seed 1234 -thresh .999 -n -a 5 -w -distances 10 10 $hemi.inflated"
+  cmd="mris_curvature -seed 1234 -thresh .999 -n -a 5 -w $hemi.inflated"
   RunIt "$cmd" "$LF" "$CMDF"
-  echo "echo \"mris_curvature -seed 1234 -thresh .999 -n -a 5 -w -distances 10 10 ${hemi}.inflated\" > $SUBJECTS_DIR/$subject/touch/${hemi}.inflate.H.K.touch" >> "$CMDF"
+  echo "echo \"mris_curvature -seed 1234 -thresh .999 -n -a 5 -w ${hemi}.inflated\" > $SUBJECTS_DIR/$subject/touch/${hemi}.inflate.H.K.touch" >> "$CMDF"
   echo "popd > /dev/null || exit 1" >> "$CMDF"
 
 
