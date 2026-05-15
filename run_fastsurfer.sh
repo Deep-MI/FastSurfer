@@ -289,9 +289,11 @@ Resource Options:
   --fsaparc               Additionally create FS aparc segmentations and ribbon.
                             Skipped by default (--> DL prediction is used which
                             is faster, and usually these mapped ones are fine).
-  --no_fs_T1              Do not generate T1.mgz (normalized nu.mgz included in
-                            standard FreeSurfer output) and create brainmask.mgz
-                            directly from norm.mgz instead. Saves 1:30 min.
+  --fs_T1                 Generate FreeSurfer-style T1.mgz from nu.mgz and use it
+                            for brainmask.mgz. Slower, but preserves the legacy
+                            auxiliary T1.mgz output.
+  --no_fs_T1              Do not generate T1.mgz and create brainmask.mgz directly
+                            from norm.mgz instead (default).
   --no_surfreg             Do not run Surface registration with FreeSurfer (for
                             cross-subject correspondence), Not recommended, but
                             speeds up processing if you e.g. just need the
@@ -533,7 +535,7 @@ case $key in
   ##############################################################
   --seg_only) run_surf_pipeline="false" ;;
   # several flag options that are *just* passed through to recon-surf.sh
-  --fstess|--fsqsphere|--fsaparc|--no_surfreg|--ignore_fs_version) surf_flags+=("$key") ;;
+  --fstess|--fsqsphere|--fsaparc|--no_surfreg|--ignore_fs_version|--fs_t1) surf_flags+=("$key") ;;
   --parallel) legacy_parallel_hemi="true" ;;
   --no_fs_t1) surf_flags+=("--no_fs_T1") ;;
 

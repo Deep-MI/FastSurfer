@@ -39,7 +39,7 @@ baseid=""             # baseid for longitudinal time point run
 
 # Dev flags default
 check_version="true"  # Check for supported FreeSurfer version (terminate if not detected)
-get_t1="true"         # Generate T1.mgz from nu.mgz and brainmask from it (default)
+get_t1="false"        # Skip FreeSurfer T1.mgz normalization by default; --fs_T1 restores it.
 hires_voxsize_threshold=0.999  # Threshold below which the hires options are passed
 
 if [[ -z "$FASTSURFER_HOME" ]]
@@ -122,9 +122,11 @@ Dev Flags:
   --ignore_fs_version     Switch on to avoid check for FreeSurfer version.
                             Program will otherwise terminate if $FS_VERSION_SUPPORT is 
                             not sourced. Can be used for testing dev versions.
-  --no_fs_T1              Do not generate T1.mgz (normalized nu.mgz included in
-                            standard FreeSurfer output) and create brainmask.mgz
-                            directly from norm.mgz instead. Saves 1:30 min.
+  --fs_T1                 Generate FreeSurfer-style T1.mgz from nu.mgz and use it
+                            for brainmask.mgz. Slower, but preserves the legacy
+                            auxiliary T1.mgz output.
+  --no_fs_T1              Do not generate T1.mgz and create brainmask.mgz directly
+                            from norm.mgz instead (default).
   --no_surfreg            Do not run Surface registration with FreeSurfer (for
                             cross-subject correspondence). Not recommended, but
                             speeds up processing if you just need the stats and
@@ -204,6 +206,7 @@ case $key in
     shift # past value
     ;;
   --ignore_fs_version) check_version="false" ;;
+  --fs_t1 ) get_t1="true" ;;
   --no_fs_t1 ) get_t1="false" ;;
   --base) base="true" ;;
   --long) long="true" ; baseid="$1" ; shift ;;
