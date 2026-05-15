@@ -411,6 +411,57 @@ function start_async_cmdf()
   ASYNC_CMDFS+=("$cmdf")
 }
 
+function wait_async_cmdf()
+{
+  local target=$1
+  local unsuccessful=()
+  local found="false"
+  local status
+  local i
+  local next_pids=()
+  local next_logs=()
+  local next_cmdfs=()
+
+  for i in "${!ASYNC_PIDS[@]}"
+  do
+    if [[ "${ASYNC_CMDFS[i]}" == "$target" ]]
+    then
+      found="true"
+      echo "Waiting for async PID ${ASYNC_PIDS[i]} of (${ASYNC_PIDS[*]}) to complete..." | tee -a "$LF"
+      wait "${ASYNC_PIDS[i]}"
+      status="$?"
+      tee -a "$LF" < "${ASYNC_LOGS[i]}"
+      rm -f "${ASYNC_LOGS[i]}"
+      if [[ "$status" != "0" ]]
+      then
+        unsuccessful+=("$i")
+        {
+          echo "ERROR: The async script ${ASYNC_CMDFS[i]} (PID: ${ASYNC_PIDS[i]}) did not complete successfully!"
+          echo "========================================"
+          echo ""
+        } | tee -a "$LF"
+      fi
+    else
+      next_pids+=("${ASYNC_PIDS[i]}")
+      next_logs+=("${ASYNC_LOGS[i]}")
+      next_cmdfs+=("${ASYNC_CMDFS[i]}")
+    fi
+  done
+
+  if [[ "${#unsuccessful}" != 0 ]]
+  then
+    echo "Async PIDs (${unsuccessful[*]}) of (${ASYNC_PIDS[*]}) have NOT completed successfully! All logs appended." | tee -a "$LF"
+    exit 1
+  elif [[ "$found" == "true" ]]
+  then
+    echo "Async command $target completed successfully! Its log has been appended." | tee -a "$LF"
+  fi
+
+  ASYNC_PIDS=("${next_pids[@]}")
+  ASYNC_LOGS=("${next_logs[@]}")
+  ASYNC_CMDFS=("${next_cmdfs[@]}")
+}
+
 function wait_async_cmdfs()
 {
   local unsuccessful=()
@@ -1179,25 +1230,37 @@ ASYNC_RIBBON_STARTED="false"
 if [[ "$ParallelHemi" == "true" ]] ; then
   if [[ "$base" != "true" ]]
   then
-    RIBBON_CMDF="$SUBJECTS_DIR/$subject/scripts/ribbon.cmdf"
-    rm -f "$RIBBON_CMDF"
+    RIBBON_LH_CMDF="$SUBJECTS_DIR/$subject/scripts/ribbon.lh.cmdf"
+    RIBBON_RH_CMDF="$SUBJECTS_DIR/$subject/scripts/ribbon.rh.cmdf"
+    rm -f "$RIBBON_LH_CMDF" "$RIBBON_RH_CMDF"
     mkdir -p "$SUBJECTS_DIR/$subject/touch"
     rm -f "$SUBJECTS_DIR/$subject/touch/lh.pial.ready" "$SUBJECTS_DIR/$subject/touch/rh.pial.ready"
-    {
-      echo "#!/bin/bash"
-      echo "echo \"\""
-      echo "echo \"============================ Creating surfaces - ribbon ===========================\""
-      echo "echo \"\""
-      echo "while [[ ! -f $SUBJECTS_DIR/$subject/touch/lh.pial.ready || ! -f $SUBJECTS_DIR/$subject/touch/rh.pial.ready ]] ; do sleep 1 ; done"
-    } > "$RIBBON_CMDF"
 
-    cmd="mris_volmask --aseg_name aseg.presurf --label_left_white 2 --label_left_ribbon 3 \
-      --label_right_white 41 --label_right_ribbon 42 --save_ribbon --cap_distance 2"
-    if [[ "$threads" -gt 1 ]] ; then cmd="$cmd --parallel" ; fi
-    cmd="$cmd $subject"
-    RunIt "$cmd" "$LF" "$RIBBON_CMDF"
-    echo "echo \"$cmd\" > $SUBJECTS_DIR/$subject/touch/cortical_ribbon.touch" >> "$RIBBON_CMDF"
-    start_async_cmdf "$RIBBON_CMDF"
+    for hemi in lh rh ; do
+      if [[ "$hemi" == "lh" ]]
+      then
+        RIBBON_HEMI_CMDF="$RIBBON_LH_CMDF"
+        ribbon_only_flag="--lh-only"
+        ribbon_out_root="ribbon.lhonly"
+      else
+        RIBBON_HEMI_CMDF="$RIBBON_RH_CMDF"
+        ribbon_only_flag="--rh-only"
+        ribbon_out_root="ribbon.rhonly"
+      fi
+      {
+        echo "#!/bin/bash"
+        echo "echo \"\""
+        echo "echo \"============================ Creating surfaces $hemi - ribbon ===========================\""
+        echo "echo \"\""
+        echo "while [[ ! -f $SUBJECTS_DIR/$subject/touch/${hemi}.pial.ready ]] ; do sleep 1 ; done"
+      } > "$RIBBON_HEMI_CMDF"
+
+      cmd="mris_volmask --aseg_name aseg.presurf --label_left_white 2 --label_left_ribbon 3 \
+        --label_right_white 41 --label_right_ribbon 42 --save_ribbon --cap_distance 2 \
+        --out_root $ribbon_out_root $ribbon_only_flag $subject"
+      RunIt "$cmd" "$LF" "$RIBBON_HEMI_CMDF"
+      start_async_cmdf "$RIBBON_HEMI_CMDF"
+    done
     ASYNC_RIBBON_STARTED="true"
   fi
 
@@ -1283,13 +1346,22 @@ then
 
 fi # skip in base
 
-if [[ "$ASYNC_RIBBON_STARTED" == "true" || "$ASYNC_BALABELS_STARTED" == "true" || "$ASYNC_HYPORELABEL_STARTED" == "true" ]]
-then
-  wait_async_cmdfs
-fi
 if [[ "$ASYNC_RIBBON_STARTED" == "true" ]]
 then
-  cmd="rm -f $RIBBON_CMDF $SUBJECTS_DIR/$subject/touch/lh.pial.ready $SUBJECTS_DIR/$subject/touch/rh.pial.ready"
+  wait_async_cmdf "$RIBBON_LH_CMDF"
+  wait_async_cmdf "$RIBBON_RH_CMDF"
+  cmda=($python "${binpath}merge_ribbon_hemis.py"
+        --lh "$mdir/ribbon.lhonly.mgz"
+        --rh "$mdir/ribbon.rhonly.mgz"
+        --out "$mdir/ribbon.mgz"
+        --lh-ribbon "$mdir/lh.ribbon.mgz"
+        --rh-ribbon "$mdir/rh.ribbon.mgz")
+  run_it "$LF" "${cmda[@]}"
+  cmd="mris_volmask --aseg_name aseg.presurf --label_left_white 2 --label_left_ribbon 3 --label_right_white 41 --label_right_ribbon 42 --save_ribbon --cap_distance 2"
+  if [[ "$threads" -gt 1 ]] ; then cmd="$cmd --parallel" ; fi
+  cmd="$cmd $subject"
+  echo "$cmd" > "$SUBJECTS_DIR/$subject/touch/cortical_ribbon.touch"
+  cmd="rm -f $RIBBON_LH_CMDF $RIBBON_RH_CMDF $mdir/ribbon.lhonly.mgz $mdir/ribbon.rhonly.mgz $mdir/lh.ribbon.lhonly.mgz $mdir/rh.ribbon.rhonly.mgz $SUBJECTS_DIR/$subject/touch/lh.pial.ready $SUBJECTS_DIR/$subject/touch/rh.pial.ready"
   RunIt "$cmd" "$LF"
 fi
 
@@ -1424,6 +1496,8 @@ then
         RunIt "$cmd" "$LF"
         mkdir -p "$SUBJECTS_DIR/$subject/touch"
         echo "mri_relabel_hypointensities aseg.presurf.mgz ../surf aseg.presurf.hypos.mgz" > "$SUBJECTS_DIR/$subject/touch/relabelhypos.touch"
+      else
+        wait_async_cmdf "$HYPORELABEL_CMDF"
       fi
       cmd="mri_surf2volseg --o aseg.mgz --i aseg.presurf.hypos.mgz --fix-presurf-with-ribbon $mdir/ribbon.mgz --threads $threads --lh-cortex-mask $ldir/lh.cortex.label --lh-white $sdir/lh.white --lh-pial $sdir/lh.pial --rh-cortex-mask $ldir/rh.cortex.label --rh-white $sdir/rh.white --rh-pial $sdir/rh.pial"
       RunIt "$cmd" "$LF"
@@ -1507,16 +1581,20 @@ then
   # Run it from aseg.mgz while the main process creates aparc.DKTatlas+aseg.mapped.mgz,
   # then merge those WM labels into the mapped aparc volume below.
   wmparc_threads=$((threads / 2))
+  if [[ "$wmparc_threads" -gt 2 ]] ; then wmparc_threads=2 ; fi
   if [[ "$wmparc_threads" -lt 1 ]] ; then wmparc_threads=1 ; fi
-  cmd="mri_surf2volseg --o $mdir/wmparc.DKTatlas.mapped.wmonly.mgz --label-wm --i $mdir/aseg.mgz --threads $wmparc_threads --hashres 8 --lh-annot $ldir/lh.aparc.DKTatlas.mapped.annot 3000 --lh-cortex-mask $ldir/lh.cortex.label --lh-white $sdir/lh.white --lh-pial $sdir/lh.pial --rh-annot $ldir/rh.aparc.DKTatlas.mapped.annot 4000 --rh-cortex-mask $ldir/rh.cortex.label --rh-white $sdir/rh.white --rh-pial $sdir/rh.pial"
+  cmd="mri_surf2volseg --o $mdir/wmparc.DKTatlas.mapped.wmonly.mgz --label-wm --i $mdir/aseg.mgz --threads $wmparc_threads --hashres 5 --lh-annot $ldir/lh.aparc.DKTatlas.mapped.annot 3000 --lh-cortex-mask $ldir/lh.cortex.label --lh-white $sdir/lh.white --lh-pial $sdir/lh.pial --rh-annot $ldir/rh.aparc.DKTatlas.mapped.annot 4000 --rh-cortex-mask $ldir/rh.cortex.label --rh-white $sdir/rh.white --rh-pial $sdir/rh.pial"
   RunIt "$cmd" "$LF" "$WMPARC_VOL_CMDF"
   start_async_cmdf "$WMPARC_VOL_CMDF"
 
   # creating aparc.DKTatlas+aseg.mapped.mgz by mapping aparc.DKTatlas.mapped from surface to aseg.mgz
   # (should be a nicer aparc+aseg compared to orig CNN segmentation, due to surface updates)
   surf2volseg_threads=$threads
-  if [[ "$threads" -ge 8 ]] ; then surf2volseg_threads=$((threads + threads / 2)) ; fi
-  cmd="mri_surf2volseg --o $mdir/aparc.DKTatlas+aseg.mapped.mgz --label-cortex --i $mdir/aseg.mgz --threads $surf2volseg_threads --hashres 8 --lh-annot $ldir/lh.aparc.DKTatlas.mapped.annot 1000 --lh-cortex-mask $ldir/lh.cortex.label --lh-white $sdir/lh.white --lh-pial $sdir/lh.pial --rh-annot $ldir/rh.aparc.DKTatlas.mapped.annot 2000 --rh-cortex-mask $ldir/rh.cortex.label --rh-white $sdir/rh.white --rh-pial $sdir/rh.pial"
+  if [[ "$threads" -ge 8 ]] ; then
+    surf2volseg_threads=$((threads * 2))
+    if [[ "$surf2volseg_threads" -gt 16 ]] ; then surf2volseg_threads=16 ; fi
+  fi
+  cmd="mri_surf2volseg --o $mdir/aparc.DKTatlas+aseg.mapped.mgz --label-cortex --i $mdir/aseg.mgz --threads $surf2volseg_threads --hashres 4 --lh-annot $ldir/lh.aparc.DKTatlas.mapped.annot 1000 --lh-cortex-mask $ldir/lh.cortex.label --lh-white $sdir/lh.white --lh-pial $sdir/lh.pial --rh-annot $ldir/rh.aparc.DKTatlas.mapped.annot 2000 --rh-cortex-mask $ldir/rh.cortex.label --rh-white $sdir/rh.white --rh-pial $sdir/rh.pial"
   RunIt "$cmd" "$LF"
   wait_async_cmdfs
   cmda=($python "${binpath}merge_wmparc_aparc.py"
