@@ -1457,9 +1457,36 @@ then
 
 # ============================= MAPPED-TO-VOL =========================================
 
+  WMPARC_VOL_CMDF="$SUBJECTS_DIR/$subject/scripts/wmparc_volume.cmdf"
+  rm -f "$WMPARC_VOL_CMDF"
+  {
+    echo "#!/bin/bash"
+    echo "echo \"\""
+    echo "echo \"===================== Creating wmparc from aseg =======================\""
+    echo "echo \"\""
+  } > "$WMPARC_VOL_CMDF"
+
+  # The WM-labeling pass only changes voxels that are cerebral WM or WM hypointensities.
+  # Run it from aseg.mgz while the main process creates aparc.DKTatlas+aseg.mapped.mgz,
+  # then merge those WM labels into the mapped aparc volume below.
+  wmparc_threads=$((threads / 2))
+  if [[ "$wmparc_threads" -lt 1 ]] ; then wmparc_threads=1 ; fi
+  cmd="mri_surf2volseg --o $mdir/wmparc.DKTatlas.mapped.wmonly.mgz --label-wm --i $mdir/aseg.mgz --threads $wmparc_threads --lh-annot $ldir/lh.aparc.DKTatlas.mapped.annot 3000 --lh-cortex-mask $ldir/lh.cortex.label --lh-white $sdir/lh.white --lh-pial $sdir/lh.pial --rh-annot $ldir/rh.aparc.DKTatlas.mapped.annot 4000 --rh-cortex-mask $ldir/rh.cortex.label --rh-white $sdir/rh.white --rh-pial $sdir/rh.pial"
+  RunIt "$cmd" "$LF" "$WMPARC_VOL_CMDF"
+  start_async_cmdf "$WMPARC_VOL_CMDF"
+
   # creating aparc.DKTatlas+aseg.mapped.mgz by mapping aparc.DKTatlas.mapped from surface to aseg.mgz
   # (should be a nicer aparc+aseg compared to orig CNN segmentation, due to surface updates)
   cmd="mri_surf2volseg --o $mdir/aparc.DKTatlas+aseg.mapped.mgz --label-cortex --i $mdir/aseg.mgz --threads $threads --lh-annot $ldir/lh.aparc.DKTatlas.mapped.annot 1000 --lh-cortex-mask $ldir/lh.cortex.label --lh-white $sdir/lh.white --lh-pial $sdir/lh.pial --rh-annot $ldir/rh.aparc.DKTatlas.mapped.annot 2000 --rh-cortex-mask $ldir/rh.cortex.label --rh-white $sdir/rh.white --rh-pial $sdir/rh.pial"
+  RunIt "$cmd" "$LF"
+  wait_async_cmdfs
+  cmda=($python "${binpath}merge_wmparc_aparc.py"
+        --aseg "$mdir/aseg.mgz"
+        --aparc "$mdir/aparc.DKTatlas+aseg.mapped.mgz"
+        --wmparc "$mdir/wmparc.DKTatlas.mapped.wmonly.mgz"
+        --out "$mdir/wmparc.DKTatlas.mapped.mgz")
+  run_it "$LF" "${cmda[@]}"
+  cmd="rm -f $mdir/wmparc.DKTatlas.mapped.wmonly.mgz $WMPARC_VOL_CMDF"
   RunIt "$cmd" "$LF"
 
 
@@ -1558,10 +1585,6 @@ then
   fi
   run_it "$LF" "${cmda[@]}"
   fi
-
-  # -wmparc based on mapped aparc labels (from input asegdkt_segfile) (1min40sec) needs ribbon and we need to point it to aparc.mapped:
-  cmd="mri_surf2volseg --o $mdir/wmparc.DKTatlas.mapped.mgz --label-wm --i $mdir/aparc.DKTatlas+aseg.mapped.mgz --threads $threads --lh-annot $ldir/lh.aparc.DKTatlas.mapped.annot 3000 --lh-cortex-mask $ldir/lh.cortex.label --lh-white $sdir/lh.white --lh-pial $sdir/lh.pial --rh-annot $ldir/rh.aparc.DKTatlas.mapped.annot 4000 --rh-cortex-mask $ldir/rh.cortex.label --rh-white $sdir/rh.white --rh-pial $sdir/rh.pial"
-  RunIt "$cmd" "$LF"
 
   wait_async_cmdfs
 
