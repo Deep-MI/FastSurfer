@@ -1373,9 +1373,12 @@ then
     fi
   fi
 
+  cerebnet_pid=""
+  cerebnet_async_log=""
+  cerebnet_async_exec_log=""
+
   if [[ "$run_cereb_module" == "true" ]]
   then
-    echo "MODULE: CerebNet cerebellum segmentation" >> "$exec_time_log"
     if [[ "$run_biasfield" == "true" ]]
     then
       cereb_flags+=(--norm_name "$norm_name" --cereb_statsfile "$cereb_statsfile")
@@ -1392,12 +1395,30 @@ then
     # specify the subject dir $sd, if cereb_segfile explicitly starts with it
     if [[ "$sd" == "${cereb_segfile:0:${#sd}}" ]] ; then cmd+=(--sd "$sd"); fi
     if [[ "$native_image" != "false" ]] ; then cmd+=(--orientation native --image_size fov --vox_size none) ; fi
-    echo_quoted "${cmd[@]}" | tee -a "$seg_log"
-    "${wrap[@]}" "${cmd[@]}"  # no tee, directly logging to $seg_log
-    if [[ "${PIPESTATUS[0]}" != 0 ]]
+    if [[ "$run_hypvinn_module" == "true" ]]
     then
-      echo "ERROR: Cerebellum Segmentation failed!" | tee -a "$seg_log"
-      exit 1
+      cerebnet_async_log="${seg_log%.log}.cerebnet.async.log"
+      cerebnet_async_exec_log="${exec_time_log%.log}.cerebnet.async.log"
+      : > "$cerebnet_async_log"
+      : > "$cerebnet_async_exec_log"
+      cmd_async=("${cmd[@]}")
+      for idx in "${!cmd_async[@]}"; do
+        if [[ "${cmd_async[$idx]}" == "$seg_log" ]]; then cmd_async[$idx]="$cerebnet_async_log"; fi
+      done
+      echo "INFO: Running CerebNet asynchronously with HypVINN..." | tee -a "$seg_log"
+      echo_quoted "${cmd_async[@]}" | tee -a "$seg_log"
+      echo "MODULE: CerebNet cerebellum segmentation" >> "$cerebnet_async_exec_log"
+      time_it "$cerebnet_async_exec_log" "${cmd_async[@]}" &
+      cerebnet_pid="$!"
+    else
+      echo "MODULE: CerebNet cerebellum segmentation" >> "$exec_time_log"
+      echo_quoted "${cmd[@]}" | tee -a "$seg_log"
+      "${wrap[@]}" "${cmd[@]}"  # no tee, directly logging to $seg_log
+      if [[ "${PIPESTATUS[0]}" != 0 ]]
+      then
+        echo "ERROR: Cerebellum Segmentation failed!" | tee -a "$seg_log"
+        exit 1
+      fi
     fi
   fi
 
@@ -1425,6 +1446,27 @@ then
     if [[ "${PIPESTATUS[0]}" != 0 ]]
     then
       echo "ERROR: Hypothalamus Segmentation failed!" | tee -a "$seg_log"
+      exit 1
+    fi
+  fi
+
+  if [[ -n "$cerebnet_pid" ]]
+  then
+    wait "$cerebnet_pid"
+    cerebnet_exit="$?"
+    if [[ -f "$cerebnet_async_log" ]]
+    then
+      cat "$cerebnet_async_log" >> "$seg_log"
+      rm -f "$cerebnet_async_log"
+    fi
+    if [[ -f "$cerebnet_async_exec_log" ]]
+    then
+      cat "$cerebnet_async_exec_log" >> "$exec_time_log"
+      rm -f "$cerebnet_async_exec_log"
+    fi
+    if [[ "$cerebnet_exit" != 0 ]]
+    then
+      echo "ERROR: Cerebellum Segmentation failed!" | tee -a "$seg_log"
       exit 1
     fi
   fi
