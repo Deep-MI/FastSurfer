@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import os
+import warnings
 
 # IMPORTS
 import time
@@ -33,6 +34,17 @@ from FastSurferCNN.models.networks import build_model
 from FastSurferCNN.utils import logging
 
 logger = logging.getLogger(__name__)
+
+
+class _FastSurferVINNTraceWrapper(torch.nn.Module):
+    """Trace adapter for the common no-output-scale inference path."""
+
+    def __init__(self, model: torch.nn.Module):
+        super().__init__()
+        self.model = model
+
+    def forward(self, images: torch.Tensor, scale_factors: torch.Tensor) -> torch.Tensor:
+        return self.model(images, scale_factors, None)
 
 
 class Inference:
@@ -324,6 +336,13 @@ class Inference:
             Prediction probability tensor.
         """
         self.model.eval()
+        trace_model = (
+            out_scale is None
+            and self.device.type == "cpu"
+            and self.cfg.TEST.BATCH_SIZE == 1
+            and os.environ.get("FASTSURFER_VINN_TRACE", "1") != "0"
+        )
+        traced_model = False
         # we should check here, whether the DataLoader is a Random or a SequentialSampler, but we cannot easily.
         if not isinstance(val_loader.sampler, torch.utils.data.SequentialSampler):
             logger.warning(
@@ -351,8 +370,26 @@ class Inference:
                     # move data to the model device
                     images, scale_factors = batch["image"].to(self.device), batch["scale_factor"].to(self.device)
 
+                    if trace_model and batch_idx == 0:
+                        trace_start = time.time()
+                        with warnings.catch_warnings():
+                            warnings.filterwarnings("ignore", category=torch.jit.TracerWarning)
+                            self.model = torch.jit.trace(
+                                _FastSurferVINNTraceWrapper(self.model),
+                                (images, scale_factors),
+                                check_trace=False,
+                            )
+                        self.model.eval()
+                        traced_model = True
+                        logger.info(
+                            f"Traced {plane} model in {time.time() - trace_start:0.4f} seconds"
+                        )
+
                     # predict the current batch, outputs logits
-                    pred = self.model(images, scale_factors, out_scale)
+                    if traced_model:
+                        pred = self.model(images, scale_factors)
+                    else:
+                        pred = self.model(images, scale_factors, out_scale)
                     batch_size = pred.shape[0]
                     end_index = start_index + batch_size
 
