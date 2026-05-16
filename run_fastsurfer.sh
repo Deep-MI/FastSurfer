@@ -1088,6 +1088,11 @@ then
   hypvinn_pid=""
   hypvinn_async_log=""
   hypvinn_async_exec_log=""
+  hypvinn_batch_size="${FASTSURFER_HYPVINN_BATCH_SIZE:-$batch_size}"
+  if [[ -z "${FASTSURFER_HYPVINN_BATCH_SIZE+x}" ]] && [[ "$batch_size" == "1" ]] && [[ "$device" == cuda* ]]
+  then
+    hypvinn_batch_size="4"
+  fi
   cc_started="false"
   cc_pid=""
   cc_async_log=""
@@ -1182,7 +1187,7 @@ then
     then
       local -a cmd_hyp cmd_hyp_async
       cmd_hyp=($python "$hypvinndir/run_prediction.py" --sd "${sd}" --sid "${subject}" --reg_mode "$hypvinn_regmode"
-          "${hypvinn_flags[@]}" --threads "$threads_seg" --async_io --batch_size "$batch_size" --seg_log "$seg_log"
+          "${hypvinn_flags[@]}" --threads "$threads_seg" --async_io --batch_size "$hypvinn_batch_size" --seg_log "$seg_log"
           --device "$device" --viewagg_device "$viewagg" --t1)
       if [[ "$run_biasfield" == "true" ]]
       then
@@ -1275,7 +1280,7 @@ then
     {
       # this will always run, since norm_name is set to subject_dir/mri/orig_nu.mgz, if it is not passed/empty
       cmd=($python "${reconsurfdir}/N4_bias_correct.py" "--in" "$conformed_name" --rescale "$norm_name"
-           --aseg "$aseg_segfile" --threads "$threads_seg" --shrink 6)
+           --aseg "$aseg_segfile" --threads "$threads_seg" --shrink 6 --numiter 40)
       echo "INFO: Running N4 bias-field correction..."
       echo_quoted "${cmd[@]}"
       "${wrap[@]}" "${cmd[@]}" 2>&1
