@@ -342,6 +342,7 @@ class Inference:
             and self.cfg.TEST.BATCH_SIZE == 1
             and os.environ.get("FASTSURFER_VINN_TRACE", "1") != "0"
         )
+        freeze_model = os.environ.get("FASTSURFER_VINN_FREEZE", "1") != "0"
         traced_model = False
         # we should check here, whether the DataLoader is a Random or a SequentialSampler, but we cannot easily.
         if not isinstance(val_loader.sampler, torch.utils.data.SequentialSampler):
@@ -379,7 +380,9 @@ class Inference:
                                 (images, scale_factors),
                                 check_trace=False,
                             )
-                        self.model.eval()
+                            self.model.eval()
+                            if freeze_model:
+                                self.model = torch.jit.freeze(self.model)
                         traced_model = True
                         logger.info(
                             f"Traced {plane} model in {time.time() - trace_start:0.4f} seconds"

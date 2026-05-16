@@ -338,6 +338,7 @@ class Inference:
             and self.cfg.TEST.BATCH_SIZE == 1
             and os.environ.get("FASTSURFER_HYPVINN_TRACE", "1") != "0"
         )
+        freeze_model = os.environ.get("FASTSURFER_HYPVINN_FREEZE", "1") != "0"
         traced_model = False
 
         start_index = 0
@@ -356,7 +357,9 @@ class Inference:
                         (images, scale_factors, weight_factors),
                         check_trace=False,
                     )
-                self.model.eval()
+                    self.model.eval()
+                    if freeze_model:
+                        self.model = torch.jit.freeze(self.model)
                 traced_model = True
                 logger.info(
                     f"Traced {self.cfg.DATA.PLANE} model in {time() - trace_start:0.4f} seconds"
