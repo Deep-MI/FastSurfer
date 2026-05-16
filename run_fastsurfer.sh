@@ -1101,6 +1101,48 @@ then
   asegdkt_withcc_vinn_statsfile="$(add_file_suffix "$asegdkt_vinn_statsfile" "withCC")"
   aseg_auto_statsfile="$(dirname "$aseg_vinn_statsfile")/aseg.auto.mgz"
   callosum_seg_manedit="$(add_file_suffix "$callosum_seg" "manedit")"
+  surf_async_started="false"
+  surf_pid=""
+
+  start_surface_recon_async()
+  {
+    if [[ "$run_surf_pipeline" != "true" ]] || [[ "$surf_async_started" == "true" ]]
+    then
+      return
+    fi
+    surf_async_started="true"
+    if [[ "$threads_surf" == "max" ]]; then threads_surf="$(nproc)" ; fi
+    if [[ "$threads_surf" == "0" ]]; then threads_surf=1 ; fi
+    echo "SURFACE RECONSTRUCTION PIPELINE" >> "$exec_time_log"
+    echo "===============================" >> "$exec_time_log"
+    cmd=("./recon-surf.sh" --sid "$subject" --sd "$sd" --t1 "$conformed_name" --mask_name "$mask_name"
+         --asegdkt_segfile "$asegdkt_segfile" --threads "$threads_surf" --py "$python" "${surf_flags[@]}")
+    {
+      echo "cd $reconsurfdir"
+      echo_quoted "${cmd[@]}"
+    } | tee -a "$seg_log"
+    (
+      pushd "$reconsurfdir" > /dev/null || exit 1
+      "${wrap[@]}" "${cmd[@]}"
+    ) &
+    surf_pid="$!"
+  }
+
+  wait_surface_recon_async()
+  {
+    if [[ "$surf_async_started" != "true" ]]
+    then
+      return
+    fi
+    wait "$surf_pid"
+    surf_exit="$?"
+    if [[ "$surf_exit" != 0 ]]
+    then
+      echo "ERROR: Surface reconstruction failed! See recon-surf log: $subject_dir/scripts/recon-surf.log" | \
+        tee -a "$seg_log"
+      exit "$surf_exit"
+    fi
+  }
 
   start_cc_inpaint_async()
   {
@@ -1457,6 +1499,10 @@ then
       fi
     fi
 
+    # recon-surf only depends on the completed aseg.auto.mgz and not on the
+    # segmentation stats or auxiliary HypVINN/CerebNet outputs below.
+    start_surface_recon_async
+
     {
       if [[ "$run_biasfield" == "true" ]]
       then
@@ -1572,26 +1618,31 @@ fi
 if [[ "$run_surf_pipeline" == "true" ]]
 then
 
-  echo "SURFACE RECONSTRUCTION PIPELINE" >> "$exec_time_log"
-  echo "===============================" >> "$exec_time_log"
-
-  if [[ "$threads_surf" == "max" ]]; then threads_surf="$(nproc)" ; fi
-  if [[ "$threads_surf" == "0" ]]; then threads_surf=1 ; fi
-  # ============= Running recon-surf (surfaces, thickness etc.) ===============
-  # use recon-surf to create surface models based on the FastSurferCNN segmentation.
-  pushd "$reconsurfdir" > /dev/null || exit 1
-  echo "cd $reconsurfdir" | tee -a "$seg_log"
-  cmd=("./recon-surf.sh" --sid "$subject" --sd "$sd" --t1 "$conformed_name" --mask_name "$mask_name"
-       --asegdkt_segfile "$asegdkt_segfile" --threads "$threads_surf" --py "$python" "${surf_flags[@]}")
-  echo_quoted "${cmd[@]}" | tee -a "$seg_log"
-  "${wrap[@]}" "${cmd[@]}" # no tee, this gets logged to recon-surf.log from inside recon-surf.sh
-  if [[ "${PIPESTATUS[0]}" != 0 ]]
+  if [[ "${surf_async_started:-false}" == "true" ]]
   then
-    echo "ERROR: Surface reconstruction failed! See recon-surf log: $subject_dir/scripts/recon-surf.log" | \
-      tee -a "$seg_log"
-    exit 1
+    wait_surface_recon_async
+  else
+    echo "SURFACE RECONSTRUCTION PIPELINE" >> "$exec_time_log"
+    echo "===============================" >> "$exec_time_log"
+
+    if [[ "$threads_surf" == "max" ]]; then threads_surf="$(nproc)" ; fi
+    if [[ "$threads_surf" == "0" ]]; then threads_surf=1 ; fi
+    # ============= Running recon-surf (surfaces, thickness etc.) ===============
+    # use recon-surf to create surface models based on the FastSurferCNN segmentation.
+    pushd "$reconsurfdir" > /dev/null || exit 1
+    echo "cd $reconsurfdir" | tee -a "$seg_log"
+    cmd=("./recon-surf.sh" --sid "$subject" --sd "$sd" --t1 "$conformed_name" --mask_name "$mask_name"
+         --asegdkt_segfile "$asegdkt_segfile" --threads "$threads_surf" --py "$python" "${surf_flags[@]}")
+    echo_quoted "${cmd[@]}" | tee -a "$seg_log"
+    "${wrap[@]}" "${cmd[@]}" # no tee, this gets logged to recon-surf.log from inside recon-surf.sh
+    if [[ "${PIPESTATUS[0]}" != 0 ]]
+    then
+      echo "ERROR: Surface reconstruction failed! See recon-surf log: $subject_dir/scripts/recon-surf.log" | \
+        tee -a "$seg_log"
+      exit 1
+    fi
+    popd > /dev/null || return
   fi
-  popd > /dev/null || return
 fi
 
 # ============= Running LIT Postprocessing ====================================
