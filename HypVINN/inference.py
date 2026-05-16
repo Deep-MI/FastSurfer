@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
+import warnings
 from time import time
 from typing import Optional
 
@@ -31,6 +33,22 @@ from HypVINN.models.networks import build_model
 from HypVINN.utils import ModalityMode
 
 logger = logging.get_logger(__name__)
+
+
+class _HypVINNTraceWrapper(torch.nn.Module):
+    """Trace adapter for the common no-output-scale inference path."""
+
+    def __init__(self, model: torch.nn.Module):
+        super().__init__()
+        self.model = model
+
+    def forward(
+            self,
+            images: torch.Tensor,
+            scale_factors: torch.Tensor,
+            weight_factors: torch.Tensor,
+    ) -> torch.Tensor:
+        return self.model(images, scale_factors, weight_factors, None)
 
 
 class Inference:
@@ -314,6 +332,13 @@ class Inference:
             The updated prediction probabilities.
         """
         self.model.eval()
+        trace_model = (
+            out_scale is None
+            and self.device.type == "cpu"
+            and self.cfg.TEST.BATCH_SIZE == 1
+            and os.environ.get("FASTSURFER_HYPVINN_TRACE", "1") != "0"
+        )
+        traced_model = False
 
         start_index = 0
         for _batch_idx, batch in tqdm(enumerate(val_loader), total=len(val_loader)):
@@ -322,7 +347,25 @@ class Inference:
             scale_factors = batch["scale_factor"].to(self.device)
             weight_factors = batch["weight_factor"].to(self.device, dtype=torch.float32)
 
-            pred = self.model(images, scale_factors, weight_factors, out_scale)
+            if trace_model and _batch_idx == 0:
+                trace_start = time()
+                with warnings.catch_warnings():
+                    warnings.filterwarnings("ignore", category=torch.jit.TracerWarning)
+                    self.model = torch.jit.trace(
+                        _HypVINNTraceWrapper(self.model),
+                        (images, scale_factors, weight_factors),
+                        check_trace=False,
+                    )
+                self.model.eval()
+                traced_model = True
+                logger.info(
+                    f"Traced {self.cfg.DATA.PLANE} model in {time() - trace_start:0.4f} seconds"
+                )
+
+            if traced_model:
+                pred = self.model(images, scale_factors, weight_factors)
+            else:
+                pred = self.model(images, scale_factors, weight_factors, out_scale)
 
             if self.cfg.DATA.PLANE == "axial":
                 pred = pred.permute((2, 3, 0, 1)).to(self.viewagg_device)
