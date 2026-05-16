@@ -1081,6 +1081,93 @@ then
   echo "SEGMENTATION PIPELINE" >> "$exec_time_log"
   echo "=====================" >> "$exec_time_log"
 
+  aux_seg_started="false"
+  cerebnet_pid=""
+  cerebnet_async_log=""
+  cerebnet_async_exec_log=""
+  hypvinn_pid=""
+  hypvinn_async_log=""
+  hypvinn_async_exec_log=""
+
+  start_aux_segmentations_async()
+  {
+    if [[ "$aux_seg_started" == "true" ]]
+    then
+      return
+    fi
+    aux_seg_started="true"
+
+    if [[ "$run_cereb_module" == "true" ]]
+    then
+      if [[ "$run_biasfield" == "true" ]]
+      then
+        cereb_flags+=(--norm_name "$norm_name" --cereb_statsfile "$cereb_statsfile")
+      else
+        {
+          echo "INFO: Running CerebNet without generating a statsfile, since biasfield"
+          echo "  correction deactivated '--no_biasfield'..."
+        } | tee -a "$seg_log"
+      fi
+
+      local -a cmd_cereb cmd_cereb_async
+      cmd_cereb=($python "$cerebnetdir/run_prediction.py" --t1 "$t1" --asegdkt_segfile "$asegdkt_segfile"
+          --seg_log "$seg_log" --conformed_name "$conformed_name" --cereb_segfile "$cereb_segfile"
+          --async_io --batch_size "$batch_size" --viewagg_device "$viewagg" --device "$device"
+          --threads "$threads_seg" "${cereb_flags[@]}")
+      # specify the subject dir $sd, if cereb_segfile explicitly starts with it
+      if [[ "$sd" == "${cereb_segfile:0:${#sd}}" ]] ; then cmd_cereb+=(--sd "$sd"); fi
+      if [[ "$native_image" != "false" ]] ; then cmd_cereb+=(--orientation native --image_size fov --vox_size none) ; fi
+
+      cerebnet_async_log="${seg_log%.log}.cerebnet.async.log"
+      cerebnet_async_exec_log="${exec_time_log%.log}.cerebnet.async.log"
+      : > "$cerebnet_async_log"
+      : > "$cerebnet_async_exec_log"
+      cmd_cereb_async=("${cmd_cereb[@]}")
+      for idx in "${!cmd_cereb_async[@]}"; do
+        if [[ "${cmd_cereb_async[$idx]}" == "$seg_log" ]]; then cmd_cereb_async[$idx]="$cerebnet_async_log"; fi
+      done
+      echo "INFO: Running CerebNet asynchronously..." | tee -a "$seg_log"
+      echo_quoted "${cmd_cereb_async[@]}" | tee -a "$seg_log"
+      echo "MODULE: CerebNet cerebellum segmentation" >> "$cerebnet_async_exec_log"
+      time_it "$cerebnet_async_exec_log" "${cmd_cereb_async[@]}" &
+      cerebnet_pid="$!"
+    fi
+
+    if [[ "$run_hypvinn_module" == "true" ]]
+    then
+      local -a cmd_hyp cmd_hyp_async
+      cmd_hyp=($python "$hypvinndir/run_prediction.py" --sd "${sd}" --sid "${subject}" --reg_mode "$hypvinn_regmode"
+          "${hypvinn_flags[@]}" --threads "$threads_seg" --async_io --batch_size "$batch_size" --seg_log "$seg_log"
+          --device "$device" --viewagg_device "$viewagg" --t1)
+      if [[ "$run_biasfield" == "true" ]]
+      then
+        cmd_hyp+=("$norm_name")
+        if [[ -n "$t2" ]] ; then cmd_hyp+=(--t2 "$norm_name_t2") ; fi
+      else
+        {
+          echo "WARNING: We strongly recommend to *not* exclude the biasfield (--no_biasfield)"
+          echo "  with the hypothal module!"
+        } | tee -a "$seg_log"
+        cmd_hyp+=("$t1")
+        if [[ -n "$t2" ]] ; then cmd_hyp+=(--t2 "$norm_name_t2") ; fi
+      fi
+
+      hypvinn_async_log="${seg_log%.log}.hypvinn.async.log"
+      hypvinn_async_exec_log="${exec_time_log%.log}.hypvinn.async.log"
+      : > "$hypvinn_async_log"
+      : > "$hypvinn_async_exec_log"
+      cmd_hyp_async=("${cmd_hyp[@]}")
+      for idx in "${!cmd_hyp_async[@]}"; do
+        if [[ "${cmd_hyp_async[$idx]}" == "$seg_log" ]]; then cmd_hyp_async[$idx]="$hypvinn_async_log"; fi
+      done
+      echo "INFO: Running HypVINN asynchronously..." | tee -a "$seg_log"
+      echo_quoted "${cmd_hyp_async[@]}" | tee -a "$seg_log"
+      echo "MODULE: HypVINN hypothalamus segmentation" >> "$hypvinn_async_exec_log"
+      time_it "$hypvinn_async_exec_log" "${cmd_hyp_async[@]}" &
+      hypvinn_pid="$!"
+    fi
+  }
+
   # "============= Running FastSurferCNN (Creating Segmentation aparc.DKTatlas.aseg.mgz) ==============="
   # use FastSurferCNN to create cortical parcellation + anatomical segmentation into 95 classes.
 
@@ -1170,6 +1257,13 @@ then
         echo "ERROR: Talairach registration failed!" | tee -a "$seg_log"
         exit 1
       fi
+    fi
+
+    # HypVINN and CerebNet only need the bias-field-corrected image and segmentation inputs.
+    # Start them before stats/CC work when T2 preprocessing is not pending.
+    if [[ -z "$t2" ]]
+    then
+      start_aux_segmentations_async
     fi
 
     if [[ "$run_asegdkt_module" == "true" ]]
@@ -1284,6 +1378,8 @@ then
     fi
   fi
 
+  start_aux_segmentations_async
+
   if [[ "$run_cc_module" == "true" ]]
   then
     # ============================= CC SEGMENTATION ============================================
@@ -1373,82 +1469,7 @@ then
     fi
   fi
 
-  cerebnet_pid=""
-  cerebnet_async_log=""
-  cerebnet_async_exec_log=""
-
-  if [[ "$run_cereb_module" == "true" ]]
-  then
-    if [[ "$run_biasfield" == "true" ]]
-    then
-      cereb_flags+=(--norm_name "$norm_name" --cereb_statsfile "$cereb_statsfile")
-    else
-      {
-        echo "INFO: Running CerebNet without generating a statsfile, since biasfield"
-        echo "  correction deactivated '--no_biasfield'..."
-      } | tee -a "$seg_log"
-    fi
-
-    cmd=($python "$cerebnetdir/run_prediction.py" --t1 "$t1" --asegdkt_segfile "$asegdkt_segfile" --seg_log "$seg_log"
-         --conformed_name "$conformed_name" --cereb_segfile "$cereb_segfile" --async_io --batch_size "$batch_size"
-         --viewagg_device "$viewagg" --device "$device" --threads "$threads_seg" "${cereb_flags[@]}")
-    # specify the subject dir $sd, if cereb_segfile explicitly starts with it
-    if [[ "$sd" == "${cereb_segfile:0:${#sd}}" ]] ; then cmd+=(--sd "$sd"); fi
-    if [[ "$native_image" != "false" ]] ; then cmd+=(--orientation native --image_size fov --vox_size none) ; fi
-    if [[ "$run_hypvinn_module" == "true" ]]
-    then
-      cerebnet_async_log="${seg_log%.log}.cerebnet.async.log"
-      cerebnet_async_exec_log="${exec_time_log%.log}.cerebnet.async.log"
-      : > "$cerebnet_async_log"
-      : > "$cerebnet_async_exec_log"
-      cmd_async=("${cmd[@]}")
-      for idx in "${!cmd_async[@]}"; do
-        if [[ "${cmd_async[$idx]}" == "$seg_log" ]]; then cmd_async[$idx]="$cerebnet_async_log"; fi
-      done
-      echo "INFO: Running CerebNet asynchronously with HypVINN..." | tee -a "$seg_log"
-      echo_quoted "${cmd_async[@]}" | tee -a "$seg_log"
-      echo "MODULE: CerebNet cerebellum segmentation" >> "$cerebnet_async_exec_log"
-      time_it "$cerebnet_async_exec_log" "${cmd_async[@]}" &
-      cerebnet_pid="$!"
-    else
-      echo "MODULE: CerebNet cerebellum segmentation" >> "$exec_time_log"
-      echo_quoted "${cmd[@]}" | tee -a "$seg_log"
-      "${wrap[@]}" "${cmd[@]}"  # no tee, directly logging to $seg_log
-      if [[ "${PIPESTATUS[0]}" != 0 ]]
-      then
-        echo "ERROR: Cerebellum Segmentation failed!" | tee -a "$seg_log"
-        exit 1
-      fi
-    fi
-  fi
-
-  if [[ "$run_hypvinn_module" == "true" ]]
-  then
-    echo "MODULE: HypVINN hypothalamus segmentation" >> "$exec_time_log"
-    # currently, the order of the T2 preprocessing only is registration to T1w
-    cmd=($python "$hypvinndir/run_prediction.py" --sd "${sd}" --sid "${subject}" --reg_mode "$hypvinn_regmode"
-         "${hypvinn_flags[@]}" --threads "$threads_seg" --async_io --batch_size "$batch_size" --seg_log "$seg_log"
-         --device "$device" --viewagg_device "$viewagg" --t1)
-    if [[ "$run_biasfield" == "true" ]]
-    then
-      cmd+=("$norm_name")
-      if [[ -n "$t2" ]] ; then cmd+=(--t2 "$norm_name_t2") ; fi
-    else
-      {
-        echo "WARNING: We strongly recommend to *not* exclude the biasfield (--no_biasfield)"
-        echo "  with the hypothal module!"
-      } | tee -a "$seg_log"
-      cmd+=("$t1")
-      if [[ -n "$t2" ]] ; then cmd+=(--t2 "$norm_name_t2") ; fi
-    fi
-    echo_quoted "${cmd[@]}" | tee -a "$seg_log"
-    "${wrap[@]}" "${cmd[@]}" # no tee, directly logging to $seg_log
-    if [[ "${PIPESTATUS[0]}" != 0 ]]
-    then
-      echo "ERROR: Hypothalamus Segmentation failed!" | tee -a "$seg_log"
-      exit 1
-    fi
-  fi
+  start_aux_segmentations_async
 
   if [[ -n "$cerebnet_pid" ]]
   then
@@ -1467,6 +1488,27 @@ then
     if [[ "$cerebnet_exit" != 0 ]]
     then
       echo "ERROR: Cerebellum Segmentation failed!" | tee -a "$seg_log"
+      exit 1
+    fi
+  fi
+
+  if [[ -n "$hypvinn_pid" ]]
+  then
+    wait "$hypvinn_pid"
+    hypvinn_exit="$?"
+    if [[ -f "$hypvinn_async_log" ]]
+    then
+      cat "$hypvinn_async_log" >> "$seg_log"
+      rm -f "$hypvinn_async_log"
+    fi
+    if [[ -f "$hypvinn_async_exec_log" ]]
+    then
+      cat "$hypvinn_async_exec_log" >> "$exec_time_log"
+      rm -f "$hypvinn_async_exec_log"
+    fi
+    if [[ "$hypvinn_exit" != 0 ]]
+    then
+      echo "ERROR: Hypothalamus Segmentation failed!" | tee -a "$seg_log"
       exit 1
     fi
   fi
