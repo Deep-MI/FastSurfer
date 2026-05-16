@@ -1141,7 +1141,7 @@ then
     {
       # this will always run, since norm_name is set to subject_dir/mri/orig_nu.mgz, if it is not passed/empty
       cmd=($python "${reconsurfdir}/N4_bias_correct.py" "--in" "$conformed_name" --rescale "$norm_name"
-           --aseg "$aseg_segfile" --threads "$threads_seg")
+           --aseg "$aseg_segfile" --threads "$threads_seg" --shrink 5)
       echo "INFO: Running N4 bias-field correction..."
       echo_quoted "${cmd[@]}"
       "${wrap[@]}" "${cmd[@]}" 2>&1

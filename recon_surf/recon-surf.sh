@@ -667,7 +667,7 @@ if [[ ! -f "$mdir/orig_nu.mgz" ]] ; then
   # stream can be changed to avoid it.
   pushd "$mdir" > /dev/null || ( echo "Cannot change to $mdir" ; exit 1 )
     #cmd="mri_nu_correct.mni --no-rescale --i $mdir/orig.mgz --o $mdir/orig_nu.mgz --n 1 --proto-iters 1000 --distance 50 --mask $mdir/mask.mgz"
-    cmd="$python ${binpath}/N4_bias_correct.py --in $mdir/orig.mgz --rescale $mdir/orig_nu.mgz --aseg $mdir/aparc.DKTatlas+aseg.orig.mgz --threads $threads"
+    cmd="$python ${binpath}/N4_bias_correct.py --in $mdir/orig.mgz --rescale $mdir/orig_nu.mgz --aseg $mdir/aparc.DKTatlas+aseg.orig.mgz --threads $threads --shrink 5"
     RunIt "$cmd" "$LF"
   popd > /dev/null || (echo "Could not popd" ; exit 1)
 fi
