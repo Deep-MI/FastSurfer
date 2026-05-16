@@ -1088,6 +1088,51 @@ then
   hypvinn_pid=""
   hypvinn_async_log=""
   hypvinn_async_exec_log=""
+  cc_started="false"
+  cc_pid=""
+  cc_async_log=""
+  cc_async_exec_log=""
+  asegdkt_withcc_segfile="$(add_file_suffix "$asegdkt_segfile" "withCC")"
+  asegdkt_withcc_vinn_statsfile="$(add_file_suffix "$asegdkt_vinn_statsfile" "withCC")"
+  aseg_auto_statsfile="$(dirname "$aseg_vinn_statsfile")/aseg.auto.mgz"
+  callosum_seg_manedit="$(add_file_suffix "$callosum_seg" "manedit")"
+
+  start_cc_inpaint_async()
+  {
+    if [[ "$run_cc_module" != "true" ]] || [[ "$cc_started" == "true" ]]
+    then
+      return
+    fi
+    cc_started="true"
+    cc_async_log="${seg_log%.log}.cc.async.log"
+    cc_async_exec_log="${exec_time_log%.log}.cc.async.log"
+    : > "$cc_async_log"
+    : > "$cc_async_exec_log"
+    echo "INFO: Running FastSurfer-CC asynchronously..." | tee -a "$seg_log"
+    (
+      echo "MODULE: FastSurfer-CC Corpus Callosum processing" >> "$cc_async_exec_log"
+      local_callosum_seg="$callosum_seg"
+      cmd=($python "$CorpusCallosumDir/fastsurfer_cc.py" --sd "$sd" --sid "$subject"
+           "--threads" "$threads_seg" "--conformed_name" "$conformed_name" "--aseg_name" "$aseg_segfile"
+           "--segmentation_in_orig" "$callosum_seg" "${cc_flags[@]}")
+      echo_quoted "${cmd[@]}"
+      time_it "$cc_async_exec_log" "${cmd[@]}"
+      exit_code="$?"
+      if [[ "$exit_code" != 0 ]] ; then
+        echo "ERROR: FastSurferCC corpus callosum analysis failed!"
+        exit "$exit_code"
+      fi
+      if [[ "$edits" == "true" ]] && [[ -f "$callosum_seg_manedit" ]] ; then local_callosum_seg="$callosum_seg_manedit" ; fi
+
+      cmd=($python "$CorpusCallosumDir/paint_cc_into_pred.py" -in_cc "$local_callosum_seg" -in_pred "$asegdkt_segfile"
+           "-out" "$asegdkt_withcc_segfile" "-aseg" "$aseg_auto_segfile")
+      if [[ "$native_image" != "false" ]] ; then cmd+=(--keepgeom) ; fi
+      echo_quoted "${cmd[@]}"
+      time_it "$cc_async_exec_log" "${cmd[@]}"
+      if [[ "$?" != 0 ]] ; then echo "ERROR: asegdkt cc inpainting failed!" ; exit 1 ; fi
+    ) > "$cc_async_log" 2>&1 &
+    cc_pid="$!"
+  }
 
   start_aux_segmentations_async()
   {
@@ -1222,13 +1267,15 @@ then
     fi
   fi
 
+  start_cc_inpaint_async
+
   if [[ "$run_biasfield" == "true" ]]
   then
     echo "MODULE: Biasfield correction" >> "$exec_time_log"
     {
       # this will always run, since norm_name is set to subject_dir/mri/orig_nu.mgz, if it is not passed/empty
       cmd=($python "${reconsurfdir}/N4_bias_correct.py" "--in" "$conformed_name" --rescale "$norm_name"
-           --aseg "$aseg_segfile" --threads "$threads_seg" --shrink 5)
+           --aseg "$aseg_segfile" --threads "$threads_seg" --shrink 6)
       echo "INFO: Running N4 bias-field correction..."
       echo_quoted "${cmd[@]}"
       "${wrap[@]}" "${cmd[@]}" 2>&1
@@ -1384,34 +1431,28 @@ then
   then
     # ============================= CC SEGMENTATION ============================================
 
-    echo "MODULE: FastSurfer-CC Corpus Callosum processing" >> "$exec_time_log"
-    # generate file names of for the analysis
-    asegdkt_withcc_segfile="$(add_file_suffix "$asegdkt_segfile" "withCC")"
-    asegdkt_withcc_vinn_statsfile="$(add_file_suffix "$asegdkt_vinn_statsfile" "withCC")"
-    aseg_auto_statsfile="$(dirname "$aseg_vinn_statsfile")/aseg.auto.mgz"
-    # note: callosum manedit currently only affects inpainting and not internal FastSurferCC processing (surfaces etc)
-    callosum_seg_manedit="$(add_file_suffix "$callosum_seg" "manedit")"
-    # generate callosum segmentation, mesh, shape and downstream measure files
-    cmd=($python "$CorpusCallosumDir/fastsurfer_cc.py" --sd "$sd" --sid "$subject"
-         "--threads" "$threads_seg" "--conformed_name" "$conformed_name" "--aseg_name" "$aseg_segfile"
-         "--segmentation_in_orig" "$callosum_seg" "${cc_flags[@]}")
-    echo_quoted "${cmd[@]}" | tee -a "$seg_log"
-    "${wrap[@]}" "${cmd[@]}" 2>&1 | tee -a "$seg_log"
-    exit_code=${PIPESTATUS[0]}
-    if [[ "$exit_code" != 0 ]] ; then
-      echo "ERROR: FastSurferCC corpus callosum analysis failed!" | tee -a "$seg_log"
-      exit "$exit_code"
+    if [[ -n "$cc_pid" ]]
+    then
+      wait "$cc_pid"
+      cc_exit="$?"
+      if [[ -f "$cc_async_log" ]]
+      then
+        cat "$cc_async_log" >> "$seg_log"
+        rm -f "$cc_async_log"
+      fi
+      if [[ -f "$cc_async_exec_log" ]]
+      then
+        cat "$cc_async_exec_log" >> "$exec_time_log"
+        rm -f "$cc_async_exec_log"
+      fi
+      if [[ "$cc_exit" != 0 ]]
+      then
+        echo "ERROR: FastSurferCC corpus callosum analysis failed!" | tee -a "$seg_log"
+        exit "$cc_exit"
+      fi
     fi
-    if [[ "$edits" == "true" ]] && [[ -f "$callosum_seg_manedit" ]] ; then callosum_seg="$callosum_seg_manedit" ; fi
-    {
-      # add CC into aparc.DKTatlas+aseg.deep.mgz and aseg.auto.mgz as mri_cc did before.
-      cmd=($python "$CorpusCallosumDir/paint_cc_into_pred.py" -in_cc "$callosum_seg" -in_pred "$asegdkt_segfile"
-           "-out" "$asegdkt_withcc_segfile" "-aseg" "$aseg_auto_segfile")
-      if [[ "$native_image" != "false" ]] ; then cmd+=(--keepgeom) ; fi
-      echo_quoted "${cmd[@]}"
-      "${wrap[@]}" "${cmd[@]}"
-      if [[ "${PIPESTATUS[0]}" != 0 ]] ; then echo "ERROR: asegdkt cc inpainting failed!" ; exit 1 ; fi
 
+    {
       if [[ "$run_biasfield" == "true" ]]
       then
         cmd=($python "${fastsurfercnndir}/segstats.py" --segfile "$asegdkt_withcc_segfile" --normfile "$norm_name"
