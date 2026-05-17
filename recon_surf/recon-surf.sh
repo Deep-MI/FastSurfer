@@ -944,19 +944,25 @@ for hemi in lh rh ; do
     echo "echo \"\""
   } | tee -a "$CMDF"
 
-  # create cortex label (1min)
-  # create nicer inflated surface from topo fixed (not needed, just later for visualization)
-  # identical for long processing. Run the underlying commands directly to avoid
-  # repeated recon-all wrapper/update-check overhead.
+  # Create the cortex labels and the visualization/surfreg inflated surface.
+  # Only the cortex label is needed before sampling the DKT annotation.  The
+  # cortex+hipamyg label is needed later for pial placement, and the inflated
+  # products are needed later for curvstats/sphere, so overlap those independent
+  # commands with sample_parc and white placement.
   echo "pushd $mdir > /dev/null || exit 1" >> "$CMDF"
   cmd="mri_label2label --label-cortex ../surf/$hemi.white.preaparc aseg.presurf.mgz 0 ../label/$hemi.cortex.label"
   RunIt "$cmd" "$LF" "$CMDF"
   echo "mkdir -p $SUBJECTS_DIR/$subject/touch" >> "$CMDF"
   echo "echo \"mri_label2label --label-cortex ../surf/${hemi}.white.preaparc aseg.presurf.mgz 0 ../label/${hemi}.cortex.label\" > $SUBJECTS_DIR/$subject/touch/${hemi}.cortex.touch" >> "$CMDF"
+  echo "popd > /dev/null || exit 1" >> "$CMDF"
+  echo "(" >> "$CMDF"
+  echo "pushd $mdir > /dev/null || exit 1" >> "$CMDF"
   cmd="mri_label2label --label-cortex ../surf/$hemi.white.preaparc aseg.presurf.mgz 1 ../label/$hemi.cortex+hipamyg.label"
   RunIt "$cmd" "$LF" "$CMDF"
   echo "echo \"mri_label2label --label-cortex ../surf/${hemi}.white.preaparc aseg.presurf.mgz 1 ../label/${hemi}.cortex+hipamyg.label\" > $SUBJECTS_DIR/$subject/touch/${hemi}.cortex+hipamyg.touch" >> "$CMDF"
   echo "popd > /dev/null || exit 1" >> "$CMDF"
+  echo ") & cortex_hipamyg_pid=\$!" >> "$CMDF"
+  echo "(" >> "$CMDF"
   cmd="mris_smooth -n 3 -nw -seed 1234 $sdir/$hemi.white.preaparc $sdir/$hemi.smoothwm"
   RunIt "$cmd" "$LF" "$CMDF"
   echo "echo \"mris_smooth -n 3 -nw -seed 1234 ../surf/${hemi}.white.preaparc ../surf/${hemi}.smoothwm\" > $SUBJECTS_DIR/$subject/touch/${hemi}.smoothwm2.touch" >> "$CMDF"
@@ -979,6 +985,7 @@ for hemi in lh rh ; do
   RunIt "$cmd" "$LF" "$CMDF"
   echo "echo \"mris_curvature -seed 1234 -thresh .999 -n -a 5 -w ${hemi}.inflated\" > $SUBJECTS_DIR/$subject/touch/${hemi}.inflate.H.K.touch" >> "$CMDF"
   echo "popd > /dev/null || exit 1" >> "$CMDF"
+  echo ") & inflate_curv_pid=\$!" >> "$CMDF"
 
 
 # ============================= MAP-DKT ==========================================================
@@ -1009,6 +1016,11 @@ for hemi in lh rh ; do
   # placement, so it is deferred below to overlap with ribbon construction.
   if [[ "$fsaparc" == "true" ]]
   then
+    echo "if [[ -n \"\${inflate_curv_pid:-}\" ]] ; then" >> "$CMDF"
+    echo "  wait \"\$inflate_curv_pid\"" >> "$CMDF"
+    echo "  if [[ \$? != 0 ]] ; then exit 1 ; fi" >> "$CMDF"
+    echo "  unset inflate_curv_pid" >> "$CMDF"
+    echo "fi" >> "$CMDF"
     {
       echo "echo \" \""
       echo "echo \"============ Creating surfaces $hemi - FS sphere, surfreg ===============\""
@@ -1158,6 +1170,8 @@ for hemi in lh rh ; do
 
   # CREAT PIAL SURFACE
   # 4 min compute pial :
+  echo "wait \"\$cortex_hipamyg_pid\"" >> "$CMDF"
+  echo "if [[ \$? != 0 ]] ; then exit 1 ; fi" >> "$CMDF"
   cmd="mris_place_surface --adgws-in ../surf/autodet.gw.stats.${hemi}.dat --seg aseg.presurf.mgz \
     --threads $threads_hemi --wm wm.mgz --invol brain.finalsurfs.mgz --$hemi --o ../surf/${hemi}.pial.T1 \
     --pial --nsmooth 0 --rip-label ../label/${hemi}.cortex+hipamyg.label \
@@ -1205,6 +1219,11 @@ for hemi in lh rh ; do
   RunIt "$cmd" "$LF" "$CMDF"
   cmd="mris_convert --volume $subject $hemi $sdir/$hemi.volume"
   RunIt "$cmd" "$LF" "$CMDF"
+  echo "if [[ -n \"\${inflate_curv_pid:-}\" ]] ; then" >> "$CMDF"
+  echo "  wait \"\$inflate_curv_pid\"" >> "$CMDF"
+  echo "  if [[ \$? != 0 ]] ; then exit 1 ; fi" >> "$CMDF"
+  echo "  unset inflate_curv_pid" >> "$CMDF"
+  echo "fi" >> "$CMDF"
   cmd="mris_curvature_stats -m --writeCurvatureFiles -G -o $statsdir/$hemi.curv.stats -F smoothwm $subject $hemi curv sulc"
   RunIt "$cmd" "$LF" "$CMDF"
   echo "mkdir -p $SUBJECTS_DIR/$subject/touch" >> "$CMDF"
@@ -1497,23 +1516,22 @@ then
 
 # ============================= MAPPED SURF-STATS =========================================
 
-  MAPPED_STATS_CMDF="$SUBJECTS_DIR/$subject/scripts/mapped_stats.cmdf"
-  rm -f "$MAPPED_STATS_CMDF"
-  {
-    echo "#!/bin/bash"
-    echo "echo \"\""
-    echo "echo \"===================== Creating surfaces - mapped stats =========================\""
-    echo "echo \"\""
-  } > "$MAPPED_STATS_CMDF"
-
   # 2x18sec create stats from mapped aparc.  This only depends on completed surfaces and
   # ribbon outputs, so it can overlap with the later volume-labeling/statistics chain.
   for hemi in lh rh
   do
+    MAPPED_STATS_CMDF="$SUBJECTS_DIR/$subject/scripts/mapped_stats.$hemi.cmdf"
+    rm -f "$MAPPED_STATS_CMDF"
+    {
+      echo "#!/bin/bash"
+      echo "echo \"\""
+      echo "echo \"===================== Creating surfaces $hemi - mapped stats =========================\""
+      echo "echo \"\""
+    } > "$MAPPED_STATS_CMDF"
     cmd="mris_anatomical_stats -th3 -mgz -cortex $ldir/$hemi.cortex.label -f $statsdir/$hemi.aparc.DKTatlas.mapped.stats -b -a $ldir/$hemi.aparc.DKTatlas.mapped.annot -c $ldir/aparc.annot.mapped.ctab $subject $hemi white"
     RunIt "$cmd" "$LF" "$MAPPED_STATS_CMDF"
+    start_async_cmdf "$MAPPED_STATS_CMDF"
   done
-  start_async_cmdf "$MAPPED_STATS_CMDF"
 
   if [[ "$fssurfreg" == "true" && "$ASYNC_BALABELS_STARTED" != "true" ]]
   then
@@ -1548,19 +1566,19 @@ then
       softlink_or_copy "rh.aparc.DKTatlas.mapped.annot" "rh.aparc.annot" "$LF"
     popd > /dev/null || (echo "Could not popd" ; exit 1)
 
-    PCTSURFCON_CMDF="$SUBJECTS_DIR/$subject/scripts/pctsurfcon.cmdf"
-    rm -f "$PCTSURFCON_CMDF"
-    {
-      echo "#!/bin/bash"
-      echo "echo \"\""
-      echo "echo \"===================== Creating surfaces - pctsurfcon =====================\""
-      echo "echo \"\""
-    } > "$PCTSURFCON_CMDF"
     for hemi in lh rh ; do
+      PCTSURFCON_CMDF="$SUBJECTS_DIR/$subject/scripts/pctsurfcon.$hemi.cmdf"
+      rm -f "$PCTSURFCON_CMDF"
+      {
+        echo "#!/bin/bash"
+        echo "echo \"\""
+        echo "echo \"===================== Creating surfaces $hemi - pctsurfcon =====================\""
+        echo "echo \"\""
+      } > "$PCTSURFCON_CMDF"
       cmd="pctsurfcon --s $subject --$hemi-only"
       RunIt "$cmd" "$LF" "$PCTSURFCON_CMDF"
+      start_async_cmdf "$PCTSURFCON_CMDF"
     done
-    start_async_cmdf "$PCTSURFCON_CMDF"
 
     # -hyporelabel creates aseg.presurf.hypos.mgz from aseg.presurf.mgz.
     # -apas2aseg creates aseg.mgz by editing aseg.presurf.hypos.mgz with surfaces.
