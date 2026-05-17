@@ -675,6 +675,9 @@ fi
 
 # ============================= TALAIRACH ==============================================
 
+TALAIRACH_PID=""
+TALAIRACH_ASYNC="false"
+norm_source="$mdir/nu.mgz"
 if [[ ! -f "$mdir/transforms/talairach.lta" ]] || [[ ! -f "$mdir/transforms/talairach_with_skull.lta" ]] ; then
   # if talairach registration is missing, compute it here
   # this also creates talairach.auto.xfm and talairach.xfm and talairach.xfm.lta
@@ -691,7 +694,13 @@ if [[ ! -f "$mdir/transforms/talairach.lta" ]] || [[ ! -f "$mdir/transforms/tala
     echo " "
   } | tee -a "$LF"
   echo_quoted "${cmda[@]}"
-  "${cmda[@]}"
+  "${cmda[@]}" &
+  TALAIRACH_PID=$!
+  TALAIRACH_ASYNC="true"
+  # mri_add_xform_to_header only changes transform metadata for nu.mgz. The
+  # following normalization/masking steps are voxel-identical when run from
+  # orig_nu.mgz, so overlap them with Talairach registration.
+  norm_source="$mdir/orig_nu.mgz"
 fi
 
 
@@ -704,7 +713,7 @@ fi
 
 # the difference between nu and orig_nu is the fact that nu has the talairach-registration header
 # create norm by masking nu (supports manedit-ed mask)
-cmda=(mri_mask "$mdir/nu.mgz" "$mask" "$mdir/norm.mgz")
+cmda=(mri_mask "$norm_source" "$mask" "$mdir/norm.mgz")
 run_it "$LF" "${cmda[@]}"
 if [[ "$get_t1" == "true" ]]
 then
@@ -755,6 +764,17 @@ else # cross and base
   # filled is needed to generate initial WM surfaces
   cmd="recon-all -s $subject -asegmerge -normalization2 -maskbfs -segmentation -fill -umask $(umask) $hiresflag $fsthreads"
   RunIt "$cmd" "$LF"
+fi
+
+if [[ "$TALAIRACH_ASYNC" == "true" ]]
+then
+  echo "Waiting for async Talairach registration to complete." | tee -a "$LF"
+  wait "$TALAIRACH_PID"
+  if [[ $? != 0 ]]
+  then
+    echo "ERROR: Async Talairach registration failed!" | tee -a "$LF"
+    exit 1
+  fi
 fi
 
 
@@ -1598,12 +1618,6 @@ then
       echo "mri_surf2volseg --o aseg.mgz --i aseg.presurf.hypos.mgz --fix-presurf-with-ribbon ../mri/ribbon.mgz --threads $threads --lh-cortex-mask ../label/lh.cortex.label --lh-white ../surf/lh.white --lh-pial ../surf/lh.pial --rh-cortex-mask ../label/rh.cortex.label --rh-white ../surf/rh.white --rh-pial ../surf/rh.pial" > "$SUBJECTS_DIR/$subject/touch/apas2aseg.touch"
     popd > /dev/null || (echo "Could not popd" ; exit 1)
 
-    wait_async_cmdfs
-
-    pushd "$ldir" > /dev/null || (echo "Could not cd to $ldir" ; exit 1)
-      cmd="rm *h.aparc.annot"
-      RunIt "$cmd" "$LF"
-    popd > /dev/null || (echo "Could not popd" ; exit 1)
   fi
 
   ASYNC_ASEG_STATS="false"
@@ -1691,6 +1705,13 @@ then
   cmd="mri_surf2volseg --o $mdir/aparc.DKTatlas+aseg.mapped.mgz --label-cortex --i $mdir/aseg.mgz --threads $surf2volseg_threads --hashres 4 --lh-annot $ldir/lh.aparc.DKTatlas.mapped.annot 1000 --lh-cortex-mask $ldir/lh.cortex.label --lh-white $sdir/lh.white --lh-pial $sdir/lh.pial --rh-annot $ldir/rh.aparc.DKTatlas.mapped.annot 2000 --rh-cortex-mask $ldir/rh.cortex.label --rh-white $sdir/rh.white --rh-pial $sdir/rh.pial"
   RunIt "$cmd" "$LF"
   wait_async_cmdfs
+  if [[ "$fsaparc" == "false" ]]
+  then
+    pushd "$ldir" > /dev/null || (echo "Could not cd to $ldir" ; exit 1)
+      cmd="rm *h.aparc.annot"
+      RunIt "$cmd" "$LF"
+    popd > /dev/null || (echo "Could not popd" ; exit 1)
+  fi
   cmda=($python "${binpath}merge_wmparc_aparc.py"
         --aseg "$mdir/aseg.mgz"
         --aparc "$mdir/aparc.DKTatlas+aseg.mapped.mgz"
