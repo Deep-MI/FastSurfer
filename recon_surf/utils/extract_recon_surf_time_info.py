@@ -142,17 +142,18 @@ if __name__ == "__main__":
             ## Parse out cmd name, start time, and duration:
             entry_dict = {}
 
-            cmd_name = line_parts[2]
+            timestamp_index = line_parts.index(timestamp_feature)
+            cmd_name = line_parts[timestamp_index + 2]
             if cmd_name in filtered_cmds:
                 continue
-            date_time_str = line_parts[1]
+            date_time_str = line_parts[timestamp_index + 1]
             start_time = date_time_str[11:]
 
             start_date_time = datetime.strptime(
                 date_time_str, "%Y:%m:%d:%H:%M:%S"
             )
-            assert line_parts[5] == "e"
-            cmd_duration = float(line_parts[6])
+            assert line_parts[timestamp_index + 5] == "e"
+            cmd_duration = float(line_parts[timestamp_index + 6])
 
             end_date_time = start_date_time + timedelta(0, float(cmd_duration))
             end_date_time_str = end_date_time.strftime("%Y:%m:%d:%H:%M:%S")
