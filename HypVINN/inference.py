@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os
-import warnings
 from time import time
 from typing import Optional
 
@@ -27,6 +25,7 @@ from tqdm import tqdm
 import FastSurferCNN.utils.logging as logging
 from FastSurferCNN.data_loader.augmentation import ToTensorTest
 from FastSurferCNN.utils.common import find_device
+from FastSurferCNN.utils.torchscript import env_flag_enabled, should_trace_cpu_inference, trace_for_inference
 from HypVINN.data_loader.data_utils import hypo_map_prediction_sagittal2full
 from HypVINN.data_loader.dataset import HypVINNDataset
 from HypVINN.models.networks import build_model
@@ -332,13 +331,13 @@ class Inference:
             The updated prediction probabilities.
         """
         self.model.eval()
-        trace_model = (
-            out_scale is None
-            and self.device.type == "cpu"
-            and self.cfg.TEST.BATCH_SIZE == 1
-            and os.environ.get("FASTSURFER_HYPVINN_TRACE", "1") != "0"
+        trace_model = should_trace_cpu_inference(
+            out_scale=out_scale,
+            device=self.device,
+            batch_size=self.cfg.TEST.BATCH_SIZE,
+            env_var="FASTSURFER_HYPVINN_TRACE",
         )
-        freeze_model = os.environ.get("FASTSURFER_HYPVINN_FREEZE", "1") != "0"
+        freeze_model = env_flag_enabled("FASTSURFER_HYPVINN_FREEZE")
         traced_model = False
 
         start_index = 0
@@ -349,21 +348,15 @@ class Inference:
             weight_factors = batch["weight_factor"].to(self.device, dtype=torch.float32)
 
             if trace_model and _batch_idx == 0:
-                trace_start = time()
-                with warnings.catch_warnings():
-                    warnings.filterwarnings("ignore", category=torch.jit.TracerWarning)
-                    self.model = torch.jit.trace(
-                        _HypVINNTraceWrapper(self.model),
-                        (images, scale_factors, weight_factors),
-                        check_trace=False,
-                    )
-                    self.model.eval()
-                    if freeze_model:
-                        self.model = torch.jit.freeze(self.model)
-                traced_model = True
-                logger.info(
-                    f"Traced {self.cfg.DATA.PLANE} model in {time() - trace_start:0.4f} seconds"
+                self.model = trace_for_inference(
+                    model=self.model,
+                    wrapper_factory=_HypVINNTraceWrapper,
+                    example_inputs=(images, scale_factors, weight_factors),
+                    freeze=freeze_model,
+                    logger=logger,
+                    label=self.cfg.DATA.PLANE,
                 )
+                traced_model = True
 
             if traced_model:
                 pred = self.model(images, scale_factors, weight_factors)

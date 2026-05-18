@@ -13,7 +13,6 @@
 # limitations under the License.
 
 import os
-import warnings
 
 # IMPORTS
 import time
@@ -32,6 +31,7 @@ from FastSurferCNN.data_loader.data_utils import map_prediction_sagittal2full
 from FastSurferCNN.data_loader.dataset import MultiScaleOrigDataThickSlices
 from FastSurferCNN.models.networks import build_model
 from FastSurferCNN.utils import logging
+from FastSurferCNN.utils.torchscript import env_flag_enabled, should_trace_cpu_inference, trace_for_inference
 
 logger = logging.getLogger(__name__)
 
@@ -336,13 +336,13 @@ class Inference:
             Prediction probability tensor.
         """
         self.model.eval()
-        trace_model = (
-            out_scale is None
-            and self.device.type == "cpu"
-            and self.cfg.TEST.BATCH_SIZE == 1
-            and os.environ.get("FASTSURFER_VINN_TRACE", "1") != "0"
+        trace_model = should_trace_cpu_inference(
+            out_scale=out_scale,
+            device=self.device,
+            batch_size=self.cfg.TEST.BATCH_SIZE,
+            env_var="FASTSURFER_VINN_TRACE",
         )
-        freeze_model = os.environ.get("FASTSURFER_VINN_FREEZE", "1") != "0"
+        freeze_model = env_flag_enabled("FASTSURFER_VINN_FREEZE")
         traced_model = False
         # we should check here, whether the DataLoader is a Random or a SequentialSampler, but we cannot easily.
         if not isinstance(val_loader.sampler, torch.utils.data.SequentialSampler):
@@ -372,21 +372,15 @@ class Inference:
                     images, scale_factors = batch["image"].to(self.device), batch["scale_factor"].to(self.device)
 
                     if trace_model and batch_idx == 0:
-                        trace_start = time.time()
-                        with warnings.catch_warnings():
-                            warnings.filterwarnings("ignore", category=torch.jit.TracerWarning)
-                            self.model = torch.jit.trace(
-                                _FastSurferVINNTraceWrapper(self.model),
-                                (images, scale_factors),
-                                check_trace=False,
-                            )
-                            self.model.eval()
-                            if freeze_model:
-                                self.model = torch.jit.freeze(self.model)
-                        traced_model = True
-                        logger.info(
-                            f"Traced {plane} model in {time.time() - trace_start:0.4f} seconds"
+                        self.model = trace_for_inference(
+                            model=self.model,
+                            wrapper_factory=_FastSurferVINNTraceWrapper,
+                            example_inputs=(images, scale_factors),
+                            freeze=freeze_model,
+                            logger=logger,
+                            label=plane,
                         )
+                        traced_model = True
 
                     # predict the current batch, outputs logits
                     if traced_model:
