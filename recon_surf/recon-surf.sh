@@ -1280,6 +1280,7 @@ export ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS=$threads
 if [[ "$threads" -gt 1 ]] ; then fsthreads="-threads $threads -itkthreads $threads" ; else fsthreads="" ; fi
 
 ASYNC_RIBBON_STARTED="false"
+ASYNC_HYPORELABEL_STARTED="false"
 if [[ "$ParallelHemi" == "true" ]] ; then
   if [[ "$base" != "true" ]]
   then
@@ -1317,6 +1318,29 @@ if [[ "$ParallelHemi" == "true" ]] ; then
     ASYNC_RIBBON_STARTED="true"
   fi
 
+  if [[ "$base" != "true" && "$fsaparc" == "false" ]]
+  then
+    HYPORELABEL_CMDF="$SUBJECTS_DIR/$subject/scripts/hyporelabel.cmdf"
+    rm -f "$HYPORELABEL_CMDF"
+    {
+      echo "#!/bin/bash"
+      echo "echo \"\""
+      echo "echo \"===================== Creating surfaces - hyporelabel ==========================\""
+      echo "echo \"\""
+      echo "while [[ ! -f $SUBJECTS_DIR/$subject/touch/lh.pial.ready || ! -f $SUBJECTS_DIR/$subject/touch/rh.pial.ready ]] ; do sleep 1 ; done"
+      echo "pushd $mdir > /dev/null || exit 1"
+    } > "$HYPORELABEL_CMDF"
+    cmd="mri_relabel_hypointensities aseg.presurf.mgz ../surf aseg.presurf.hypos.mgz"
+    RunIt "$cmd" "$LF" "$HYPORELABEL_CMDF"
+    {
+      echo "mkdir -p $SUBJECTS_DIR/$subject/touch"
+      echo "echo \"mri_relabel_hypointensities aseg.presurf.mgz ../surf aseg.presurf.hypos.mgz\" > $SUBJECTS_DIR/$subject/touch/relabelhypos.touch"
+      echo "popd > /dev/null || exit 1"
+    } >> "$HYPORELABEL_CMDF"
+    start_async_cmdf "$HYPORELABEL_CMDF"
+    ASYNC_HYPORELABEL_STARTED="true"
+  fi
+
   {
     echo ""
     echo " RUNNING HEMIs in PARALLEL !!! "
@@ -1345,8 +1369,7 @@ then
   ASYNC_BALABELS_STARTED="true"
 fi
 
-ASYNC_HYPORELABEL_STARTED="false"
-if [[ "$base" != "true" && "$fsaparc" == "false" ]]
+if [[ "$ASYNC_HYPORELABEL_STARTED" != "true" && "$base" != "true" && "$fsaparc" == "false" ]]
 then
   HYPORELABEL_CMDF="$SUBJECTS_DIR/$subject/scripts/hyporelabel.cmdf"
   rm -f "$HYPORELABEL_CMDF"
