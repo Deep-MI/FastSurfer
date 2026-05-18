@@ -883,7 +883,7 @@ for hemi in lh rh ; do
     else
       # instead of mris_sphere, directly project to sphere with spectral approach equivalent to -qsphere (23sec)
       cmda=("${binpath}spherically_project_wrapper.py" --hemi "$hemi" --sd "$SUBJECTS_DIR" --subject "$subject")
-      run_it_cmdf "$LF" "$CMDF" $python "${cmda[@]}" --threads "$threads_hemi"
+      run_it_cmdf "$LF" "$CMDF" $python "${cmda[@]}" --threads "$threads"
     fi
 
   fi # not long
@@ -1308,9 +1308,9 @@ if [[ "$ParallelHemi" == "true" ]] ; then
         echo "while [[ ! -f $SUBJECTS_DIR/$subject/touch/${hemi}.pial.ready ]] ; do sleep 1 ; done"
       } > "$RIBBON_HEMI_CMDF"
 
-      cmd="mris_volmask --aseg_name aseg.presurf --label_left_white 2 --label_left_ribbon 3 \
-        --label_right_white 41 --label_right_ribbon 42 --save_ribbon --cap_distance 2 \
-        --out_root $ribbon_out_root $ribbon_only_flag $subject"
+      cmd="$python ${binpath}cropped_mris_volmask.py --sd $SUBJECTS_DIR --sid $subject --hemi $hemi \
+        --aseg-name aseg.presurf --out-root $ribbon_out_root --cap-distance 2 \
+        --label-left-white 2 --label-left-ribbon 3 --label-right-white 41 --label-right-ribbon 42"
       RunIt "$cmd" "$LF" "$RIBBON_HEMI_CMDF"
       start_async_cmdf "$RIBBON_HEMI_CMDF"
     done

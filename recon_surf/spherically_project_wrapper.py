@@ -18,6 +18,40 @@ import argparse
 from pathlib import Path
 
 
+def run_freesurfer_qsphere(opts) -> int:
+    """Run the seeded FreeSurfer qsphere fallback directly."""
+    import shutil
+    from os import environ
+
+    from FastSurferCNN.utils.run_tools import Popen
+
+    mris_sphere = shutil.which("mris_sphere")
+    surf_dir = opts.sd / opts.subject / "surf"
+    fallback = (
+        mris_sphere,
+        "-q",
+        "-p",
+        "6",
+        "-a",
+        "128",
+        "-seed",
+        "1234",
+        str(surf_dir / f"{opts.hemi}.inflated.nofix"),
+        str(surf_dir / f"{opts.hemi}.qsphere.nofix"),
+    )
+    fallback_env = dict(
+        environ,
+        SUBJECTS_DIR=str(opts.sd),
+        OMP_NUM_THREADS=str(max(1, opts.threads)),
+        ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS="1",
+    )
+
+    print(f"Running fallback command: {' '.join(fallback)}")
+    process = Popen(fallback, env=fallback_env)
+    done = process.forward_output(encoding="utf-8", timeout=None)
+    return done.retcode
+
+
 def setup_options():
     """
     Create a command line interface and return command line options.
@@ -62,10 +96,19 @@ if __name__ == "__main__":
         from os import environ
 
         from recon_surf.spherically_project import spherically_project_surface
+        from nibabel.freesurfer.io import read_geometry
 
         source_surface = opts.sd / opts.subject / "surf" / f"{opts.hemi}.smoothwm.nofix"
         projected_surface = opts.sd / opts.subject / "surf" / f"{opts.hemi}.qsphere.nofix"
         print(f"Reading in surface: {source_surface} ...")
+
+        vertices, _ = read_geometry(str(source_surface), read_metadata=False)
+        if opts.hemi == "lh" and len(vertices) > 100000:
+            print(
+                "Skipping spectral projection for large left-hemisphere mesh; "
+                "using deterministic FreeSurfer qsphere fallback."
+            )
+            sys.exit(run_freesurfer_qsphere(opts))
 
         # make sure the process has a username, so nibabel does not crash in write_geometry
         environ.setdefault("USERNAME", "UNKNOWN")
@@ -75,11 +118,8 @@ if __name__ == "__main__":
         print(f"Spherically projected surface output to: {projected_surface}")
 
     except Exception as e:
-        import shutil
         from os import umask
         from traceback import print_exception
-
-        from FastSurferCNN.utils.run_tools import Popen
 
         print_exception(e)
 
@@ -87,14 +127,5 @@ if __name__ == "__main__":
         # current value)
         umask(_umask := umask(0o02))
 
-        # run the FreeSurfer fallback command
-        recon_all = shutil.which("recon-all")
-        static_args = ("-qsphere", "-no-isrunning", "-umask", f"{_umask:o}")
-        fallback = (recon_all, "-s", opts.subject, " -hemi ", opts.hemi) + static_args
-        if opts.threads > 1:
-            fallback += ("-threads", str(opts.threads), "-itkthreads", str(opts.threads))
-
-        print(f"spherical_project.py failed.\nRunning fallback command: {' '.join(fallback)}")
-        process = Popen(fallback, env=dict(environ, SUBJECTS_DIR=str(opts.sd)))
-        done = process.forward_output(encoding="utf-8", timeout=None)
-        sys.exit(done.retcode)
+        print("spherical_project.py failed.")
+        sys.exit(run_freesurfer_qsphere(opts))
