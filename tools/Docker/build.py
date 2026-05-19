@@ -262,6 +262,12 @@ def make_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Also tag the resulting image as 'fastsurfer:dev'.",
     )
+    parser.add_argument(
+        "--pinned_requirements",
+        action="store_true",
+        help="Build the Python environment from backend-neutral pinned requirements.txt "
+             "instead of resolving the latest compatible versions from pyproject.toml.",
+    )
     # --save_image does not work as expected right now, it cannot be imported via
     # docker load, but must be transferred to a registry...
     # parser.add_argument(
@@ -542,7 +548,7 @@ def docker_build_image(
                 "--attest", "type=sbom",
                 "--attest", "type=provenance",
             ])
-        if not default_builder_is_container:
+        if not default_builder_is_container and alternative_builder != "use_default":
             args.extend(["--builder", alternative_builder])
 
         kwargs_to_exclude = []
@@ -633,6 +639,7 @@ def main(
         image_tag: str | None = None,
         dry_run: bool = False,
         tag_dev: bool = True,
+        pinned_requirements: bool = False,
         fastsurfer_home: Path | None = None,
         insecure: bool = False,
         **keywords,
@@ -659,6 +666,7 @@ def main(
         raise ValueError(f"Invalid target: {target}")
     if device not in get_args(AllDeviceType):
         raise ValueError(f"Invalid device: {device}")
+    mapped_device = DEFAULTS.MapDeviceType.get(device, "cpu")
     if keywords.get("action", "load") == "push":
         kwargs["action"] = "push"
     # special case to add extra environment variables to better support AWS and ROCm
@@ -666,10 +674,11 @@ def main(
         target = "runtime_cuda"
     kwargs["target"] = target
     kwargs["build_arg"] = [
-        f"DEVICE={DEFAULTS.MapDeviceType.get(device, 'cpu')}",
+        f"DEVICE={mapped_device}",
         f"FREESURFER_URL={pyproject_freesurfer['urls']['linux'].format(version=pyproject_freesurfer['version'])}",
         f"FREESURFER_VERSION={pyproject_freesurfer['version']}",
         f"INSECURE_FLAG={'--insecure' if insecure else ''}",
+        f"PINNED_REQUIREMENTS={'true' if pinned_requirements else 'false'}",
     ]
     if debug:
         kwargs["build_arg"].append("DEBUG=true")

@@ -151,19 +151,25 @@ ARG FASTSURFER_VERSION
 ARG GIT_HASH
 ARG VENDOR
 ARG BUILD_BASE_IMAGE
+ARG PINNED_REQUIREMENTS=false
 
 SHELL ["/bin/bash", "--login", "-e", "-c"]
 
-# Install the project's dependencies using the lockfile and settings
+# Install the project's dependencies using either pyproject.toml or the backend-neutral pinned requirements.
 RUN --mount=type=cache,target=/root/.cache/uv \
-    --mount=type=bind,source=pyproject.toml,target=/install/pyproject.toml <<EOF
+    --mount=type=bind,source=pyproject.toml,target=/install/pyproject.toml \
+    --mount=type=bind,source=requirements.txt,target=/install/requirements.txt <<EOF
 uv venv --python ${PYTHON_VERSION} --relocatable /venv --prompt fastsurfer
 # activate the virtual environment
 source /venv/bin/activate
 # uv pip sync only installs "exactly" the packages in the lockfile, but does not resolve dependencies
 # therefore, we first compile the environment to resolve dependencies, and then sync to install both directly and
 # indirectly required packages
-uv pip compile --torch-backend=${DEVICE} --extra container /install/pyproject.toml | uv pip sync --torch-backend=${DEVICE} -
+if [[ "$PINNED_REQUIREMENTS" == "true" ]]; then
+    uv pip compile --torch-backend=${DEVICE} /install/requirements.txt | uv pip sync --torch-backend=${DEVICE} -
+else
+    uv pip compile --torch-backend=${DEVICE} --extra container /install/pyproject.toml | uv pip sync --torch-backend=${DEVICE} -
+fi
 EOF
 
 LABEL org.opencontainers.image.authors="$AUTHOR" \

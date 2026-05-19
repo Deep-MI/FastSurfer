@@ -87,6 +87,8 @@ In general, if you specify `--dry_run` the command will not be executed but sent
 
 By default, the build script will tag your image as `"fastsurfer:[{device}-]{version_tag}"`, where `{version_tag}` is `{version-identifer from pyproject.toml}_{current git-hash}` and `{device}` is the value to `--device` (omitted for `cuda`), but a custom tag can be specified by `--tag {tag_name}`. 
 
+By default, the Python environment is resolved from `pyproject.toml`, which allows the latest compatible dependency versions. To build from the backend-neutral pinned `requirements.txt` instead, add `--pinned_requirements`. The selected `--device` is still passed to `uv --torch-backend`, so the same pinned requirements file can be used for CPU and supported CUDA variants while PyTorch backend wheels are selected during the build.
+
 #### BuildKit
 Note, we recommend using BuildKit to build docker images (e.g. `DOCKER_BUILDKIT=1` -- the build.py script already always adds this). To install BuildKit, run `wget -qO ~/.docker/cli-plugins/docker-buildx https://github.com/docker/buildx/releases/download/<version>/buildx-<version>.<platform>`, for example `wget -qO ~/.docker/cli-plugins/docker-buildx https://github.com/docker/buildx/releases/download/v0.12.1/buildx-v0.12.1.linux-amd64`. See also https://github.com/docker/buildx#manual-download.
 
@@ -97,7 +99,7 @@ In order to build your own Docker image for FastSurfer (FastSurferCNN + recon-su
 python tools/Docker/build.py --device cuda --tag my_fastsurfer:cuda
 ```
 
-The build script allows more specific options, that specify different CUDA options as well (see `build.py --help`).
+The build script allows more specific options, that specify different CUDA options as well (see `build.py --help`). Add `--pinned_requirements` to use the pinned `requirements.txt` dependency versions while still selecting the CUDA backend from `--device`.
 
 For running the analysis, the command is the same as above for the prebuild option:
 ```bash
