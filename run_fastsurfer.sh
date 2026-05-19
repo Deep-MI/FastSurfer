@@ -589,7 +589,7 @@ fi
 
 source "${reconsurfdir}/functions.sh"
 
-# Warning if run as root user
+# Check for invalid docker/root user setup
 check_allow_root "${allow_root[@]}"
 
 # from now to the creation of the logfile, all messages are only written to the console and thus lost if the output is

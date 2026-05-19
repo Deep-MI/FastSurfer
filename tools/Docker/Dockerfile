@@ -296,6 +296,8 @@ EOF
 # DO_NOT_SEARCH_FS_LICENSE_IN_FREESURFER_HOME=true deactivates the search for FS_LICENSE in FREESURFER_HOME
 # XDG_DATA_HOME pins neurolit platformdirs data files to a deterministic,
 # runtime-writable image path outside the temporary directories.
+# FASTSURFER_DOCKER_DEFAULT_USER identifies the image user used when docker is
+# run without an explicit --user mapping.
 ENV OS=Linux \
     FS_OVERRIDE=0 \
     FIX_VERTEX_AREA="" \
@@ -309,6 +311,7 @@ ENV OS=Linux \
     PATH=/venv/bin:/opt/freesurfer/bin:$PATH \
     MPLCONFIGDIR=/tmp/matplotlib-config \
     XDG_DATA_HOME=/var/.local/share \
+    FASTSURFER_DOCKER_DEFAULT_USER=nonroot \
     DO_NOT_SEARCH_FS_LICENSE_IN_FREESURFER_HOME="true"
 
 # Copy fastsurfer venv and pruned freesurfer from build images
@@ -344,6 +347,10 @@ SHELL ["/bin/bash", "--login", "-c"]
 
 # Set FastSurfer workdir and entrypoint
 #  the script entrypoint ensures that our venv is active
+RUN <<EOF
+getent group nonroot > /dev/null || groupadd --system nonroot
+id -u nonroot > /dev/null 2>&1 || useradd --system --gid nonroot --no-create-home --home-dir /nonexistent --shell /usr/sbin/nologin nonroot
+EOF
 USER nonroot
 WORKDIR "/fastsurfer"
 ENTRYPOINT ["/fastsurfer/tools/Docker/entrypoint.sh","/fastsurfer/run_fastsurfer.sh"]

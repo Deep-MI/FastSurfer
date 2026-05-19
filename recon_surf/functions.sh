@@ -225,7 +225,7 @@ function auto_detect_fs_license()
 function check_allow_root()
 {
   # Will check, if --allow_root is in arguments (to this function) and print an error message
-  # as well as exit.
+  # as well as exit. Also checks for the default docker user, which indicates a missing --user mapping.
   # Examples:
   # check_allow_root --arg 0 -> message and exit
   #
@@ -252,6 +252,14 @@ function check_allow_root()
       echo "  If you want to force running as root, you may pass --allow_root to $(basename "$BASH_ARGV0")."
       exit 1
     fi
+  elif [[ -n "${FASTSURFER_DOCKER_DEFAULT_USER:-}" ]] \
+    && [[ "$(id -un 2> /dev/null || true)" == "$FASTSURFER_DOCKER_DEFAULT_USER" ]]
+  then
+    echo "ERROR: You are trying to run '$(basename "$BASH_ARGV0")' as the default FastSurfer docker user"
+    echo "  '$FASTSURFER_DOCKER_DEFAULT_USER'. This usually means the container was started without mapping"
+    echo "  your host user into the container."
+    echo "  Please run docker with '-u \$(id -u):\$(id -g)' (see https://docs.docker.com/engine/reference/run/#user)."
+    exit 1
   fi
 }
 
