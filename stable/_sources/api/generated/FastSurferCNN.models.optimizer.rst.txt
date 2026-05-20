@@ -1,0 +1,5 @@
+﻿FastSurferCNN.models.optimizer
+==============================
+
+.. automodule:: FastSurferCNN.models.optimizer
+    :members:

@@ -1,5 +1,0 @@
-﻿recon_surf.align_points
-=======================
-
-.. automodule:: recon_surf.align_points
-    :members:

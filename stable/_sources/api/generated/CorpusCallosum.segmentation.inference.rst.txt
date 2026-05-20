@@ -1,0 +1,5 @@
+﻿CorpusCallosum.segmentation.inference
+=====================================
+
+.. automodule:: CorpusCallosum.segmentation.inference
+    :members:

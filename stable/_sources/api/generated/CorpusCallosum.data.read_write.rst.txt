@@ -1,0 +1,5 @@
+﻿CorpusCallosum.data.read_write
+==============================
+
+.. automodule:: CorpusCallosum.data.read_write
+    :members:

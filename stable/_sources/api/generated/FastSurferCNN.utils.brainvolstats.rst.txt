@@ -1,0 +1,5 @@
+﻿FastSurferCNN.utils.brainvolstats
+=================================
+
+.. automodule:: FastSurferCNN.utils.brainvolstats
+    :members:

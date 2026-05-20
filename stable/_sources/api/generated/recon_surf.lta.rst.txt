@@ -1,5 +1,0 @@
-﻿recon_surf.lta
-==============
-
-.. automodule:: recon_surf.lta
-    :members:

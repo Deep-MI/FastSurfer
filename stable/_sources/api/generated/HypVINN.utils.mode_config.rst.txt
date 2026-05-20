@@ -1,0 +1,5 @@
+﻿HypVINN.utils.mode_config
+=========================
+
+.. automodule:: HypVINN.utils.mode_config
+    :members:

@@ -1,7 +1,5 @@
-.. FastSurfer documentation master file, created by
-   sphinx-quickstart on Thu Nov 30 15:48:44 2023.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
+.. FastSurfer documentation master file; modified and updated by
+   David Kügler of the FastSurfer Team.
 
 .. image:: images/teaser.png
    :alt: FastSurfer Teaser Image
@@ -23,4 +21,5 @@
 
    overview/index
    scripts/index
+   developer/index
    api/index

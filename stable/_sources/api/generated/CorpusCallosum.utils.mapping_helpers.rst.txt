@@ -1,0 +1,5 @@
+﻿CorpusCallosum.utils.mapping_helpers
+====================================
+
+.. automodule:: CorpusCallosum.utils.mapping_helpers
+    :members:

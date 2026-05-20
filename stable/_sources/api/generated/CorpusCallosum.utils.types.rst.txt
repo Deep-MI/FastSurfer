@@ -1,0 +1,5 @@
+﻿CorpusCallosum.utils.types
+==========================
+
+.. automodule:: CorpusCallosum.utils.types
+    :members:

@@ -1,0 +1,5 @@
+﻿FastSurferCNN.utils.parallel
+============================
+
+.. automodule:: FastSurferCNN.utils.parallel
+    :members:

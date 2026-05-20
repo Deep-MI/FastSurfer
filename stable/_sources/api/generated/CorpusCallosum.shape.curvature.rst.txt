@@ -1,0 +1,5 @@
+﻿CorpusCallosum.shape.curvature
+==============================
+
+.. automodule:: CorpusCallosum.shape.curvature
+    :members:

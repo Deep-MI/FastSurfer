@@ -1,5 +1,0 @@
-﻿recon_surf.align_seg
-====================
-
-.. automodule:: recon_surf.align_seg
-    :members:

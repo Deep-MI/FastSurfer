@@ -8,8 +8,10 @@ FastSurferCNN.utils
     :toctree: generated/
 
     arg_types
+    brainvolstats
     checkpoint
     common
+    dataclasses
     load_config
     logging
     lr_scheduler
@@ -17,8 +19,8 @@ FastSurferCNN.utils
     meters
     metrics
     misc
+    parallel
     parser_defaults
     run_tools
-    threads
 
 
