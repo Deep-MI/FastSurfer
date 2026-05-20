@@ -151,19 +151,25 @@ ARG FASTSURFER_VERSION
 ARG GIT_HASH
 ARG VENDOR
 ARG BUILD_BASE_IMAGE
+ARG PINNED_REQUIREMENTS=false
 
 SHELL ["/bin/bash", "--login", "-e", "-c"]
 
-# Install the project's dependencies using the lockfile and settings
+# Install the project's dependencies using either pyproject.toml or the backend-neutral pinned requirements.
 RUN --mount=type=cache,target=/root/.cache/uv \
-    --mount=type=bind,source=pyproject.toml,target=/install/pyproject.toml <<EOF
+    --mount=type=bind,source=pyproject.toml,target=/install/pyproject.toml \
+    --mount=type=bind,source=requirements.txt,target=/install/requirements.txt <<EOF
 uv venv --python ${PYTHON_VERSION} --relocatable /venv --prompt fastsurfer
 # activate the virtual environment
 source /venv/bin/activate
 # uv pip sync only installs "exactly" the packages in the lockfile, but does not resolve dependencies
 # therefore, we first compile the environment to resolve dependencies, and then sync to install both directly and
 # indirectly required packages
-uv pip compile --torch-backend=${DEVICE} --extra container /install/pyproject.toml | uv pip sync --torch-backend=${DEVICE} -
+if [[ "$PINNED_REQUIREMENTS" == "true" ]]; then
+    uv pip compile --torch-backend=${DEVICE} /install/requirements.txt | uv pip sync --torch-backend=${DEVICE} -
+else
+    uv pip compile --torch-backend=${DEVICE} --extra container /install/pyproject.toml | uv pip sync --torch-backend=${DEVICE} -
+fi
 EOF
 
 LABEL org.opencontainers.image.authors="$AUTHOR" \
@@ -290,6 +296,8 @@ EOF
 # DO_NOT_SEARCH_FS_LICENSE_IN_FREESURFER_HOME=true deactivates the search for FS_LICENSE in FREESURFER_HOME
 # XDG_DATA_HOME pins neurolit platformdirs data files to a deterministic,
 # runtime-writable image path outside the temporary directories.
+# FASTSURFER_DOCKER_DEFAULT_USER identifies the image user used when docker is
+# run without an explicit --user mapping.
 ENV OS=Linux \
     FS_OVERRIDE=0 \
     FIX_VERTEX_AREA="" \
@@ -303,6 +311,7 @@ ENV OS=Linux \
     PATH=/venv/bin:/opt/freesurfer/bin:$PATH \
     MPLCONFIGDIR=/tmp/matplotlib-config \
     XDG_DATA_HOME=/var/.local/share \
+    FASTSURFER_DOCKER_DEFAULT_USER=nonroot \
     DO_NOT_SEARCH_FS_LICENSE_IN_FREESURFER_HOME="true"
 
 # Copy fastsurfer venv and pruned freesurfer from build images
@@ -338,6 +347,10 @@ SHELL ["/bin/bash", "--login", "-c"]
 
 # Set FastSurfer workdir and entrypoint
 #  the script entrypoint ensures that our venv is active
+RUN <<EOF
+getent group nonroot > /dev/null || groupadd --system nonroot
+id -u nonroot > /dev/null 2>&1 || useradd --system --gid nonroot --no-create-home --home-dir /nonexistent --shell /usr/sbin/nologin nonroot
+EOF
 USER nonroot
 WORKDIR "/fastsurfer"
 ENTRYPOINT ["/fastsurfer/tools/Docker/entrypoint.sh","/fastsurfer/run_fastsurfer.sh"]

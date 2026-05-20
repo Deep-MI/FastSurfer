@@ -314,7 +314,7 @@ function check_stage_dependencies() {
   done
 }
 
-# Warning if run as root user
+# Check for invalid docker/root user setup
 check_allow_root "${brun_flags[@]}" # --allow_root must be passed to brun
 
 # Validate required inputs based on which stages will run

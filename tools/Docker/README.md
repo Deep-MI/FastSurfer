@@ -37,7 +37,7 @@ docker run --gpus all -v $HOME/my_mri_data:/data \
 ### Docker Flags
 * `--gpus`: This argument is used to access GPU resources. With it, you can also specify how many GPUs to use. In the example above, `all` will make every GPU available to FastSurfer in the Docker container. To use a single one (e.g.  GPU 0), set `--gpus device=0`. To use multiple specific GPUs (e.g. GPU 0, 1 and 3), use `--gpus "device=0,1,3"`.
 * `-v`: This argument defines which and how data is shared between the host system and the docker container. By default, no data is shared between the host and the container. `-v` is used to explicitly share data. It follows the format `-v <host folder>:<container folder>:<options>`. In its simplest form, `<host folder>` and `<container folder>` are the same and folders inside the container are the same as on the host. `:<options>` may be left out or `:ro` to indicate that files from this folder may not be modified by the docker container (readonly). The following files need to be shared: input files, output folder (subjects directory) and FreeSurfer license.
-* `--user $(id -u):$(id -g)`: Which user the container runs as (relevant for file access, the user-id and group-id, **required**!). `$(id -u)` and `$(id -g)` determine the user and group, respectively. Running the docker container as root `--user 0:0` is strongly discouraged and must be combined with the FastSurfer flag `--allow_root`.
+* `--user $(id -u):$(id -g)`: Which user the container runs as (relevant for file access, the user-id and group-id, **required**!). `$(id -u)` and `$(id -g)` determine the user and group, respectively. If this flag is omitted, FastSurfer exits with a message asking you to map your host user. Running the docker container as root `--user 0:0` is strongly discouraged and must be combined with the FastSurfer flag `--allow_root`.
 * `--rm`: The flag takes care of removing the container (cleanup of the container) once the analysis finished (optional, but recommended). 
 * `-d`: You can add this flag to run in detached mode (no screen output, and you return to shell, optional).
 
@@ -87,6 +87,8 @@ In general, if you specify `--dry_run` the command will not be executed but sent
 
 By default, the build script will tag your image as `"fastsurfer:[{device}-]{version_tag}"`, where `{version_tag}` is `{version-identifer from pyproject.toml}_{current git-hash}` and `{device}` is the value to `--device` (omitted for `cuda`), but a custom tag can be specified by `--tag {tag_name}`. 
 
+By default, the Python environment is resolved from `pyproject.toml`, which allows the latest compatible dependency versions. To build from the backend-neutral pinned `requirements.txt` instead, add `--pinned_requirements`. The selected `--device` is still passed to `uv --torch-backend`, so the same pinned requirements file can be used for CPU and supported CUDA variants while PyTorch backend wheels are selected during the build.
+
 #### BuildKit
 Note, we recommend using BuildKit to build docker images (e.g. `DOCKER_BUILDKIT=1` -- the build.py script already always adds this). To install BuildKit, run `wget -qO ~/.docker/cli-plugins/docker-buildx https://github.com/docker/buildx/releases/download/<version>/buildx-<version>.<platform>`, for example `wget -qO ~/.docker/cli-plugins/docker-buildx https://github.com/docker/buildx/releases/download/v0.12.1/buildx-v0.12.1.linux-amd64`. See also https://github.com/docker/buildx#manual-download.
 
@@ -97,7 +99,7 @@ In order to build your own Docker image for FastSurfer (FastSurferCNN + recon-su
 python tools/Docker/build.py --device cuda --tag my_fastsurfer:cuda
 ```
 
-The build script allows more specific options, that specify different CUDA options as well (see `build.py --help`).
+The build script allows more specific options, that specify different CUDA options as well (see `build.py --help`). Add `--pinned_requirements` to use the pinned `requirements.txt` dependency versions while still selecting the CUDA backend from `--device`.
 
 For running the analysis, the command is the same as above for the prebuild option:
 ```bash

@@ -20,3 +20,4 @@
 /tools/macos_build
 /srun_fastsurfer.sh
 /requirements*.txt
+!/requirements.txt
