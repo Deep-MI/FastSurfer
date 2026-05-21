@@ -1,4 +1,4 @@
-name: MAN release/deploy
+name: Build and release macOS packages
 
 on:
   release:
@@ -10,9 +10,6 @@ jobs:
   deploy-mac:
     runs-on: macos-14
     timeout-minutes: 120
-    
-    env:
-      RELEASE_ASSETS: true
     strategy:
       matrix:
         arch: [intel, arm]
@@ -20,17 +17,17 @@ jobs:
       - name: Get repository name.
         run: echo "FASTSURFER_DIR=$GITHUB_WORKSPACE" >> $GITHUB_ENV
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
       - name: Set up python environment
         id: setup-uv
-        uses: astral-sh/setup-uv@v5
+        uses: astral-sh/setup-uv@v8
         with:
           python-version: '3.10'
+          activate-environment: true
       - name: install dependencies
         run: |
-          uv venv .venv
           uv pip install py2app tomli
           
           # update system to the newest version, not pin pointing package version on purpose
@@ -40,13 +37,12 @@ jobs:
       - name: package app for ${{ matrix.arch }}
         run: tools/macos_build/build_release_package.sh ${{ matrix.arch }}
       - name: Move assets.
-        if: env.RELEASE_ASSETS == 'true'
+        if: github.event_name == 'release' && github.event.action == 'published'
         run: |
           mkdir assets
           mv tools/macos_build/installer/* assets/
       - name: Upload release assets.
         uses: softprops/action-gh-release@v2
-        if: env.RELEASE_ASSETS == 'true'
+        if: github.event_name == 'release' && github.event.action == 'published'
         with:
           files: ${{ env.FASTSURFER_DIR }}/assets/*
-
