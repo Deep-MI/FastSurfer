@@ -394,6 +394,56 @@ if [[ "$DoneFile" != /dev/null ]] ; then rm -f "$DoneFile" ; fi
 LF="$SUBJECTS_DIR/$subject/scripts/recon-surf.log"
 if [[ "$LF" != /dev/null ]]  && [[ "$edits" != "true" ]]; then rm -f "$LF" ; fi
 echo "Log file for recon-surf.sh" >> "$LF"
+
+ASYNC_PIDS=()
+ASYNC_LOGS=()
+ASYNC_CMDFS=()
+
+function start_async_cmdf()
+{
+  local cmdf=$1
+  local log="$cmdf.log"
+  chmod u+x "$cmdf"
+  printf "\n %s\n\n" "$cmdf" > "$log"
+  "$cmdf" >> "$log" 2>&1 &
+  ASYNC_PIDS+=("$!")
+  ASYNC_LOGS+=("$log")
+  ASYNC_CMDFS+=("$cmdf")
+}
+
+function wait_async_cmdfs()
+{
+  local unsuccessful=()
+  local status
+  local i
+  for i in "${!ASYNC_PIDS[@]}"
+  do
+    echo "Waiting for async PID ${ASYNC_PIDS[i]} of (${ASYNC_PIDS[*]}) to complete..." | tee -a "$LF"
+    wait "${ASYNC_PIDS[i]}"
+    status="$?"
+    tee -a "$LF" < "${ASYNC_LOGS[i]}"
+    rm -f "${ASYNC_LOGS[i]}"
+    if [[ "$status" != "0" ]]
+    then
+      unsuccessful+=("$i")
+      {
+        echo "ERROR: The async script ${ASYNC_CMDFS[i]} (PID: ${ASYNC_PIDS[i]}) did not complete successfully!"
+        echo "========================================"
+        echo ""
+      } | tee -a "$LF"
+    fi
+  done
+
+  if [[ "${#unsuccessful}" != 0 ]]
+  then
+    echo "Async PIDs (${unsuccessful[*]}) of (${ASYNC_PIDS[*]}) have NOT completed successfully! All logs appended." | tee -a "$LF"
+    exit 1
+  elif [[ "${#ASYNC_PIDS[@]}" != 0 ]]
+  then
+    echo "Async PIDs (${ASYNC_PIDS[*]}) completed successfully! Their logs have been appended." | tee -a "$LF"
+  fi
+}
+
 { # all output tee -a "$LF"
   date 2>&1
   echo " "
@@ -1160,18 +1210,41 @@ then
 
 # ============================= MAPPED SURF-STATS =========================================
 
+  MAPPED_STATS_CMDF="$SUBJECTS_DIR/$subject/scripts/mapped_stats.cmdf"
+  rm -f "$MAPPED_STATS_CMDF"
   {
-    echo ""
-    echo "===================== Creating surfaces - mapped stats ========================="
-    echo ""
-  } | tee -a "$LF"
+    echo "#!/bin/bash"
+    echo "echo \"\""
+    echo "echo \"===================== Creating surfaces - mapped stats =========================\""
+    echo "echo \"\""
+  } > "$MAPPED_STATS_CMDF"
 
-  # 2x18sec create stats from mapped aparc
+  # 2x18sec create stats from mapped aparc.  This only depends on completed surfaces and
+  # ribbon outputs, so it can overlap with the later volume-labeling/statistics chain.
   for hemi in lh rh
   do
     cmd="mris_anatomical_stats -th3 -mgz -cortex $ldir/$hemi.cortex.label -f $statsdir/$hemi.aparc.DKTatlas.mapped.stats -b -a $ldir/$hemi.aparc.DKTatlas.mapped.annot -c $ldir/aparc.annot.mapped.ctab $subject $hemi white"
-    RunIt "$cmd" "$LF"
+    RunIt "$cmd" "$LF" "$MAPPED_STATS_CMDF"
   done
+  start_async_cmdf "$MAPPED_STATS_CMDF"
+
+  if [[ "$fssurfreg" == "true" ]]
+  then
+    BALABELS_CMDF="$SUBJECTS_DIR/$subject/scripts/balabels.cmdf"
+    rm -f "$BALABELS_CMDF"
+    {
+      echo "#!/bin/bash"
+      echo "echo \"\""
+      echo "echo \"===================== Creating surfaces - BA labels ============================\""
+      echo "echo \"\""
+    } > "$BALABELS_CMDF"
+
+    # BA labels only depend on completed surface registration and surface geometry, so run
+    # them while the main process creates the mapped volumes and segmentation statistics.
+    cmd="$python ${binpath}/fs_balabels.py --sd $SUBJECTS_DIR --sid $subject"
+    RunIt "$cmd" "$LF" "$BALABELS_CMDF"
+    start_async_cmdf "$BALABELS_CMDF"
+  fi
 
 # ============================= FASTSURFER - surfcon hypo stats =========================================
 
@@ -1348,21 +1421,9 @@ then
   fi
 
 
-# ============================= BALABELS =========================================
-
-  # balabels need sphere.reg
-  if [[ "$fssurfreg" == "true" ]]
-  then
-    # can be produced if surf registration exists
-    #cmd="recon-all -subject $subject -balabels $hiresflag $fsthreads"
-    #RunIt "$cmd" "$LF"
-    # here we run our version of balabels: mapping and annot creation is very fast
-    # time is used in mris_anatomical_stats (called 4 times, BA and BA-thresh for each hemi)
-    cmd="$python ${binpath}/fs_balabels.py --sd $SUBJECTS_DIR --sid $subject"
-    RunIt "$cmd" "$LF"
-  fi
-
 fi # not base run
+
+wait_async_cmdfs
 
 
 # Collect info
