@@ -6,6 +6,9 @@ on:
       - published
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   deploy-mac:
     runs-on: macos-14
@@ -45,7 +48,7 @@ jobs:
           mkdir assets
           mv tools/macos_build/installer/* assets/
       - name: Upload release assets.
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3.0.0
         if: github.event_name == 'release' && github.event.action == 'published'
         with:
           files: ${{ env.FASTSURFER_DIR }}/assets/*
