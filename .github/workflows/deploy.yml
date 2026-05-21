@@ -9,7 +9,7 @@ on:
 jobs:
   deploy-mac:
     runs-on: macos-14
-    timeout-minutes: 120
+    timeout-minutes: 30
     strategy:
       matrix:
         arch: [intel, arm]
@@ -17,7 +17,7 @@ jobs:
       - name: Get repository name.
         run: echo "FASTSURFER_DIR=$GITHUB_WORKSPACE" >> $GITHUB_ENV
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6.0.2
         with:
           fetch-depth: 0
       - name: Set up python environment
@@ -36,7 +36,7 @@ jobs:
           # update system to the newest version, not pin pointing package version on purpose
           brew update  
           brew upgrade || true
-          brew install aria2
+          brew list aria2 >/dev/null 2>&1 || brew install aria2
       - name: package app for ${{ matrix.arch }}
         run: tools/macos_build/build_release_package.sh ${{ matrix.arch }}
       - name: Move assets.
