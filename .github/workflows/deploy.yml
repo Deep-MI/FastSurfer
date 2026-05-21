@@ -9,7 +9,7 @@ on:
 jobs:
   deploy-mac:
     runs-on: macos-14
-    timeout-minutes: 30
+    timeout-minutes: 60
     strategy:
       matrix:
         arch: [intel, arm]
