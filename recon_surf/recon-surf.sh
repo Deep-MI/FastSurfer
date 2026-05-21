@@ -872,9 +872,14 @@ for hemi in lh rh ; do
     if [[ "$long" == "false" ]]
     then
 
-      # SPHERE: Inflate to sphere with minimal metric distortion
-      cmd="recon-all -subject $subject -hemi $hemi -sphere $hiresflag -no-isrunning -umask $(umask) $fsthreads"
+      # SPHERE: Inflate to sphere with minimal metric distortion.
+      # This step is deterministic with the fixed seed and scales better when it can use the full requested
+      # thread count.  Run it directly to avoid constraining it to per-hemisphere threads.
+      cmd="env OMP_NUM_THREADS=$threads ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS=1 \
+        mris_sphere -seed 1234 $sdir/${hemi}.inflated $sdir/${hemi}.sphere"
       RunIt "$cmd" "$LF" "$CMDF"
+      echo "mkdir -p $SUBJECTS_DIR/$subject/touch" >> "$CMDF"
+      echo "echo \"mris_sphere -seed 1234 ../surf/${hemi}.inflated ../surf/${hemi}.sphere\" > $SUBJECTS_DIR/$subject/touch/${hemi}.sphmorph.touch" >> "$CMDF"
 
       # SURFREG (sphere.reg)
       # Surface registration for cross-subject correspondence (registration to fsaverage)
