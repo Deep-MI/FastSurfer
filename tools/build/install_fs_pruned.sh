@@ -81,8 +81,8 @@ echo
 echo "$fslink"
 echo
 
-# get FreeSurfer and unpack (some of it)
-echo "Downloading FS and unpacking portions ..."
+# get FreeSurfer and selectively unpack only the files needed by FastSurfer
+echo "Downloading FreeSurfer and selectively unpacking required files ..."
 
 # temp freesurfer dl filename (to save the dl)
 if [[ -d /install ]] ; then
