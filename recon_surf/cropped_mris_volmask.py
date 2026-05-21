@@ -4,7 +4,6 @@
 from __future__ import annotations
 
 import argparse
-import os
 import shutil
 import subprocess
 import tempfile
@@ -14,26 +13,7 @@ import nibabel as nib
 import numpy as np
 from nibabel.freesurfer.io import read_geometry
 
-
-def _load_volume(path: Path) -> tuple[nib.spatialimages.SpatialImage, np.ndarray]:
-    img = nib.load(str(path))
-    data = np.asanyarray(img.dataobj)
-    if data.ndim == 4:
-        data = data[..., 0]
-    return img, np.asarray(data)
-
-
-def _crop_affine(affine: np.ndarray, start: np.ndarray) -> np.ndarray:
-    transform = np.eye(4)
-    transform[:3, 3] = start
-    return affine @ transform
-
-
-def _save(data: np.ndarray, source: nib.spatialimages.SpatialImage, path: Path, start: np.ndarray | None = None) -> None:
-    affine = source.affine if start is None else _crop_affine(source.affine, start)
-    image = nib.MGHImage(data, affine, source.header.copy())
-    image.set_data_dtype(data.dtype)
-    nib.save(image, str(path))
+from cropped_volume import crop_slices, freesurfer_env, load_volume, save_volume
 
 
 def _surface_voxel_bounds(subject_dir: Path, hemi: str, img: nib.spatialimages.SpatialImage) -> tuple[np.ndarray, np.ndarray]:
@@ -82,10 +62,10 @@ def main() -> int:
     subject_dir = args.sd / args.sid
     mri_dir = subject_dir / "mri"
     source_volume = mri_dir / f"{args.aseg_name}.mgz"
-    img, data = _load_volume(source_volume)
+    img, data = load_volume(source_volume)
     surface_start, surface_stop = _surface_voxel_bounds(subject_dir, args.hemi, img)
     start, stop = _bounds(data.shape, surface_start, surface_stop, args.margin)
-    crop = tuple(slice(int(s), int(e)) for s, e in zip(start, stop))
+    crop = crop_slices(start, stop)
 
     tmp_root = subject_dir / "tmp"
     tmp_root.mkdir(exist_ok=True)
@@ -95,7 +75,7 @@ def main() -> int:
         tmp_surf_dir = tmp_subject_dir / "surf"
         tmp_mri_dir.mkdir(parents=True, exist_ok=True)
         _copy_surface_files(subject_dir, tmp_surf_dir, args.hemi)
-        _save(data[crop], img, tmp_mri_dir / f"{args.aseg_name}.mgz", start)
+        save_volume(data[crop], img, tmp_mri_dir / f"{args.aseg_name}.mgz", start)
 
         hemi_flag = "--lh-only" if args.hemi == "lh" else "--rh-only"
         cmd = [
@@ -119,15 +99,12 @@ def main() -> int:
             hemi_flag,
             args.sid,
         ]
-        env = os.environ.copy()
-        env.setdefault("USER", "fastsurfer")
-        env.setdefault("LOGNAME", env["USER"])
-        subprocess.run(cmd, check=True, env=env)
-        cropped_img, cropped_mask = _load_volume(tmp_mri_dir / f"{args.out_root}.mgz")
+        subprocess.run(cmd, check=True, env=freesurfer_env())
+        cropped_img, cropped_mask = load_volume(tmp_mri_dir / f"{args.out_root}.mgz")
 
     out = np.zeros_like(data, dtype=np.asarray(cropped_mask).dtype)
     out[crop] = cropped_mask.astype(out.dtype, copy=False)
-    _save(out, img, mri_dir / f"{args.out_root}.mgz")
+    save_volume(out, img, mri_dir / f"{args.out_root}.mgz")
     return 0
 
 
