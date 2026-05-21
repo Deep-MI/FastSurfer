@@ -21,14 +21,17 @@ jobs:
         with:
           fetch-depth: 0
       - name: Set up python environment
-        id: setup-uv
-        uses: astral-sh/setup-uv@v8.1.0
+        uses: actions/setup-python@v6.2.0
         with:
           python-version: '3.10'
-          activate-environment: true
       - name: install dependencies
         run: |
-          uv pip install py2app tomli
+          python -m venv .venv
+          echo "VIRTUAL_ENV=$GITHUB_WORKSPACE/.venv" >> "$GITHUB_ENV"
+          echo "$GITHUB_WORKSPACE/.venv/bin" >> "$GITHUB_PATH"
+          . .venv/bin/activate
+          python -m pip install --upgrade pip
+          python -m pip install py2app tomli
           
           # update system to the newest version, not pin pointing package version on purpose
           brew update  
