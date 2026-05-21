@@ -25,7 +25,7 @@ from tqdm import tqdm
 import FastSurferCNN.utils.logging as logging
 from FastSurferCNN.data_loader.augmentation import ToTensorTest
 from FastSurferCNN.utils.common import find_device
-from FastSurferCNN.utils.torchscript import env_flag_enabled, should_trace_cpu_inference, trace_for_inference
+from FastSurferCNN.utils.torchscript import cpu_torch_threads, env_flag_enabled, should_trace_cpu_inference, trace_for_inference
 from HypVINN.data_loader.data_utils import hypo_map_prediction_sagittal2full
 from HypVINN.data_loader.dataset import HypVINNDataset
 from HypVINN.models.networks import build_model
@@ -93,7 +93,7 @@ class Inference:
         """
         from FastSurferCNN.utils.parallel import get_num_threads
 
-        torch.set_num_threads(get_num_threads())
+        _threads = get_num_threads()
         self._async_io = async_io
 
         # Set random seed from configs.
@@ -107,6 +107,9 @@ class Inference:
 
         # Define device and transfer model
         self.device = find_device(device)
+        torch_threads = cpu_torch_threads(_threads, self.device)
+        if torch_threads is not None:
+            torch.set_num_threads(torch_threads)
 
         if self.device.type == "cpu" and viewagg_device == "auto":
             self.viewagg_device = self.device
