@@ -427,12 +427,20 @@ do
   cp -r "$fss/$file" "$fsd/$file"
 done
 
-# pack if desired with upx (do this before adding all the links
+# pack if desired with upx (do this before adding all the links)
 if [[ "$upx" == "true" ]] ; then
-  echo "finding executables in $fsd/bin/..."
-  exe=($(find "$fsd/bin" -exec file {} \; | grep ELF | cut -d: -f1))
-  echo "packing $fsd/bin/ executables (this can take a while) ..."
-  upx -9 "${exe[@]}"
+  if [[ -z "$(command -v upx)" ]] ; then
+    echo "UPX requested, but the 'upx' command was not found on PATH; skipping executable packing."
+  else
+    echo "finding executables in $fsd/bin/..."
+    exe=($(find "$fsd/bin" -exec file {} \; | grep ELF | cut -d: -f1))
+    if [[ "${#exe[@]}" -eq 0 ]] ; then
+      echo "No UPX-packable executables found in $fsd/bin, skipping."
+    else
+      echo "packing $fsd/bin/ executables (this can take a while) ..."
+      upx -9 "${exe[@]}"
+    fi
+  fi
 fi
 
 # Modify fsbindings Python package to allow calling scripts like asegstats2table directly:

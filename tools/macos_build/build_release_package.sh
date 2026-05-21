@@ -51,7 +51,7 @@ rsync -av --progress "$FASTSURFER_HOME/" "$FASTSURFER_TO_PACKAGE" \
       --exclude .git
 
 # install freesurfer into temp folder
-"$tools_dir/build/install_fs_pruned.sh" "$STAGED_DIR" --upx --url "$URL_TO_FREESURFER"
+"$tools_dir/build/install_fs_pruned.sh" "$STAGED_DIR" --url "$URL_TO_FREESURFER"
 
 if [[ ! -d "$STAGED_DIR/freesurfer" ]]
 then
