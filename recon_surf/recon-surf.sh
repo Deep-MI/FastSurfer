@@ -714,7 +714,7 @@ for hemi in lh rh ; do
 
       # Check if the surfaceRAS was correctly set and exit otherwise (sanity check in case nibabel changes their default header behaviour)
       {
-        cmd="mris_info $outmesh | tr -s ' ' | grep -q 'vertex locs : surfaceRAS'"
+        cmd="mris_info $outmesh | awk '\$1 == \"vertex\" && \$2 == \"locs\" && \$3 == \":\" && \$4 == \"surfaceRAS\" { found = 1 } END { exit !found }'"
         echo "echo \"$cmd\""
         echo "$timecmd $cmd"
       } | tee -a "$CMDF"
