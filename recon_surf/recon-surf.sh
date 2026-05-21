@@ -1089,8 +1089,13 @@ then
   # anatomical stats can run without ribbon, but will omit some surface based measures then
   # wmparc needs ribbon, probably other stuff (aparc to aseg etc).
   # So lets run it to have these measures below.
-  cmd="recon-all -subject $subject -cortribbon -umask $(umask) $hiresflag $fsthreads"
+  cmd="mris_volmask --aseg_name aseg.presurf --label_left_white 2 --label_left_ribbon 3 \
+    --label_right_white 41 --label_right_ribbon 42 --save_ribbon"
+  if [[ "$threads" -gt 1 ]] ; then cmd="$cmd --parallel" ; fi
+  cmd="$cmd $subject"
   RunIt "$cmd" "$LF"
+  mkdir -p "$SUBJECTS_DIR/$subject/touch"
+  echo "$cmd" > "$SUBJECTS_DIR/$subject/touch/cortical_ribbon.touch"
 
 fi # skip in base
 
