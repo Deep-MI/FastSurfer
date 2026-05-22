@@ -93,7 +93,7 @@ def sitk_from_mgh(img: nib.MGHImage) -> sitk.Image:
     data = np.swapaxes(np.asanyarray(img.dataobj), 0, 2)
     # sitk can only create image with system native endianness
     if not data.dtype.isnative:
-        data = data.byteswap().newbyteorder()
+        data = data.byteswap().view(data.dtype.newbyteorder())
     # create image from array
     img_sitk = sitk.GetImageFromArray(data)
     # Get direction from MDC, need to change sign of dim 0 and 1
