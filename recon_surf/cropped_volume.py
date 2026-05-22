@@ -48,7 +48,7 @@ def bounds_from_mask(mask: np.ndarray, margin: int) -> tuple[np.ndarray, np.ndar
 
 
 def crop_slices(start: np.ndarray, stop: np.ndarray) -> tuple[slice, ...]:
-    return tuple(slice(int(s), int(e)) for s, e in zip(start, stop))
+    return tuple(slice(int(s), int(e)) for s, e in zip(start, stop, strict=True))
 
 
 def freesurfer_env() -> dict[str, str]:

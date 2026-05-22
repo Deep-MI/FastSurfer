@@ -5,7 +5,6 @@ import argparse
 import nibabel as nib
 import numpy as np
 
-
 WM_AND_HYPO_LABELS = (2, 41, 77, 78, 79, 87, 88, 89)
 
 

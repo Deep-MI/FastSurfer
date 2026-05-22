@@ -25,7 +25,12 @@ from tqdm import tqdm
 import FastSurferCNN.utils.logging as logging
 from FastSurferCNN.data_loader.augmentation import ToTensorTest
 from FastSurferCNN.utils.common import find_device
-from FastSurferCNN.utils.torchscript import cpu_torch_threads, env_flag_enabled, should_trace_cpu_inference, trace_for_inference
+from FastSurferCNN.utils.torchscript import (
+    cpu_torch_threads,
+    env_flag_enabled,
+    should_trace_cpu_inference,
+    trace_for_inference,
+)
 from HypVINN.data_loader.data_utils import hypo_map_prediction_sagittal2full
 from HypVINN.data_loader.dataset import HypVINNDataset
 from HypVINN.models.networks import build_model

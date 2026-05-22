@@ -11,12 +11,13 @@ from pathlib import Path
 
 import nibabel as nib
 import numpy as np
+from cropped_volume import crop_slices, freesurfer_env, load_volume, save_volume
 from nibabel.freesurfer.io import read_geometry
 
-from cropped_volume import crop_slices, freesurfer_env, load_volume, save_volume
 
-
-def _surface_voxel_bounds(subject_dir: Path, hemi: str, img: nib.spatialimages.SpatialImage) -> tuple[np.ndarray, np.ndarray]:
+def _surface_voxel_bounds(
+    subject_dir: Path, hemi: str, img: nib.spatialimages.SpatialImage
+) -> tuple[np.ndarray, np.ndarray]:
     inv = np.linalg.inv(img.affine)
     coords = []
     for surface in ("white", "pial"):
@@ -27,7 +28,9 @@ def _surface_voxel_bounds(subject_dir: Path, hemi: str, img: nib.spatialimages.S
     return np.floor(points.min(axis=0)).astype(int), (np.ceil(points.max(axis=0)) + 1).astype(int)
 
 
-def _bounds(shape: tuple[int, ...], surface_start: np.ndarray, surface_stop: np.ndarray, margin: int) -> tuple[np.ndarray, np.ndarray]:
+def _bounds(
+    shape: tuple[int, ...], surface_start: np.ndarray, surface_stop: np.ndarray, margin: int
+) -> tuple[np.ndarray, np.ndarray]:
     start = surface_start
     stop = surface_stop
     start = np.maximum(0, start - margin)

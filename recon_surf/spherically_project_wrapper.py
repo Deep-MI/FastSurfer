@@ -95,8 +95,9 @@ if __name__ == "__main__":
     try:
         from os import environ
 
-        from recon_surf.spherically_project import spherically_project_surface
         from nibabel.freesurfer.io import read_geometry
+
+        from recon_surf.spherically_project import spherically_project_surface
 
         source_surface = opts.sd / opts.subject / "surf" / f"{opts.hemi}.smoothwm.nofix"
         projected_surface = opts.sd / opts.subject / "surf" / f"{opts.hemi}.qsphere.nofix"

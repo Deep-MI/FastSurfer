@@ -48,8 +48,8 @@ from FastSurferCNN.utils.checkpoint import get_checkpoints, get_config_file, loa
 from FastSurferCNN.utils.common import SubjectDirectory, SubjectList, find_device, handle_cuda_memory_exception
 from FastSurferCNN.utils.load_config import load_config
 from FastSurferCNN.utils.parallel import SerialExecutor, pipeline
-from FastSurferCNN.utils.torchscript import cpu_torch_threads
 from FastSurferCNN.utils.parser_defaults import SubjectDirectoryConfig
+from FastSurferCNN.utils.torchscript import cpu_torch_threads
 
 LOGGER = logging.getLogger(__name__)
 
