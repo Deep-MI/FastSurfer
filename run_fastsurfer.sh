@@ -621,7 +621,6 @@ then
 fi
 
 check_create_subjects_dir_properties "$sd"
-export SUBJECTS_DIR="$sd"
 
 if [[ -z "$subject" ]]
 then
