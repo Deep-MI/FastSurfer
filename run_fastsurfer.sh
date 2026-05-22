@@ -1243,7 +1243,7 @@ then
       # do not terminate if this fails
 
       echo "INFO: Robust scaling (partial conforming) of T2 image..."
-      cmd=($python "${fastsurfercnndir}/data_loader/conform.py" --no_strict_lia --no_iso_vox --no_img_size
+      cmd=($python "${fastsurfercnndir}/data_loader/conform.py" --orientation native --vox_size any --img_size any
            -i "$t2" -o "$conformed_name_t2")
       echo_quoted "${cmd[@]}"
       "${wrap[@]}" "${cmd[@]}" 2>&1
@@ -1269,7 +1269,7 @@ then
       fi
     else
       # no biasfield, but a t2 is passed; presumably, this is biasfield corrected
-      cmd=($python "${fastsurfercnndir}/data_loader/conform.py" --no_strict_lia --no_iso_vox --no_img_size
+      cmd=($python "${fastsurfercnndir}/data_loader/conform.py" --orientation native --vox_size any --img_size any
            -i "$t2" -o "$norm_name_t2")
       {
         echo "INFO: Robustly rescaling $t2 to uchar ($norm_name_t2), which is"
