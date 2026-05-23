@@ -132,11 +132,11 @@ jobs:
       - name: Checkout repository
         # DOCKER_IMAGE is build-cached => we want to build, check this repository out to build the docker image
         if: steps.parse.outputs.CONTINUE == 'true' && steps.parse.outputs.DOCKER_IMAGE == 'build-cached'
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       - name: Checkout repository
         # DOCKER_IMAGE starts with pr/*** => we want to build, check the PR out to build the docker image
         if: steps.parse.outputs.CONTINUE == 'true' && startsWith(steps.parse.outputs.DOCKER_IMAGE, 'pr/')
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           ref: ${{ steps.parse.outputs.DOCKER_IMAGE }}
       - name: Setup uv and Python 3.11
@@ -195,7 +195,7 @@ jobs:
             extra-args: "--3T"
     steps:
       - name: Check out the repository that is to be tested
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       - name: Run FastSurfer for ${{ matrix.subject-id }} with the previously created docker container
         uses: Deep-MI/FastSurfer/.github/actions/run-fastsurfer@dev
         with:
