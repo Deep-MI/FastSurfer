@@ -226,6 +226,8 @@ fi
 # check that SUBJECTS_DIR exists
 check_create_subjects_dir_properties "$SUBJECTS_DIR"
 
+auto_detect_fs_license "the longitudinal template preparation" || exit $?
+
 ################################## SETUP and LOGFILE ##############################
 
 
@@ -455,5 +457,4 @@ do
   cmd="mri_convert -at ${ltaXforms[$i]} -rt $interpol $mdir/cross_input${extension} $mdir/long_conform${extension}"
   RunIt "$cmd" "$LF"
 done
-
 
