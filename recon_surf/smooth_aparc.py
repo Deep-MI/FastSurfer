@@ -177,7 +177,7 @@ def mode_filter(
     # for num rings exponentiate adjM and add adjM from step before
     # we currently do this outside of mode_filter
     # new labels will be the same as old almost everywhere
-    labels_new = labels
+    labels_new = labels.copy()
     # find vertices to fill
     # if fillonlylabels empty, fill all
     if not fillonlylabel:
