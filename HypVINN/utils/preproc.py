@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os
 import time
 from pathlib import Path
 from typing import cast
@@ -36,7 +35,7 @@ def t1_to_t2_registration(
         threads: int = -1,
 ) -> Path:
     """
-    Register T1 to T2 images using either mri_coreg or mri_robust_register.
+    Register the T2 image to the T1 reference using neuroreg.
 
     Parameters
     ----------
@@ -49,7 +48,7 @@ def t1_to_t2_registration(
     lta_path : Path
         The path to the lta transform.
     registration_type : RegistrationMode, default="coreg"
-        The type of registration to be used. It can be either "coreg" or "robust".
+        The type of registration to be used. It can be either "coreg" or "none".
     threads : int, default=-1
         The number of threads to be used. If it is less than or equal to 0, the number
         of threads will be automatically determined.
@@ -62,49 +61,20 @@ def t1_to_t2_registration(
     Raises
     ------
     RuntimeError
-        If mri_coreg, mri_vol2vol, or mri_robust_register fails to run or if they cannot
-        be found.
+        If the requested neuroreg registration backend fails.
     """
-    import shutil
-
-    from FastSurferCNN.utils.parallel import get_num_threads
-    from FastSurferCNN.utils.run_tools import Popen
-
-    if threads <= 0:
-        threads = get_num_threads()
-
-    def from_freesurfer_home(fs_binary: str) -> str:
-        if not os.environ.get("FREESURFER_HOME", ""):
-            raise RuntimeError(
-                f"Could not find {fs_binary}, source FreeSurfer or set the FREESURFER_HOME environment variable"
-            )
-        return os.environ["FREESURFER_HOME"] + "/bin/" + fs_binary
-
-    def run_fs_binary(fs_binary: str, args: list[str]) -> int:
-        fs_binary = shutil.which(fs_binary) or from_freesurfer_home(fs_binary)
-        args = [fs_binary] + list(map(str, args))
-        LOGGER.info("Running " + " ".join(args))
-        retval = Popen(args).finish()
-        if retval.retcode != 0:
-            LOGGER.error(f"{fs_binary} failed with error code {retval.retcode}.")
-            raise RuntimeError(f"{fs_binary} failed")
-
-        LOGGER.info(f"{fs_binary} finished in {retval.runtime}!")
+    from neuroreg import coreg
 
     if registration_type == "coreg":
-        run_fs_binary(
-            "mri_coreg",
-            ["--mov", t2_path, "--targ", t1_path, "--reg", lta_path, "--threads", str(threads)],
-        )
-        run_fs_binary(
-            "mri_vol2vol",
-            ["--mov", t2_path, "--targ", t1_path, "--reg", lta_path, "--o", output_path, "--cubic", "--keep-precision"],
+        LOGGER.info("Running neuroreg.coreg for T2-to-T1 registration.")
+        coreg(
+            str(t2_path),
+            str(t1_path),
+            lta_name=str(lta_path),
+            mapped_name=str(output_path),
         )
     else:
-        run_fs_binary(
-            "mri_robust_register",
-            ["--mov", t2_path, "--dst", t1_path, "--lta", lta_path, "--mapmov", output_path, "--cost", "NMI"],
-        )
+        raise ValueError(f"Unknown registration type: {registration_type}")
 
     return output_path
 
@@ -125,7 +95,8 @@ def hypvinn_preproc(
     mode : ModalityMode
         The mode for HypVINN. It should be "t1t2".
     reg_mode : RegistrationMode
-        The registration mode. If it is not "none", the function will register T1 to T2 images.
+        The registration mode. If it is not "none", the function will register the
+        T2 image to the T1 reference.
     t1_path : Path
         The path to the T1 image.
     t2_path : Path
@@ -162,7 +133,7 @@ def hypvinn_preproc(
                 f"T2 image will be interpolated to the resolution of the T1 image."
             )
 
-        LOGGER.info("Registering T1 to T2 ...")
+        LOGGER.info("Registering T2 to T1 ...")
         t1_to_t2_registration(
             t1_path=t1_path,
             t2_path=t2_path,
