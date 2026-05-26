@@ -109,11 +109,11 @@ def option_parse() -> argparse.ArgumentParser:
         "--reg_mode",
         type=str,
         default="coreg",
-        choices=["none", "coreg", "robust"],
-        help="Freesurfer Registration type to run. coreg: mri_coreg, "
-             "robust : mri_robust_register, none: entirely deactivates "
-             "registration of T2 to T1, if both images are passed, "
-             "images need to be register properly externally.",
+        choices=["none", "coreg"],
+        help="Registration type to run for T2-to-T1 alignment when both images "
+             "are passed. coreg: neuroreg.coreg, none: entirely deactivates "
+             "registration of T2 to T1, so images need to be registered "
+             "properly externally.",
     )
 
     parser.add_argument(
@@ -156,7 +156,7 @@ def main(
         hypo_maskfile: str = HYPVINN_MASK_NAME,
         qc_snapshots: bool = False,
         threads: int | None = None,
-        reg_mode: Literal["coreg", "robust", "none"] = "coreg",
+        reg_mode: Literal["coreg", "none"] = "coreg",
         batch_size: int = 1,
         async_io: bool = False,
         device: str = "auto",
@@ -195,7 +195,7 @@ def main(
         Whether to create QC snapshots.
     threads : int, optional
         If not None, updates the FastSurfer global setting in `FastSurfer.utils.parallel`.
-    reg_mode : "coreg", "robust", "none", default="coreg"
+    reg_mode : "coreg", "none", default="coreg"
         The registration mode to use.
     batch_size : int, default=1
         The batch size to use.
