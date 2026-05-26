@@ -7,7 +7,7 @@ Hypothalamic subfields segmentation pipeline
 
 ### Requirements
 * Same as FastSurfer.
-* If the T1w and T2w images are available and not co-registered, FreeSurfer should be sourced to run the registration code, and the mri_coreg and mri_vol2vol binaries should also be available.
+* If the T1w and T2w images are available and not co-registered, HypVINN can register the T2w image to the T1w reference internally.
 
 ### Model weights
 * EUDAT (FZ Jülich) data repository: https://b2share.fz-juelich.de/records/2af6da63d5c1414b832c1f606bbd068a
@@ -30,7 +30,7 @@ Note: These weights (version 1.1) are retrained compared to paper ([version 1.0]
  *  `--t2 </dir/T2**.nii.gz>` : T2 image path
  * `--seg_log` :  Path to file in which run logs will be saved. If not set logs will be stored in `/sd/sid/scripts/hypvinn_seg.log` 
 ### Image processing options
- * `--reg_mode` :  Ignored, if no T2 image is passed. Specifies the registration method used to register T1 and T2 images. Options are 'coreg' (default) for mri_coreg, 'robust' for mri_robust_register, and 'none' to skip registration (this requires T1 and T2 are externally co-registered).
+ * `--reg_mode` :  Ignored, if no T2 image is passed. Specifies the registration method used to register T1 and T2 images. Options are 'coreg' (default) for `neuroreg.coreg` and 'none' to skip registration (this requires T1 and T2 are externally co-registered).
  * `--qc_snap`: Activate the creation of QC snapshots of the predicted HypVINN segmentation in `/sd/sid/qc_snapshots`. The created QC snapshots are created to simplify the visual quality control process.
 ###  FastSurfer Technical parameters (see FastSurfer documentation)
  * `--device`
@@ -104,7 +104,7 @@ Note: These weights (version 1.1) are retrained compared to paper ([version 1.0]
             |--hypothalamus.HypVINN.nii.gz(Hypothalamus Segmentation)
             |-- hypothalamus_mask.HypVINN.nii.gz (Hypothalamus Segmentation Mask)
             |-- transforms
-                |-- t2tot1.lta (FreeSurfer registration file, only available if registration is performed)
+                |-- t2tot1.lta (T2-to-T1 registration transform, only available if registration is performed)
         |-- qc_snapshots : QC outputs (optional)
             |-- hypothalamus.HypVINN_qc_screenshoot.png (Coronal quality control image)
         |-- stats : Statistics outputs                                                 

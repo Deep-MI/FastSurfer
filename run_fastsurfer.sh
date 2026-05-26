@@ -239,13 +239,13 @@ SEGMENTATION PIPELINE:
   --t2 <T2_input>         *Optional* T2 full head input (must be externally biasfield
                             corrected when called with --no_biasfield). Requires an
                             ABSOLUTE Path!
-  --reg_mode <none|coreg|robust>
+  --reg_mode <none|coreg>
                           Ignored, if no T2 image is passed.
-                            Specifies the registration method used to register T1
-                            and T2 images. Options are 'coreg' (default) for
-                            mri_coreg, 'robust' for mri_robust_register, and 'none'
-                            to skip registration (this requires T1 and T2 are
-                            externally co-registered).
+                             Specifies the registration method used to register T1
+                             and T2 images. Options are 'coreg' (default) for
+                             neuroreg.coreg and 'none' to skip registration
+                             (this requires T1 and T2 are externally
+                             co-registered).
   --qc_snap               Create QC snapshots in \$SUBJECTS_DIR/\$sid/qc_snapshots
                             to simplify the QC process.
 
@@ -515,8 +515,8 @@ case $key in
   --hypo_statsfile) hypo_statsfile="$1" ; shift ;;
   --reg_mode)
     mode=$(echo "$1" | tr "[:upper:]" "[:lower:]")
-    if [[ "$mode" =~ ^(none|coreg|robust)$ ]] ; then hypvinn_regmode="$mode"
-    else echo "Invalid --reg_mode option, must be 'none', 'coreg' or 'robust'." ; exit 1
+    if [[ "$mode" =~ ^(none|coreg)$ ]] ; then hypvinn_regmode="$mode"
+    else echo "Invalid --reg_mode option, must be 'none' or 'coreg'." ; exit 1
     fi
     shift # past value
     ;;
@@ -843,9 +843,6 @@ if [[ "$run_surf_pipeline" == "true" ]] ; then what_needs_license+=" and the sur
 if [[ "$run_seg_pipeline" == "true" ]] ; then
   if [[ "$run_biasfield" == "true" ]] && [[ "$run_talairach_registration" == "true" ]] ; then
     what_needs_license+=" and the talairach-registration in the segmentation pipeline"
-  fi
-  if [[ -n "$t2" ]] && [[ "$hypvinn_regmode" != "none" ]] ; then
-    what_needs_license+=" and the T1-T2 registration in the segmentation pipeline"
   fi
 fi
 if [[ -n "$what_needs_license" ]]
@@ -1402,7 +1399,7 @@ then
   if [[ "$run_hypvinn_module" == "true" ]]
   then
     echo "MODULE: HypVINN hypothalamus segmentation" >> "$exec_time_log"
-    # currently, the order of the T2 preprocessing only is registration to T1w
+    # currently, the T2 preprocessing step in HypVINN is registration to T1w
     cmd=($python "$hypvinndir/run_prediction.py" --sd "${sd}" --sid "${subject}" --reg_mode "$hypvinn_regmode"
          "${hypvinn_flags[@]}" --threads "$threads_seg" --async_io --batch_size "$batch_size" --seg_log "$seg_log"
          --device "$device" --viewagg_device "$viewagg" --t1)
