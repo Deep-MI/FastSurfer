@@ -142,9 +142,9 @@ def insert_point_with_thickness(
     Returns
     -------
     contour_in_as_space : np.ndarray
-        Updated contour of shape (N+1, 2).
+        Updated contour. Shape is unchanged if the point already exists, otherwise (N+1, 2).
     contour_thickness : np.ndarray
-        Updated thickness values of shape (N+1,).
+        Updated thickness values. Shape is unchanged if the point already exists, otherwise (N+1,).
     insertion_index : int
         The index, where the point was inserted (only if return_index is True).
     inserted : bool
