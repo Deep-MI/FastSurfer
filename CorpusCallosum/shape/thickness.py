@@ -113,7 +113,7 @@ def insert_point_with_thickness(
     point: np.ndarray,
     thickness_value: float,
     return_index: Literal[True],
-) -> tuple[np.ndarray, np.ndarray, int] | list[np.ndarray, np.ndarray]:
+) -> tuple[np.ndarray, np.ndarray, int, bool] | list[np.ndarray, np.ndarray]:
     ...
 
 
@@ -123,7 +123,7 @@ def insert_point_with_thickness(
     point: np.ndarray,
     thickness_value: float,
     return_index: bool = False
-) -> tuple[np.ndarray, np.ndarray, int] | tuple[np.ndarray, np.ndarray]:
+) -> tuple[np.ndarray, np.ndarray, int, bool] | tuple[np.ndarray, np.ndarray]:
     """Inserts a point and its thickness value into the contour.
 
     Parameters
@@ -147,6 +147,8 @@ def insert_point_with_thickness(
         Updated thickness values of shape (N+1,).
     insertion_index : int
         The index, where the point was inserted (only if return_index is True).
+    inserted : bool
+        Whether a new contour point was inserted (only if return_index is True).
     """
     existing_distances = np.linalg.norm(contour_in_as_space[:, :2] - point[:2], axis=1)
     existing_matches = np.where(existing_distances <= 1e-10)[0]
@@ -156,7 +158,7 @@ def insert_point_with_thickness(
             contour_thickness[point_idx] = thickness_value
 
         if return_index:
-            return contour_in_as_space, contour_thickness, point_idx
+            return contour_in_as_space, contour_thickness, point_idx, False
         else:
             return contour_in_as_space, contour_thickness
 
@@ -168,7 +170,7 @@ def insert_point_with_thickness(
     contour_thickness = np.insert(contour_thickness, edge_idx + 1, thickness_value)
 
     if return_index:
-        return contour_in_as_space, contour_thickness, edge_idx + 1
+        return contour_in_as_space, contour_thickness, edge_idx + 1, True
     else:
         return contour_in_as_space, contour_thickness
 
@@ -333,23 +335,21 @@ def cc_thickness(
         levelpath_start = levelpath_asz[0, :2]
         levelpath_end = levelpath_asz[-1, :2]
 
-        contour_length = len(contour_2d)
-        contour_2d, contour_thickness, inserted_idx_start = insert_point_with_thickness(
+        contour_2d, contour_thickness, inserted_idx_start, inserted_start = insert_point_with_thickness(
             contour_2d, contour_thickness, levelpath_start, lvlpath_length, return_index=True,
         )
         # keep track of start index
-        if len(contour_2d) > contour_length:
+        if inserted_start:
             if inserted_idx_start <= anterior_endpoint_idx:
                 anterior_endpoint_idx += 1
             if inserted_idx_start <= posterior_endpoint_idx:
                 posterior_endpoint_idx += 1
 
-        contour_length = len(contour_2d)
-        contour_2d, contour_thickness, inserted_idx_end = insert_point_with_thickness(
+        contour_2d, contour_thickness, inserted_idx_end, inserted_end = insert_point_with_thickness(
             contour_2d, contour_thickness, levelpath_end, lvlpath_length, return_index=True,
         )
         # keep track of end index
-        if len(contour_2d) > contour_length:
+        if inserted_end:
             if inserted_idx_end <= anterior_endpoint_idx:
                 anterior_endpoint_idx += 1
             if inserted_idx_end <= posterior_endpoint_idx:
