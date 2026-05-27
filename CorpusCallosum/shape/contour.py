@@ -320,6 +320,11 @@ class CCContour:
             closest_indices = known_idx[np.argsort(distances)[:2]]
             closest_distances = np.sort(distances)[:2]
 
+            zero_distance = closest_distances <= 1e-10
+            if np.any(zero_distance):
+                thickness[j] = np.mean(thickness[closest_indices[zero_distance]])
+                continue
+
             # Calculate weights based on inverse distance
             weights = 1.0 / closest_distances
             weights = weights / np.sum(weights)
