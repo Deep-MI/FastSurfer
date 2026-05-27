@@ -113,7 +113,7 @@ def insert_point_with_thickness(
     point: np.ndarray,
     thickness_value: float,
     return_index: Literal[True],
-) -> tuple[np.ndarray, np.ndarray, int, bool] | list[np.ndarray, np.ndarray]:
+) -> tuple[np.ndarray, np.ndarray, int, bool]:
     ...
 
 
