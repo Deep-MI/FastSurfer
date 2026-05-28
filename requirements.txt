@@ -60,7 +60,7 @@ multipledispatch==1.0.0
 narwhals==2.21.0
 networkx==3.6.1
 neurolit==0.6.1
-neuroreg==0.6.2
+neuroreg==0.6.3
 nibabel==5.4.2
 numpy==2.4.4
 packaging==26.2
