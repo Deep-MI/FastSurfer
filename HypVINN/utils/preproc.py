@@ -73,6 +73,7 @@ def t1_to_t2_registration(
             str(t1_path),
             lta_name=str(lta_path),
             mapped_name=str(output_path),
+            keep_dtype=True,
         )
     else:
         raise ValueError(f"Unknown registration type: {registration_type}")
