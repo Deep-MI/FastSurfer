@@ -34,7 +34,7 @@ runs:
   steps:
     - uses: actions/checkout@v4
     - name: Setup uv and Python 3.10
-      uses: astral-sh/setup-uv@v5
+      uses: astral-sh/setup-uv@v8.1.0
       with:
         python-version: '3.10'
     - name: Download and unpack reference data
