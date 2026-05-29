@@ -79,7 +79,6 @@ def test_image_headers(test_subject: SubjectDefinition, ref_subject: SubjectDefi
 
     # Load images
     test_file, test_img = test_subject.load_image(image)
-    reference_file, reference_img = ref_subject.load_image("")
     reference_file, reference_img = ref_subject.load_image(image)
 
     assert_same_headers(test_img.header, reference_img.header)
