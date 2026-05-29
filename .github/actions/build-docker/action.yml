@@ -34,7 +34,7 @@ runs:
   using: "composite"
   steps:
     - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v3
+      uses: docker/setup-buildx-action@v4
     - name: Recover freesurfer build image
       if: ${{ contains( inputs.freesurfer-build-image, 'fastsurfer-build:freesurfer') }}
       uses: Deep-MI/FastSurfer/.github/actions/load-docker@dev
@@ -68,7 +68,7 @@ runs:
         # Export image
         docker save "$image_name" -o /tmp/docker-image.tar
     - name: Save docker image
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: fastsurfer-${{ github.sha }}-${{ inputs.target }}
         path: |
