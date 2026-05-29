@@ -227,7 +227,7 @@ jobs:
           merge-multiple: 'true'
           path: /tmp
       - name: Write the results into the check
-        uses: mikepenz/action-junit-report@v5
+        uses: mikepenz/action-junit-report@v6
         with:
           report_paths: /tmp/fastsurfer-quicktest-*.junit.xml
           check_name: Annotate the test results as checks

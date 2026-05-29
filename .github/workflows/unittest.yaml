@@ -76,7 +76,7 @@ jobs:
           name: fastsurfer-${{ github.sha }}-${{ matrix.tests }}-junit
           path: /tmp/fastsurfer-unittest-${{ matrix.tests }}.junit.xml
       - name: Annotate the results into the check
-        uses: mikepenz/action-junit-report@v5
+        uses: mikepenz/action-junit-report@v6
         with:
           report_paths: /tmp/fastsurfer-unittest-${{ matrix.tests }}.junit.xml
           check_name: Annotate the test results as checks
