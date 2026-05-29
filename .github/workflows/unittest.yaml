@@ -39,9 +39,9 @@ jobs:
         pytest-flags: [""]
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Setup Python 3.10
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: '3.10'
           architecture: 'x64'
@@ -71,7 +71,7 @@ jobs:
           python -m pytest "${flags[@]}" ${{ matrix.pytest-flags }} test/${{ matrix.tests }}
           echo "::endgroup::"
       - name: Upload the JUnit XML file as an artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: fastsurfer-${{ github.sha }}-${{ matrix.tests }}-junit
           path: /tmp/fastsurfer-unittest-${{ matrix.tests }}.junit.xml

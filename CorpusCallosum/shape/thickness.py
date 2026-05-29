@@ -113,7 +113,7 @@ def insert_point_with_thickness(
     point: np.ndarray,
     thickness_value: float,
     return_index: Literal[True],
-) -> tuple[np.ndarray, np.ndarray, int] | list[np.ndarray, np.ndarray]:
+) -> tuple[np.ndarray, np.ndarray, int]:
     ...
 
 
@@ -148,6 +148,49 @@ def insert_point_with_thickness(
     insertion_index : int
         The index, where the point was inserted (only if return_index is True).
     """
+    existing_distances = np.linalg.norm(contour_in_as_space[:, :2] - point[:2], axis=1)
+    existing_matches = np.where(existing_distances <= 1e-10)[0]
+    if len(existing_matches) > 0:
+        point_idx = int(existing_matches[0])
+        if np.isnan(contour_thickness[point_idx]):
+            contour_thickness[point_idx] = thickness_value
+
+        # Keep the contour cardinality stable across slices, but avoid inserting
+        # an exact duplicate vertex. Exact duplicates create zero-length edges in
+        # visualization/mesh code, while skipping the point breaks the equal
+        # point-count invariant expected by CCMesh.from_contours().
+        before_idx = (point_idx - 1) % len(contour_in_as_space)
+        after_idx = (point_idx + 1) % len(contour_in_as_space)
+        before_vector = contour_in_as_space[before_idx, :2] - contour_in_as_space[point_idx, :2]
+        after_vector = contour_in_as_space[after_idx, :2] - contour_in_as_space[point_idx, :2]
+        before_length = np.linalg.norm(before_vector)
+        after_length = np.linalg.norm(after_vector)
+
+        if after_length >= before_length and after_length > 0:
+            insert_idx = point_idx + 1
+            direction = after_vector / after_length
+            edge_length = after_length
+        elif before_length > 0:
+            insert_idx = point_idx
+            direction = before_vector / before_length
+            edge_length = before_length
+        else:
+            insert_idx = point_idx + 1
+            direction = np.zeros_like(point[:2])
+            edge_length = 0.0
+
+        if edge_length > 0:
+            step = min(max(edge_length * 1e-6, 1e-8), edge_length * 0.5)
+            point = contour_in_as_space[point_idx, :2] + direction * step
+
+        contour_in_as_space = np.insert(contour_in_as_space, insert_idx, point, axis=0)
+        contour_thickness = np.insert(contour_thickness, insert_idx, thickness_value)
+
+        if return_index:
+            return contour_in_as_space, contour_thickness, insert_idx
+        else:
+            return contour_in_as_space, contour_thickness
+
     # Find closest edge for the point
     edge_idx = find_closest_edge(point, contour_in_as_space)
 

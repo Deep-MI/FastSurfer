@@ -145,7 +145,7 @@ def tria_spherical_project(
         return area
 
     fem = Solver(tria, lump=False, use_cholmod=use_cholmod)
-    evals, evecs = fem.eigs(k=4)
+    evals, evecs = fem.eigs(k=4, rng=0)
 
     if debug:
         data = dict()
