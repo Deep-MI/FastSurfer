@@ -115,7 +115,7 @@ runs:
         tar cfz "$DATA_DIR/${{ inputs.subject-id }}.tar.gz" -C "$DATA_DIR" "${{ inputs.subject-id }}"
     - name: Save processed data
       if: ${{ always() && (steps.prep.outputs.IMAGE_LOADED != 0 || steps.load-docker.outcome == 'success') }}
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: fastsurfer-${{ github.sha }}-${{ inputs.subject-id }}
         path: ${{ env.DATA_DIR }}/${{ inputs.subject-id }}
