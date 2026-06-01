@@ -863,7 +863,12 @@ def main(
     # Filter out None results for further processing
     valid_slice_results = [r for r in slice_results if r is not None]
     valid_cc_contours = [c for c in cc_contours if c is not None]
-    num_failed_slices += len(cc_contours) - len(valid_cc_contours)
+    if slice_selection == "middle":
+        result_slice_indices = [cc_fn_seg_labels.shape[0] // 2]
+    elif slice_selection == "all":
+        result_slice_indices = list(range(cc_fn_seg_labels.shape[0]))
+    else:
+        result_slice_indices = [int(slice_selection)]
     outer_contours = []
     cc_volume_contour = None
 
@@ -878,14 +883,35 @@ def main(
             )
         outer_contours = [slice_result["split_contours"][0] for slice_result in valid_slice_results]
 
-        if len(outer_contours) > 1 and not check_area_changes(outer_contours):
+        if num_failed_slices == 0 and len(outer_contours) > 1 and not check_area_changes(outer_contours):
             logger.warning(
                 "Large area changes detected between consecutive slices, this is likely due to a segmentation error."
             )
 
-    # Get middle slice result if available
-    middle_slice_idx = len(slice_results) // 2
-    middle_slice_result = slice_results[middle_slice_idx] if middle_slice_idx < len(slice_results) else None
+    def _select_middle_valid_slice():
+        """Select the center slice result, or the nearest valid result."""
+        if not slice_results:
+            return None, None, None
+        target_idx = len(slice_results) // 2
+        if slice_results[target_idx] is not None:
+            return target_idx, result_slice_indices[target_idx], slice_results[target_idx]
+
+        valid_results = [
+            (abs(i - target_idx), i, result)
+            for i, result in enumerate(slice_results)
+            if result is not None
+        ]
+        if not valid_results:
+            return None, None, None
+
+        _, nearest_idx, nearest_result = min(valid_results)
+        logger.warning(
+            f"Middle slice morphometry failed; using nearest valid slice result at position {nearest_idx + 1} "
+            f"of {len(slice_results)}."
+        )
+        return nearest_idx, result_slice_indices[nearest_idx], nearest_result
+
+    selected_slice_position, selected_slice_idx, middle_slice_result = _select_middle_valid_slice()
 
     # map soft labels to original space (in parallel because this takes a while, and we only do it to save the labels)
     if sd.has_attribute("cc_orig_segfile"):
@@ -944,7 +970,7 @@ def main(
     voxel_volume = np.prod(vox_size)
     additional_metrics["voxel_volume"] = voxel_volume
 
-    if len(valid_cc_contours) > 1:
+    if num_failed_slices == 0 and len(valid_cc_contours) > 1:
         logger.info(
             f"CC voxel count: {cc_num_voxel} at {voxel_volume:.2f} mm^3 voxel volume => "
             f"{cc_num_voxel * voxel_volume:.2f} mm^3"
@@ -980,6 +1006,13 @@ def main(
     additional_metrics["num_thickness_points"] = num_thickness_points
     additional_metrics["subdivision_method"] = subdivision_method
     additional_metrics["subdivision_ratios"] = subdivisions
+    additional_metrics["selected_morphometry_slice"] = selected_slice_idx
+    additional_metrics["selected_morphometry_slice_position"] = selected_slice_position
+    additional_metrics["selected_morphometry_slice_is_fallback"] = (
+        selected_slice_position is not None
+        and slice_results
+        and selected_slice_position != len(slice_results) // 2
+    )
     additional_metrics["contour_smoothing"] = contour_smoothing
     additional_metrics["slice_selection"] = slice_selection
     additional_metrics["midline_refine_shift_vox"] = float(midline_shift_vox)

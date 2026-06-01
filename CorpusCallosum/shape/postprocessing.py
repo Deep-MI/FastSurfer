@@ -97,7 +97,7 @@ def recon_cc_surf_measures_multi(
     subdivision_method: SubdivisionMethod,
     contour_smoothing: int,
     subject_dir: SubjectDirectory,
-) -> tuple[list[CCMeasuresDict], list[concurrent.futures.Future], list[CCContour]]:
+) -> tuple[list[CCMeasuresDict | None], list[concurrent.futures.Future], list[CCContour], int]:
     """Surface reconstruction and metrics computation of corpus callosum slices based on selection mode.
 
     Parameters
@@ -134,8 +134,9 @@ def recon_cc_surf_measures_multi(
 
     Returns
     -------
-    list of CCMeasuresDict
-        List of slice processing results.
+    list of CCMeasuresDict or None
+        List of slice processing results in requested slice order. Failed slices
+        are represented by None.
     list of concurrent.futures.Future
         List of background IO processes.
     list of CCContour
@@ -143,7 +144,7 @@ def recon_cc_surf_measures_multi(
     int
         Number of failed slices.
     """
-    slice_cc_measures: list[CCMeasuresDict] = []
+    slice_cc_measures: list[CCMeasuresDict | None] = []
     io_futures = []
 
     if subdivision_method == "angular" and not np.allclose(np.diff(subdivisions), np.diff(subdivisions)[0]):
@@ -172,7 +173,7 @@ def recon_cc_surf_measures_multi(
         num_slices = segmentation.shape[0]
         start_slice = 0
         end_slice = segmentation.shape[0]
-        slices_to_recon = range(start_slice, end_slice)
+        slices_to_recon = list(range(start_slice, end_slice))
     else:  # specific slice number
         num_slices = 1
         slices_to_recon = [int(slice_selection)]
@@ -184,43 +185,40 @@ def recon_cc_surf_measures_multi(
     fsavg_midslab_vox2ras = fsavg_vox2ras @ np.linalg.inv(fsavg2midslab_vox2vox)
     per_slice_vox2ras = fsavg_midslab_vox2ras @ np.stack(list(map(_gen_slice2slab_vox2vox, slices_to_recon)), axis=0)
 
-    per_slice_recon = process_executor().map(_each_slice, slices_to_recon, per_slice_vox2ras, chunksize=1)
-    cc_contours = []
+    slice_cc_measures = [None] * num_slices
+    cc_contours_by_slice: list[CCContour | None] = [None] * num_slices
 
     run = thread_executor().submit
     wants_output = subject_dir.has_attribute
     output_path = subject_dir.filename_by_attribute
 
-    def _zip_failed(it_idx, it_affine, it_result):
-        """Zip slice indices, affines, and results, logging errors for failed slices."""
-        _sentinel = object()
-        for idx, affine in zip(it_idx, it_affine, strict=True):
-            try:
-                result = next(it_result, _sentinel)
-            except Exception as e:
-                logger.error(f"Processing slice {idx} failed: {e}")
-                logger.exception(e)
-                yield idx, affine, (None, None)
-                continue
-            if result is _sentinel:
-                logger.error("Number of items in idx and affine did not match results")
-                return
-            yield idx, affine, result
-
-    slice_iterator = _zip_failed(slices_to_recon, per_slice_vox2ras, iter(per_slice_recon))
-    for i, (slice_idx, this_slice_vox2ras, _results) in enumerate(slice_iterator):
+    executor = process_executor()
+    recon_futures = {
+        executor.submit(_each_slice, slice_idx, this_slice_vox2ras): (
+            i, slice_idx, this_slice_vox2ras,
+        )
+        for i, (slice_idx, this_slice_vox2ras) in enumerate(
+            zip(slices_to_recon, per_slice_vox2ras, strict=True)
+        )
+    }
+    for future in concurrent.futures.as_completed(recon_futures):
+        i, slice_idx, this_slice_vox2ras = recon_futures[future]
         progress = f" ({i+1} of {num_slices})" if num_slices > 1 else ""
-        # unpack values from _results
-        cc_measures: CCMeasuresDict | None = _results[0]
-        _contour: CCContour | None = _results[1]
+        try:
+            cc_measures, _contour = future.result()
+        except Exception as e:
+            logger.error(f"Processing slice {slice_idx} failed: {e}")
+            logger.exception(e)
+            cc_measures = None
+            _contour = None
 
         if cc_measures is None or _contour is None:
             logger.warning(f"Calculating CC measurements for slice {slice_idx+1}{progress} failed")
             continue
 
         logger.info(f"Calculating CC measurements for slice {slice_idx+1}{progress}")
-        cc_contours.append(_contour)
-        slice_cc_measures.append(cc_measures)
+        cc_contours_by_slice[i] = _contour
+        slice_cc_measures[i] = cc_measures
         is_debug = logger.getEffectiveLevel() <= logging.DEBUG
         is_midslice = i == num_slices // 2
         if wants_output("cc_qc_image") and (is_debug or is_midslice):
@@ -249,17 +247,21 @@ def recon_cc_surf_measures_multi(
                 )
             )
 
+    cc_contours = [contour for contour in cc_contours_by_slice if contour is not None]
+
     if wants_output("save_template_dir"):
         template_dir = output_path("save_template_dir")
         # ensure directory exists
         template_dir.mkdir(parents=True, exist_ok=True)
         logger.info("Saving template files (contours.txt, thickness_values.txt, "
                     f"thickness_measurement_points.txt) to {template_dir}")
-        for j in range(len(cc_contours)):
-            io_futures.append(run(cc_contours[j].save_contour, template_dir / f"contour_{j}.txt"))
-            io_futures.append(run(cc_contours[j].save_thickness_values, template_dir / f"thickness_values_{j}.txt"))
+        for j, contour in enumerate(cc_contours_by_slice):
+            if contour is None:
+                continue
+            io_futures.append(run(contour.save_contour, template_dir / f"contour_{j}.txt"))
+            io_futures.append(run(contour.save_thickness_values, template_dir / f"thickness_values_{j}.txt"))
 
-    num_failed_slices = num_slices - len(cc_contours)
+    num_failed_slices = slice_cc_measures.count(None)
 
     mesh_outputs = ("html", "mesh", "thickness_overlay", "surf", "thickness_image")
     if len(cc_contours) > 1 and any(wants_output(f"cc_{n}") for n in mesh_outputs):
