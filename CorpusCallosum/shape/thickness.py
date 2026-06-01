@@ -333,6 +333,15 @@ def cc_thickness(
             # If midline computation fails, we cannot proceed with thickness calculation
             raise RuntimeError(f"Corpus callosum midline computation failed: {e}") from e
 
+        # LaPy orders open level paths by internal graph traversal, not by
+        # anatomical endpoint semantics. Downstream subdivision expects the
+        # midline to run from anterior to posterior.
+        anterior_endpoint = contour_2d[anterior_endpoint_idx]
+        start_dist_to_anterior = np.linalg.norm(midline_equidistant_asz[0, :2] - anterior_endpoint)
+        end_dist_to_anterior = np.linalg.norm(midline_equidistant_asz[-1, :2] - anterior_endpoint)
+        if start_dist_to_anterior > end_dist_to_anterior:
+            midline_equidistant_asz = midline_equidistant_asz[::-1]
+
         midline_equidistant_contour_space: np.ndarray = midline_equidistant_asz[:, :2]
 
         gf = compute_rotated_f(tria_asz, vfunc)
