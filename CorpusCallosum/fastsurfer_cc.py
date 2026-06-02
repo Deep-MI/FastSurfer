@@ -834,7 +834,13 @@ def main(
 
     logger.info(f"Processing slices with selection mode: {slice_selection}")
     try:
-        slice_results, slice_io_futures, cc_contours, num_failed_slices = recon_cc_surf_measures_multi(
+        (
+            slice_results,
+            slice_io_futures,
+            cc_contours,
+            num_failed_slices,
+            result_slice_indices,
+        ) = recon_cc_surf_measures_multi(
             segmentation=cc_fn_seg_labels,
             slice_selection=slice_selection,
             orig_header=orig.header,
@@ -859,16 +865,16 @@ def main(
         slice_io_futures = []
         cc_contours = []
         num_failed_slices = cc_fn_seg_labels.shape[0] if slice_selection == "all" else 1
+        if slice_selection == "middle":
+            result_slice_indices = [cc_fn_seg_labels.shape[0] // 2]
+        elif slice_selection == "all":
+            result_slice_indices = list(range(cc_fn_seg_labels.shape[0]))
+        else:
+            result_slice_indices = [int(slice_selection)]
 
     # Filter out None results for further processing
     valid_slice_results = [r for r in slice_results if r is not None]
     valid_cc_contours = [c for c in cc_contours if c is not None]
-    if slice_selection == "middle":
-        result_slice_indices = [cc_fn_seg_labels.shape[0] // 2]
-    elif slice_selection == "all":
-        result_slice_indices = list(range(cc_fn_seg_labels.shape[0]))
-    else:
-        result_slice_indices = [int(slice_selection)]
     outer_contours = []
     cc_volume_contour = None
 
@@ -1008,7 +1014,7 @@ def main(
     additional_metrics["subdivision_ratios"] = subdivisions
     additional_metrics["selected_morphometry_slice"] = selected_slice_idx
     additional_metrics["selected_morphometry_slice_position"] = selected_slice_position
-    additional_metrics["selected_morphometry_slice_is_fallback"] = (
+    additional_metrics["selected_morphometry_slice_is_fallback"] = bool(
         selected_slice_position is not None
         and slice_results
         and selected_slice_position != len(slice_results) // 2

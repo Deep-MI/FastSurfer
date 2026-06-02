@@ -97,7 +97,13 @@ def recon_cc_surf_measures_multi(
     subdivision_method: SubdivisionMethod,
     contour_smoothing: int,
     subject_dir: SubjectDirectory,
-) -> tuple[list[CCMeasuresDict | None], list[concurrent.futures.Future], list[CCContour], int]:
+) -> tuple[
+    list[CCMeasuresDict | None],
+    list[concurrent.futures.Future],
+    list[CCContour],
+    int,
+    list[int],
+]:
     """Surface reconstruction and metrics computation of corpus callosum slices based on selection mode.
 
     Parameters
@@ -143,6 +149,8 @@ def recon_cc_surf_measures_multi(
         List of CC contours.
     int
         Number of failed slices.
+    list of int
+        Slice indices requested for reconstruction, in result order.
     """
     slice_cc_measures: list[CCMeasuresDict | None] = []
     io_futures = []
@@ -201,9 +209,9 @@ def recon_cc_surf_measures_multi(
             zip(slices_to_recon, per_slice_vox2ras, strict=True)
         )
     }
-    for future in concurrent.futures.as_completed(recon_futures):
+    for completion_idx, future in enumerate(concurrent.futures.as_completed(recon_futures), start=1):
         i, slice_idx, this_slice_vox2ras = recon_futures[future]
-        progress = f" ({i+1} of {num_slices})" if num_slices > 1 else ""
+        progress = f" ({completion_idx} of {num_slices})" if num_slices > 1 else ""
         try:
             cc_measures, _contour = future.result()
         except Exception as e:
@@ -271,7 +279,7 @@ def recon_cc_surf_measures_multi(
                 f"{num_failed_slices} of {num_slices} requested slices. "
                 "Surface generation requires a complete slice set to preserve the physical slab spacing.",
             )
-            return slice_cc_measures, io_futures, cc_contours, num_failed_slices
+            return slice_cc_measures, io_futures, cc_contours, num_failed_slices, slices_to_recon
 
         _cc_contours = thread_executor().map(_resample_thickness, cc_contours)
         # Surface vertices represent the continuous analysis slab. The
@@ -322,7 +330,7 @@ def recon_cc_surf_measures_multi(
             logger.error("Error: No valid slices were found for postprocessing")
             raise ValueError("No valid slices were found for postprocessing")
 
-    return slice_cc_measures, io_futures, cc_contours, num_failed_slices
+    return slice_cc_measures, io_futures, cc_contours, num_failed_slices, slices_to_recon
 
 
 def _resample_thickness(contour: CCContour) -> CCContour:
