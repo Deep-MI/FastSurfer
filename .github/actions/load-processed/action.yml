@@ -25,7 +25,7 @@ runs:
           exit 1
         fi
     - name: Recover processed files
-      uses: actions/download-artifact@v4
+      uses: actions/download-artifact@v8
       with:
         name: fastsurfer-${{ github.sha }}-${{ inputs.subject-id }}
         path: ${{ inputs.subjects-dir }}/${{ inputs.subject-id }}

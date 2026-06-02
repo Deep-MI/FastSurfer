@@ -32,9 +32,9 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
     - name: Setup uv and Python 3.10
-      uses: astral-sh/setup-uv@v5
+      uses: astral-sh/setup-uv@v8.1.0
       with:
         python-version: '3.10'
     - name: Download and unpack reference data
@@ -72,7 +72,7 @@ runs:
         uv run --extra quicktest python -m pytest "${flags[@]}" test/quicktest
         echo "::endgroup::"
     - name: Upload the the JUnit XML file as an artifact
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: fastsurfer-${{ github.sha }}-junit-${{ inputs.subject-id }}
         path: ${{ inputs.junit-file }}

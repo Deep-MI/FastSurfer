@@ -300,7 +300,9 @@ def test_stats_table(
             expected_selected_cols = filter_keys(expected)
             actual = actual_table[actual_segids.index(expected_segid)]
             actual_selected_cols = filter_keys(actual)
-            if expected_selected_cols != Approx(actual_selected_cols, abs=stats_tolerances.threshold(expected_segid)):
+            if expected_selected_cols != Approx(
+                    actual_selected_cols, abs=stats_tolerances.threshold(expected_segid)[1],
+            ):
                 expected_conflicts.append(expected)
                 actual_conflicts.append(actual)
             if delta_dir:

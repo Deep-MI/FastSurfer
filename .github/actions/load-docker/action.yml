@@ -20,7 +20,7 @@ runs:
   steps:
     - name: Restore docker image from an artifact
       if: inputs.docker-image == 'build-cached'
-      uses: actions/download-artifact@v4
+      uses: actions/download-artifact@v8
       with:
         name: fastsurfer-${{ github.sha }}-${{ inputs.target }}
         path: /tmp
