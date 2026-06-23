@@ -38,7 +38,7 @@ dependencies = [
     'matplotlib>=3.7.1',
     'meshpy>=2025.1.1', # needed for FastSurfer-CC
     'monai>=1.4.0', # needed for FastSurfer-CC
-    'neuroreg>=0.6.3', # needed for registration / etiv
+    'neuroreg>=0.8.1', # needed for registration / etiv
     'nibabel>=5.4.0', # needed to fix a bug in nibabel
     'numpy>=1.25',
     'packaging',
