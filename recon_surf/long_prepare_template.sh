@@ -39,7 +39,7 @@
 #   - Add flag for adding a new time point to an existing base/template.
 #
 #  FreeSurfer requirements: 
-#  mri_convert (input import), mri_mask, mri_diff (geometry consistency check)
+#  mri_mask, mri_diff (geometry consistency check)
 #  neuroreg requirements: multireg, segreg, vol2vol, lta
 #
 ###################################################################################################
