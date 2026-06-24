@@ -39,7 +39,7 @@
 #   - Add flag for adding a new time point to an existing base/template.
 #
 #  FreeSurfer requirements: 
-#  mri_convert (input import), mri_mask, mri_diff (geometry consistency check)
+#  mri_mask, mri_diff (geometry consistency check)
 #  neuroreg requirements: multireg, segreg, vol2vol, lta
 #
 ###################################################################################################
@@ -337,7 +337,7 @@ for ((i=0;i<${#tpids[@]};++i)); do
   mkdir -p "$mdir"
   # Import (copy) raw inputs (convert to extension format)
   t1input=$mdir/cross_input${extension}
-  cmd="mri_convert ${t1s[i]} $t1input"
+  cmd="$python -m neuroreg.cli.vol2vol --mov ${t1s[i]} --out $t1input"
   RunIt "$cmd" "$LF"
   
   # conform !!!!!!! should we conform to some common value, determined from all time points?? !!!!!!
