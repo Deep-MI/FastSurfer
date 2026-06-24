@@ -452,7 +452,7 @@ else #more than 1 time point:
   cmd="$cmd --sat 4.685 $device_opt"
   RunIt "$cmd" "$LF"
 
-  # create the 'mean/median' input (orig) volume by re-using the transforms above (no
+  # create the 'mean/median' input (orig) volume by reusing the transforms above (no
   # registration, --noit); the per-tp LTAs carry the base geometry so orig.mgz lands on
   # the same grid as base_brainmask:
   cmd="$python -m neuroreg.cli.multireg --mov ${subjInVols[*]}"
