@@ -39,7 +39,7 @@
 #   - Add flag for adding a new time point to an existing base/template.
 #
 #  FreeSurfer requirements: 
-#  mri_mask, mri_diff (geometry consistency check)
+#  mri_diff (geometry consistency check)
 #  neuroreg requirements: multireg, segreg, vol2vol, lta
 #
 ###################################################################################################
@@ -366,7 +366,7 @@ for ((i=0;i<${#tpids[@]};++i)); do
   run_it "$LF" "${cmda[@]}"
   
   # mask is binary, we need to use on conformed image:
-  cmda=(mri_mask "$conformed_name" "$mask_name" "$mdir/cross_brainmask${extension}")
+  cmda=($python -m neuroreg.cli.vol2vol --mov "$conformed_name" --mask "$mask_name" --out "$mdir/cross_brainmask${extension}")
   run_it "$LF" "${cmda[@]}"
 done
 

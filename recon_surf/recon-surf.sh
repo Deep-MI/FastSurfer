@@ -468,7 +468,7 @@ fi
 
 # create orig.mgz and aparc.DKTatlas+aseg.orig.mgz (copy of T1 and segmentation)
 # also ensures .mgz format (in case inputs are nifti)
-cmd="mri_convert $t1 $mdir/orig.mgz"
+cmd="$python -m neuroreg.cli.vol2vol --mov $t1 --out $mdir/orig.mgz"
 RunIt "$cmd" "$LF"
 
 asegdkt_segfile_manedit=$(add_file_suffix "$asegdkt_segfile" "manedit")
@@ -477,7 +477,7 @@ if [[ ! "$asegdkt_segfile_manedit" =~ (\.manedit){2,}\. ]] && [[ -f "$asegdkt_se
 then
     asegdkt_segfile="$asegdkt_segfile_manedit" # use the manedit file
 fi
-cmd="mri_convert $asegdkt_segfile $mdir/aparc.DKTatlas+aseg.orig.mgz"
+cmd="$python -m neuroreg.cli.vol2vol --mov $asegdkt_segfile --out $mdir/aparc.DKTatlas+aseg.orig.mgz"
 RunIt "$cmd" "$LF"
 
 # link original T1 input to rawavg (needed by pctsurfcon)
@@ -597,7 +597,7 @@ fi
 
 # the difference between nu and orig_nu is the fact that nu has the talairach-registration header
 # create norm by masking nu (supports manedit-ed mask)
-cmda=(mri_mask "$mdir/nu.mgz" "$mask" "$mdir/norm.mgz")
+cmda=($python -m neuroreg.cli.vol2vol --mov "$mdir/nu.mgz" --mask "$mask" --out "$mdir/norm.mgz")
 run_it "$LF" "${cmda[@]}"
 if [[ "$get_t1" == "true" ]]
 then
@@ -618,7 +618,7 @@ then
   cmda=(mri_normalize -g 1 -seed 1234 -mprage "$mdir/nu.mgz" "$mdir/T1.mgz" "${noconform_if_hires[@]}")
   run_it "$LF" "${cmda[@]}"
   # create brainmask by masking T1 (supports manedit-ed mask)
-  cmda=(mri_mask "$mdir/T1.mgz" "$mask" "$mdir/brainmask.mgz")
+  cmda=($python -m neuroreg.cli.vol2vol --mov "$mdir/T1.mgz" --mask "$mask" --out "$mdir/brainmask.mgz")
   run_it "$LF" "${cmda[@]}"
 else
   # create brainmask by linkage to norm.mgz (masked nu.mgz)
