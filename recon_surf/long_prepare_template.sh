@@ -38,9 +38,7 @@
 #   - Maybe use intersection of tp masks as brainmask for base, as done in FreeSurfer.
 #   - Add flag for adding a new time point to an existing base/template.
 #
-#  FreeSurfer requirements: 
-#  mri_diff (geometry consistency check)
-#  neuroreg requirements: multireg, segreg, vol2vol, lta
+#  neuroreg requirements: multireg, segreg, vol2vol, lta, mri (mask, diff, info)
 #
 ###################################################################################################
 
@@ -289,7 +287,7 @@ do
   # check if geometry differs across time
   if [[ "$s" != "${t1s[0]}" ]]
   then
-    cmda=(mri_diff --notallow-pix --notallow-geo "$s" "${t1s[0]}" --res-thresh "0.000001")
+    cmda=($python -m neuroreg.cli.mri diff --notallow-pix --notallow-geo "$s" "${t1s[0]}" --res-thresh "0.000001")
     difftext=$("${cmda[@]}")
     retcode=${PIPESTATUS[0]}
     if [[ "$retcode" != 0 ]] ; then geodiff+="Comparing $s and ${t1s[0]} (code $retcode):\n$difftext\n" ; fi
@@ -302,7 +300,7 @@ then
     echo "*******************************************************************************" 
     echo "WARNING: Image parameters differ across time, maybe due to acquisition changes?"
     echo "         Consistent changes in, e.g., resolution can potentially bias a "
-    echo "         longitudinal study! You can check image parameters by running mri_info"
+    echo "         longitudinal study! You can check image parameters by running neuroreg mri info"
     echo "         on each input image."
     echo "*******************************************************************************"
     echo "$geodiff"
@@ -337,7 +335,7 @@ for ((i=0;i<${#tpids[@]};++i)); do
   mkdir -p "$mdir"
   # Import (copy) raw inputs (convert to extension format)
   t1input=$mdir/cross_input${extension}
-  cmd="$python -m neuroreg.cli.vol2vol --mov ${t1s[i]} --out $t1input"
+  cmd="$python -m neuroreg.cli.vol2vol --in ${t1s[i]} --out $t1input"
   RunIt "$cmd" "$LF"
   
   # conform !!!!!!! should we conform to some common value, determined from all time points?? !!!!!!
@@ -366,7 +364,7 @@ for ((i=0;i<${#tpids[@]};++i)); do
   run_it "$LF" "${cmda[@]}"
   
   # mask is binary, we need to use on conformed image:
-  cmda=($python -m neuroreg.cli.vol2vol --mov "$conformed_name" --mask "$mask_name" --out "$mdir/cross_brainmask${extension}")
+  cmda=($python -m neuroreg.cli.mri mask "$conformed_name" "$mask_name" "$mdir/cross_brainmask${extension}")
   run_it "$LF" "${cmda[@]}"
 done
 
@@ -426,13 +424,13 @@ then
   # 2. create the base brainmask by mapping the norm into the base pose. The transform is
   #    RAS-to-RAS, so the target geometry is taken from the input itself (--ref), keeping
   #    the base in the time point geometry.
-  cmd="$python -m neuroreg.cli.vol2vol --mov ${normInVols[0]} --transform ${ltaXforms[0]}"
+  cmd="$python -m neuroreg.cli.vol2vol --in ${normInVols[0]} --transform ${ltaXforms[0]}"
   cmd="$cmd --ref ${normInVols[0]} --interp cubic"
   cmd="$cmd --out ${SUBJECTS_DIR}/$tid/mri/base_brainmask${extension}"
   RunIt "$cmd" "$LF"
 
   # 3. create the base orig volume the same way
-  cmd="$python -m neuroreg.cli.vol2vol --mov ${subjInVols[0]} --transform ${ltaXforms[0]}"
+  cmd="$python -m neuroreg.cli.vol2vol --in ${subjInVols[0]} --transform ${ltaXforms[0]}"
   cmd="$cmd --ref ${subjInVols[0]} --interp cubic"
   cmd="$cmd --out ${SUBJECTS_DIR}/$tid/mri/orig.mgz"
   RunIt "$cmd" "$LF"
@@ -481,7 +479,7 @@ do
   mdir="$SUBJECTS_DIR/$tid/long-inputs/${tpids[i]}"
   # map orig to base space; the transforms are RAS-to-RAS, so the base geometry is supplied
   # explicitly via --ref (rather than relying on a target geometry stored in the transform)
-  cmd="$python -m neuroreg.cli.vol2vol --mov $mdir/cross_input${extension}"
+  cmd="$python -m neuroreg.cli.vol2vol --in $mdir/cross_input${extension}"
   cmd="$cmd --transform ${ltaXforms[$i]} --ref ${SUBJECTS_DIR}/$tid/mri/base_brainmask${extension}"
   cmd="$cmd --interp $interpol --out $mdir/long_conform${extension}"
   RunIt "$cmd" "$LF"
