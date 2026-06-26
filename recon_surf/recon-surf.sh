@@ -528,7 +528,7 @@ fi
 
 # create orig.mgz and aparc.DKTatlas+aseg.orig.mgz (copy of T1 and segmentation)
 # also ensures .mgz format (in case inputs are nifti)
-cmd="$python -m neuroreg.cli.vol2vol --mov $t1 --out $mdir/orig.mgz"
+cmd="$python -m neuroreg.cli.vol2vol --in $t1 --out $mdir/orig.mgz"
 RunIt "$cmd" "$LF"
 
 asegdkt_segfile_manedit=$(add_file_suffix "$asegdkt_segfile" "manedit")
@@ -537,7 +537,7 @@ if [[ ! "$asegdkt_segfile_manedit" =~ (\.manedit){2,}\. ]] && [[ -f "$asegdkt_se
 then
     asegdkt_segfile="$asegdkt_segfile_manedit" # use the manedit file
 fi
-cmd="$python -m neuroreg.cli.vol2vol --mov $asegdkt_segfile --out $mdir/aparc.DKTatlas+aseg.orig.mgz"
+cmd="$python -m neuroreg.cli.vol2vol --in $asegdkt_segfile --out $mdir/aparc.DKTatlas+aseg.orig.mgz"
 RunIt "$cmd" "$LF"
 
 # pctsurfcon reads mri/rawavg.mgz and hardcodes that path. run_fastsurfer.sh writes it from the
@@ -688,7 +688,7 @@ fi
 
 # the difference between nu and orig_nu is the fact that nu has the talairach-registration header
 # create norm by masking nu (supports manedit-ed mask)
-cmda=($python -m neuroreg.cli.vol2vol --mov "$mdir/nu.mgz" --mask "$mask" --out "$mdir/norm.mgz")
+cmda=($python -m neuroreg.cli.mri mask "$mdir/nu.mgz" "$mask" "$mdir/norm.mgz")
 run_it "$LF" "${cmda[@]}"
 # T1.mgz is a link to nu.mgz, as in FreeSurfer's seg2recon: tools such as fMRIPrep read it as the
 # full head image in FreeSurfer space. brainmask.mgz is norm.mgz, which masks the same voxels.
