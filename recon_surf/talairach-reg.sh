@@ -162,7 +162,7 @@ else
 
     prealigned_name=$mdir/segreg_prealigned.mgz
     target_geom="$FREESURFER_HOME/average/mni305.cor.mgz" # only used for its conformed 1mm header; does not imply registration to this template
-    cmd=($python -m neuroreg.cli.vol2vol --mov "$norm_name" --transform "$prealigned_lta" --ref "$target_geom" --interp linear --out "$prealigned_name")
+    cmd=($python -m neuroreg.cli.vol2vol --in "$norm_name" --transform "$prealigned_lta" --ref "$target_geom" --interp linear --out "$prealigned_name")
     run_it "$LF" "${cmd[@]}"
 
     # talairach.xfm: compute talairach full head (25sec)
