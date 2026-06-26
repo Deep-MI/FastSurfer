@@ -48,7 +48,7 @@ jobs:
           mkdir assets
           mv tools/macos_build/installer/* assets/
       - name: Upload release assets.
-        uses: softprops/action-gh-release@v3.0.0
+        uses: softprops/action-gh-release@v3.0.1
         if: github.event_name == 'release' && github.event.action == 'published'
         with:
           files: ${{ env.FASTSURFER_DIR }}/assets/*
