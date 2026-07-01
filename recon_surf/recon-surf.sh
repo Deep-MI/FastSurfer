@@ -794,7 +794,7 @@ for hemi in lh rh ; do
       echo "echo \"\""
     } | tee -a "$CMDF"
 
-    cmd="recon-all -subject $subject -hemi $hemi -fix -no-isrunning -umask $(umask) $hiresflag -threads 1 -itkthreads 1"
+    cmd="recon-all -subject $subject -hemi $hemi -fix -no-isrunning -umask $(umask) $hiresflag $fsthreads"
     RunIt "$cmd" "$LF" "$CMDF"
 
     # fix the surfaces if they are corrupt
