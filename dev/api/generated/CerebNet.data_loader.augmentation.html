@@ -593,14 +593,14 @@ Labels can share the same statistics by being regrouped into K classes.</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><dl>
-<dt><strong>image</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/glossary.html#term-array_like" title="(in NumPy v2.4)"><span>array_like</span></a></span></dt><dd><p>Image from which to evaluate mean intensity and std deviation.</p>
+<dt><strong>image</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/glossary.html#term-array_like" title="(in NumPy v2.5)"><span>array_like</span></a></span></dt><dd><p>Image from which to evaluate mean intensity and std deviation.</p>
 </dd>
-<dt><strong>segmentation</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/glossary.html#term-array_like" title="(in NumPy v2.4)"><span>array_like</span></a></span></dt><dd><p>Segmentation of the input image. Must have the same size as image.</p>
+<dt><strong>segmentation</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/glossary.html#term-array_like" title="(in NumPy v2.5)"><span>array_like</span></a></span></dt><dd><p>Segmentation of the input image. Must have the same size as image.</p>
 </dd>
-<dt><strong>labels_list</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/glossary.html#term-array_like" title="(in NumPy v2.4)"><span>array_like</span></a></span></dt><dd><p>List of labels for which to evaluate mean and std intensity.
+<dt><strong>labels_list</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/glossary.html#term-array_like" title="(in NumPy v2.5)"><span>array_like</span></a></span></dt><dd><p>List of labels for which to evaluate mean and std intensity.
 Can be a sequence, a 1d numpy array, or the path to a 1d numpy array.</p>
 </dd>
-<dt><strong>classes_list</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/glossary.html#term-array_like" title="(in NumPy v2.4)"><span>array_like</span></a>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">optional</span></code></span></dt><dd><p>Enables grouping structures into classes of similar intensity statistics.
+<dt><strong>classes_list</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/glossary.html#term-array_like" title="(in NumPy v2.5)"><span>array_like</span></a>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">optional</span></code></span></dt><dd><p>Enables grouping structures into classes of similar intensity statistics.
 The intensities associated with regrouped labels will contribute to the same
 Gaussian during statistics estimation. Can be a sequence, a 1D numpy array,
 or the path to a 1D numpy array. It should have the same length as <code class="xref py py-obj docutils literal notranslate"><span class="pre">labels_list</span></code>,
@@ -615,7 +615,7 @@ which we keep positive and zero values, as we consider it to be the background l
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><dl class="simple">
-<dt><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.4)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">numpy.ndarray</span></code></a></dt><dd><p>A numpy array of size (2, K), the first row being the mean intensity for each structure,
+<dt><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.5)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">numpy.ndarray</span></code></a></dt><dd><p>A numpy array of size (2, K), the first row being the mean intensity for each structure,
 and the second being the median absolute deviation (robust estimation of std).</p>
 </dd>
 </dl>

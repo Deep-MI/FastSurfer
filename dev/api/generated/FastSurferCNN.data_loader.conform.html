@@ -532,9 +532,9 @@ convention (<code class="docutils literal notranslate"><span class="pre">(shape<
 </dd>
 <dt><strong>target_affine</strong><span class="classifier"><code class="xref py py-obj docutils literal notranslate"><span class="pre">AffineMatrix4x4</span></code>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">AffineMatrix3x3</span></code></span></dt><dd><p>The target affine to reorient to.</p>
 </dd>
-<dt><strong>shape</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/glossary.html#term-array_like" title="(in NumPy v2.4)"><span>array_like</span></a> <code class="xref py py-obj docutils literal notranslate"><span class="pre">of</span></code> <code class="xref py py-obj docutils literal notranslate"><span class="pre">shape</span></code> (3,)</span></dt><dd><p>The source shape of the data to reorder. If a “wrong shape” is passed, the vox2vox offset will corrupt.</p>
+<dt><strong>shape</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/glossary.html#term-array_like" title="(in NumPy v2.5)"><span>array_like</span></a> <code class="xref py py-obj docutils literal notranslate"><span class="pre">of</span></code> <code class="xref py py-obj docutils literal notranslate"><span class="pre">shape</span></code> (3,)</span></dt><dd><p>The source shape of the data to reorder. If a “wrong shape” is passed, the vox2vox offset will corrupt.</p>
 </dd>
-<dt><strong>target_shape</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/glossary.html#term-array_like" title="(in NumPy v2.4)"><span>array_like</span></a> <code class="xref py py-obj docutils literal notranslate"><span class="pre">of</span></code> <code class="xref py py-obj docutils literal notranslate"><span class="pre">shape</span></code> (3,), <code class="xref py py-obj docutils literal notranslate"><span class="pre">optional</span></code></span></dt><dd><p>The target shape in native coordinates, defaults to shape.</p>
+<dt><strong>target_shape</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/glossary.html#term-array_like" title="(in NumPy v2.5)"><span>array_like</span></a> <code class="xref py py-obj docutils literal notranslate"><span class="pre">of</span></code> <code class="xref py py-obj docutils literal notranslate"><span class="pre">shape</span></code> (3,), <code class="xref py py-obj docutils literal notranslate"><span class="pre">optional</span></code></span></dt><dd><p>The target shape in native coordinates, defaults to shape.</p>
 </dd>
 <dt><strong>tol</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a>, default=1e-6</span></dt><dd><p>Tolerance to identify reordering.</p>
 </dd>
@@ -572,11 +572,11 @@ be mapped back to native space exactly.</p>
 </dd>
 <dt><strong>target_orientation</strong><span class="classifier"><code class="xref py py-obj docutils literal notranslate"><span class="pre">OrientationType</span></code></span></dt><dd><p>The target orientation to reorient to.</p>
 </dd>
-<dt><strong>shape</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/glossary.html#term-array_like" title="(in NumPy v2.4)"><span>array_like</span></a> <code class="xref py py-obj docutils literal notranslate"><span class="pre">of</span></code> <code class="xref py py-obj docutils literal notranslate"><span class="pre">shape</span></code> (3,)</span></dt><dd><p>The source shape of the data to reorder. If a “wrong shape” is passed, the vox2vox offset will corrupt.</p>
+<dt><strong>shape</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/glossary.html#term-array_like" title="(in NumPy v2.5)"><span>array_like</span></a> <code class="xref py py-obj docutils literal notranslate"><span class="pre">of</span></code> <code class="xref py py-obj docutils literal notranslate"><span class="pre">shape</span></code> (3,)</span></dt><dd><p>The source shape of the data to reorder. If a “wrong shape” is passed, the vox2vox offset will corrupt.</p>
 </dd>
-<dt><strong>target_vox_size</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/glossary.html#term-array_like" title="(in NumPy v2.4)"><span>array_like</span></a> <code class="xref py py-obj docutils literal notranslate"><span class="pre">of</span></code> <code class="xref py py-obj docutils literal notranslate"><span class="pre">shape</span></code> (3,), <code class="xref py py-obj docutils literal notranslate"><span class="pre">optional</span></code></span></dt><dd><p>The target voxel size in native coordinates, defaults to source_affine.</p>
+<dt><strong>target_vox_size</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/glossary.html#term-array_like" title="(in NumPy v2.5)"><span>array_like</span></a> <code class="xref py py-obj docutils literal notranslate"><span class="pre">of</span></code> <code class="xref py py-obj docutils literal notranslate"><span class="pre">shape</span></code> (3,), <code class="xref py py-obj docutils literal notranslate"><span class="pre">optional</span></code></span></dt><dd><p>The target voxel size in native coordinates, defaults to source_affine.</p>
 </dd>
-<dt><strong>target_shape</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/glossary.html#term-array_like" title="(in NumPy v2.4)"><span>array_like</span></a> <code class="xref py py-obj docutils literal notranslate"><span class="pre">of</span></code> <code class="xref py py-obj docutils literal notranslate"><span class="pre">shape</span></code> (3,), <code class="xref py py-obj docutils literal notranslate"><span class="pre">optional</span></code></span></dt><dd><p>The target shape in native coordinates, defaults to shape.</p>
+<dt><strong>target_shape</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/glossary.html#term-array_like" title="(in NumPy v2.5)"><span>array_like</span></a> <code class="xref py py-obj docutils literal notranslate"><span class="pre">of</span></code> <code class="xref py py-obj docutils literal notranslate"><span class="pre">shape</span></code> (3,), <code class="xref py py-obj docutils literal notranslate"><span class="pre">optional</span></code></span></dt><dd><p>The target shape in native coordinates, defaults to shape.</p>
 </dd>
 <dt><strong>tol</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a>, default=1e-6</span></dt><dd><p>Tolerance to identify reordering.</p>
 </dd>
@@ -606,9 +606,9 @@ target_orientation.</p>
 center (this is consistent with vox2vox of <code class="xref py py-obj docutils literal notranslate"><span class="pre">scipy.ndimage.affine_transform</span></code>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">apply_image</span></code> and
 <code class="xref py py-obj docutils literal notranslate"><span class="pre">nibabel.orientations.aff2axcodes</span></code>).</p>
 </dd>
-<dt><strong>shape</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/glossary.html#term-array_like" title="(in NumPy v2.4)"><span>array_like</span></a> <code class="xref py py-obj docutils literal notranslate"><span class="pre">of</span></code> <code class="xref py py-obj docutils literal notranslate"><span class="pre">shape</span></code> (3,)</span></dt><dd><p>The source shape of the data to reorder. If a “wrong shape” is passed, the vox2vox offset will corrupt.</p>
+<dt><strong>shape</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/glossary.html#term-array_like" title="(in NumPy v2.5)"><span>array_like</span></a> <code class="xref py py-obj docutils literal notranslate"><span class="pre">of</span></code> <code class="xref py py-obj docutils literal notranslate"><span class="pre">shape</span></code> (3,)</span></dt><dd><p>The source shape of the data to reorder. If a “wrong shape” is passed, the vox2vox offset will corrupt.</p>
 </dd>
-<dt><strong>target_shape</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/glossary.html#term-array_like" title="(in NumPy v2.4)"><span>array_like</span></a> <code class="xref py py-obj docutils literal notranslate"><span class="pre">of</span></code> <code class="xref py py-obj docutils literal notranslate"><span class="pre">shape</span></code> (3,), <code class="xref py py-obj docutils literal notranslate"><span class="pre">optional</span></code></span></dt><dd><p>The target shape in native coordinates, defaults to shape.</p>
+<dt><strong>target_shape</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/glossary.html#term-array_like" title="(in NumPy v2.5)"><span>array_like</span></a> <code class="xref py py-obj docutils literal notranslate"><span class="pre">of</span></code> <code class="xref py py-obj docutils literal notranslate"><span class="pre">shape</span></code> (3,), <code class="xref py py-obj docutils literal notranslate"><span class="pre">optional</span></code></span></dt><dd><p>The target shape in native coordinates, defaults to shape.</p>
 </dd>
 <dt><strong>tol</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a>, default=1e-6</span></dt><dd><p>Tolerance to identify reordering.</p>
 </dd>
@@ -655,13 +655,13 @@ FreeSurfer-style strict conforming. Soft/native callers should pass <code class=
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><dl>
-<dt><strong>vector</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.4)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a> <code class="xref py py-obj docutils literal notranslate"><span class="pre">of</span></code> <code class="xref py py-obj docutils literal notranslate"><span class="pre">shape</span></code> (3,)</span></dt><dd><p>The vector to reorder.</p>
+<dt><strong>vector</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.5)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a> <code class="xref py py-obj docutils literal notranslate"><span class="pre">of</span></code> <code class="xref py py-obj docutils literal notranslate"><span class="pre">shape</span></code> (3,)</span></dt><dd><p>The vector to reorder.</p>
 </dd>
 </dl>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><dl class="simple">
-<dt><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.4)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ndarray</span></code></a> <code class="xref py py-obj docutils literal notranslate"><span class="pre">of</span></code> <code class="xref py py-obj docutils literal notranslate"><span class="pre">shape</span></code> (3,)</dt><dd><p>Reordered vector.</p>
+<dt><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.5)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ndarray</span></code></a> <code class="xref py py-obj docutils literal notranslate"><span class="pre">of</span></code> <code class="xref py py-obj docutils literal notranslate"><span class="pre">shape</span></code> (3,)</dt><dd><p>Reordered vector.</p>
 </dd>
 </dl>
 </dd>
@@ -707,9 +707,9 @@ FreeSurfer-style strict conforming. Soft/native callers should pass <code class=
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><dl>
-<dt><strong>arr</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/glossary.html#term-array_like" title="(in NumPy v2.4)"><span>array_like</span></a> or <code class="xref py py-obj docutils literal notranslate"><span class="pre">torch</span></code> <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> <code class="xref py py-obj docutils literal notranslate"><span class="pre">of</span></code> <code class="xref py py-obj docutils literal notranslate"><span class="pre">data</span></code> <code class="xref py py-obj docutils literal notranslate"><span class="pre">with</span></code> <code class="xref py py-obj docutils literal notranslate"><span class="pre">ndim</span></code> &gt;= <code class="xref py py-obj docutils literal notranslate"><span class="pre">n</span></code></span></dt><dd><p>The image/data to reorient.</p>
+<dt><strong>arr</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/glossary.html#term-array_like" title="(in NumPy v2.5)"><span>array_like</span></a> or <code class="xref py py-obj docutils literal notranslate"><span class="pre">torch</span></code> <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> <code class="xref py py-obj docutils literal notranslate"><span class="pre">of</span></code> <code class="xref py py-obj docutils literal notranslate"><span class="pre">data</span></code> <code class="xref py py-obj docutils literal notranslate"><span class="pre">with</span></code> <code class="xref py py-obj docutils literal notranslate"><span class="pre">ndim</span></code> &gt;= <code class="xref py py-obj docutils literal notranslate"><span class="pre">n</span></code></span></dt><dd><p>The image/data to reorient.</p>
 </dd>
-<dt><strong>ornt</strong><span class="classifier">(n,2) <code class="xref py py-obj docutils literal notranslate"><span class="pre">orientation</span></code> <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.4)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">array</span></code></a></span></dt><dd><p>Orientation transform. <code class="docutils literal notranslate"><span class="pre">ornt[N,1]`</span> <span class="pre">is</span> <span class="pre">flip</span> <span class="pre">of</span> <span class="pre">axis</span> <span class="pre">N</span> <span class="pre">of</span> <span class="pre">the</span> <span class="pre">array</span> <span class="pre">implied</span> <span class="pre">by</span> <span class="pre">`shape`,</span> <span class="pre">where</span> <span class="pre">1</span> <span class="pre">means</span> <span class="pre">no</span> <span class="pre">flip</span> <span class="pre">and</span>
+<dt><strong>ornt</strong><span class="classifier">(n,2) <code class="xref py py-obj docutils literal notranslate"><span class="pre">orientation</span></code> <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.5)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">array</span></code></a></span></dt><dd><p>Orientation transform. <code class="docutils literal notranslate"><span class="pre">ornt[N,1]`</span> <span class="pre">is</span> <span class="pre">flip</span> <span class="pre">of</span> <span class="pre">axis</span> <span class="pre">N</span> <span class="pre">of</span> <span class="pre">the</span> <span class="pre">array</span> <span class="pre">implied</span> <span class="pre">by</span> <span class="pre">`shape`,</span> <span class="pre">where</span> <span class="pre">1</span> <span class="pre">means</span> <span class="pre">no</span> <span class="pre">flip</span> <span class="pre">and</span>
 <span class="pre">-1</span> <span class="pre">means</span> <span class="pre">flip.</span> <span class="pre">For</span> <span class="pre">example,</span> <span class="pre">if</span> <span class="pre">``N==0</span></code> and <code class="docutils literal notranslate"><span class="pre">ornt[0,1]</span> <span class="pre">==</span> <span class="pre">-1</span></code>, and there’s an array <code class="docutils literal notranslate"><span class="pre">arr</span></code> of shape <code class="xref py py-obj docutils literal notranslate"><span class="pre">shape</span></code>,
 the flip would correspond to the effect of <code class="docutils literal notranslate"><span class="pre">np.flipud(arr)</span></code>. <code class="docutils literal notranslate"><span class="pre">ornt[:,0]</span></code> is the transpose that needs to be
 done to the implied array, as in <code class="docutils literal notranslate"><span class="pre">arr.transpose(ornt[:,0])</span></code>.</p>
@@ -718,7 +718,7 @@ done to the implied array, as in <code class="docutils literal notranslate"><spa
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><dl>
-<dt><strong>t_arr</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.4)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ndarray</span></code></a> or <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code></span></dt><dd><p>The data array <code class="xref py py-obj docutils literal notranslate"><span class="pre">arr</span></code> transformed according to <code class="xref py py-obj docutils literal notranslate"><span class="pre">ornt</span></code>.</p>
+<dt><strong>t_arr</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.5)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ndarray</span></code></a> or <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code></span></dt><dd><p>The data array <code class="xref py py-obj docutils literal notranslate"><span class="pre">arr</span></code> transformed according to <code class="xref py py-obj docutils literal notranslate"><span class="pre">ornt</span></code>.</p>
 </dd>
 </dl>
 </dd>
@@ -739,11 +739,11 @@ done to the implied array, as in <code class="docutils literal notranslate"><spa
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><dl>
-<dt><strong>image_data</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.4)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></span></dt><dd><p>The 3D image data.</p>
+<dt><strong>image_data</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.5)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></span></dt><dd><p>The 3D image data.</p>
 </dd>
-<dt><strong>vox2vox</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.4)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></span></dt><dd><p>To-apply out2in vox2vox (!) for consistentcy with <code class="xref py py-obj docutils literal notranslate"><span class="pre">scipy.ndimage.affine_transform</span></code>.</p>
+<dt><strong>vox2vox</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.5)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></span></dt><dd><p>To-apply out2in vox2vox (!) for consistentcy with <code class="xref py py-obj docutils literal notranslate"><span class="pre">scipy.ndimage.affine_transform</span></code>.</p>
 </dd>
-<dt><strong>out_shape</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">tuple</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">int</span></code></a>, …], <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.4)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></span></dt><dd><p>The target shape information.</p>
+<dt><strong>out_shape</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">tuple</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">int</span></code></a>, …], <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.5)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></span></dt><dd><p>The target shape information.</p>
 </dd>
 <dt><strong>order</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">int</span></code></a>, default=1</span></dt><dd><p>Order of interpolation (0=nearest,1=linear,2=quadratic,3=cubic).</p>
 </dd>
@@ -755,7 +755,7 @@ done to the implied array, as in <code class="docutils literal notranslate"><spa
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><dl class="simple">
-<dt><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.4)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></dt><dd><p>Mapped image data array.</p>
+<dt><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.5)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></dt><dd><p>Mapped image data array.</p>
 </dd>
 </dl>
 </dd>
@@ -874,9 +874,9 @@ size (default or None: do not apply the threshold).</p>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><dl class="simple">
-<dt><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.4)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a> <code class="xref py py-obj docutils literal notranslate"><span class="pre">of</span></code> <code class="xref py py-obj docutils literal notranslate"><span class="pre">floats</span></code>, <a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">None</span></code></a></dt><dd><p>The determined voxel size to conform the image to (still in native orientation), shape: 3.</p>
+<dt><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.5)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a> <code class="xref py py-obj docutils literal notranslate"><span class="pre">of</span></code> <code class="xref py py-obj docutils literal notranslate"><span class="pre">floats</span></code>, <a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">None</span></code></a></dt><dd><p>The determined voxel size to conform the image to (still in native orientation), shape: 3.</p>
 </dd>
-<dt><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.4)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a> <code class="xref py py-obj docutils literal notranslate"><span class="pre">of</span></code> <code class="xref py py-obj docutils literal notranslate"><span class="pre">ints</span></code>, <a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">None</span></code></a></dt><dd><p>The size of the image adjusted to the conformed voxel size (still in native orientation), shape: 3.</p>
+<dt><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.5)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a> <code class="xref py py-obj docutils literal notranslate"><span class="pre">of</span></code> <code class="xref py py-obj docutils literal notranslate"><span class="pre">ints</span></code>, <a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">None</span></code></a></dt><dd><p>The size of the image adjusted to the conformed voxel size (still in native orientation), shape: 3.</p>
 </dd>
 </dl>
 </dd>
@@ -891,7 +891,7 @@ size (default or None: do not apply the threshold).</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><dl>
-<dt><strong>image</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.4)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">torch.Tensor</span></code></span></dt><dd><p>Image of size […, D_1, D_2, …, D_N], where D_1, D_2, …, D_N are the N image dimensions.</p>
+<dt><strong>image</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.5)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">torch.Tensor</span></code></span></dt><dd><p>Image of size […, D_1, D_2, …, D_N], where D_1, D_2, …, D_N are the N image dimensions.</p>
 </dd>
 <dt><strong>offsets</strong><span class="classifier"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Sequence</span></code>[<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">int</span></code></a>], <code class="xref py py-obj docutils literal notranslate"><span class="pre">optional</span></code></span></dt><dd><p>Offset of the cropped region for the last N dimensions (default: center crop, less crop/pad towards index 0).
 Negative offsets pad.</p>
@@ -900,7 +900,7 @@ Negative offsets pad.</p>
 cropping offset[dim] voxels on each side (then the shape is derived by subtracting 2x the dimension-specific
 offset). target_shape should have the same number of elements as offsets. May be implicitly defined by out.</p>
 </dd>
-<dt><strong>out</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.4)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">torch.Tensor</span></code>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">optional</span></code></span></dt><dd><p>Array to store the cropped image in (optional), can be a view on image for memory-efficiency.</p>
+<dt><strong>out</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.5)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">torch.Tensor</span></code>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">optional</span></code></span></dt><dd><p>Array to store the cropped image in (optional), can be a view on image for memory-efficiency.</p>
 </dd>
 <dt><strong>pad</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">int</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a>, default=0/zero-pad</span></dt><dd><p>Padding strategy to use when padding is required, if int, pad with that value.</p>
 </dd>
@@ -908,7 +908,7 @@ offset). target_shape should have the same number of elements as offsets. May be
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><dl>
-<dt><strong>out</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.4)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">torch.Tensor</span></code></span></dt><dd><p>The image (stack) cropped in the last N dimensions by offsets to the shape target_shape, or if target_shape is
+<dt><strong>out</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.5)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">torch.Tensor</span></code></span></dt><dd><p>The image (stack) cropped in the last N dimensions by offsets to the shape target_shape, or if target_shape is
 not given image.shape[i+2] - 2*offset[i].</p>
 </dd>
 </dl>
@@ -929,7 +929,7 @@ not given image.shape[i+2] - 2*offset[i].</p>
 <div class="admonition seealso">
 <p class="admonition-title">See also</p>
 <dl class="simple">
-<dt><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.pad.html#numpy.pad" title="(in NumPy v2.4)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">numpy.pad</span></code></a></dt><dd><p>For additional information refer to numpy.pad function.</p>
+<dt><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.pad.html#numpy.pad" title="(in NumPy v2.5)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">numpy.pad</span></code></a></dt><dd><p>For additional information refer to numpy.pad function.</p>
 </dd>
 </dl>
 </div>
@@ -970,7 +970,7 @@ definition also requires interpolation.</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><dl>
-<dt><strong>data</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.4)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></span></dt><dd><p>Image data (intensity values).</p>
+<dt><strong>data</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.5)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></span></dt><dd><p>Image data (intensity values).</p>
 </dd>
 <dt><strong>dst_min</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">int</span></code></a></span></dt><dd><p>Future minimal intensity value.</p>
 </dd>
@@ -1089,7 +1089,7 @@ oriented as <code class="xref py py-obj docutils literal notranslate"><span clas
 </dd>
 <dt><strong>out_affine</strong><span class="classifier"><code class="xref py py-obj docutils literal notranslate"><span class="pre">AffineMatrix4x4</span></code></span></dt><dd><p>Trg image affine.</p>
 </dd>
-<dt><strong>out_shape</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">tuple</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">int</span></code></a>, …], <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.4)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a> <code class="xref py py-obj docutils literal notranslate"><span class="pre">of</span></code> <a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">int</span></code></a></span></dt><dd><p>The target shape information.</p>
+<dt><strong>out_shape</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">tuple</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">int</span></code></a>, …], <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.5)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a> <code class="xref py py-obj docutils literal notranslate"><span class="pre">of</span></code> <a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">int</span></code></a></span></dt><dd><p>The target shape information.</p>
 </dd>
 <dt><strong>ras2ras</strong><span class="classifier"><code class="xref py py-obj docutils literal notranslate"><span class="pre">AffineMatrix4x4</span></code>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">optional</span></code></span></dt><dd><p>An additional mapping that should be applied (default=id to just reslice).</p>
 </dd>
@@ -1105,7 +1105,7 @@ oriented as <code class="xref py py-obj docutils literal notranslate"><span clas
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><dl class="simple">
-<dt><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.4)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></dt><dd><p>Mapped image data array.</p>
+<dt><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.5)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></dt><dd><p>Mapped image data array.</p>
 </dd>
 </dl>
 </dd>
@@ -1135,11 +1135,11 @@ stay compatible with nibabel orientation utilities and can be inverted without i
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><dl>
-<dt><strong>ornt</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/glossary.html#term-array_like" title="(in NumPy v2.4)"><span>array_like</span></a></span></dt><dd><p>The orientation to transform by. Importantly, if nibabel calls it axcode LIA, this is a LIA-&gt;RAS transform.</p>
+<dt><strong>ornt</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/glossary.html#term-array_like" title="(in NumPy v2.5)"><span>array_like</span></a></span></dt><dd><p>The orientation to transform by. Importantly, if nibabel calls it axcode LIA, this is a LIA-&gt;RAS transform.</p>
 </dd>
-<dt><strong>shape</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/glossary.html#term-array_like" title="(in NumPy v2.4)"><span>array_like</span></a></span></dt><dd><p>The shape of the (input) data.</p>
+<dt><strong>shape</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/glossary.html#term-array_like" title="(in NumPy v2.5)"><span>array_like</span></a></span></dt><dd><p>The shape of the (input) data.</p>
 </dd>
-<dt><strong>scale</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/glossary.html#term-array_like" title="(in NumPy v2.4)"><span>array_like</span></a>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">optional</span></code></span></dt><dd><p>The scaling factor of the (input) data, defaults to 1. If scale is not one, the assumed target shape will be
+<dt><strong>scale</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/glossary.html#term-array_like" title="(in NumPy v2.5)"><span>array_like</span></a>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">optional</span></code></span></dt><dd><p>The scaling factor of the (input) data, defaults to 1. If scale is not one, the assumed target shape will be
 shape scaled by <code class="xref py py-obj docutils literal notranslate"><span class="pre">scale</span></code> as computed by <a class="reference internal" href="#FastSurferCNN.data_loader.conform.target_shape_from_shape_scale" title="FastSurferCNN.data_loader.conform.target_shape_from_shape_scale"><code class="xref py py-obj docutils literal notranslate"><span class="pre">target_shape_from_shape_scale</span></code></a> (so out_vox_size / in_vox_size).</p>
 </dd>
 </dl>
@@ -1173,7 +1173,7 @@ so that the transformation can be applied by
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><dl>
-<dt><strong>data</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.4)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></span></dt><dd><p>Image data (intensity values).</p>
+<dt><strong>data</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.5)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></span></dt><dd><p>Image data (intensity values).</p>
 </dd>
 <dt><strong>dst_min</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a></span></dt><dd><p>Future minimal intensity value.</p>
 </dd>
@@ -1187,7 +1187,7 @@ so that the transformation can be applied by
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><dl class="simple">
-<dt><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.4)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></dt><dd><p>Scaled image data.</p>
+<dt><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.5)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></dt><dd><p>Scaled image data.</p>
 </dd>
 </dl>
 </dd>
@@ -1201,7 +1201,7 @@ so that the transformation can be applied by
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><dl>
-<dt><strong>data</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.4)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></span></dt><dd><p>Image data (intensity values).</p>
+<dt><strong>data</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.5)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></span></dt><dd><p>Image data (intensity values).</p>
 </dd>
 <dt><strong>dst_min</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a></span></dt><dd><p>Future minimal intensity value.</p>
 </dd>
@@ -1215,7 +1215,7 @@ so that the transformation can be applied by
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><dl class="simple">
-<dt><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.4)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></dt><dd><p>Scaled image data.</p>
+<dt><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.5)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></dt><dd><p>Scaled image data.</p>
 </dd>
 </dl>
 </dd>
@@ -1229,9 +1229,9 @@ so that the transformation can be applied by
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><dl>
-<dt><strong>shape</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/glossary.html#term-array_like" title="(in NumPy v2.4)"><span>array_like</span></a></span></dt><dd><p>The shape of the input data.</p>
+<dt><strong>shape</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/glossary.html#term-array_like" title="(in NumPy v2.5)"><span>array_like</span></a></span></dt><dd><p>The shape of the input data.</p>
 </dd>
-<dt><strong>scale</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/glossary.html#term-array_like" title="(in NumPy v2.4)"><span>array_like</span></a></span></dt><dd><p>The scale factors of the input data (out_vox_size / in_vox_size).</p>
+<dt><strong>scale</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/glossary.html#term-array_like" title="(in NumPy v2.5)"><span>array_like</span></a></span></dt><dd><p>The scale factors of the input data (out_vox_size / in_vox_size).</p>
 </dd>
 </dl>
 </dd>
@@ -1257,7 +1257,7 @@ so that the transformation can be applied by
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><dl class="simple">
-<dt><a class="reference external" href="https://numpy.org/doc/stable/reference/typing.html#numpy.typing.DTypeLike" title="(in NumPy v2.4)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">numpy.typing.DTypeLike</span></code></a></dt><dd><p>The dtype extracted.</p>
+<dt><a class="reference external" href="https://numpy.org/doc/stable/reference/typing.html#numpy.typing.DTypeLike" title="(in NumPy v2.5)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">numpy.typing.DTypeLike</span></code></a></dt><dd><p>The dtype extracted.</p>
 </dd>
 </dl>
 </dd>

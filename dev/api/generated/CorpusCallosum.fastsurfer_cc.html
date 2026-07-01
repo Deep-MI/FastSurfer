@@ -528,11 +528,11 @@ using the third ventricle as an anatomical reference.</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><dl>
-<dt><strong>orig_data</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.4)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></span></dt><dd><p>Array of intensity data.</p>
+<dt><strong>orig_data</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.5)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></span></dt><dd><p>Array of intensity data.</p>
 </dd>
 <dt><strong>aseg_nib</strong><span class="classifier"><code class="xref py py-obj docutils literal notranslate"><span class="pre">nibabelImage</span></code></span></dt><dd><p>Subject’s segmentation image in native subject space.</p>
 </dd>
-<dt><strong>orig2midslice_vox2vox</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.4)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></span></dt><dd><p>Transformation matrix from subject/native space to fsaverage space (in lia).</p>
+<dt><strong>orig2midslice_vox2vox</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.5)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></span></dt><dd><p>Transformation matrix from subject/native space to fsaverage space (in lia).</p>
 </dd>
 <dt><strong>model_localization</strong><span class="classifier"><code class="xref py py-obj docutils literal notranslate"><span class="pre">DenseNet</span></code></span></dt><dd><p>Trained model for AC-PC detection.</p>
 </dd>
@@ -542,9 +542,9 @@ using the third ventricle as an anatomical reference.</p>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><dl>
-<dt><strong>ac_coords</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.4)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></span></dt><dd><p>AC voxel coordinates with shape (2,) containing its [y,x] positions.</p>
+<dt><strong>ac_coords</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.5)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></span></dt><dd><p>AC voxel coordinates with shape (2,) containing its [y,x] positions.</p>
 </dd>
-<dt><strong>pc_coords</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.4)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></span></dt><dd><p>PC voxel coordinates with shape (2,) containing its [y,x] positions.</p>
+<dt><strong>pc_coords</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.5)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></span></dt><dd><p>PC voxel coordinates with shape (2,) containing its [y,x] positions.</p>
 </dd>
 </dl>
 </dd>
@@ -671,11 +671,11 @@ references. Includes post-processing to clean the cc_seg_labels.</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><dl>
-<dt><strong>midslices</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.4)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></span></dt><dd><p>Array of mid-sagittal slices in upright space and LIA-orientation.</p>
+<dt><strong>midslices</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.5)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></span></dt><dd><p>Array of mid-sagittal slices in upright space and LIA-orientation.</p>
 </dd>
-<dt><strong>ac_coords</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.4)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></span></dt><dd><p>AC voxel coordinates with shape (2,) containing its [y,x] positions.</p>
+<dt><strong>ac_coords</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.5)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></span></dt><dd><p>AC voxel coordinates with shape (2,) containing its [y,x] positions.</p>
 </dd>
-<dt><strong>pc_coords</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.4)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></span></dt><dd><p>PC voxel coordinates with shape (2,) containing its [y,x] positions.</p>
+<dt><strong>pc_coords</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.5)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></span></dt><dd><p>PC voxel coordinates with shape (2,) containing its [y,x] positions.</p>
 </dd>
 <dt><strong>aseg_nib</strong><span class="classifier"><code class="xref py py-obj docutils literal notranslate"><span class="pre">nibabelImage</span></code></span></dt><dd><p>Subject’s cc_seg_labels image.</p>
 </dd>
@@ -685,9 +685,9 @@ references. Includes post-processing to clean the cc_seg_labels.</p>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><dl>
-<dt><strong>cc_seg_labels</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.4)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></span></dt><dd><p>Binary cc_seg_labels of the corpus callosum in upright space and LIA-orientation.</p>
+<dt><strong>cc_seg_labels</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.5)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></span></dt><dd><p>Binary cc_seg_labels of the corpus callosum in upright space and LIA-orientation.</p>
 </dd>
-<dt><strong>cc_softlabels</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.4)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></span></dt><dd><p>Soft cc_seg_labels probabilities of shape in upright space and LIA-orientation (H, W, D, C=3).</p>
+<dt><strong>cc_softlabels</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.5)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></span></dt><dd><p>Soft cc_seg_labels probabilities of shape in upright space and LIA-orientation (H, W, D, C=3).</p>
 </dd>
 </dl>
 </dd>

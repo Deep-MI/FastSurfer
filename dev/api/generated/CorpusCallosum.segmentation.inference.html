@@ -521,9 +521,9 @@ the argmax along the last axis and optionally mapping to specific label values.<
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><dl>
-<dt><strong>one_hot</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.4)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a> <code class="xref py py-obj docutils literal notranslate"><span class="pre">of</span></code> <code class="xref py py-obj docutils literal notranslate"><span class="pre">floats</span></code></span></dt><dd><p>One-hot encoded segmentation array of shape (…, num_classes).</p>
+<dt><strong>one_hot</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.5)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a> <code class="xref py py-obj docutils literal notranslate"><span class="pre">of</span></code> <code class="xref py py-obj docutils literal notranslate"><span class="pre">floats</span></code></span></dt><dd><p>One-hot encoded segmentation array of shape (…, num_classes).</p>
 </dd>
-<dt><strong>label_ids</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/glossary.html#term-array_like" title="(in NumPy v2.4)"><span>array_like</span></a> <code class="xref py py-obj docutils literal notranslate"><span class="pre">of</span></code> <code class="xref py py-obj docutils literal notranslate"><span class="pre">ints</span></code>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">optional</span></code></span></dt><dd><p>List of label IDs to map classes to. If None, defaults to [0, FORNIX_LABEL, CC_LABEL].
+<dt><strong>label_ids</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/glossary.html#term-array_like" title="(in NumPy v2.5)"><span>array_like</span></a> <code class="xref py py-obj docutils literal notranslate"><span class="pre">of</span></code> <code class="xref py py-obj docutils literal notranslate"><span class="pre">ints</span></code>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">optional</span></code></span></dt><dd><p>List of label IDs to map classes to. If None, defaults to [0, FORNIX_LABEL, CC_LABEL].
 The index in this list corresponds to the class index from argmax.</p>
 </dd>
 </dl>
@@ -546,11 +546,11 @@ The index in this list corresponds to the class index from argmax.</p>
 <dd class="field-odd"><dl>
 <dt><strong>model</strong><span class="classifier"><code class="xref py py-obj docutils literal notranslate"><span class="pre">torch.nn.Module</span></code></span></dt><dd><p>Trained model.</p>
 </dd>
-<dt><strong>image_slice</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.4)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></span></dt><dd><p>LIA-oriented input image as numpy array of shape (L, I, A).</p>
+<dt><strong>image_slice</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.5)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></span></dt><dd><p>LIA-oriented input image as numpy array of shape (L, I, A).</p>
 </dd>
-<dt><strong>ac_center</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.4)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></span></dt><dd><p>Anterior commissure coordinates.</p>
+<dt><strong>ac_center</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.5)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></span></dt><dd><p>Anterior commissure coordinates.</p>
 </dd>
-<dt><strong>pc_center</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.4)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></span></dt><dd><p>Posterior commissure coordinates.</p>
+<dt><strong>pc_center</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.5)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></span></dt><dd><p>Posterior commissure coordinates.</p>
 </dd>
 <dt><strong>voxel_size</strong><span class="classifier"><code class="xref py py-obj docutils literal notranslate"><span class="pre">a</span></code> <code class="xref py py-obj docutils literal notranslate"><span class="pre">pair</span></code> <code class="xref py py-obj docutils literal notranslate"><span class="pre">of</span></code> <code class="xref py py-obj docutils literal notranslate"><span class="pre">floats</span></code></span></dt><dd><p>Voxel size of inferior/superior and anterior/posterior direction in mm.</p>
 </dd>
@@ -582,7 +582,7 @@ The index in this list corresponds to the class index from argmax.</p>
 <dd class="field-odd"><dl>
 <dt><strong>model</strong><span class="classifier"><code class="xref py py-obj docutils literal notranslate"><span class="pre">torch.nn.Module</span></code></span></dt><dd><p>Trained model for inference.</p>
 </dd>
-<dt><strong>test_slab</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.4)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></span></dt><dd><p>Input image slice.</p>
+<dt><strong>test_slab</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.5)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></span></dt><dd><p>Input image slice.</p>
 </dd>
 <dt><strong>ac_center</strong><span class="classifier"><code class="xref py py-obj docutils literal notranslate"><span class="pre">npt.NDArray</span></code>[<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a>]</span></dt><dd><p>Anterior commissure coordinates (Inferior and Anterior values).</p>
 </dd>
@@ -594,9 +594,9 @@ The index in this list corresponds to the class index from argmax.</p>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><dl class="simple">
-<dt>results: <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.4)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></dt><dd><p>Label map after one-hot conversion.</p>
+<dt>results: <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.5)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></dt><dd><p>Label map after one-hot conversion.</p>
 </dd>
-<dt>inputs: <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.4)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></dt><dd><p>Preprocessed input image.</p>
+<dt>inputs: <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.5)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></dt><dd><p>Preprocessed input image.</p>
 </dd>
 <dt>outputs_soft: <code class="xref py py-obj docutils literal notranslate"><span class="pre">npt.NDArray</span></code>[<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a>]</dt><dd><p>Softlabel outputs (non-discrete).</p>
 </dd>

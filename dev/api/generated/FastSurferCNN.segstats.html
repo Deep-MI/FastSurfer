@@ -698,7 +698,7 @@ operation to the sub-region defined by a sequence of slicing operations.</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><dl>
-<dt><strong>dataframe</strong><span class="classifier"><a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v3.0.3)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">pandas.DataFrame</span></code></a></span></dt><dd><p>The dataframe to convert.</p>
+<dt><strong>dataframe</strong><span class="classifier"><a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v3.0.4)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">pandas.DataFrame</span></code></a></span></dt><dd><p>The dataframe to convert.</p>
 </dd>
 </dl>
 </dd>
@@ -712,7 +712,7 @@ operation to the sub-region defined by a sequence of slicing operations.</p>
 <div class="admonition seealso">
 <p class="admonition-title">See also</p>
 <dl class="simple">
-<dt><a class="reference internal" href="#FastSurferCNN.segstats.table_to_dataframe" title="FastSurferCNN.segstats.table_to_dataframe"><code class="xref py py-obj docutils literal notranslate"><span class="pre">table_to_dataframe</span></code></a></dt><dd><p>Reverse operation translating a list of <a class="reference internal" href="#FastSurferCNN.segstats.PVStats" title="FastSurferCNN.segstats.PVStats"><code class="xref py py-class docutils literal notranslate"><span class="pre">PVStats</span></code></a> into a <a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v3.0.3)"><code class="xref py py-class docutils literal notranslate"><span class="pre">pandas.DataFrame</span></code></a>.</p>
+<dt><a class="reference internal" href="#FastSurferCNN.segstats.table_to_dataframe" title="FastSurferCNN.segstats.table_to_dataframe"><code class="xref py py-obj docutils literal notranslate"><span class="pre">table_to_dataframe</span></code></a></dt><dd><p>Reverse operation translating a list of <a class="reference internal" href="#FastSurferCNN.segstats.PVStats" title="FastSurferCNN.segstats.PVStats"><code class="xref py py-class docutils literal notranslate"><span class="pre">PVStats</span></code></a> into a <a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v3.0.4)"><code class="xref py py-class docutils literal notranslate"><span class="pre">pandas.DataFrame</span></code></a>.</p>
 </dd>
 </dl>
 </div>
@@ -869,7 +869,7 @@ re-‘ungrow’ the patch <code class="xref py py-obj docutils literal notransla
 </dd>
 <dt><strong>whalf</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">int</span></code></a></span></dt><dd><p>How much to pad/grow the slicing tuple all around.</p>
 </dd>
-<dt><strong>img_size</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.4)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">Sequence</span></code>[<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a>]</span></dt><dd><p>Shape of the image.</p>
+<dt><strong>img_size</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.5)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">Sequence</span></code>[<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a>]</span></dt><dd><p>Shape of the image.</p>
 </dd>
 </dl>
 </dd>
@@ -966,9 +966,9 @@ patch_size and the resulting patch shrunk to mask-True regions.</p>
 <dd class="field-odd"><dl>
 <dt><strong>labels</strong><span class="classifier"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Sequence</span></code>[<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">int</span></code></a>]</span></dt><dd><p>A sequence of all labels that we want to compute the PV for.</p>
 </dd>
-<dt><strong>pv_guide</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.4)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">numpy.ndarray</span></code></a></span></dt><dd><p>The (full) image with intensities to guide the PV calculation.</p>
+<dt><strong>pv_guide</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.5)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">numpy.ndarray</span></code></a></span></dt><dd><p>The (full) image with intensities to guide the PV calculation.</p>
 </dd>
-<dt><strong>seg</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/typing.html#numpy.typing.NDArray" title="(in NumPy v2.4)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">numpy.typing.NDArray</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">int</span></code></a>]</span></dt><dd><p>The segmentation (full image) defining the labels.</p>
+<dt><strong>seg</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/typing.html#numpy.typing.NDArray" title="(in NumPy v2.5)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">numpy.typing.NDArray</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">int</span></code></a>]</span></dt><dd><p>The segmentation (full image) defining the labels.</p>
 </dd>
 <dt><strong>border_patch</strong><span class="classifier"><code class="xref py py-obj docutils literal notranslate"><span class="pre">npt.NDArray</span></code>[<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">bool</span></code></a>]</span></dt><dd><p>Binary mask for the current patch, True, where a voxel is considered to be a
 border voxel.</p>
@@ -1022,13 +1022,13 @@ operations in that order.</p>
 <dt><strong>ops</strong><span class="classifier"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Sequence</span></code>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a>]</span></dt><dd><p>Sequence of operations to perform from ‘mul=&lt;factor&gt;’, ‘div=&lt;factor&gt;’, ‘sqr’,
 ‘abs’, and ‘sqrt’.</p>
 </dd>
-<dt><strong>data</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.4)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></span></dt><dd><p>Data to perform operations on.</p>
+<dt><strong>data</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.5)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></span></dt><dd><p>Data to perform operations on.</p>
 </dd>
 </dl>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><dl class="simple">
-<dt><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.4)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></dt><dd><p>Data after ops are performed on it.</p>
+<dt><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.5)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></dt><dd><p>Data after ops are performed on it.</p>
 </dd>
 </dl>
 </dd>
@@ -1042,13 +1042,13 @@ operations in that order.</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><dl>
-<dt><strong>seg</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.4)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></span></dt><dd><p>Segmentation array with segmentation labels.</p>
+<dt><strong>seg</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.5)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></span></dt><dd><p>Segmentation array with segmentation labels.</p>
 </dd>
-<dt><strong>pv_guide</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.4)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></span></dt><dd><p>Image to use to calculate partial volume effects from.</p>
+<dt><strong>pv_guide</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.5)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></span></dt><dd><p>Image to use to calculate partial volume effects from.</p>
 </dd>
-<dt><strong>norm</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.4)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></span></dt><dd><p>Intensity image to use to calculate image statistics from.</p>
+<dt><strong>norm</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.5)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></span></dt><dd><p>Intensity image to use to calculate image statistics from.</p>
 </dd>
-<dt><strong>labels</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/glossary.html#term-array_like" title="(in NumPy v2.4)"><span>array_like</span></a></span></dt><dd><p>Which labels are of interest.</p>
+<dt><strong>labels</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/glossary.html#term-array_like" title="(in NumPy v2.5)"><span>array_like</span></a></span></dt><dd><p>Which labels are of interest.</p>
 </dd>
 <dt><strong>patch_size</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">int</span></code></a>, default=32</span></dt><dd><p>Size of patches.</p>
 </dd>
@@ -1074,7 +1074,7 @@ int deprecated: uses FastSurfer.utils.parallel.set_num_threads.</p>
 <dt><strong>pv_stats</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">list</span></code></a>[<a class="reference internal" href="#FastSurferCNN.segstats.PVStats" title="FastSurferCNN.segstats.PVStats"><code class="xref py py-obj docutils literal notranslate"><span class="pre">PVStats</span></code></a>]</span></dt><dd><p>Table (list of dicts) with keys SegId, NVoxels, Volume_mm3, Mean, StdDev, Min,
 Max, and Range.</p>
 </dd>
-<dt><strong>maps</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">dict</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a>, <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.4)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a>], <code class="xref py py-obj docutils literal notranslate"><span class="pre">optional</span></code></span></dt><dd><p>Only returned, if return_maps is True:
+<dt><strong>maps</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">dict</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a>, <a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.5)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a>], <code class="xref py py-obj docutils literal notranslate"><span class="pre">optional</span></code></span></dt><dd><p>Only returned, if return_maps is True:
 A dictionary with the 5 meta-information pv-maps:
 nbr: The alternative labels that were considered instead of the voxel label.
 nbr_means: The local mean intensity of the label nbr at the specific voxel.
@@ -1103,9 +1103,9 @@ the image.</p>
 </dd>
 <dt><strong>borders</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">dict</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">int</span></code></a>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">npt.NDArray</span></code>[<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">bool</span></code></a>]]</span></dt><dd><p>Dictionary containing the borders for each label.</p>
 </dd>
-<dt><strong>seg</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/typing.html#numpy.typing.NDArray" title="(in NumPy v2.4)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">numpy.typing.NDArray</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">int</span></code></a>]</span></dt><dd><p>The segmentation (full image) defining the labels.</p>
+<dt><strong>seg</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/typing.html#numpy.typing.NDArray" title="(in NumPy v2.5)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">numpy.typing.NDArray</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">int</span></code></a>]</span></dt><dd><p>The segmentation (full image) defining the labels.</p>
 </dd>
-<dt><strong>pv_guide</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.4)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">numpy.ndarray</span></code></a></span></dt><dd><p>The (full) image with intensities to guide the PV calculation.</p>
+<dt><strong>pv_guide</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.5)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">numpy.ndarray</span></code></a></span></dt><dd><p>The (full) image with intensities to guide the PV calculation.</p>
 </dd>
 <dt><strong>border</strong><span class="classifier"><code class="xref py py-obj docutils literal notranslate"><span class="pre">npt.NDArray</span></code>[<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">bool</span></code></a>]</span></dt><dd><p>Binary mask, True, where a voxel is considered to be a border voxel.</p>
 </dd>
@@ -1163,7 +1163,7 @@ formula.</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><dl>
-<dt><strong>_array</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.4)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">numpy.ndarray</span></code></a></span></dt><dd><p>Image to compute borders from, typically either a label image or a binary mask.</p>
+<dt><strong>_array</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.5)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">numpy.ndarray</span></code></a></span></dt><dd><p>Image to compute borders from, typically either a label image or a binary mask.</p>
 </dd>
 <dt><strong>label</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">int</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">bool</span></code></a></span></dt><dd><p>Which classes to consider for border computation (True/False for binary mask).</p>
 </dd>
@@ -1199,7 +1199,7 @@ formula.</p>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><dl class="simple">
-<dt><a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v3.0.3)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">pandas.DataFrame</span></code></a></dt><dd><p>The DataFrame object of all columns and rows in table.</p>
+<dt><a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v3.0.4)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">pandas.DataFrame</span></code></a></dt><dd><p>The DataFrame object of all columns and rows in table.</p>
 </dd>
 </dl>
 </dd>
@@ -1207,7 +1207,7 @@ formula.</p>
 <div class="admonition seealso">
 <p class="admonition-title">See also</p>
 <dl class="simple">
-<dt><a class="reference internal" href="#FastSurferCNN.segstats.dataframe_to_table" title="FastSurferCNN.segstats.dataframe_to_table"><code class="xref py py-obj docutils literal notranslate"><span class="pre">dataframe_to_table</span></code></a></dt><dd><p>Reverse operation translating a <a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v3.0.3)"><code class="xref py py-class docutils literal notranslate"><span class="pre">pandas.DataFrame</span></code></a> into a list of <a class="reference internal" href="#FastSurferCNN.segstats.PVStats" title="FastSurferCNN.segstats.PVStats"><code class="xref py py-class docutils literal notranslate"><span class="pre">PVStats</span></code></a>.</p>
+<dt><a class="reference internal" href="#FastSurferCNN.segstats.dataframe_to_table" title="FastSurferCNN.segstats.dataframe_to_table"><code class="xref py py-obj docutils literal notranslate"><span class="pre">dataframe_to_table</span></code></a></dt><dd><p>Reverse operation translating a <a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v3.0.4)"><code class="xref py py-class docutils literal notranslate"><span class="pre">pandas.DataFrame</span></code></a> into a list of <a class="reference internal" href="#FastSurferCNN.segstats.PVStats" title="FastSurferCNN.segstats.PVStats"><code class="xref py py-class docutils literal notranslate"><span class="pre">PVStats</span></code></a>.</p>
 </dd>
 </dl>
 </div>
@@ -1249,7 +1249,7 @@ formula.</p>
 <dd class="field-odd"><dl>
 <dt><strong>table</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">list</span></code></a>[<a class="reference internal" href="#FastSurferCNN.segstats.PVStats" title="FastSurferCNN.segstats.PVStats"><code class="xref py py-obj docutils literal notranslate"><span class="pre">PVStats</span></code></a>]</span></dt><dd><p>List of partial volume stats dictionaries.</p>
 </dd>
-<dt><strong>lut</strong><span class="classifier"><a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v3.0.3)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">pandas.DataFrame</span></code></a></span></dt><dd><p>A pandas DataFrame object containing columns ‘ID’ and ‘LabelName’, which serves
+<dt><strong>lut</strong><span class="classifier"><a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.html#pandas.DataFrame" title="(in pandas v3.0.4)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">pandas.DataFrame</span></code></a></span></dt><dd><p>A pandas DataFrame object containing columns ‘ID’ and ‘LabelName’, which serves
 as a lookup table for the structure names.</p>
 </dd>
 <dt><strong>merged_labels</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">dict</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">int</span></code></a>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">Sequence</span></code>[<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">int</span></code></a>]], <code class="xref py py-obj docutils literal notranslate"><span class="pre">optional</span></code></span></dt><dd><p>The dictionary with merged labels.</p>

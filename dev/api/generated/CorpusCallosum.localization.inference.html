@@ -502,9 +502,9 @@
 <dd class="field-odd"><dl>
 <dt><strong>model</strong><span class="classifier"><code class="xref py py-obj docutils literal notranslate"><span class="pre">DenseNet</span></code></span></dt><dd><p>Trained model for inference.</p>
 </dd>
-<dt><strong>image_volume</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.4)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></span></dt><dd><p>Input volume as numpy array.</p>
+<dt><strong>image_volume</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.5)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></span></dt><dd><p>Input volume as numpy array.</p>
 </dd>
-<dt><strong>patch_center</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.4)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></span></dt><dd><p>Initial center point estimate for cropping.</p>
+<dt><strong>patch_center</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.5)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></span></dt><dd><p>Initial center point estimate for cropping.</p>
 </dd>
 <dt><strong>device</strong><span class="classifier"><code class="xref py py-obj docutils literal notranslate"><span class="pre">torch.device</span></code>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">optional</span></code></span></dt><dd><p>Device to run inference on, by default None.</p>
 </dd>
@@ -514,9 +514,9 @@
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><dl>
-<dt><strong>pc_ccord</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.4)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></span></dt><dd><p>Predicted PC coordinates.</p>
+<dt><strong>pc_ccord</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.5)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></span></dt><dd><p>Predicted PC coordinates.</p>
 </dd>
-<dt><strong>ac_coord</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.4)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></span></dt><dd><p>Predicted AC coordinates.</p>
+<dt><strong>ac_coord</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.5)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></span></dt><dd><p>Predicted AC coordinates.</p>
 </dd>
 <dt><strong>crop_offsets</strong><span class="classifier"><code class="xref py py-obj docutils literal notranslate"><span class="pre">pair</span></code> <code class="xref py py-obj docutils literal notranslate"><span class="pre">of</span></code> <code class="xref py py-obj docutils literal notranslate"><span class="pre">ints</span></code></span></dt><dd><p>Crop offsets (left, top).</p>
 </dd>
@@ -532,9 +532,9 @@
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><dl>
-<dt><strong>image_volume</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.4)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></span></dt><dd><p>Input image volume of shape (W, W, D) in RAS.</p>
+<dt><strong>image_volume</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.5)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></span></dt><dd><p>Input image volume of shape (W, W, D) in RAS.</p>
 </dd>
-<dt><strong>center_pt</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.4)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></span></dt><dd><p>Center point coordinates for cropping on the slice with shape (3,).</p>
+<dt><strong>center_pt</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.5)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></span></dt><dd><p>Center point coordinates for cropping on the slice with shape (3,).</p>
 </dd>
 <dt><strong>transform</strong><span class="classifier"><code class="xref py py-obj docutils literal notranslate"><span class="pre">transforms.Transform</span></code> or <a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">None</span></code></a>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">optional</span></code></span></dt><dd><p>Custom transform pipeline, by default None.
 If None, uses default transforms from get_transforms().</p>
@@ -559,9 +559,9 @@ If None, uses default transforms from get_transforms().</p>
 <dd class="field-odd"><dl>
 <dt><strong>model</strong><span class="classifier"><code class="xref py py-obj docutils literal notranslate"><span class="pre">torch.nn.Module</span></code></span></dt><dd><p>Trained model for AC-PC detection.</p>
 </dd>
-<dt><strong>image_slab</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.4)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></span></dt><dd><p>3D image mid-slices to run inference on in RAS.</p>
+<dt><strong>image_slab</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.5)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></span></dt><dd><p>3D image mid-slices to run inference on in RAS.</p>
 </dd>
-<dt><strong>center_pt</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.4)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></span></dt><dd><p>Initial center point estimate for cropping.</p>
+<dt><strong>center_pt</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.5)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></span></dt><dd><p>Initial center point estimate for cropping.</p>
 </dd>
 <dt><strong>num_iterations</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">int</span></code></a>, default=2</span></dt><dd><p>Number of refinement iterations to run.</p>
 </dd>
@@ -571,9 +571,9 @@ If None, uses default transforms from get_transforms().</p>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><dl>
-<dt><strong>ac_coords</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.4)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></span></dt><dd><p>Detected AC voxel coordinates with shape (2,) containing its [y,x] positions.</p>
+<dt><strong>ac_coords</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.5)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></span></dt><dd><p>Detected AC voxel coordinates with shape (2,) containing its [y,x] positions.</p>
 </dd>
-<dt><strong>pc_coords</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.4)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></span></dt><dd><p>Detected PC voxel coordinates with shape (2,) containing its [y,x] positions.</p>
+<dt><strong>pc_coords</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.5)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></span></dt><dd><p>Detected PC voxel coordinates with shape (2,) containing its [y,x] positions.</p>
 </dd>
 </dl>
 </dd>

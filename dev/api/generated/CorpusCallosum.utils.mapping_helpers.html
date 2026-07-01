@@ -464,9 +464,9 @@
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><dl>
-<dt><strong>pts</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.4)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></span></dt><dd><p>Point coordinates to transform, shape (3,) or (3, N).</p>
+<dt><strong>pts</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.5)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></span></dt><dd><p>Point coordinates to transform, shape (3,) or (3, N).</p>
 </dd>
-<dt><strong>T</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.4)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></span></dt><dd><p>4x4 homogeneous transformation matrix.</p>
+<dt><strong>T</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.5)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></span></dt><dd><p>4x4 homogeneous transformation matrix.</p>
 </dd>
 <dt><strong>inv</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">bool</span></code></a>, default=False</span></dt><dd><p>If True, applies inverse of transformation.</p>
 </dd>
@@ -474,7 +474,7 @@
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><dl class="simple">
-<dt><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.4)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></dt><dd><p>Transformed point coordinates, shape (3,) or (3, N).</p>
+<dt><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.5)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></dt><dd><p>Transformed point coordinates, shape (3,) or (3, N).</p>
 </dd>
 </dl>
 </dd>
@@ -490,7 +490,7 @@
 <dd class="field-odd"><dl>
 <dt><strong>orig_image</strong><span class="classifier"><code class="xref py py-obj docutils literal notranslate"><span class="pre">nibabelImage</span></code></span></dt><dd><p>Input volume.</p>
 </dd>
-<dt><strong>interp_vox2vox</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.4)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></span></dt><dd><p>Transformation matrix to apply to the data, this is from input-to-output space.</p>
+<dt><strong>interp_vox2vox</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.5)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></span></dt><dd><p>Transformation matrix to apply to the data, this is from input-to-output space.</p>
 </dd>
 <dt><strong>save_vox2ras</strong><span class="classifier"><code class="xref py py-obj docutils literal notranslate"><span class="pre">AffineMatrix4x4</span></code>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">optional</span></code></span></dt><dd><p>The vox2ras matrix of the output image, only relevant if output_path is given.</p>
 </dd>
@@ -498,7 +498,7 @@
 </dd>
 <dt><strong>output_path</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a> or <a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.14)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Path</span></code></a>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">optional</span></code></span></dt><dd><p>If output_path is provided, saves the result under this path using the dtype of header (or orig_image).</p>
 </dd>
-<dt><strong>output_size</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.4)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">optional</span></code></span></dt><dd><p>Size of output volume, uses input size by default <a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a>.</p>
+<dt><strong>output_size</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.5)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">optional</span></code></span></dt><dd><p>Size of output volume, uses input size by default <a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">None</span></code></a>.</p>
 </dd>
 <dt><strong>order</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">int</span></code></a>, default=1</span></dt><dd><p>Order of interpolation.</p>
 </dd>
@@ -506,7 +506,7 @@
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><dl class="simple">
-<dt><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.4)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></dt><dd><p>Transformed volume data of shape <code class="xref py py-obj docutils literal notranslate"><span class="pre">output_size</span></code> and type float.</p>
+<dt><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.5)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></dt><dd><p>Transformed volume data of shape <code class="xref py py-obj docutils literal notranslate"><span class="pre">output_size</span></code> and type float.</p>
 </dd>
 </dl>
 </dd>
@@ -525,9 +525,9 @@
 <dd class="field-odd"><dl>
 <dt><strong>target_shape</strong><span class="classifier"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Shape3d</span></code></span></dt><dd><p>Shape of the target standardized volume.</p>
 </dd>
-<dt><strong>ac_coords_3d</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.4)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></span></dt><dd><p>AC coordinates in 3D space.</p>
+<dt><strong>ac_coords_3d</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.5)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></span></dt><dd><p>AC coordinates in 3D space.</p>
 </dd>
-<dt><strong>pc_coords_3d</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.4)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></span></dt><dd><p>PC coordinates in 3D space.</p>
+<dt><strong>pc_coords_3d</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.5)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></span></dt><dd><p>PC coordinates in 3D space.</p>
 </dd>
 <dt><strong>orig_fsaverage_vox2vox</strong><span class="classifier"><code class="xref py py-obj docutils literal notranslate"><span class="pre">AffineMatrix4x4</span></code></span></dt><dd><p>Transformation matrix from original to fsaverage space.</p>
 </dd>
@@ -587,7 +587,7 @@ correcting for head nodding based on AC-PC line orientation.</p>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><dl class="simple">
-<dt><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.4)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></dt><dd><p>4x4 affine transformation matrix in RAS coordinates.</p>
+<dt><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.5)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></dt><dd><p>4x4 affine transformation matrix in RAS coordinates.</p>
 </dd>
 </dl>
 </dd>
@@ -630,13 +630,13 @@ correcting for head nodding based on AC-PC line orientation.</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><dl>
-<dt><strong>cc_fn_softlabels</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.4)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></span></dt><dd><p>Soft label predictions of shape (H, W, D, C=3).</p>
+<dt><strong>cc_fn_softlabels</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.5)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></span></dt><dd><p>Soft label predictions of shape (H, W, D, C=3).</p>
 </dd>
 <dt><strong>orig</strong><span class="classifier"><code class="xref py py-obj docutils literal notranslate"><span class="pre">nibabelImage</span></code></span></dt><dd><p>Original image.</p>
 </dd>
 <dt><strong>orig2slab_vox2vox</strong><span class="classifier"><code class="xref py py-obj docutils literal notranslate"><span class="pre">AffineMatrix4x4</span></code></span></dt><dd><p>The vox2vox transformation matrix from orig to the slab.</p>
 </dd>
-<dt><strong>cc_subseg_midslice</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.4)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">optional</span></code></span></dt><dd><p>Mask for subdividing regions of shape (H, D) (only paired with orig2midslice_vox2vox).</p>
+<dt><strong>cc_subseg_midslice</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.5)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">optional</span></code></span></dt><dd><p>Mask for subdividing regions of shape (H, D) (only paired with orig2midslice_vox2vox).</p>
 </dd>
 <dt><strong>orig2midslice_vox2vox</strong><span class="classifier"><code class="xref py py-obj docutils literal notranslate"><span class="pre">AffineMatrix4x4</span></code>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">optional</span></code></span></dt><dd><p>The vox2vox transformation matrix from orig to the midslice (only paired with cc_subseg_midslice).</p>
 </dd>
@@ -646,7 +646,7 @@ correcting for head nodding based on AC-PC line orientation.</p>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><dl class="simple">
-<dt><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.4)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></dt><dd><p>Final segmentation in original image space.</p>
+<dt><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.5)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></dt><dd><p>Final segmentation in original image space.</p>
 </dd>
 </dl>
 </dd>
