@@ -133,6 +133,15 @@ All installation methods use the `run_fastsurfer.sh` call interface (replace the
 
    [Example 3](doc/overview/EXAMPLES.md#example-3-native-fastsurfer-on-subjectx-with-parallel-processing-of-hemis) also illustrates the running the FastSurfer pipeline natively.
 
+If your input data is organized as a [BIDS](https://bids.neuroimaging.io/)-valid dataset, you can use the
+[`run_fastsurfer_bids.py`](doc/scripts/BIDS.md) BIDS-App entrypoint instead, which discovers subjects/sessions
+automatically:
+```bash
+./run_fastsurfer_bids.py /path/to/bids_dataset /path/to/output_dir participant \
+    --participant_label 01 02 --fs_license /path/to/license.txt
+```
+See the [BIDS documentation](doc/scripts/BIDS.md) for details.
+
 <!-- start of examples -->
 Examples
 --------
