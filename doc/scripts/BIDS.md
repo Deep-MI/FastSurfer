@@ -43,6 +43,8 @@ Session and longitudinal handling
   are present.
 - `--longitudinal` forces the longitudinal pipeline; subjects with only one session fall back to cross-sectional
   processing with a warning.
+- Passing `--seg_only` or `--surf_only` after the literal `--` also forces cross-sectional processing for multi-session
+  subjects, because these modes are not supported by `long_fastsurfer.sh`.
 
 T1w and T2w input
 ------------------

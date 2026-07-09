@@ -29,7 +29,8 @@
 # enough time -- the longitudinal subject alone processes 4 timepoints).
 #
 # Usage:
-#   test_bids_openneuro.sh <work_dir> [--run --fs_license <file>] [-- <extra run_fastsurfer_bids.py flags>]
+#   test_bids_openneuro.sh <output_dir> [--bids_dir <dir>] [--run] [--fs_license <file>] \
+#       [-- <extra run_fastsurfer_bids.py flags>]
 
 set -euo pipefail
 
@@ -37,28 +38,69 @@ if [[ -z "${FASTSURFER_HOME:-}" ]]; then
   FASTSURFER_HOME=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." &> /dev/null && pwd)
 fi
 
-work_dir="${1:?Usage: test_bids_openneuro.sh <work_dir> [--run --fs_license <file>] [-- <extra flags>]}"
+usage() {
+  cat <<EOF
+Usage:
+  test_bids_openneuro.sh <output_dir> [--bids_dir <dir>] [--run] [--fs_license <file>] \
+      [-- <extra run_fastsurfer_bids.py flags>]
+
+Downloads a minimal OpenNeuro BIDS subset with:
+  - one single-session subject for cross-sectional processing
+  - one multi-session subject for longitudinal processing
+
+Arguments:
+  <output_dir>            FastSurfer output directory (used as SUBJECTS_DIR).
+
+Options:
+  --bids_dir <dir>        Where to download the BIDS input dataset.
+                          Default: sibling path named <output_dir>_bids
+  --run                   Execute FastSurfer instead of only printing commands.
+  --fs_license <file>     FreeSurfer license file. Required for full runs, optional for --seg_only.
+  --                      Pass remaining flags through to run_fastsurfer_bids.py.
+
+Examples:
+  test_bids_openneuro.sh /data/fs_out
+  test_bids_openneuro.sh /data/fs_out -- --seg_only --parallel 2
+  test_bids_openneuro.sh /data/fs_out --run --fs_license /data/license.txt -- --parallel 2
+EOF
+}
+
+if [[ ${1:-} == "-h" || ${1:-} == "--help" ]]; then
+  usage
+  exit 0
+fi
+
+output_dir="${1:?Usage: test_bids_openneuro.sh <output_dir> [--bids_dir <dir>] [--run] [--fs_license <file>] [-- <extra flags>] }"
 shift || true
 
 dry_run="--dry_run"
 fs_license=()
 extra_flags=()
+default_bids_dir="$(dirname "$output_dir")/$(basename "$output_dir")_bids"
+bids_dir="$default_bids_dir"
 while [[ $# -gt 0 ]]; do
   case "$1" in
+    --bids_dir) bids_dir="$2" ; shift 2 ;;
     --run) dry_run="" ; shift ;;
     --fs_license) fs_license=(--fs_license "$2") ; shift 2 ;;
+    -h|--help) usage ; exit 0 ;;
     --) shift ; extra_flags=("$@") ; break ;;
     *) echo "ERROR: Unknown option $1" ; exit 1 ;;
   esac
 done
 
-if [[ -z "$dry_run" && ${#fs_license[@]} -eq 0 ]]; then
-  echo "ERROR: --run requires --fs_license <file>."
+needs_license="true"
+for flag in "${extra_flags[@]}"; do
+  if [[ "$flag" == "--seg_only" ]]; then
+    needs_license="false"
+    break
+  fi
+done
+
+if [[ -z "$dry_run" && ${#fs_license[@]} -eq 0 && "$needs_license" == "true" ]]; then
+  echo "ERROR: --run without --seg_only requires --fs_license <file>."
   exit 1
 fi
-
-bids_dir="$work_dir/bids"
-output_dir="$work_dir/output"
 
 echo "=== Step 1/2: Fetching OpenNeuro BIDS subset into $bids_dir ==="
 "$(dirname "${BASH_SOURCE[0]}")/fetch_openneuro_bids_subset.sh" "$bids_dir"
@@ -82,5 +124,10 @@ echo "+ ${cmd[*]}"
 "${cmd[@]}"
 
 echo
-echo "Expected: $cross_sub (ses-1 only) routed through brun_fastsurfer.sh,"
-echo "          $long_sub (ses-1..ses-4) routed through long_fastsurfer.sh."
+if printf '%s\n' "${extra_flags[@]}" | grep -qx -- '--seg_only\|--surf_only'; then
+  echo "Expected: both $cross_sub and $long_sub routed through brun_fastsurfer.sh,"
+  echo "          because segmentation-only and surface-only modes are cross-sectional only."
+else
+  echo "Expected: $cross_sub (ses-1 only) routed through brun_fastsurfer.sh,"
+  echo "          $long_sub (ses-1..ses-4) routed through long_fastsurfer.sh."
+fi

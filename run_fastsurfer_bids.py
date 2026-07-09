@@ -98,6 +98,12 @@ def _split_passthrough(argv: list[str]) -> tuple[list[str], list[str]]:
     return argv, []
 
 
+def _requires_cross_sectional_passthrough(passthrough: list[str]) -> bool:
+    """Return True if passthrough flags are incompatible with long_fastsurfer.sh."""
+    unsupported_for_longitudinal = {"--seg_only", "--surf_only"}
+    return any(flag in unsupported_for_longitudinal for flag in passthrough)
+
+
 def _write_subject_list(path: Path, lines: list[str]) -> None:
     with open(path, "w") as f:
         f.write("\n".join(lines) + "\n")
@@ -152,18 +158,33 @@ def main(argv: list[str] | None = None) -> int:
         bids.write_derivatives_dataset_description(output_dir, read_and_close_version())
 
     common_args = list(passthrough)
+    requires_cross_sectional = _requires_cross_sectional_passthrough(common_args)
     if args.fs_license is not None:
         common_args += ["--fs_license", str(args.fs_license)]
 
     cross_sectional_lines = []
     for subject in subjects:
         force_long = args.longitudinal
-        force_cross = args.cross_sectional
+        force_cross = args.cross_sectional or requires_cross_sectional
         is_long = subject.is_longitudinal and not force_cross
         if force_long and not subject.is_longitudinal:
             print(
                 f"WARNING: --longitudinal requested but {subject.subject_id} only has a single "
                 "session, processing cross-sectionally instead.",
+                file=sys.stderr,
+            )
+            is_long = False
+        elif force_long and requires_cross_sectional:
+            print(
+                f"WARNING: --longitudinal requested for {subject.subject_id}, but the passthrough "
+                "options require cross-sectional processing; processing sessions independently instead.",
+                file=sys.stderr,
+            )
+            is_long = False
+        elif subject.is_longitudinal and requires_cross_sectional:
+            print(
+                f"WARNING: {subject.subject_id} has multiple sessions, but the passthrough options "
+                "are not supported by the longitudinal pipeline; processing sessions independently instead.",
                 file=sys.stderr,
             )
             is_long = False

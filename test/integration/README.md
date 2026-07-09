@@ -27,9 +27,30 @@ test/integration/test_bids_openneuro.sh /tmp/bids_smoketest
 # enough time/compute -- the longitudinal subject processes 4 timepoints)
 test/integration/test_bids_openneuro.sh /tmp/bids_smoketest --run --fs_license /path/to/license.txt
 
-# actually run, segmentation only (much faster, skips surface reconstruction)
-test/integration/test_bids_openneuro.sh /tmp/bids_smoketest --run --fs_license /path/to/license.txt -- --seg_only
+# actually run, segmentation only (much faster, skips surface reconstruction;
+# no FreeSurfer license needed)
+test/integration/test_bids_openneuro.sh /tmp/bids_smoketest --run -- --seg_only
 ```
+
+The first positional argument is the FastSurfer output directory. By default the BIDS test dataset
+is downloaded next to it as `<output_dir>_bids`; override that with `--bids_dir <dir>` if needed.
 
 Requires `fastsurfer[bids]` (pybids) to be installed. Override the default test subjects via the
 `CROSS_SUB`/`LONG_SUB`/`LONG_SESSIONS` environment variables if needed.
+
+Developer shortcut: `check_bids_addon.sh`
+-----------------------------------------
+For contributors working on the BIDS add-on, this wrapper runs the two most useful checks together:
+
+- targeted pytest coverage for BIDS discovery and routing
+- the OpenNeuro-based dry-run smoke test in `--seg_only` mode
+
+```bash
+# use an existing virtual environment, then run both smoke checks
+test/integration/check_bids_addon.sh --venv .venv
+
+# or choose a custom work directory for downloaded test data and dry-run output
+test/integration/check_bids_addon.sh --venv .venv --work_dir /data/local/tmp_big
+```
+
+This is intended as the quickest developer-facing validation path before trying a full longitudinal run.
