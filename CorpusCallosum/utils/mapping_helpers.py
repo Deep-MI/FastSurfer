@@ -84,8 +84,8 @@ def correct_nodding(ac_pt: Vector2d, pc_pt: Vector2d) -> AffineMatrix3x3:
     norms_product = np.linalg.norm(ac_pc_vec) * np.linalg.norm(posterior_vector)
     theta = np.arccos(dot_product / norms_product)
 
-    # Determine the sign of the angle using cross product
-    cross_product = np.cross(ac_pc_vec, posterior_vector)
+    # Determine the sign of the angle using the signed z-component of the 2D cross product.
+    cross_product = ac_pc_vec[0] * posterior_vector[1] - ac_pc_vec[1] * posterior_vector[0]
     if cross_product < 0:
         theta = -theta
 
