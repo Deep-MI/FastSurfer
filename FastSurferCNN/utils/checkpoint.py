@@ -15,6 +15,7 @@
 # IMPORTS
 import os
 import sys
+import tempfile
 from collections.abc import MutableSequence
 from functools import lru_cache
 from pathlib import Path
@@ -400,8 +401,20 @@ def download_checkpoint(
             raise RuntimeError(message, responses)
     else:
         response = next(r for r in responses if r.ok)
-        with open(checkpoint_path, "wb") as f:
-            f.write(response.content)
+        # Write atomically: download to a temporary file in the same directory, then
+        # os.replace() it into place. This prevents a concurrent caller (e.g. the CC
+        # module loads its localization and segmentation models in parallel threads,
+        # both triggering download_checkpoints) from seeing a half-written file via the
+        # `checkpoint_path.exists()` guard and torch.load-ing a truncated checkpoint.
+        checkpoint_path = Path(checkpoint_path)
+        fd, tmp_path = tempfile.mkstemp(dir=checkpoint_path.parent, suffix=".part")
+        try:
+            with os.fdopen(fd, "wb") as f:
+                f.write(response.content)
+            os.replace(tmp_path, checkpoint_path)
+        except BaseException:
+            Path(tmp_path).unlink(missing_ok=True)
+            raise
 
 
 def check_and_download_ckpts(checkpoint_path: Path | str, urls: list[str]) -> None:
