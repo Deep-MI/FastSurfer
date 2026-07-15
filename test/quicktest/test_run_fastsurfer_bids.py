@@ -1,5 +1,3 @@
-from pathlib import Path
-
 from run_fastsurfer_bids import _requires_cross_sectional_passthrough
 
 
