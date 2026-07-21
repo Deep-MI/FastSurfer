@@ -880,9 +880,8 @@ def transform_to_acpc_standard(
     norms_product = np.linalg.norm(ac_pc_vec) * np.linalg.norm(posterior_vector)
     theta = np.arccos(dot_product / norms_product)
 
-    # Determine the sign of the angle using the 2D cross product (z-component).
-    # NumPy 2.0 removed np.cross for 2-element vectors, so compute the scalar directly.
-    cross_product = ac_pc_vec[0] * posterior_vector[1] - ac_pc_vec[1] * posterior_vector[0]
+    # Determine the sign of the angle using cross product
+    cross_product = np.cross(ac_pc_vec, posterior_vector)
     if cross_product < 0:
         theta = -theta
 

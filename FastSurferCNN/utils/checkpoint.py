@@ -15,11 +15,11 @@
 # IMPORTS
 import os
 import sys
-import tempfile
 from collections.abc import MutableSequence
 from functools import lru_cache
 from pathlib import Path
 from typing import TYPE_CHECKING, Literal, TypedDict, cast, overload
+from uuid import uuid4
 
 import requests
 import torch
@@ -401,20 +401,20 @@ def download_checkpoint(
             raise RuntimeError(message, responses)
     else:
         response = next(r for r in responses if r.ok)
-        # Write atomically: download to a temporary file in the same directory, then
-        # os.replace() it into place. This prevents a concurrent caller (e.g. the CC
-        # module loads its localization and segmentation models in parallel threads,
-        # both triggering download_checkpoints) from seeing a half-written file via the
-        # `checkpoint_path.exists()` guard and torch.load-ing a truncated checkpoint.
         checkpoint_path = Path(checkpoint_path)
-        fd, tmp_path = tempfile.mkstemp(dir=checkpoint_path.parent, suffix=".part")
+        temporary_path = checkpoint_path.with_name(
+            f".{checkpoint_path.name}.{uuid4().hex}.tmp"
+        )
         try:
-            with os.fdopen(fd, "wb") as f:
+            # Opening a unique file with ``xb`` preserves the permissions dictated by
+            # the process umask and prevents concurrent downloads from sharing a
+            # temporary file. The same-directory replace atomically publishes the
+            # checkpoint only after it has been written and closed completely.
+            with open(temporary_path, "xb") as f:
                 f.write(response.content)
-            os.replace(tmp_path, checkpoint_path)
-        except BaseException:
-            Path(tmp_path).unlink(missing_ok=True)
-            raise
+            os.replace(temporary_path, checkpoint_path)
+        finally:
+            temporary_path.unlink(missing_ok=True)
 
 
 def check_and_download_ckpts(checkpoint_path: Path | str, urls: list[str]) -> None:
