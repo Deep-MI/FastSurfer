@@ -62,6 +62,8 @@ All anatomical landmarks are given image voxel coordinates (LIA orientation)
 - `pc_center_oriented_volume`: PC coordinates in standardized space (orient_volume.lta)
 - `ac_center_upright`: AC coordinates in upright space (cc_up.lta)
 - `pc_center_upright`: PC coordinates in upright space (cc_up.lta)
+- `landmark_source`: Whether AC/PC were obtained from the model or supplied by the user
+- `segmentation_source`: Whether morphometry used the automatic or manual upright CC segmentation
 
 ### `stats/callosum.CC.all_slices.json` (Multi-Slice Analysis)
 This file contains comprehensive per-slice analysis when using `--slice_selection all`:

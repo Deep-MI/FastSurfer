@@ -152,7 +152,10 @@ FLAGS:
                             with the segmentation pipeline.
   --edits                 Enables manual edits by replacing select intermediate/
                             result files by manedit substitutes (*.manedit.<ext>).
-                            Segmentation: <asegdkt_segfile> and <mask_name>.
+                            Segmentation edits (default paths):
+                              mri/aparc.DKTatlas+aseg.deep.manedit.mgz
+                              mri/mask.manedit.mgz
+                              mri/callosum.CC.upright.manedit.mgz
                             Surface: Disables check for existing recon-surf.sh run;
                               edits of mri/wm.mgz and brain.finalsurfs.mgz
                               as well as FreeSurfer-style WM control points.
@@ -228,8 +231,9 @@ SEGMENTATION PIPELINE:
 
   CORPUS CALLOSUM MODULE:
   --no_cc                Skip the segmentation and analysis of the corpus callosum.
-  --qc_snap              Create QC snapshots in \$SUBJECTS_DIR/\$sid/qc_snapshots
-                           to simplify the QC process.
+  --qc_snap              Create quality control images in \$SUBJECTS_DIR/\$sid/qc_snapshots
+                         to simplify the QC process. Also creates additional volumes
+                         in mri/ for QC.
 
   HYPOTHALAMUS MODULE (HypVINN):
   --no_hypothal           Skip the hypothalamus segmentation.
@@ -525,7 +529,7 @@ case $key in
   --qc_snap)
     hypvinn_flags+=(--qc_snap) ;
     cc_flags+=(--qc_image "qc_snapshots/callosum.png" --thickness_image "qc_snapshots/callosum.thickness.png"
-               --cc_html "qc_snapshots/corpus_callosum.html")
+               --cc_html "qc_snapshots/corpus_callosum.html" --upright_volume "mri/upright_volume.mgz")
     ;;
 
   ##############################################################
@@ -1291,8 +1295,31 @@ then
     asegdkt_withcc_segfile="$(add_file_suffix "$asegdkt_segfile" "withCC")"
     asegdkt_withcc_vinn_statsfile="$(add_file_suffix "$asegdkt_vinn_statsfile" "withCC")"
     aseg_auto_statsfile="$(dirname "$aseg_vinn_statsfile")/aseg.auto.mgz"
-    # note: callosum manedit currently only affects inpainting and not internal FastSurferCC processing (surfaces etc)
+    callosum_upright_seg="$subject_dir/mri/callosum.CC.upright.mgz"
+    callosum_upright_seg_manedit="$(add_file_suffix "$callosum_upright_seg" "manedit")"
     callosum_seg_manedit="$(add_file_suffix "$callosum_seg" "manedit")"
+    if [[ -f "$callosum_seg_manedit" ]] && [[ ! -f "$callosum_upright_seg_manedit" ]]
+    then
+      {
+        echo "ERROR: Legacy original-space CC edit $callosum_seg_manedit detected without"
+        echo "  $callosum_upright_seg_manedit. Edit the upright segmentation instead; the"
+        echo "  original-space manedit file is generated automatically during the edit rerun."
+      } | tee -a "$seg_log"
+      exit 1
+    fi
+    if [[ -f "$callosum_upright_seg_manedit" ]]
+    then
+      if [[ "$edits" == "true" ]]
+      then
+        cc_flags+=(--segmentation_manedit "$callosum_upright_seg_manedit")
+      else
+        {
+          echo "ERROR: $callosum_upright_seg_manedit (manedit file for the upright CC segmentation) detected,"
+          echo "  but --edits was not passed. Delete the manedit file or add --edits."
+        } | tee -a "$seg_log"
+        exit 1
+      fi
+    fi
     # generate callosum segmentation, mesh, shape and downstream measure files
     cmd=($python "$CorpusCallosumDir/fastsurfer_cc.py" --sd "$sd" --sid "$subject"
          "--threads" "$threads_seg" "--conformed_name" "$conformed_name" "--aseg_name" "$aseg_segfile"
@@ -1304,7 +1331,10 @@ then
       echo "ERROR: FastSurferCC corpus callosum analysis failed!" | tee -a "$seg_log"
       exit "$exit_code"
     fi
-    if [[ "$edits" == "true" ]] && [[ -f "$callosum_seg_manedit" ]] ; then callosum_seg="$callosum_seg_manedit" ; fi
+    if [[ "$edits" == "true" ]] && [[ -f "$callosum_upright_seg_manedit" ]]
+    then
+      callosum_seg="$callosum_seg_manedit"
+    fi
     {
       # add CC into aparc.DKTatlas+aseg.deep.mgz and aseg.auto.mgz as mri_cc did before.
       cmd=($python "$CorpusCallosumDir/paint_cc_into_pred.py" -in_cc "$callosum_seg" -in_pred "$asegdkt_segfile"

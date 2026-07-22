@@ -11,6 +11,7 @@ from skimage.morphology import convex_hull_image
 
 from CorpusCallosum.data.constants import FSAVERAGE_MIDDLE, FSAVERAGE_REGISTRATION_LABELS, FSAVERAGE_TARGET_PATH
 from CorpusCallosum.data.read_write import MGHHeaderDict, convert_numpy_to_json_serializable
+from CorpusCallosum.registration.landmarks import adjust_midplane_to_landmarks
 from CorpusCallosum.shape.postprocessing import offset_affine
 from FastSurferCNN.utils import AffineMatrix4x4, Shape3d, logging, nibabelImage
 from FastSurferCNN.utils.brainvolstats import hemi_masks_from_aseg
@@ -795,6 +796,8 @@ def find_midplane_transform(
         orig: nibabelImage,
         aseg_img: nibabelImage,
         midplane_method: str,
+        ac_coords_orig: np.ndarray | None = None,
+        pc_coords_orig: np.ndarray | None = None,
 ) -> MidplaneTransformResult:
     """Resolve the fsaverage midplane transform for a selected refinement method.
 
@@ -817,8 +820,32 @@ def find_midplane_transform(
     vox_size = vox_size_ras[0], vox_size_ras[2], vox_size_ras[1]
     aseg_data = np.asarray(aseg_img.dataobj)
 
-    if midplane_method == "center":
+    if (ac_coords_orig is None) != (pc_coords_orig is None):
+        raise ValueError("AC and PC coordinates must be supplied together.")
+
+    def _adjust_with_landmarks(result: MidplaneTransformResult) -> MidplaneTransformResult:
+        if ac_coords_orig is None or pc_coords_orig is None:
+            return result
+        adjusted_transform, landmark_diagnostics = adjust_midplane_to_landmarks(
+            result.orig2fsavg_vox2vox,
+            ac_coords_orig,
+            pc_coords_orig,
+            result.base_middle_vox,
+        )
+        diagnostics = dict(result.midline_shift_diagnostics)
+        diagnostics["landmark_adjustment"] = landmark_diagnostics
         return MidplaneTransformResult(
+            orig2fsavg_vox2vox=adjusted_transform,
+            fsavg_vox2ras=result.fsavg_vox2ras,
+            fsavg_header_dict=result.fsavg_header_dict,
+            fsavg_shape=result.fsavg_shape,
+            base_middle_vox=result.base_middle_vox,
+            midline_shift_vox=result.midline_shift_vox,
+            midline_shift_diagnostics=diagnostics,
+        )
+
+    if midplane_method == "center":
+        return _adjust_with_landmarks(MidplaneTransformResult(
             orig2fsavg_vox2vox=np.eye(4),
             fsavg_vox2ras=orig.affine,
             fsavg_header_dict={"dims": list(orig.shape[:3])},
@@ -826,7 +853,7 @@ def find_midplane_transform(
             base_middle_vox=orig.shape[0] / 2.0,
             midline_shift_vox=0.0,
             midline_shift_diagnostics={},
-        )
+        ))
 
     orig2fsavg_vox2vox, _, fsavg_vox2ras, fsavg_header_dict = register_centroids_to_fsavg(aseg_img)
     fsavg_shape = tuple(fsavg_header_dict["dims"])
@@ -839,7 +866,7 @@ def find_midplane_transform(
             fsavg_shape=fsavg_shape,
             base_middle_vox=base_middle_vox,
         )
-        return MidplaneTransformResult(
+        return _adjust_with_landmarks(MidplaneTransformResult(
             orig2fsavg_vox2vox=dm_result.updated_vox2vox,
             fsavg_vox2ras=fsavg_vox2ras,
             fsavg_header_dict=fsavg_header_dict,
@@ -847,7 +874,7 @@ def find_midplane_transform(
             base_middle_vox=base_middle_vox,
             midline_shift_vox=dm_result.center_shift_vox,
             midline_shift_diagnostics=dm_result.diagnostics,
-        )
+        ))
 
     if midplane_method == "fsaverage_symmetry":
         orig2fsavg_vox2vox, lr_shift, _, diagnostics = refine_midline_lr_shift(
@@ -856,7 +883,7 @@ def find_midplane_transform(
             fsavg_shape=fsavg_shape,
             base_middle_vox=base_middle_vox,
         )
-        return MidplaneTransformResult(
+        return _adjust_with_landmarks(MidplaneTransformResult(
             orig2fsavg_vox2vox=orig2fsavg_vox2vox,
             fsavg_vox2ras=fsavg_vox2ras,
             fsavg_header_dict=fsavg_header_dict,
@@ -864,10 +891,10 @@ def find_midplane_transform(
             base_middle_vox=base_middle_vox,
             midline_shift_vox=float(lr_shift),
             midline_shift_diagnostics=diagnostics,
-        )
+        ))
 
     if midplane_method == "fsaverage":
-        return MidplaneTransformResult(
+        return _adjust_with_landmarks(MidplaneTransformResult(
             orig2fsavg_vox2vox=orig2fsavg_vox2vox,
             fsavg_vox2ras=fsavg_vox2ras,
             fsavg_header_dict=fsavg_header_dict,
@@ -875,6 +902,6 @@ def find_midplane_transform(
             base_middle_vox=base_middle_vox,
             midline_shift_vox=0.0,
             midline_shift_diagnostics={},
-        )
+        ))
 
     raise ValueError(f"Unsupported midplane_method: {midplane_method!r}")
