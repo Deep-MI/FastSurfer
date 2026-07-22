@@ -33,6 +33,7 @@ from CorpusCallosum.data.constants import (
     CC_LABEL,
     DEFAULT_INPUT_PATHS,
     DEFAULT_OUTPUT_PATHS,
+    FORNIX_LABEL,
     THIRD_VENTRICLE_LABEL,
 )
 from CorpusCallosum.data.read_write import MGHHeaderDict, convert_numpy_to_json_serializable
@@ -47,10 +48,12 @@ from CorpusCallosum.shape.postprocessing import (
     offset_affine,
     recon_cc_surf_measures_multi,
 )
+from CorpusCallosum.utils.editing import add_file_suffix, load_manual_upright_segmentation, validate_landmarks_in_image
 from CorpusCallosum.utils.mapping_helpers import (
     apply_transform_to_pt,
     apply_transform_to_volume,
     calc_mapping_to_standard_space,
+    map_hard_segmentation_to_orig,
     map_softlabels_to_orig,
 )
 from CorpusCallosum.utils.types import SliceSelection, SubdivisionMethod
@@ -205,6 +208,13 @@ def make_parser() -> argparse.ArgumentParser:
         default=Path(DEFAULT_OUTPUT_PATHS["segmentation"]),
     )
     advanced.add_argument(
+        "--segmentation_manedit",
+        type=path_or_none,
+        help="Edited upright CC segmentation. If it contains fornix label 250, it is self-contained; otherwise the "
+             "fornix is retained from the automatic segmentation output of a previous run.",
+        default=None,
+    )
+    advanced.add_argument(
         "--segmentation_in_orig",
         type=path_or_none,
         help="Output path for corpus callosum and fornix segmentation output in the input MRI space.",
@@ -252,6 +262,22 @@ def make_parser() -> argparse.ArgumentParser:
              "'fsaverage': centroid-based alignment to fsaverage template; "
              "'fsaverage_symmetry': fsaverage alignment + LR label-symmetry shift refinement (default); "
              "'fsaverage_distance_map': fsaverage alignment + distance-map plane-fitting refinement.",
+    )
+    advanced.add_argument(
+        "--ac_coords",
+        type=float,
+        nargs=3,
+        metavar=("X", "Y", "Z"),
+        help="Optional AC point as three floating-point voxel coordinates in orig.mgz space. Requires --pc_coords.",
+        default=None,
+    )
+    advanced.add_argument(
+        "--pc_coords",
+        type=float,
+        nargs=3,
+        metavar=("X", "Y", "Z"),
+        help="Optional PC point as three floating-point voxel coordinates in orig.mgz space. Requires --ac_coords.",
+        default=None,
     )
     advanced.add_argument(
         "--qc_image",
@@ -332,6 +358,9 @@ def options_parse() -> argparse.Namespace:
     parser = make_parser()
     args = parser.parse_args()
 
+    if (args.ac_coords is None) != (args.pc_coords is None):
+        parser.error("--ac_coords and --pc_coords must be supplied together.")
+
     # Reconstruct subject_dir from sd and sid (but sd might be stored as out_dir by parser_defaults)
     sd_value = getattr(args, "out_dir", None)
     if sd_value and hasattr(args, "sid") and args.sid:
@@ -379,6 +408,7 @@ def options_parse() -> argparse.Namespace:
 
         all_paths = (
             "segmentation",
+            "segmentation_manedit",
             "segmentation_in_orig",
             "cc_measures",
             "upright_lta",
@@ -539,6 +569,7 @@ def main(
         device: str | torch.device = "auto",
         upright_volume: str | Path | None = None,
         segmentation: str | Path | None = None,
+        segmentation_manedit: str | Path | None = None,
         cc_measures: str | Path | None = None,
         cc_mid_measures: str | Path | None = None,
         upright_lta: str | Path | None = None,
@@ -554,6 +585,8 @@ def main(
         softlabels_cc: str | Path | None = None,
         softlabels_fn: str | Path | None = None,
         softlabels_background: str | Path | None = None,
+        ac_coords: Iterable[float] | None = None,
+        pc_coords: Iterable[float] | None = None,
 ) -> Literal[0] | str:
     """Main pipeline function for corpus callosum analysis.
 
@@ -587,6 +620,9 @@ def main(
         Path to save upright volume.
     segmentation : str or Path, optional
         Path to save segmentation.
+    segmentation_manedit : str or Path, optional
+        Path to an edited upright CC segmentation. A file containing fornix label 250 is self-contained; otherwise
+        the fornix is retained from the automatic segmentation outputs of a previous run.
     cc_measures : str or Path, optional
         Path to save post-processing results.
     cc_mid_measures : str or Path, optional
@@ -615,6 +651,10 @@ def main(
         Path to save fornix soft labels.
     softlabels_background : str or Path, optional
         Path to save background soft labels.
+    ac_coords : tuple of float, optional
+        Supplied AC voxel coordinates in original image space; requires ``pc_coords``.
+    pc_coords : tuple of float, optional
+        Supplied PC voxel coordinates in original image space; requires ``ac_coords``.
 
     Returns
     -------
@@ -664,6 +704,7 @@ def main(
         save_template_dir=save_template_dir,
         upright_volume=upright_volume,
         cc_segmentation=segmentation,
+        cc_segmentation_manedit=segmentation_manedit,
         cc_measures=cc_measures,
         cc_mid_measures=cc_mid_measures,
         upright_lta=upright_lta,
@@ -689,13 +730,20 @@ def main(
     #### setup variables
     futures = []
 
-    # load models
+    manual_edit = sd.has_attribute("cc_segmentation_manedit")
+    supplied_landmarks = ac_coords is not None or pc_coords is not None
+
+    # load only models needed by the selected path
     device = find_device(device)
     logger.info(f"Using device: {device}")
 
     logger.info("Loading models")
-    _model_localization = thread_executor().submit(localization_inference.load_model, device=device)
-    _model_segmentation = thread_executor().submit(segmentation_inference.load_model, device=device)
+    _model_localization = (
+        None if supplied_landmarks else thread_executor().submit(localization_inference.load_model, device=device)
+    )
+    _model_segmentation = (
+        None if manual_edit else thread_executor().submit(segmentation_inference.load_model, device=device)
+    )
 
     _aseg_fut = thread_executor().submit(nib.load, sd.filename_by_attribute("aseg_name"))
     orig = cast(nibabelImage, nib.load(sd.conf_name))
@@ -710,6 +758,12 @@ def main(
             error_message = "Conforming the image should not change the affine, but it did!"
             logger.error(error_message)
             return error_message
+
+    try:
+        ac_coords_orig, pc_coords_orig = validate_landmarks_in_image(ac_coords, pc_coords, orig.shape)
+    except ValueError as e:
+        logger.error(str(e))
+        return str(e)
 
     # Analysis-width slab around the midplane (guaranteed to be aligned RAS by as_closest_canonical).
     vox_size_ras: tuple[float, float, float] = nib.as_closest_canonical(orig).header.get_zooms()
@@ -732,7 +786,17 @@ def main(
         logger.error(error_message)
         return error_message
 
-    midplane = find_midplane_transform(orig=orig, aseg_img=aseg_img, midplane_method=midplane_method)
+    try:
+        midplane = find_midplane_transform(
+            orig=orig,
+            aseg_img=aseg_img,
+            midplane_method=midplane_method,
+            ac_coords_orig=ac_coords_orig,
+            pc_coords_orig=pc_coords_orig,
+        )
+    except ValueError as e:
+        logger.error(str(e))
+        return str(e)
     orig2fsavg_vox2vox = midplane.orig2fsavg_vox2vox
     fsavg_vox2ras = midplane.fsavg_vox2ras
     _fsavg_header_dict = midplane.fsavg_header_dict
@@ -771,18 +835,25 @@ def main(
     fsavg2midslab_vox2vox = offset_affine([slices_to_analyze // 2, 0, 0]) @ fsavg2midslice_vox2vox
     fsaverage_midslab_vox2ras: AffineMatrix4x4 = fsavg_vox2ras @ np.linalg.inv(fsavg2midslab_vox2vox)
 
-    #### do localization and segmentation inference
-    logger.info("Starting AC/PC localization")
-    target_shape: tuple[int, int, int] = (slices_to_analyze, fsavg_header["dims"][1], fsavg_header["dims"][2])
-    # predict ac and pc coordinates in upright AS space
-    ac_coords_vox, pc_coords_vox = localize_ac_pc(
-        np.asarray(orig.dataobj),
-        aseg_img,
-        _orig2midslab_vox2vox(additional_context=2),
-        _model_localization.result(),
-        target_shape,
-    )
-    logger.info("Starting corpus callosum segmentation")
+    #### resolve landmarks and segmentation
+    target_shape: Shape3d = (slices_to_analyze, fsavg_header["dims"][1], fsavg_header["dims"][2])
+    if ac_coords_orig is not None and pc_coords_orig is not None:
+        logger.info("Using supplied AC/PC coordinates from orig.mgz voxel space")
+        ac_coords_vox = apply_transform_to_pt(ac_coords_orig, orig2midslice_vox2vox)[1:]
+        pc_coords_vox = apply_transform_to_pt(pc_coords_orig, orig2midslice_vox2vox)[1:]
+        landmark_source = "supplied"
+    else:
+        logger.info("Starting AC/PC localization")
+        assert _model_localization is not None
+        ac_coords_vox, pc_coords_vox = localize_ac_pc(
+            np.asarray(orig.dataobj),
+            aseg_img,
+            _orig2midslab_vox2vox(additional_context=2),
+            _model_localization.result(),
+            target_shape,
+        )
+        landmark_source = "model"
+
     num_context = 8  # 8 extra in x-direction for context slices
     target_shape: Shape3d = (slices_to_analyze + num_context, fsavg_header["dims"][1], fsavg_header["dims"][2])
     midslices: Image3d = affine_transform(
@@ -796,41 +867,59 @@ def main(
         cval=0,
         prefilter=True,  # unclear, why we are using a smoothing filter here
     )
-    cc_fn_seg_labels, cc_fn_softlabels = segment_cc(
-        midslices,
-        ac_coords_vox,
-        pc_coords_vox,
-        aseg_img,
-        _model_segmentation.result(),
-    )
+    cc_fn_softlabels: Image4d | None
+    manual_has_fornix = False
+    if manual_edit:
+        logger.info(f"Using manual upright CC segmentation {sd.filename_by_attribute('cc_segmentation_manedit')}")
+        try:
+            cc_fn_seg_labels, manual_has_fornix = load_manual_upright_segmentation(
+                automatic_path=(
+                    sd.filename_by_attribute("cc_segmentation") if sd.has_attribute("cc_segmentation") else None
+                ),
+                manual_path=sd.filename_by_attribute("cc_segmentation_manedit"),
+                expected_shape=(slices_to_analyze, fsavg_header["dims"][1], fsavg_header["dims"][2]),
+                expected_affine=fsaverage_midslab_vox2ras,
+            )
+        except ValueError as e:
+            logger.error(str(e))
+            return str(e)
+        cc_fn_softlabels = None
+        segmentation_source = "manual"
+    else:
+        logger.info("Starting corpus callosum segmentation")
+        assert _model_segmentation is not None
+        cc_fn_seg_labels, cc_fn_softlabels = segment_cc(
+            midslices,
+            ac_coords_vox,
+            pc_coords_vox,
+            aseg_img,
+            _model_segmentation.result(),
+        )
+        segmentation_source = "model"
 
-    # save segmentation softlabels
-    for i, (attr, name) in enumerate((("background",) * 2, ("cc", "Corpus Callosum"), ("fn", "Fornix"))):
-        if sd.has_attribute(f"cc_softlabels_{attr}"):
-            logger.info(f"Saving {name} softlabels to {sd.filename_by_attribute(f'cc_softlabels_{attr}')}")
+        # save automatic segmentation softlabels
+        for i, (attr, name) in enumerate((("background",) * 2, ("cc", "Corpus Callosum"), ("fn", "Fornix"))):
+            if sd.has_attribute(f"cc_softlabels_{attr}"):
+                logger.info(f"Saving {name} softlabels to {sd.filename_by_attribute(f'cc_softlabels_{attr}')}")
+                futures.append(
+                    thread_executor().submit(
+                        nib.save,
+                        nib.MGHImage(cc_fn_softlabels[..., i], fsaverage_midslab_vox2ras, orig.header),
+                        sd.filename_by_attribute(f"cc_softlabels_{attr}"),
+                    )
+                )
+
+        if sd.has_attribute("cc_segmentation"):
+            _cc_seg_path = sd.filename_by_attribute("cc_segmentation")
+            _cc_seg_path.parent.mkdir(exist_ok=True, parents=True)
+            logger.info(f"Saving CC segmentation to {_cc_seg_path}")
             futures.append(
                 thread_executor().submit(
                     nib.save,
-                    nib.MGHImage(cc_fn_softlabels[..., i], fsaverage_midslab_vox2ras, orig.header),
-                    sd.filename_by_attribute(f"cc_softlabels_{attr}"),
+                    nib.MGHImage(cc_fn_seg_labels, fsaverage_midslab_vox2ras, orig.header),
+                    _cc_seg_path,
                 )
             )
-
-    # Create a temporary segmentation image with proper affine for enhanced postprocessing
-    # Process slices based on selection mode
-
-    # save segmentation labels
-    if sd.has_attribute("cc_segmentation"):
-        _cc_seg_path = sd.filename_by_attribute("cc_segmentation")
-        _cc_seg_path.parent.mkdir(exist_ok=True, parents=True)
-        logger.info(f"Saving CC segmentation to {_cc_seg_path}")
-        futures.append(
-            thread_executor().submit(
-                nib.save,
-                nib.MGHImage(cc_fn_seg_labels, fsaverage_midslab_vox2ras, orig.header),
-                _cc_seg_path,
-            )
-        )
 
     logger.info(f"Processing slices with selection mode: {slice_selection}")
     try:
@@ -919,7 +1008,7 @@ def main(
 
     selected_slice_position, selected_slice_idx, middle_slice_result = _select_middle_valid_slice()
 
-    # map soft labels to original space (in parallel because this takes a while, and we only do it to save the labels)
+    # Map automatic soft labels or the edited hard CC mask to original space.
     if sd.has_attribute("cc_orig_segfile"):
         if middle_slice_result is not None and len(middle_slice_result["split_contours"]) <= 5:
             cc_subseg_midslice = make_subdivision_mask(
@@ -935,17 +1024,45 @@ def main(
             cc_subseg_midslice = None
         # if num_threads is not large enough (>1), this might be blocking ; serial_executor runs the function in submit
         executor = thread_executor() if get_num_threads() > 2 else serial_executor()
-        futures.append(
-            executor.submit(
-                map_softlabels_to_orig,
-                cc_fn_softlabels=cc_fn_softlabels,
-                orig=orig,
-                orig_space_segmentation_path=sd.filename_by_attribute("cc_orig_segfile"),
-                orig2slab_vox2vox=_orig2midslab_vox2vox(),
-                cc_subseg_midslice=cc_subseg_midslice,
-                orig2midslice_vox2vox=orig2midslice_vox2vox,
+        if manual_edit:
+            automatic_orig_path = sd.filename_by_attribute("cc_orig_segfile")
+            if not manual_has_fornix and not automatic_orig_path.is_file():
+                error_message = (
+                    f"Manual upright segmentation does not contain fornix label {FORNIX_LABEL}, and automatic "
+                    f"original-space segmentation {automatic_orig_path} is missing. Supply the fornix in the manual "
+                    "segmentation or run FastSurfer-CC once without edits."
+                )
+                logger.error(error_message)
+                return error_message
+            if cc_subseg_midslice is None:
+                error_message = "Cannot map the edited CC to original space without a valid middle-slice subdivision."
+                logger.error(error_message)
+                return error_message
+            futures.append(
+                executor.submit(
+                    map_hard_segmentation_to_orig,
+                    edited_segmentation=cc_fn_seg_labels,
+                    reference_image=orig,
+                    orig2slab_vox2vox=_orig2midslab_vox2vox(),
+                    cc_subseg_midslice=cc_subseg_midslice,
+                    orig2midslice_vox2vox=orig2midslice_vox2vox,
+                    output_path=add_file_suffix(automatic_orig_path, "manedit"),
+                    automatic_orig_segmentation=None if manual_has_fornix else nib.load(automatic_orig_path),
+                )
             )
-        )
+        else:
+            assert cc_fn_softlabels is not None
+            futures.append(
+                executor.submit(
+                    map_softlabels_to_orig,
+                    cc_fn_softlabels=cc_fn_softlabels,
+                    orig=orig,
+                    orig_space_segmentation_path=sd.filename_by_attribute("cc_orig_segfile"),
+                    orig2slab_vox2vox=_orig2midslab_vox2vox(),
+                    cc_subseg_midslice=cc_subseg_midslice,
+                    orig2midslice_vox2vox=orig2midslice_vox2vox,
+                )
+            )
 
     metrics: tuple[CCMeasures] = get_args(CCMeasures)
 
@@ -1023,6 +1140,8 @@ def main(
     additional_metrics["slice_selection"] = slice_selection
     additional_metrics["midline_refine_shift_vox"] = float(midline_shift_vox)
     additional_metrics["midline_refine_diagnostics"] = midline_shift_diagnostics
+    additional_metrics["landmark_source"] = landmark_source
+    additional_metrics["segmentation_source"] = segmentation_source
 
     # QC checks
     if len(outer_contours) > 1 and cc_volume_contour is not None:
@@ -1179,6 +1298,7 @@ if __name__ == "__main__":
             device=options.device,
             upright_volume=options.upright_volume,
             segmentation=options.segmentation,
+            segmentation_manedit=options.segmentation_manedit,
             cc_measures=options.cc_measures,
             cc_mid_measures=options.cc_mid_measures,
             upright_lta=options.upright_lta,
@@ -1194,5 +1314,7 @@ if __name__ == "__main__":
             softlabels_cc=options.softlabels_cc,
             softlabels_fn=options.softlabels_fn,
             softlabels_background=options.softlabels_background,
+            ac_coords=options.ac_coords,
+            pc_coords=options.pc_coords,
         )
     )

@@ -6,7 +6,7 @@ import numpy as np
 import SimpleITK as sitk
 from scipy.ndimage import affine_transform
 
-from CorpusCallosum.data.constants import CC_LABEL, FORNIX_LABEL
+from CorpusCallosum.data.constants import CC_LABEL, FORNIX_LABEL, SUBSEGMENT_LABELS
 from CorpusCallosum.utils.types import Polygon3dType
 from FastSurferCNN.utils import (
     AffineMatrix3x3,
@@ -396,3 +396,67 @@ def map_softlabels_to_orig(
             orig_space_segmentation_path,
         )
     return seg_orig_space
+
+
+def map_hard_segmentation_to_orig(
+        edited_segmentation: Image3d,
+        reference_image: nibabelImage,
+        orig2slab_vox2vox: AffineMatrix4x4,
+        cc_subseg_midslice: Image2d,
+        orig2midslice_vox2vox: AffineMatrix4x4,
+        output_path: str | Path,
+        automatic_orig_segmentation: nibabelImage | None = None,
+) -> np.ndarray[Shape3d, np.dtype[np.int_]]:
+    """Map an edited upright segmentation to original space.
+
+    Subdivision labels are regenerated from the edited middle-slice CC contour.
+    The fornix is copied from ``automatic_orig_segmentation`` when provided;
+    otherwise label ``FORNIX_LABEL`` is mapped from ``edited_segmentation``.
+    """
+    orig_shape = reference_image.shape[:3]
+    edited_cc_orig = affine_transform(
+        np.equal(edited_segmentation, CC_LABEL).astype(np.uint8),
+        orig2slab_vox2vox,
+        output_shape=orig_shape,
+        order=0,
+        mode="constant",
+        cval=0,
+        prefilter=False,
+    ).astype(bool)
+    cc_subseg_orig = affine_transform(
+        cc_subseg_midslice[None],
+        orig2midslice_vox2vox,
+        output_shape=orig_shape,
+        order=0,
+        mode="nearest",
+        prefilter=False,
+    )
+
+    output = np.zeros(orig_shape, dtype=np.uint8)
+    if automatic_orig_segmentation is None:
+        edited_fornix_orig = affine_transform(
+            np.equal(edited_segmentation, FORNIX_LABEL).astype(np.uint8),
+            orig2slab_vox2vox,
+            output_shape=orig_shape,
+            order=0,
+            mode="constant",
+            cval=0,
+            prefilter=False,
+        ).astype(bool)
+        output[edited_fornix_orig] = FORNIX_LABEL
+    else:
+        automatic_orig = np.asarray(automatic_orig_segmentation.dataobj)
+        output[automatic_orig == FORNIX_LABEL] = FORNIX_LABEL
+    valid_subsegments = np.isin(cc_subseg_orig, SUBSEGMENT_LABELS)
+    if np.any(np.logical_and(edited_cc_orig, ~valid_subsegments)):
+        raise ValueError("Could not assign CC subdivision labels to all edited CC voxels.")
+    output[edited_cc_orig] = cc_subseg_orig[edited_cc_orig].astype(np.uint8)
+
+    output_path = Path(output_path)
+    output_path.parent.mkdir(exist_ok=True, parents=True)
+    logger.info(f"Saving edited segmentation in original space to {output_path}")
+    nib.save(
+        nib.MGHImage(output, reference_image.affine, reference_image.header),
+        output_path,
+    )
+    return output

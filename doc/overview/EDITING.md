@@ -37,9 +37,10 @@ Possible Edits
 FastSurfer supports the following edits:
 1. [Bias field corrected inputs](#bias-field-correction) (for improved image quality, not really an edit)
 2. [asegdkt_segfile](#asegdkt_segfile): `<subject_dir>/mri/aparc.DKTatlas+aseg.deep.mgz` via `<subject_dir>/mri/aparc.DKTatlas+aseg.deep.manedit.mgz`
-3. [Talairach registration](#talairach-registration): `<subject_dir>/mri/transforms/talairach.xfm` (overwrites automatic results from `<subject_dir>/mri/transforms/talairach.auto.xfm`)
-4. [White matter segmentation](#white-matter-segmentation): `<subject_dir>/mri/wm.mgz` and `<subject_dir>/mri/filled.mgz`
-5. [Pial placement](#pial-surface-placement): `<subject_dir>/mri/brain.finalsurfs.mgz` via `<subject_dir>/mri/brain.finalsurfs.manedit.mgz`
+3. [Corpus callosum segmentation](#corpus-callosum-segmentation): `<subject_dir>/mri/callosum.CC.upright.mgz` via `<subject_dir>/mri/callosum.CC.upright.manedit.mgz`
+4. [Talairach registration](#talairach-registration): `<subject_dir>/mri/transforms/talairach.xfm` (overwrites automatic results from `<subject_dir>/mri/transforms/talairach.auto.xfm`)
+5. [White matter segmentation](#white-matter-segmentation): `<subject_dir>/mri/wm.mgz` and `<subject_dir>/mri/filled.mgz`
+6. [Pial placement](#pial-surface-placement): `<subject_dir>/mri/brain.finalsurfs.mgz` via `<subject_dir>/mri/brain.finalsurfs.manedit.mgz`
 
 Note, as FastSurfer's surface pipeline is derived from FreeSurfer, some editing options and corresponding naming schemes
 are inherited from FreeSurfer.
@@ -130,6 +131,71 @@ In specific, such errors are inspected in `<subject_dir>/mri/aparc.DKTatlas+aseg
 1. Copy the file `<subject_dir>/mri/aparc.DKTatlas+aseg.deep.mgz` to the same directory and name it `<subject_dir>/mri/aparc.DKTatlas+aseg.deep.manedit.mgz`.
 2. Open `<subject_dir>/mri/aparc.DKTatlas+aseg.deep.manedit.mgz` (for example using Freeview) and resolve all errors/quality issues.
 3. [Re-run FastSurfer](#general-process) to propagate the changes into other results. Among others, this updates `<subject_dir>/mri/aseg.auto_noCCseg.mgz` and `<subject_dir>/mri/mask.mgz`.
+
+Corpus callosum segmentation
+----------------------------
+
+### When to use
+The corpus callosum mask is over- or under-segmented, or the error affects the CC contours, thickness, subdivisions,
+surface, QC images, or volumetric inpainting.
+
+### What to do
+1. Run FastSurfer with `--qc_snap`. This creates `mri/upright_volume.mgz`, the intensity reference in the same space as
+   the editable CC segmentation. For example:
+
+   ```bash
+   ./run_fastsurfer.sh \
+       --t1 /data/input/sub001_T1w.nii.gz \
+       --sd /data/subjects \
+       --sid sub001 \
+       --seg_only \
+       --qc_snap
+   ```
+
+2. Copy `<subject_dir>/mri/callosum.CC.upright.mgz` to
+   `<subject_dir>/mri/callosum.CC.upright.manedit.mgz`:
+
+   ```bash
+   SUBJECT_DIR=/data/subjects/sub001
+   cp "$SUBJECT_DIR/mri/callosum.CC.upright.mgz" \
+      "$SUBJECT_DIR/mri/callosum.CC.upright.manedit.mgz"
+   ```
+
+3. Edit label 192 in the manedit file using `mri/upright_volume.mgz` as the reference image. For example:
+
+   ```bash
+   freeview \
+       -v "$SUBJECT_DIR/mri/upright_volume.mgz" \
+       -v "$SUBJECT_DIR/mri/callosum.CC.upright.manedit.mgz":colormap=lut:opacity=0.5
+   ```
+
+   A manual file containing any fornix label-250 voxels is self-contained and authoritative for the entire fornix. To
+   retain the automatic fornix instead, remove all label-250 voxels from the manual file; the automatic upright and
+   original-space CC segmentations must then be present.
+
+4. Re-run the original FastSurfer command with `--edits` and otherwise identical options:
+
+   ```bash
+   ./run_fastsurfer.sh \
+       --t1 /data/input/sub001_T1w.nii.gz \
+       --sd /data/subjects \
+       --sid sub001 \
+       --seg_only \
+       --qc_snap \
+       --edits
+   ```
+
+FastSurfer recomputes CC contours, morphometry, subdivisions, surfaces, statistics, and QC outputs. It creates
+`mri/callosum.CC.orig.manedit.mgz` and uses that derived volume for downstream CC inpainting. The automatic
+`callosum.CC.upright.mgz` and `callosum.CC.orig.mgz` files remain unchanged. Do not edit the original-space file
+directly. If an upright manedit exists but `--edits` is omitted, FastSurfer exits with an error rather than silently
+ignoring the correction.
+
+If the upright segmentation was created with supplied AC/PC coordinates through `fastsurfer_cc.py`, pass exactly the
+same coordinates on the edit rerun so the edited slab geometry remains valid.
+
+For direct expert usage, including Docker and Singularity/Apptainer commands, see the
+[FastSurfer-CC expert documentation](../scripts/fastsurfer_cc.rst).
 
 Talairach registration
 ----------------------
