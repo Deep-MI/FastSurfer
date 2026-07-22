@@ -19,6 +19,7 @@ from collections.abc import MutableSequence
 from functools import lru_cache
 from pathlib import Path
 from typing import TYPE_CHECKING, Literal, TypedDict, cast, overload
+from uuid import uuid4
 
 import requests
 import torch
@@ -400,8 +401,20 @@ def download_checkpoint(
             raise RuntimeError(message, responses)
     else:
         response = next(r for r in responses if r.ok)
-        with open(checkpoint_path, "wb") as f:
-            f.write(response.content)
+        checkpoint_path = Path(checkpoint_path)
+        temporary_path = checkpoint_path.with_name(
+            f".{checkpoint_path.name}.{uuid4().hex}.tmp"
+        )
+        try:
+            # Opening a unique file with ``xb`` preserves the permissions dictated by
+            # the process umask and prevents concurrent downloads from sharing a
+            # temporary file. The same-directory replace atomically publishes the
+            # checkpoint only after it has been written and closed completely.
+            with open(temporary_path, "xb") as f:
+                f.write(response.content)
+            os.replace(temporary_path, checkpoint_path)
+        finally:
+            temporary_path.unlink(missing_ok=True)
 
 
 def check_and_download_ckpts(checkpoint_path: Path | str, urls: list[str]) -> None:
