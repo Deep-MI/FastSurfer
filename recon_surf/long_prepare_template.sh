@@ -335,7 +335,7 @@ for ((i=0;i<${#tpids[@]};++i)); do
   mkdir -p "$mdir"
   # Import (copy) raw inputs (convert to extension format)
   t1input=$mdir/cross_input${extension}
-  cmd="$python -m neuroreg.cli.vol2vol --in ${t1s[i]} --out $t1input"
+  cmd="$python -m neuroreg.cli.vol2vol --in ${t1s[i]} --out $t1input --keep-dtype"
   RunIt "$cmd" "$LF"
   
   # conform !!!!!!! should we conform to some common value, determined from all time points?? !!!!!!
@@ -427,12 +427,14 @@ then
   cmd="$python -m neuroreg.cli.vol2vol --in ${normInVols[0]} --transform ${ltaXforms[0]}"
   cmd="$cmd --ref ${normInVols[0]} --interp cubic"
   cmd="$cmd --out ${SUBJECTS_DIR}/$tid/mri/base_brainmask${extension}"
+  cmd="$cmd --keep-dtype"
   RunIt "$cmd" "$LF"
 
   # 3. create the base orig volume the same way
   cmd="$python -m neuroreg.cli.vol2vol --in ${subjInVols[0]} --transform ${ltaXforms[0]}"
   cmd="$cmd --ref ${subjInVols[0]} --interp cubic"
   cmd="$cmd --out ${SUBJECTS_DIR}/$tid/mri/orig.mgz"
+  cmd="$cmd --keep-dtype"
   RunIt "$cmd" "$LF"
 
 else #more than 1 time point:
@@ -448,6 +450,7 @@ else #more than 1 time point:
   cmd="$cmd --template ${SUBJECTS_DIR}/$tid/mri/base_brainmask${extension}"
   cmd="$cmd --average ${robust_template_avg_arg}"
   cmd="$cmd --sat 4.685 $device_opt"
+  cmd="$cmd --keep-dtype"
   RunIt "$cmd" "$LF"
 
   # create the 'mean/median' input (orig) volume by reusing the transforms above (no
@@ -459,6 +462,7 @@ else #more than 1 time point:
   cmd="$cmd --noit"
   t1=${SUBJECTS_DIR}/$tid/mri/orig.mgz
   cmd="$cmd --template $t1 $device_opt"
+  cmd="$cmd --keep-dtype"
   RunIt "$cmd" "$LF"
 
 fi # more than one time point
@@ -482,6 +486,7 @@ do
   cmd="$python -m neuroreg.cli.vol2vol --in $mdir/cross_input${extension}"
   cmd="$cmd --transform ${ltaXforms[$i]} --ref ${SUBJECTS_DIR}/$tid/mri/base_brainmask${extension}"
   cmd="$cmd --interp $interpol --out $mdir/long_conform${extension}"
+  cmd="$cmd --keep-dtype"
   RunIt "$cmd" "$LF"
 done
 
