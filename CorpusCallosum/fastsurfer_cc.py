@@ -268,7 +268,7 @@ def make_parser() -> argparse.ArgumentParser:
         type=float,
         nargs=3,
         metavar=("X", "Y", "Z"),
-        help="Optional AC point as three floating-point voxel coordinates in orig.mgz space. Requires --pc_coords.",
+        help="Optional AC point as three floating-point coordinates in orig.mgz voxel space. Requires --pc_coords.",
         default=None,
     )
     advanced.add_argument(
@@ -276,7 +276,7 @@ def make_parser() -> argparse.ArgumentParser:
         type=float,
         nargs=3,
         metavar=("X", "Y", "Z"),
-        help="Optional PC point as three floating-point voxel coordinates in orig.mgz space. Requires --ac_coords.",
+        help="Optional PC point as three floating-point coordinates in orig.mgz voxel space. Requires --ac_coords.",
         default=None,
     )
     advanced.add_argument(
@@ -980,7 +980,8 @@ def main(
 
         if num_failed_slices == 0 and len(outer_contours) > 1 and not check_area_changes(outer_contours):
             logger.warning(
-                "Large area changes detected between consecutive slices, this is likely due to a segmentation error."
+                "Notable area differences were detected between consecutive CC slices. "
+                "Consider reviewing the segmentation."
             )
 
     def _select_middle_valid_slice():

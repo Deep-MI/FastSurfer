@@ -10,8 +10,9 @@ The documentation is split into three files, please refer to:
 
 Quickstart
 ----------
-The expert command expects an existing FastSurfer subject containing at least `mri/orig.mgz` and the FastSurfer
-segmentation. It reads those inputs and writes all CC outputs into the subject directory.
+The expert command expects an existing FastSurfer subject containing at least `mri/orig.mgz` and
+`mri/aseg.auto_noCCseg.mgz` by default. The input paths can be overridden with `--conformed_name` and `--aseg_name`.
+It reads those inputs and writes all CC outputs into the subject directory.
 
 ### Native
 
@@ -49,9 +50,6 @@ docker run --gpus all --rm \
     --thickness_image qc_snapshots/callosum.thickness.png
 ```
 
-Use an image tag containing the FastSurfer-CC features documented here. For CPU execution, use the matching
-`deepmi/fastsurfer:cpu-latest` image and omit `--gpus all`. The bind-mounted output directory must be writable by the
-user passed with `--user`.
 
 ### Singularity or Apptainer
 
@@ -74,9 +72,9 @@ singularity exec --nv --no-mount home,cwd -e \
     --thickness_image qc_snapshots/callosum.thickness.png
 ```
 
-The same command works with Apptainer by replacing `singularity` with `apptainer`. For CPU execution, omit `--nv` and
-use an appropriate CPU image. `--no-mount home,cwd -e` prevents host Python packages and environment variables from
-leaking into the container.
+The same command works with Apptainer by replacing `singularity` with `apptainer`. For CPU execution with the same
+image, omit `--nv`; FastSurfer falls back to the CPU. `--no-mount home,cwd -e` prevents host Python packages and
+environment variables from leaking into the container.
 
 These commands generate all standard CC outputs. Morphometry is written to `stats/callosum.CC.midslice.json`,
 including 100 thickness measurements and the areas of subsegments.

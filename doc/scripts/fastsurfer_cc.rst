@@ -3,7 +3,9 @@ CorpusCallosum: fastsurfer_cc.py
 .. note::
    We recommend running FastSurfer-CC with the standard ``run_fastsurfer.sh`` interface (see :doc:`RUN_FASTSURFER`)!
 
-   This page documents expert usage of FastSurfer-CC, which can be run independently with the advanced interface provided here. However, the FastSurfer segmentation is still required as input.
+   This page documents expert usage of FastSurfer-CC, which can be run independently with the advanced interface
+   provided here. By default, it requires ``mri/orig.mgz`` and ``mri/aseg.auto_noCCseg.mgz`` from a FastSurfer
+   subject; use ``--conformed_name`` and ``--aseg_name`` to override those input paths.
 
 
 ..
@@ -39,9 +41,9 @@ The refinement after fsaverage alignment is intentionally conservative, expected
 
 Supplying AC/PC landmarks
 ~~~~~~~~~~~~~~~~~~~~~~~~~
-The expert interface accepts paired ``--ac_coords X Y Z`` and ``--pc_coords X Y Z`` arguments. Values are floating-point
-voxel coordinates in ``orig.mgz`` space. When supplied, the landmark network is skipped and the points are used for
-segmentation conditioning, morphometry, QC, orientation transforms, and output measurements.
+The expert interface accepts paired ``--ac_coords X Y Z`` and ``--pc_coords X Y Z`` arguments. Values are
+floating-point voxel coordinates in ``orig.mgz`` voxel space. When supplied, the landmark network is skipped and the
+points are used for segmentation conditioning, morphometry, QC, orientation transforms, and output measurements.
 
 The selected midsagittal plane is minimally rotated and translated so that it contains both 3D landmarks exactly. A
 plane adjustment larger than 15 degrees emits a warning because this commonly indicates a coordinate-space error.
