@@ -506,6 +506,7 @@ However, for your convenience, we allow manual edits in various stages of the Fa
 <ol class="arabic simple">
 <li><p><a class="reference internal" href="#bias-field-correction"><span class="std std-ref">Bias field corrected inputs</span></a> (for improved image quality, not really an edit)</p></li>
 <li><p><a class="reference internal" href="#asegdkt-segfile"><span class="std std-ref">asegdkt_segfile</span></a>: <code class="docutils literal notranslate"><span class="pre">&lt;subject_dir&gt;/mri/aparc.DKTatlas+aseg.deep.mgz</span></code> via <code class="docutils literal notranslate"><span class="pre">&lt;subject_dir&gt;/mri/aparc.DKTatlas+aseg.deep.manedit.mgz</span></code></p></li>
+<li><p><a class="reference internal" href="#corpus-callosum-segmentation"><span class="std std-ref">Corpus callosum segmentation</span></a>: <code class="docutils literal notranslate"><span class="pre">&lt;subject_dir&gt;/mri/callosum.CC.upright.mgz</span></code> via <code class="docutils literal notranslate"><span class="pre">&lt;subject_dir&gt;/mri/callosum.CC.upright.manedit.mgz</span></code></p></li>
 <li><p><a class="reference internal" href="#talairach-registration"><span class="std std-ref">Talairach registration</span></a>: <code class="docutils literal notranslate"><span class="pre">&lt;subject_dir&gt;/mri/transforms/talairach.xfm</span></code> (overwrites automatic results from <code class="docutils literal notranslate"><span class="pre">&lt;subject_dir&gt;/mri/transforms/talairach.auto.xfm</span></code>)</p></li>
 <li><p><a class="reference internal" href="#white-matter-segmentation"><span class="std std-ref">White matter segmentation</span></a>: <code class="docutils literal notranslate"><span class="pre">&lt;subject_dir&gt;/mri/wm.mgz</span></code> and <code class="docutils literal notranslate"><span class="pre">&lt;subject_dir&gt;/mri/filled.mgz</span></code></p></li>
 <li><p><a class="reference internal" href="#pial-surface-placement"><span class="std std-ref">Pial placement</span></a>: <code class="docutils literal notranslate"><span class="pre">&lt;subject_dir&gt;/mri/brain.finalsurfs.mgz</span></code> via <code class="docutils literal notranslate"><span class="pre">&lt;subject_dir&gt;/mri/brain.finalsurfs.manedit.mgz</span></code></p></li>
@@ -607,14 +608,76 @@ In specific, such errors are inspected in <code class="docutils literal notransl
 </ol>
 </section>
 </section>
-<section id="talairach-registration">
-<h2>Talairach registration<a class="headerlink" href="#talairach-registration" title="Link to this heading">¶</a></h2>
+<section id="corpus-callosum-segmentation">
+<h2>Corpus callosum segmentation<a class="headerlink" href="#corpus-callosum-segmentation" title="Link to this heading">¶</a></h2>
 <section id="id3">
 <h3>When to use<a class="headerlink" href="#id3" title="Link to this heading">¶</a></h3>
-<p>The estimated total intracranial volume is inaccurate.</p>
+<p>The corpus callosum mask is over- or under-segmented, or the error affects the CC contours, thickness, subdivisions,
+surface, QC images, or volumetric inpainting.</p>
 </section>
 <section id="id4">
 <h3>What to do<a class="headerlink" href="#id4" title="Link to this heading">¶</a></h3>
+<ol class="arabic">
+<li><p>Run FastSurfer with <code class="docutils literal notranslate"><span class="pre">--qc_snap</span></code>. This creates <code class="docutils literal notranslate"><span class="pre">mri/upright_volume.mgz</span></code>, the intensity reference in the same space as
+the editable CC segmentation. For example:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>./run_fastsurfer.sh<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--t1<span class="w"> </span>/data/input/sub001_T1w.nii.gz<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--sd<span class="w"> </span>/data/subjects<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--sid<span class="w"> </span>sub001<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--seg_only<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--qc_snap
+</pre></div>
+</div>
+</li>
+<li><p>Copy <code class="docutils literal notranslate"><span class="pre">&lt;subject_dir&gt;/mri/callosum.CC.upright.mgz</span></code> to
+<code class="docutils literal notranslate"><span class="pre">&lt;subject_dir&gt;/mri/callosum.CC.upright.manedit.mgz</span></code>:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">SUBJECT_DIR</span><span class="o">=</span>/data/subjects/sub001
+cp<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$SUBJECT_DIR</span><span class="s2">/mri/callosum.CC.upright.mgz&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">   </span><span class="s2">&quot;</span><span class="nv">$SUBJECT_DIR</span><span class="s2">/mri/callosum.CC.upright.manedit.mgz&quot;</span>
+</pre></div>
+</div>
+</li>
+<li><p>Edit label 192 in the manedit file using <code class="docutils literal notranslate"><span class="pre">mri/upright_volume.mgz</span></code> as the reference image. For example:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>freeview<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>-v<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$SUBJECT_DIR</span><span class="s2">/mri/upright_volume.mgz&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>-v<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$SUBJECT_DIR</span><span class="s2">/mri/callosum.CC.upright.manedit.mgz&quot;</span>:colormap<span class="o">=</span>lut:opacity<span class="o">=</span><span class="m">0</span>.5
+</pre></div>
+</div>
+<p>A manual file containing any fornix label-250 voxels is self-contained and authoritative for the entire fornix. To
+retain the automatic fornix instead, remove all label-250 voxels from the manual file; the automatic upright and
+original-space CC segmentations must then be present.</p>
+</li>
+<li><p>Re-run the original FastSurfer command with <code class="docutils literal notranslate"><span class="pre">--edits</span></code> and otherwise identical options:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>./run_fastsurfer.sh<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--t1<span class="w"> </span>/data/input/sub001_T1w.nii.gz<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--sd<span class="w"> </span>/data/subjects<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--sid<span class="w"> </span>sub001<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--seg_only<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--qc_snap<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--edits
+</pre></div>
+</div>
+</li>
+</ol>
+<p>FastSurfer recomputes CC contours, morphometry, subdivisions, surfaces, statistics, and QC outputs. It creates
+<code class="docutils literal notranslate"><span class="pre">mri/callosum.CC.orig.manedit.mgz</span></code> and uses that derived volume for downstream CC inpainting. The automatic
+<code class="docutils literal notranslate"><span class="pre">callosum.CC.upright.mgz</span></code> and <code class="docutils literal notranslate"><span class="pre">callosum.CC.orig.mgz</span></code> files remain unchanged. Do not edit the original-space file
+directly. If an upright manedit exists but <code class="docutils literal notranslate"><span class="pre">--edits</span></code> is omitted, FastSurfer exits with an error rather than silently
+ignoring the correction.</p>
+<p>If the upright segmentation was created with supplied AC/PC coordinates through <code class="docutils literal notranslate"><span class="pre">fastsurfer_cc.py</span></code>, pass exactly the
+same coordinates on the edit rerun so the edited slab geometry remains valid.</p>
+<p>For direct expert usage, including Docker and Singularity/Apptainer commands, see the
+<a class="reference internal" href="../scripts/fastsurfer_cc.html"><span class="std std-doc">FastSurfer-CC expert documentation</span></a>.</p>
+</section>
+</section>
+<section id="talairach-registration">
+<h2>Talairach registration<a class="headerlink" href="#talairach-registration" title="Link to this heading">¶</a></h2>
+<section id="id5">
+<h3>When to use<a class="headerlink" href="#id5" title="Link to this heading">¶</a></h3>
+<p>The estimated total intracranial volume is inaccurate.</p>
+</section>
+<section id="id6">
+<h3>What to do<a class="headerlink" href="#id6" title="Link to this heading">¶</a></h3>
 <ol class="arabic simple">
 <li><p>Copy <code class="docutils literal notranslate"><span class="pre">&lt;subject_dir&gt;/mri/transforms/talairach.auto.xfm</span></code> to <code class="docutils literal notranslate"><span class="pre">&lt;subject_dir&gt;/mri/transforms/talairach.xfm</span></code>, replace the symlink that is already there.</p></li>
 <li><p>Edit <code class="docutils literal notranslate"><span class="pre">&lt;subject_dir&gt;/mri/transforms/talairach.xfm</span></code> to have the intended talairach matrix, see the <a class="reference external" href="https://surfer.nmr.mgh.harvard.edu/fswiki/FsTutorial/Talairach">FreeSurfer tutorial for details</a>.</p></li>
@@ -625,12 +688,12 @@ In specific, such errors are inspected in <code class="docutils literal notransl
 </section>
 <section id="white-matter-segmentation">
 <h2>White matter segmentation<a class="headerlink" href="#white-matter-segmentation" title="Link to this heading">¶</a></h2>
-<section id="id5">
-<h3>When to use<a class="headerlink" href="#id5" title="Link to this heading">¶</a></h3>
+<section id="id7">
+<h3>When to use<a class="headerlink" href="#id7" title="Link to this heading">¶</a></h3>
 <p>Over- and/or under-segmentation of the white matter: voxels that should be white matter are excluded, or those that should not are included.</p>
 </section>
-<section id="id6">
-<h3>What to do<a class="headerlink" href="#id6" title="Link to this heading">¶</a></h3>
+<section id="id8">
+<h3>What to do<a class="headerlink" href="#id8" title="Link to this heading">¶</a></h3>
 <p>Often, these errors should be fixed by <a class="reference internal" href="#asegdkt-segfile">asegdkt_segfile</a> <code class="docutils literal notranslate"><span class="pre">&lt;subject_dir&gt;/mri/aparc.DKTatlas+aseg.deep.manedit.mgz</span></code>, but if that is not successful:</p>
 <ol class="arabic simple">
 <li><p>Open and edit  <code class="docutils literal notranslate"><span class="pre">&lt;subject_dir&gt;/mri/wm.mgz</span></code> and/or <code class="docutils literal notranslate"><span class="pre">&lt;subject_dir&gt;/mri/filled.mgz</span></code>.</p></li>
@@ -642,12 +705,12 @@ In specific, such errors are inspected in <code class="docutils literal notransl
 </section>
 <section id="pial-surface-placement">
 <h2>Pial surface placement<a class="headerlink" href="#pial-surface-placement" title="Link to this heading">¶</a></h2>
-<section id="id7">
-<h3>When to use<a class="headerlink" href="#id7" title="Link to this heading">¶</a></h3>
+<section id="id9">
+<h3>When to use<a class="headerlink" href="#id9" title="Link to this heading">¶</a></h3>
 <p>Over- and/or under-segmentation of the cortical gray matter: voxels that should be gray matter are excluded, or those that should not are included.</p>
 </section>
-<section id="id8">
-<h3>What to do<a class="headerlink" href="#id8" title="Link to this heading">¶</a></h3>
+<section id="id10">
+<h3>What to do<a class="headerlink" href="#id10" title="Link to this heading">¶</a></h3>
 <p>Often, these errors should be fixed in <a class="reference internal" href="#asegdkt-segfile">asegdkt_segfile</a> <code class="docutils literal notranslate"><span class="pre">&lt;subject_dir&gt;/mri/aparc.DKTatlas+aseg.deep.manedit.mgz</span></code>, but if that is not successful:</p>
 <ol class="arabic simple">
 <li><p>Open end edit <code class="docutils literal notranslate"><span class="pre">&lt;subject_dir&gt;/mri/brain.finalsurfs.manedit.mgz</span></code> (overwriting values in <code class="docutils literal notranslate"><span class="pre">&lt;subject_dir&gt;/mri/brain.finalsurfs.mgz</span></code>).</p></li>
@@ -771,19 +834,24 @@ Thanks for using FastSurfer.</p>
 <li><a class="reference internal" href="#id2">What to do</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#talairach-registration">Talairach registration</a><ul>
+<li><a class="reference internal" href="#corpus-callosum-segmentation">Corpus callosum segmentation</a><ul>
 <li><a class="reference internal" href="#id3">When to use</a></li>
 <li><a class="reference internal" href="#id4">What to do</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#white-matter-segmentation">White matter segmentation</a><ul>
+<li><a class="reference internal" href="#talairach-registration">Talairach registration</a><ul>
 <li><a class="reference internal" href="#id5">When to use</a></li>
 <li><a class="reference internal" href="#id6">What to do</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#pial-surface-placement">Pial surface placement</a><ul>
+<li><a class="reference internal" href="#white-matter-segmentation">White matter segmentation</a><ul>
 <li><a class="reference internal" href="#id7">When to use</a></li>
 <li><a class="reference internal" href="#id8">What to do</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#pial-surface-placement">Pial surface placement</a><ul>
+<li><a class="reference internal" href="#id9">When to use</a></li>
+<li><a class="reference internal" href="#id10">What to do</a></li>
 </ul>
 </li>
 <li><a class="reference internal" href="#side-effects-of-edits">Side effects of edits</a></li>

@@ -538,71 +538,76 @@
 <td><p>corpus callosum segmentation in conformed image orientation</p></td>
 </tr>
 <tr class="row-even"><td class="text-left"><p>mri</p></td>
+<td><p>callosum.CC.orig.manedit.mgz</p></td>
+<td><p>cc</p></td>
+<td><p>corrected CC and supplied or retained fornix mapped to conformed space for downstream inpainting</p></td>
+</tr>
+<tr class="row-odd"><td class="text-left"><p>mri</p></td>
 <td><p>callosum.CC.soft.mgz</p></td>
 <td><p>cc</p></td>
 <td><p>corpus callosum soft labels (in upright space)</p></td>
 </tr>
-<tr class="row-odd"><td class="text-left"><p>mri</p></td>
+<tr class="row-even"><td class="text-left"><p>mri</p></td>
 <td><p>fornix.CC.soft.mgz</p></td>
 <td><p>cc</p></td>
 <td><p>fornix soft labels (in upright space)</p></td>
 </tr>
-<tr class="row-even"><td class="text-left"><p>mri</p></td>
+<tr class="row-odd"><td class="text-left"><p>mri</p></td>
 <td><p>background.CC.soft.mgz</p></td>
 <td><p>cc</p></td>
 <td><p>background soft labels (in upright space)</p></td>
 </tr>
-<tr class="row-odd"><td class="text-left"><p>mri</p></td>
+<tr class="row-even"><td class="text-left"><p>mri</p></td>
 <td><p>upright_volume.mgz</p></td>
 <td><p>cc</p></td>
-<td><p>conformed image mapped to upright space (only with fastsurfer_cc.py <code class="docutils literal notranslate"><span class="pre">--upright_volume</span></code>)</p></td>
+<td><p>conformed image mapped to upright space (with <code class="docutils literal notranslate"><span class="pre">--qc_snap</span></code> or fastsurfer_cc.py <code class="docutils literal notranslate"><span class="pre">--upright_volume</span></code>)</p></td>
 </tr>
-<tr class="row-even"><td class="text-left"><p>mri/transforms</p></td>
+<tr class="row-odd"><td class="text-left"><p>mri/transforms</p></td>
 <td><p>cc_up.lta</p></td>
 <td><p>cc</p></td>
 <td><p>transform from conformed to upright space</p></td>
 </tr>
-<tr class="row-odd"><td class="text-left"><p>mri/transforms</p></td>
+<tr class="row-even"><td class="text-left"><p>mri/transforms</p></td>
 <td><p>orient_volume.lta</p></td>
 <td><p>cc</p></td>
 <td><p>transform to standardized space</p></td>
 </tr>
-<tr class="row-even"><td class="text-left"><p>stats</p></td>
+<tr class="row-odd"><td class="text-left"><p>stats</p></td>
 <td><p>callosum.CC.midslice.json</p></td>
 <td><p>cc</p></td>
 <td><p>measurements from the mid-sagittal slice (landmarks, area, thickness, etc.)</p></td>
 </tr>
-<tr class="row-odd"><td class="text-left"><p>stats</p></td>
+<tr class="row-even"><td class="text-left"><p>stats</p></td>
 <td><p>callosum.CC.all_slices.json</p></td>
 <td><p>cc</p></td>
 <td><p>comprehensive per-slice analysis</p></td>
 </tr>
-<tr class="row-even"><td class="text-left"><p>qc_snapshots</p></td>
+<tr class="row-odd"><td class="text-left"><p>qc_snapshots</p></td>
 <td><p>callosum.png</p></td>
 <td><p>cc</p></td>
 <td><p>debug visualization of CC contours, AC, PC and thickness (only with run_fastsurfer.sh <code class="docutils literal notranslate"><span class="pre">--qc_snap</span></code>)</p></td>
 </tr>
-<tr class="row-odd"><td class="text-left"><p>qc_snapshots</p></td>
+<tr class="row-even"><td class="text-left"><p>qc_snapshots</p></td>
 <td><p>callosum.thickness.png</p></td>
 <td><p>cc</p></td>
 <td><p>3D thickness visualization (only with run_fastsurfer.sh <code class="docutils literal notranslate"><span class="pre">--qc_snap</span></code>)</p></td>
 </tr>
-<tr class="row-even"><td class="text-left"><p>qc_snapshots</p></td>
+<tr class="row-odd"><td class="text-left"><p>qc_snapshots</p></td>
 <td><p>corpus_callosum.html</p></td>
 <td><p>cc</p></td>
 <td><p>interactive 3D mesh visualization (only with run_fastsurfer.sh <code class="docutils literal notranslate"><span class="pre">--qc_snap</span></code>)</p></td>
 </tr>
-<tr class="row-odd"><td class="text-left"><p>surf</p></td>
+<tr class="row-even"><td class="text-left"><p>surf</p></td>
 <td><p>callosum.surf</p></td>
 <td><p>cc</p></td>
 <td><p>3D Corpus Callosum mesh in FreeSurfer surface format (open with freeview)</p></td>
 </tr>
-<tr class="row-even"><td class="text-left"><p>surf</p></td>
+<tr class="row-odd"><td class="text-left"><p>surf</p></td>
 <td><p>callosum.thickness.w</p></td>
 <td><p>cc</p></td>
 <td><p>FreeSurfer overlay file containing thickness values (open with callosum.surf in freeview)</p></td>
 </tr>
-<tr class="row-odd"><td class="text-left"><p>surf</p></td>
+<tr class="row-even"><td class="text-left"><p>surf</p></td>
 <td><p>callosum.vtk</p></td>
 <td><p>cc</p></td>
 <td><p>VTK format mesh file for 3D visualization</p></td>

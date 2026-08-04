@@ -584,7 +584,10 @@ FLAGS:
                             with the segmentation pipeline.
   --edits                 Enables manual edits by replacing select intermediate/
                             result files by manedit substitutes (*.manedit.&lt;ext&gt;).
-                            Segmentation: &lt;asegdkt_segfile&gt; and &lt;mask_name&gt;.
+                            Segmentation edits (default paths):
+                              mri/aparc.DKTatlas+aseg.deep.manedit.mgz
+                              mri/mask.manedit.mgz
+                              mri/callosum.CC.upright.manedit.mgz
                             Surface: Disables check for existing recon-surf.sh run;
                               edits of mri/wm.mgz and brain.finalsurfs.mgz
                               as well as FreeSurfer-style WM control points.
@@ -660,8 +663,9 @@ SEGMENTATION PIPELINE:
 
   CORPUS CALLOSUM MODULE:
   --no_cc                Skip the segmentation and analysis of the corpus callosum.
-  --qc_snap              Create QC snapshots in $SUBJECTS_DIR/$sid/qc_snapshots
-                           to simplify the QC process.
+  --qc_snap              Create quality control images in $SUBJECTS_DIR/$sid/qc_snapshots
+                         to simplify the QC process. Also creates additional volumes
+                         in mri/ for QC.
 
   HYPOTHALAMUS MODULE (HypVINN):
   --no_hypothal           Skip the hypothalamus segmentation.

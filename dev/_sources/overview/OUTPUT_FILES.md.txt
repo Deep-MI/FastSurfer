@@ -23,20 +23,21 @@ The Corpus Callosum module outputs the files in the table shown below. It create
 |:----------------|--------------------------------|--------|--------------------------------------------------------------------------------------------------------------|
 | mri             | callosum.CC.upright.mgz        | cc     | corpus callosum segmentation in upright space                                                                |
 | mri             | callosum.CC.orig.mgz           | cc     | corpus callosum segmentation in conformed image orientation                                                  |
+| mri             | callosum.CC.orig.manedit.mgz   | cc     | corrected CC and supplied or retained fornix mapped to conformed space for downstream inpainting             |
 | mri             | callosum.CC.soft.mgz           | cc     | corpus callosum soft labels (in upright space)                                                               |
 | mri             | fornix.CC.soft.mgz             | cc     | fornix soft labels (in upright space)                                                                        |
 | mri             | background.CC.soft.mgz         | cc     | background soft labels (in upright space)                                                                    |
-| mri             | upright_volume.mgz             | cc     | conformed image mapped to upright space (only with fastsurfer_cc.py `--upright_volume`)                                       |
-| mri/transforms  | cc_up.lta                      | cc     | transform from conformed to upright space                                                                     |
+| mri             | upright_volume.mgz             | cc     | conformed image mapped to upright space (with `--qc_snap` or fastsurfer_cc.py `--upright_volume`)            |
+| mri/transforms  | cc_up.lta                      | cc     | transform from conformed to upright space                                                                    |
 | mri/transforms  | orient_volume.lta              | cc     | transform to standardized space                                                                              |
-| stats           | callosum.CC.midslice.json      | cc     | measurements from the mid-sagittal slice (landmarks, area, thickness, etc.)                               |
-| stats           | callosum.CC.all_slices.json    | cc     | comprehensive per-slice analysis       |
-| qc_snapshots    | callosum.png                   | cc     | debug visualization of CC contours, AC, PC and thickness (only with run_fastsurfer.sh `--qc_snap`)                                       |
-| qc_snapshots    | callosum.thickness.png         | cc     | 3D thickness visualization (only with run_fastsurfer.sh `--qc_snap`)                                                   |
-| qc_snapshots    | corpus_callosum.html           | cc     | interactive 3D mesh visualization (only with run_fastsurfer.sh `--qc_snap`)                                                    |
-| surf            | callosum.surf                  | cc     | 3D Corpus Callosum mesh in FreeSurfer surface format (open with freeview)              |
-| surf            | callosum.thickness.w           | cc     | FreeSurfer overlay file containing thickness values (open with callosum.surf in freeview)                   |
-| surf            | callosum.vtk                   | cc     | VTK format mesh file for 3D visualization                                        |
+| stats           | callosum.CC.midslice.json      | cc     | measurements from the mid-sagittal slice (landmarks, area, thickness, etc.)                                  |
+| stats           | callosum.CC.all_slices.json    | cc     | comprehensive per-slice analysis                                                                             |
+| qc_snapshots    | callosum.png                   | cc     | debug visualization of CC contours, AC, PC and thickness (only with run_fastsurfer.sh `--qc_snap`)           |
+| qc_snapshots    | callosum.thickness.png         | cc     | 3D thickness visualization (only with run_fastsurfer.sh `--qc_snap`)                                         |
+| qc_snapshots    | corpus_callosum.html           | cc     | interactive 3D mesh visualization (only with run_fastsurfer.sh `--qc_snap`)                                  |
+| surf            | callosum.surf                  | cc     | 3D Corpus Callosum mesh in FreeSurfer surface format (open with freeview)                                    |
+| surf            | callosum.thickness.w           | cc     | FreeSurfer overlay file containing thickness values (open with callosum.surf in freeview)                    |
+| surf            | callosum.vtk                   | cc     | VTK format mesh file for 3D visualization                                                                    |
 
 CerebNet module
 ---------------

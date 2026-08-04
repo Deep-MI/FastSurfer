@@ -524,12 +524,16 @@ Advanced options, like custom subdivision schemes and quality control are descri
 <h4><strong>Anatomical Landmarks:</strong><a class="headerlink" href="#anatomical-landmarks" title="Link to this heading">¶</a></h4>
 <p>All anatomical landmarks are given image voxel coordinates (LIA orientation)</p>
 <ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">ac_center</span></code>: Anterior commissure coordinates in original image space (orig.mgz)</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">pc_center</span></code>: Posterior commissure coordinates in original image space (orig.mgz)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ac_center</span></code>: Anterior commissure coordinates in <code class="docutils literal notranslate"><span class="pre">orig.mgz</span></code> voxel space</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">pc_center</span></code>: Posterior commissure coordinates in <code class="docutils literal notranslate"><span class="pre">orig.mgz</span></code> voxel space</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">ac_center_oriented_volume</span></code>: AC coordinates in standardized space (orient_volume.lta)</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">pc_center_oriented_volume</span></code>: PC coordinates in standardized space (orient_volume.lta)</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">ac_center_upright</span></code>: AC coordinates in upright space (cc_up.lta)</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">pc_center_upright</span></code>: PC coordinates in upright space (cc_up.lta)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">landmark_source</span></code>: AC/PC landmark provenance: <code class="docutils literal notranslate"><span class="pre">&quot;model&quot;</span></code> (default) or <code class="docutils literal notranslate"><span class="pre">&quot;supplied&quot;</span></code> when <code class="docutils literal notranslate"><span class="pre">--ac_coords</span></code> and
+<code class="docutils literal notranslate"><span class="pre">--pc_coords</span></code> are passed</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">segmentation_source</span></code>: Upright CC segmentation provenance: <code class="docutils literal notranslate"><span class="pre">&quot;model&quot;</span></code> (default) or <code class="docutils literal notranslate"><span class="pre">&quot;manual&quot;</span></code> when
+<code class="docutils literal notranslate"><span class="pre">--segmentation_manedit</span></code> is passed</p></li>
 </ul>
 </section>
 </section>

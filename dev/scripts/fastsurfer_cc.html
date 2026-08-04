@@ -460,7 +460,9 @@
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>We recommend running FastSurfer-CC with the standard <code class="docutils literal notranslate"><span class="pre">run_fastsurfer.sh</span></code> interface (see <a class="reference internal" href="RUN_FASTSURFER.html"><span class="doc">run_fastsurfer.sh</span></a>)!</p>
-<p>This page documents expert usage of FastSurfer-CC, which can be run independently with the advanced interface provided here. However, the FastSurfer segmentation is still required as input.</p>
+<p>This page documents expert usage of FastSurfer-CC, which can be run independently with the advanced interface
+provided here. By default, it requires <code class="docutils literal notranslate"><span class="pre">mri/orig.mgz</span></code> and <code class="docutils literal notranslate"><span class="pre">mri/aseg.auto_noCCseg.mgz</span></code> from a FastSurfer
+subject; use <code class="docutils literal notranslate"><span class="pre">--conformed_name</span></code> and <code class="docutils literal notranslate"><span class="pre">--aseg_name</span></code> to override those input paths.</p>
 </div>
 <p>FastSurfer-CC is a deep learning-based pipeline for automated segmentation, analysis, and shape analysis of the corpus callosum in brain MRI scans.
 Also segments the fornix, localizes the anterior and posterior commissure (AC and PC) and standardizes the orientation of the brain.</p>
@@ -472,10 +474,77 @@ Also segments the fornix, localizes the anterior and posterior commissure (AC an
 </ul>
 <section id="quickstart">
 <h2>Quickstart<a class="headerlink" href="#quickstart" title="Link to this heading">¶</a></h2>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python3<span class="w"> </span>fastsurfer_cc.py<span class="w"> </span>--sd<span class="w"> </span>/path/to/fastsurfer/output<span class="w"> </span>--sid<span class="w"> </span>test-case<span class="w"> </span>--verbose
+<p>The expert command expects an existing FastSurfer subject containing at least <code class="docutils literal notranslate"><span class="pre">mri/orig.mgz</span></code> and
+<code class="docutils literal notranslate"><span class="pre">mri/aseg.auto_noCCseg.mgz</span></code> by default. The input paths can be overridden with <code class="docutils literal notranslate"><span class="pre">--conformed_name</span></code> and <code class="docutils literal notranslate"><span class="pre">--aseg_name</span></code>.
+It reads those inputs and writes all CC outputs into the subject directory.</p>
+<section id="native">
+<h3>Native<a class="headerlink" href="#native" title="Link to this heading">¶</a></h3>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python3<span class="w"> </span>CorpusCallosum/fastsurfer_cc.py<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--sd<span class="w"> </span>/data/subjects<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--sid<span class="w"> </span>sub001<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--upright_volume<span class="w"> </span>mri/upright_volume.mgz<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--qc_image<span class="w"> </span>qc_snapshots/callosum.png<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--thickness_image<span class="w"> </span>qc_snapshots/callosum.thickness.png
 </pre></div>
 </div>
-<p>Gives all standard outputs. The corpus callosum morphometry can be found at <code class="docutils literal notranslate"><span class="pre">stats/callosum.CC.midslice.json</span></code> including 100 thickness measurements and the areas of sub-segments.</p>
+<p>Paths that are not absolute are resolved relative to <code class="docutils literal notranslate"><span class="pre">/data/subjects/sub001</span></code>. The upright volume is useful for
+checking the midplane and is the anatomical reference for manual CC editing.</p>
+</section>
+<section id="docker">
+<h3>Docker<a class="headerlink" href="#docker" title="Link to this heading">¶</a></h3>
+<p>The FastSurfer Docker image normally starts <code class="docutils literal notranslate"><span class="pre">run_fastsurfer.sh</span></code>. Expert commands therefore override the entrypoint
+with FastSurfer’s environment-setup wrapper and explicitly invoke <code class="docutils literal notranslate"><span class="pre">fastsurfer_cc.py</span></code>:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">SUBJECTS_DIR</span><span class="o">=</span>/data/fastsurfer
+<span class="nv">SID</span><span class="o">=</span>sub001
+
+docker<span class="w"> </span>run<span class="w"> </span>--gpus<span class="w"> </span>all<span class="w"> </span>--rm<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--user<span class="w"> </span><span class="s2">&quot;</span><span class="k">$(</span>id<span class="w"> </span>-u<span class="k">)</span><span class="s2">:</span><span class="k">$(</span>id<span class="w"> </span>-g<span class="k">)</span><span class="s2">&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--volume<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$SUBJECTS_DIR</span><span class="s2">:/output&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--entrypoint<span class="w"> </span>/fastsurfer/tools/Docker/entrypoint.sh<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>deepmi/fastsurfer:latest<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>python3<span class="w"> </span>/fastsurfer/CorpusCallosum/fastsurfer_cc.py<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--sd<span class="w"> </span>/output<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--sid<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$SID</span><span class="s2">&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--upright_volume<span class="w"> </span>mri/upright_volume.mgz<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--qc_image<span class="w"> </span>qc_snapshots/callosum.png<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--thickness_image<span class="w"> </span>qc_snapshots/callosum.thickness.png
+</pre></div>
+</div>
+</section>
+<section id="singularity-or-apptainer">
+<h3>Singularity or Apptainer<a class="headerlink" href="#singularity-or-apptainer" title="Link to this heading">¶</a></h3>
+<p>Build or download an image as described in the <a class="reference internal" href="../overview/SINGULARITY.html"><span class="std std-doc">Singularity documentation</span></a>, then bind
+the subject directory and invoke the expert script directly:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">SUBJECTS_DIR</span><span class="o">=</span>/data/fastsurfer
+<span class="nv">SID</span><span class="o">=</span>sub001
+<span class="nv">FASTSURFER_SIF</span><span class="o">=</span>/containers/fastsurfer-gpu.sif
+
+singularity<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>--nv<span class="w"> </span>--no-mount<span class="w"> </span>home,cwd<span class="w"> </span>-e<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--bind<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$SUBJECTS_DIR</span><span class="s2">:/output&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span><span class="s2">&quot;</span><span class="nv">$FASTSURFER_SIF</span><span class="s2">&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>python3<span class="w"> </span>/fastsurfer/CorpusCallosum/fastsurfer_cc.py<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--sd<span class="w"> </span>/output<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--sid<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$SID</span><span class="s2">&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--upright_volume<span class="w"> </span>mri/upright_volume.mgz<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--qc_image<span class="w"> </span>qc_snapshots/callosum.png<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--thickness_image<span class="w"> </span>qc_snapshots/callosum.thickness.png
+</pre></div>
+</div>
+<p>The same command works with Apptainer by replacing <code class="docutils literal notranslate"><span class="pre">singularity</span></code> with <code class="docutils literal notranslate"><span class="pre">apptainer</span></code>. For CPU execution with the same
+image, omit <code class="docutils literal notranslate"><span class="pre">--nv</span></code>; FastSurfer falls back to the CPU. <code class="docutils literal notranslate"><span class="pre">--no-mount</span> <span class="pre">home,cwd</span> <span class="pre">-e</span></code> prevents host Python packages and
+environment variables from leaking into the container.</p>
+<p>These commands generate all standard CC outputs. Morphometry is written to <code class="docutils literal notranslate"><span class="pre">stats/callosum.CC.midslice.json</span></code>,
+including 100 thickness measurements and the areas of subsegments.</p>
+<p>The expert interface also supports supplied 3D AC/PC voxel coordinates and manual corrections of the upright CC
+segmentation. Copy <code class="docutils literal notranslate"><span class="pre">mri/callosum.CC.upright.mgz</span></code> to <code class="docutils literal notranslate"><span class="pre">mri/callosum.CC.upright.manedit.mgz</span></code>, edit label 192 using
+<code class="docutils literal notranslate"><span class="pre">mri/upright_volume.mgz</span></code> as the reference, and pass the edited path to <code class="docutils literal notranslate"><span class="pre">--segmentation_manedit</span></code>. A manual segmentation
+containing any fornix label-250 voxels is self-contained and authoritative for the entire fornix. If it has no label
+250, the automatic upright and original-space CC segmentations from a previous run are required and supply the
+fornix. Choose supplied AC/PC coordinates before creating the edit and reuse the exact same coordinates and midplane
+method for every edit rerun; otherwise regenerate the upright reference and recreate or rebase the correction. See the
+<a class="reference internal" href="#"><span class="std std-doc">advanced documentation</span></a> for complete native, Docker, and Singularity/Apptainer
+commands.</p>
+</section>
 </section>
 <section id="full-command-line-interface">
 <h2>Full command-line interface<a class="headerlink" href="#full-command-line-interface" title="Link to this heading">¶</a></h2>
@@ -489,6 +558,7 @@ Also segments the fornix, localizes the anterior and posterior commissure (AC an
                         <span class="p">[</span><span class="o">--</span><span class="n">contour_smoothing</span> <span class="n">CONTOUR_SMOOTHING</span><span class="p">]</span>
                         <span class="p">[</span><span class="o">--</span><span class="n">slice_selection</span> <span class="n">SLICE_SELECTION</span><span class="p">]</span>
                         <span class="p">[</span><span class="o">--</span><span class="n">threads</span> <span class="n">THREADS</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">segmentation</span> <span class="n">SEGMENTATION</span><span class="p">]</span>
+                        <span class="p">[</span><span class="o">--</span><span class="n">segmentation_manedit</span> <span class="n">SEGMENTATION_MANEDIT</span><span class="p">]</span>
                         <span class="p">[</span><span class="o">--</span><span class="n">segmentation_in_orig</span> <span class="n">SEGMENTATION_IN_ORIG</span><span class="p">]</span>
                         <span class="p">[</span><span class="o">--</span><span class="n">cc_measures</span> <span class="n">CC_MEASURES</span><span class="p">]</span>
                         <span class="p">[</span><span class="o">--</span><span class="n">cc_mid_measures</span> <span class="n">CC_MID_MEASURES</span><span class="p">]</span>
@@ -496,6 +566,7 @@ Also segments the fornix, localizes the anterior and posterior commissure (AC an
                         <span class="p">[</span><span class="o">--</span><span class="n">upright_volume</span> <span class="n">UPRIGHT_VOLUME</span><span class="p">]</span>
                         <span class="p">[</span><span class="o">--</span><span class="n">orient_volume_lta</span> <span class="n">ORIENT_VOLUME_LTA</span><span class="p">]</span>
                         <span class="p">[</span><span class="o">--</span><span class="n">midplane_method</span> <span class="p">{</span><span class="n">center</span><span class="p">,</span><span class="n">fsaverage</span><span class="p">,</span><span class="n">fsaverage_symmetry</span><span class="p">,</span><span class="n">fsaverage_distance_map</span><span class="p">}]</span>
+                        <span class="p">[</span><span class="o">--</span><span class="n">ac_coords</span> <span class="n">X</span> <span class="n">Y</span> <span class="n">Z</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">pc_coords</span> <span class="n">X</span> <span class="n">Y</span> <span class="n">Z</span><span class="p">]</span>
                         <span class="p">[</span><span class="o">--</span><span class="n">qc_image</span> <span class="n">QC_IMAGE</span><span class="p">]</span>
                         <span class="p">[</span><span class="o">--</span><span class="n">save_template_dir</span> <span class="n">SAVE_TEMPLATE_DIR</span><span class="p">]</span>
                         <span class="p">[</span><span class="o">--</span><span class="n">thickness_image</span> <span class="n">THICKNESS_IMAGE</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">surf</span> <span class="n">CC_SURF</span><span class="p">]</span>
@@ -567,6 +638,9 @@ Also segments the fornix, localizes the anterior and posterior commissure (AC an
 <dd><p>Output path for corpus callosum and fornix segmentation output.</p>
 <p>Default: <code class="docutils literal notranslate"><span class="pre">mri/callosum.CC.upright.mgz</span></code></p>
 </dd>
+<dt><kbd>--segmentation_manedit</kbd></dt>
+<dd><p>Edited upright CC segmentation. If it contains fornix label 250, it is self-contained; otherwise the fornix is retained from the automatic segmentation output of a previous run.</p>
+</dd>
 <dt><kbd>--segmentation_in_orig</kbd></dt>
 <dd><p>Output path for corpus callosum and fornix segmentation output in the input MRI space.</p>
 <p>Default: <code class="docutils literal notranslate"><span class="pre">mri/callosum.CC.orig.mgz</span></code></p>
@@ -594,6 +668,12 @@ Also segments the fornix, localizes the anterior and posterior commissure (AC an
 <dd><p>Possible choices: center, fsaverage, fsaverage_symmetry, fsaverage_distance_map</p>
 <p>Midsagittal plane finding method. ‘center’: center slice of the input volume, no alignment; ‘fsaverage’: centroid-based alignment to fsaverage template; ‘fsaverage_symmetry’: fsaverage alignment + LR label-symmetry shift refinement (default); ‘fsaverage_distance_map’: fsaverage alignment + distance-map plane-fitting refinement.</p>
 <p>Default: <code class="docutils literal notranslate"><span class="pre">'fsaverage_symmetry'</span></code></p>
+</dd>
+<dt><kbd>--ac_coords</kbd></dt>
+<dd><p>Optional AC point as three floating-point coordinates in orig.mgz voxel space. Requires –pc_coords.</p>
+</dd>
+<dt><kbd>--pc_coords</kbd></dt>
+<dd><p>Optional PC point as three floating-point coordinates in orig.mgz voxel space. Requires –ac_coords.</p>
 </dd>
 <dt><kbd>--qc_image</kbd></dt>
 <dd><p>Output path for QC visualization image.</p>
@@ -642,6 +722,125 @@ When the corpus callosum segmentation does not align well with the mid-sagittal 
 <li><p><code class="docutils literal notranslate"><span class="pre">fsaverage_distance_map</span></code>: fit a midsagittal plane from left/right distance-map symmetry in fsaverage space</p></li>
 </ul>
 <p>The refinement after fsaverage alignment is intentionally conservative, expected to only make adjustments for unusual anatomies, or significant asymmetry.</p>
+<section id="supplying-ac-pc-landmarks">
+<h3>Supplying AC/PC landmarks<a class="headerlink" href="#supplying-ac-pc-landmarks" title="Link to this heading">¶</a></h3>
+<p>The expert interface accepts paired <code class="docutils literal notranslate"><span class="pre">--ac_coords</span> <span class="pre">X</span> <span class="pre">Y</span> <span class="pre">Z</span></code> and <code class="docutils literal notranslate"><span class="pre">--pc_coords</span> <span class="pre">X</span> <span class="pre">Y</span> <span class="pre">Z</span></code> arguments. Values are
+floating-point voxel coordinates in <code class="docutils literal notranslate"><span class="pre">orig.mgz</span></code> voxel space. When supplied, the landmark network is skipped and the
+points are used for segmentation conditioning, morphometry, QC, orientation transforms, and output measurements.</p>
+<p>The selected midsagittal plane is minimally rotated and translated so that it contains both 3D landmarks exactly. A
+plane adjustment larger than 15 degrees emits a warning because this commonly indicates a coordinate-space error.</p>
+<p>For example:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python3<span class="w"> </span>CorpusCallosum/fastsurfer_cc.py<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--sd<span class="w"> </span>/data/subjects<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--sid<span class="w"> </span>sub001<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--ac_coords<span class="w"> </span><span class="m">127</span>.4<span class="w"> </span><span class="m">126</span>.8<span class="w"> </span><span class="m">128</span>.1<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--pc_coords<span class="w"> </span><span class="m">127</span>.9<span class="w"> </span><span class="m">103</span>.6<span class="w"> </span><span class="m">128</span>.7<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--upright_volume<span class="w"> </span>mri/upright_volume.mgz
+</pre></div>
+</div>
+<p>For Docker or Singularity/Apptainer, append the same two options to the corresponding expert command. Coordinates are
+interpreted in the voxel space of the subject’s input <code class="docutils literal notranslate"><span class="pre">mri/orig.mgz</span></code>, not scanner RAS coordinates. Both points are
+required, must be finite and distinct, and must lie inside the image. A left-right AC-PC line is rejected because it
+does not define a stable sagittal plane. These options are available through the expert interface and are not exposed
+by <code class="docutils literal notranslate"><span class="pre">run_fastsurfer.sh</span></code>.</p>
+</section>
+</section>
+<section id="manual-cc-edits">
+<h2>Manual CC edits<a class="headerlink" href="#manual-cc-edits" title="Link to this heading">¶</a></h2>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>Choose and record any supplied AC/PC coordinates before creating a manual CC correction. The automatic run and
+every edit rerun must use exactly the same <code class="docutils literal notranslate"><span class="pre">--ac_coords</span></code>, <code class="docutils literal notranslate"><span class="pre">--pc_coords</span></code>, and <code class="docutils literal notranslate"><span class="pre">--midplane_method</span></code> values. If
+these values change, regenerate <code class="docutils literal notranslate"><span class="pre">mri/upright_volume.mgz</span></code> and <code class="docutils literal notranslate"><span class="pre">mri/callosum.CC.upright.mgz</span></code> and recreate or
+explicitly rebase the manual correction on the new upright image. Do not apply an edit created on a different
+upright plane. Because upright files use a standardized affine, FastSurfer-CC cannot reliably detect every stale
+edit from file geometry alone.</p>
+</div>
+<p>To reprocess a manual CC correction, first copy the automatic upright segmentation:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">SUBJECT_DIR</span><span class="o">=</span>/data/subjects/sub001
+cp<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$SUBJECT_DIR</span><span class="s2">/mri/callosum.CC.upright.mgz&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">   </span><span class="s2">&quot;</span><span class="nv">$SUBJECT_DIR</span><span class="s2">/mri/callosum.CC.upright.manedit.mgz&quot;</span>
+</pre></div>
+</div>
+<p>Edit label 192 in <code class="docutils literal notranslate"><span class="pre">mri/callosum.CC.upright.manedit.mgz</span></code> using <code class="docutils literal notranslate"><span class="pre">mri/upright_volume.mgz</span></code> as the anatomical reference.
+The manual file may also contain fornix label 250. Then rerun the expert command with the manual input:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python3<span class="w"> </span>CorpusCallosum/fastsurfer_cc.py<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--sd<span class="w"> </span>/data/subjects<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--sid<span class="w"> </span>sub001<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--segmentation_manedit<span class="w"> </span>mri/callosum.CC.upright.manedit.mgz<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--upright_volume<span class="w"> </span>mri/upright_volume.mgz<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--qc_image<span class="w"> </span>qc_snapshots/callosum.png<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--thickness_image<span class="w"> </span>qc_snapshots/callosum.thickness.png
+</pre></div>
+</div>
+<p>If the manual segmentation contains any voxels with fornix label 250, FastSurfer-CC treats its CC and fornix as
+self-contained input. If label 250 is absent, FastSurfer-CC instead retains the fornix from the automatic upright and
+original-space CC segmentations, which must therefore exist from a previous run. It recomputes all CC-derived results
+and writes <code class="docutils literal notranslate"><span class="pre">mri/callosum.CC.orig.manedit.mgz</span></code>. The top-level <code class="docutils literal notranslate"><span class="pre">run_fastsurfer.sh</span> <span class="pre">--edits</span></code> workflow also uses this
+derived file for downstream inpainting. Any label-250 voxels make the manual file authoritative for the entire
+fornix; remove all label-250 voxels from the manual file to use the automatic fornix instead. Do not manually edit the
+original-space file.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>A direct expert invocation produces the CC outputs, including <code class="docutils literal notranslate"><span class="pre">callosum.CC.orig.manedit.mgz</span></code>, but does not paint
+them into the broader aseg outputs. Use the top-level <code class="docutils literal notranslate"><span class="pre">run_fastsurfer.sh</span> <span class="pre">--edits</span></code> workflow when that downstream
+integration is required. The top-level workflow does not currently accept supplied AC/PC coordinates.</p>
+</div>
+<p>The complete Docker edit rerun is:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">SUBJECTS_DIR</span><span class="o">=</span>/data/fastsurfer
+<span class="nv">SID</span><span class="o">=</span>sub001
+
+docker<span class="w"> </span>run<span class="w"> </span>--gpus<span class="w"> </span>all<span class="w"> </span>--rm<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--user<span class="w"> </span><span class="s2">&quot;</span><span class="k">$(</span>id<span class="w"> </span>-u<span class="k">)</span><span class="s2">:</span><span class="k">$(</span>id<span class="w"> </span>-g<span class="k">)</span><span class="s2">&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--volume<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$SUBJECTS_DIR</span><span class="s2">:/output&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--entrypoint<span class="w"> </span>/fastsurfer/tools/Docker/entrypoint.sh<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>deepmi/fastsurfer:latest<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>python3<span class="w"> </span>/fastsurfer/CorpusCallosum/fastsurfer_cc.py<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--sd<span class="w"> </span>/output<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--sid<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$SID</span><span class="s2">&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--segmentation_manedit<span class="w"> </span>mri/callosum.CC.upright.manedit.mgz<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--upright_volume<span class="w"> </span>mri/upright_volume.mgz<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--qc_image<span class="w"> </span>qc_snapshots/callosum.png<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--thickness_image<span class="w"> </span>qc_snapshots/callosum.thickness.png
+</pre></div>
+</div>
+<p>The example above resolves the relative manual path inside <code class="docutils literal notranslate"><span class="pre">/output/$SID</span></code>. A manual segmentation stored elsewhere
+on the host can instead be mounted read-only and passed by its absolute container path:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">MANUAL_EDIT</span><span class="o">=</span>/data/annotations/sub001_cc_manedit.mgz
+
+docker<span class="w"> </span>run<span class="w"> </span>--gpus<span class="w"> </span>all<span class="w"> </span>--rm<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--user<span class="w"> </span><span class="s2">&quot;</span><span class="k">$(</span>id<span class="w"> </span>-u<span class="k">)</span><span class="s2">:</span><span class="k">$(</span>id<span class="w"> </span>-g<span class="k">)</span><span class="s2">&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--volume<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$SUBJECTS_DIR</span><span class="s2">:/output&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--volume<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$MANUAL_EDIT</span><span class="s2">:/manual-edit.mgz:ro&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--entrypoint<span class="w"> </span>/fastsurfer/tools/Docker/entrypoint.sh<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>deepmi/fastsurfer:latest<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>python3<span class="w"> </span>/fastsurfer/CorpusCallosum/fastsurfer_cc.py<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--sd<span class="w"> </span>/output<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--sid<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$SID</span><span class="s2">&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--segmentation_manedit<span class="w"> </span>/manual-edit.mgz<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--qc_image<span class="w"> </span>qc_snapshots/callosum.png
+</pre></div>
+</div>
+<p>The complete Singularity edit rerun is:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">SUBJECTS_DIR</span><span class="o">=</span>/data/fastsurfer
+<span class="nv">SID</span><span class="o">=</span>sub001
+<span class="nv">FASTSURFER_SIF</span><span class="o">=</span>/containers/fastsurfer-gpu.sif
+
+singularity<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>--nv<span class="w"> </span>--no-mount<span class="w"> </span>home,cwd<span class="w"> </span>-e<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--bind<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$SUBJECTS_DIR</span><span class="s2">:/output&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span><span class="s2">&quot;</span><span class="nv">$FASTSURFER_SIF</span><span class="s2">&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>python3<span class="w"> </span>/fastsurfer/CorpusCallosum/fastsurfer_cc.py<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--sd<span class="w"> </span>/output<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--sid<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$SID</span><span class="s2">&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--segmentation_manedit<span class="w"> </span>mri/callosum.CC.upright.manedit.mgz<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--upright_volume<span class="w"> </span>mri/upright_volume.mgz<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--qc_image<span class="w"> </span>qc_snapshots/callosum.png<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--thickness_image<span class="w"> </span>qc_snapshots/callosum.thickness.png
+</pre></div>
+</div>
+<p>An automatic CC run is only required when the manual segmentation does not contain fornix label 250. If the
+segmentation used as the editing reference was generated with supplied AC/PC landmarks, append the exact same
+<code class="docutils literal notranslate"><span class="pre">--ac_coords</span> <span class="pre">X</span> <span class="pre">Y</span> <span class="pre">Z</span> <span class="pre">--pc_coords</span> <span class="pre">X</span> <span class="pre">Y</span> <span class="pre">Z</span></code> arguments to the edit command.</p>
 </section>
 <section id="quality-control">
 <h2>Quality Control<a class="headerlink" href="#quality-control" title="Link to this heading">¶</a></h2>
@@ -780,13 +979,22 @@ python3<span class="w"> </span>fastsurfer_cc.py<span class="w"> </span>--sd<span
           <div class="toc-tree">
             <ul>
 <li><a class="reference internal" href="#">CorpusCallosum: fastsurfer_cc.py</a><ul>
-<li><a class="reference internal" href="#quickstart">Quickstart</a></li>
+<li><a class="reference internal" href="#quickstart">Quickstart</a><ul>
+<li><a class="reference internal" href="#native">Native</a></li>
+<li><a class="reference internal" href="#docker">Docker</a></li>
+<li><a class="reference internal" href="#singularity-or-apptainer">Singularity or Apptainer</a></li>
+</ul>
+</li>
 <li><a class="reference internal" href="#full-command-line-interface">Full command-line interface</a><ul>
 <li><a class="reference internal" href="#CorpusCallosum.fastsurfer_cc-make_parser-named-arguments">Named Arguments</a></li>
 <li><a class="reference internal" href="#CorpusCallosum.fastsurfer_cc-make_parser-advanced-options">Advanced options</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#midplane-extraction">Midplane extraction</a></li>
+<li><a class="reference internal" href="#midplane-extraction">Midplane extraction</a><ul>
+<li><a class="reference internal" href="#supplying-ac-pc-landmarks">Supplying AC/PC landmarks</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#manual-cc-edits">Manual CC edits</a></li>
 <li><a class="reference internal" href="#quality-control">Quality Control</a></li>
 <li><a class="reference internal" href="#custom-subdivision-schemes">Custom Subdivision Schemes</a></li>
 <li><a class="reference internal" href="#analysis-modes">Analysis Modes</a><ul>
