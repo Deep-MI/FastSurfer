@@ -1600,7 +1600,7 @@ def conformed_vox_img_size(
             if target_vox_size is not None:
                 # correct sizes for changing voxel size (if voxel size is changing)
                 # compute field of view dimensions in mm (in native orientation)
-                fov = np.array(img.header.get_zooms()[:3]) * target_img_size
+                fov = np.array(np.round(img.header.get_zooms()[:3], decimals=int(np.ceil(-np.log10(vox_eps))))) * target_img_size
                 # compute number of voxels needed to cover field of view
                 target_img_size = np.ceil((fov / target_vox_size * 10000).astype(int).astype(float) / 10000).astype(int)
         # use cube (same size in all directions) with MAX_DIMENSION in each direction as minimum
