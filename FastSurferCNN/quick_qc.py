@@ -21,7 +21,7 @@ from typing import cast
 
 import nibabel as nib
 import numpy as np
-from skimage.morphology import binary_dilation
+from skimage.morphology import dilation
 
 from FastSurferCNN.utils import ShapeType
 
@@ -102,8 +102,9 @@ def check_volume(asegdkt_segfile: np.ndarray, voxvol: float, thres: float = 0.70
 
 
 def get_region_bg_intersection_mask(
-        seg_array: np.ndarray[ShapeType, np.dtype[np.integer]],
-        region_labels: dict[str, int] = VENT_LABELS, bg_label = BG_LABEL,
+    seg_array: np.ndarray[ShapeType, np.dtype[np.integer]],
+    region_labels: dict[str, int] = VENT_LABELS,
+    bg_label=BG_LABEL,
 ):
     """
     Return a mask of the intersection between the voxels of a given region and background voxels.
@@ -135,15 +136,15 @@ def get_region_bg_intersection_mask(
     from FastSurferCNN.utils.brainvolstats import mask_in_array
 
     region_array = mask_in_array(seg_array, list(region_labels.values()))
-    region_array_dilated = binary_dilation(region_array)
+    region_array_dilated = dilation(region_array)
 
-    bg_array = (seg_array == bg_label)
+    bg_array = seg_array == bg_label
     return np.logical_and(bg_array, region_array_dilated)
 
 
 def get_ventricle_bg_intersection_volume(
-        seg_array: np.ndarray[ShapeType, np.dtype[np.integer]],
-        voxvol: float,
+    seg_array: np.ndarray[ShapeType, np.dtype[np.integer]],
+    voxvol: float,
 ) -> float:
     """
     Return a volume estimate for the intersection of ventricle voxels with background voxels.
@@ -184,7 +185,7 @@ if __name__ == "__main__":
     # Ventricle-BG intersection volume check:
     logger.debug("Estimating ventricle-background intersection volume...")
     ventricle_volume = get_ventricle_bg_intersection_volume(inseg_data, inseg_voxvol)
-    logger.info(f"Ventricle-background intersection volume in mm3: {ventricle_volume :.2f}")
+    logger.info(f"Ventricle-background intersection volume in mm3: {ventricle_volume:.2f}")
 
     # Total volume check:
     if not check_volume(inseg_data, inseg_voxvol):
