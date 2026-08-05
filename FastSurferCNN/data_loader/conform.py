@@ -1566,8 +1566,11 @@ def conformed_vox_img_size(
     target_img_size: IntVector3d | None
     MAX_VOX_SIZE = 1.0
     MAX_DIMENSION = 256
-    # number of decimals to round voxel sizes to, so that vox_eps-sized float noise does not affect results
-    decimals = int(np.ceil(-np.log10(vox_eps)))
+    if vox_eps <= 0:
+        raise ValueError(f"vox_eps must be > 0, got {vox_eps}.")
+    # number of decimals to round voxel sizes to, so that vox_eps-sized float noise does not affect
+    # results; clamp at 0 so that vox_eps > 1 does not round voxel sizes to tens of mm
+    decimals = max(0, int(np.ceil(-np.log10(vox_eps))))
     # this is similar to mri_convert --conform_min, note, vox_size == 'auto' is extra, but not covered by VoxSizeOption
     if isinstance(vox_size, str) and (vox_size := cast(VoxSizeOption, vox_size.lower())) in ["min", "auto"]:
         # find minimal voxel side length
