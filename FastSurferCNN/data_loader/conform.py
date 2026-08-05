@@ -1603,8 +1603,17 @@ def conformed_vox_img_size(
                 # correct sizes for changing voxel size (if voxel size is changing)
                 # compute field of view dimensions in mm (in native orientation)
                 fov = np.array(np.round(img.header.get_zooms()[:3], decimals=decimals)) * target_img_size
-                # compute number of voxels needed to cover field of view
-                target_img_size = np.ceil((fov / target_vox_size * 10000).astype(int).astype(float) / 10000).astype(int)
+                # number of voxels needed to cover the field of view
+                n_vox = fov / target_vox_size
+                # n_vox is integer when the fov is a multiple of the voxel size, but floating-point
+                # error makes it only approximately so. Storing the zoom as float32 leaves a relative
+                # residual of ~1e-8 that scales with the voxel count, i.e. machine precision rather
+                # than a voxel-size tolerance. Snap counts that are integer within that relative error
+                # and round up only genuine partial voxels.
+                rounded = np.rint(n_vox)
+                target_img_size = np.where(
+                    np.isclose(n_vox, rounded, rtol=1e-6, atol=0.0), rounded, np.ceil(n_vox)
+                ).astype(int)
         # use cube (same size in all directions) with MAX_DIMENSION in each direction as minimum
         if _img_size == "auto":
             target_img_size = np.full_like(np.maximum(MAX_DIMENSION, target_img_size), np.amax(target_img_size))
