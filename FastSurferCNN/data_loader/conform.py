@@ -1566,10 +1566,12 @@ def conformed_vox_img_size(
     target_img_size: IntVector3d | None
     MAX_VOX_SIZE = 1.0
     MAX_DIMENSION = 256
+    # number of decimals to round voxel sizes to, so that vox_eps-sized float noise does not affect results
+    decimals = int(np.ceil(-np.log10(vox_eps)))
     # this is similar to mri_convert --conform_min, note, vox_size == 'auto' is extra, but not covered by VoxSizeOption
     if isinstance(vox_size, str) and (vox_size := cast(VoxSizeOption, vox_size.lower())) in ["min", "auto"]:
         # find minimal voxel side length
-        min_vox_size = np.round(np.min(img.header.get_zooms()[:3]), decimals=int(np.ceil(-np.log10(vox_eps))))
+        min_vox_size = np.round(np.min(img.header.get_zooms()[:3]), decimals=decimals)
         # set to 1 mm if larger than that
         _conformed_vox_size = min(min_vox_size, MAX_VOX_SIZE)
         if threshold_1mm and _conformed_vox_size > threshold_1mm:
@@ -1600,7 +1602,7 @@ def conformed_vox_img_size(
             if target_vox_size is not None:
                 # correct sizes for changing voxel size (if voxel size is changing)
                 # compute field of view dimensions in mm (in native orientation)
-                fov = np.array(np.round(img.header.get_zooms()[:3], decimals=int(np.ceil(-np.log10(vox_eps))))) * target_img_size
+                fov = np.array(np.round(img.header.get_zooms()[:3], decimals=decimals)) * target_img_size
                 # compute number of voxels needed to cover field of view
                 target_img_size = np.ceil((fov / target_vox_size * 10000).astype(int).astype(float) / 10000).astype(int)
         # use cube (same size in all directions) with MAX_DIMENSION in each direction as minimum
