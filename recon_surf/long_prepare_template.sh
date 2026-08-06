@@ -461,7 +461,7 @@ else #more than 1 time point:
   cmd="$cmd --ixforms ${ltaXforms[*]}"
   cmd="$cmd --noit"
   t1=${SUBJECTS_DIR}/$tid/mri/orig.mgz
-  cmd="$cmd --template $t1 $device_opt"
+  cmd="$cmd --template $t1"
   cmd="$cmd --keep-dtype"
   RunIt "$cmd" "$LF"
 
