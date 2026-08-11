@@ -83,31 +83,34 @@ def string_to_bool(a: str) -> bool:
 
 def vox_size(a: str | float | None) -> VoxSizeOption:
     """
-    Convert the vox_size argument to 'min' or a valid voxel size.
+    Convert the vox_size argument to a valid voxel-size option.
 
     Parameters
     ----------
     a : str, float, None
-        Vox size type. Can be auto, min or a number between 1 an 0.
+        Voxel size. Can be "auto", "min", "any", "keep", "none", "infinity", or a number between 0 and 1.
 
     Returns
     -------
     str or float or None
-        If 'auto' or 'min' is provided, it returns a string('auto' or 'min').
+        If "auto" or "min" is provided, return "min".
         If a valid voxel size (between 0 and 1) is provided, it returns a float.
-        If 'any' or 'keep', it returns None.
+        If "any", "keep", "none", or "infinity" is provided, return None.
 
     Raises
     ------
     ValueError
-        If the argument is not "min", "auto" or convertible to a float between 0 and 1.
+        If the argument is not a recognized option or convertible to a float between 0 and 1.
     """
-    if a is None or isinstance(a, str) and a.lower() in ["any", "keep"]:
+    if a is None or isinstance(a, str) and a.lower() in ["any", "keep", "none", "infinity"]:
         return None
     if isinstance(a, str) and a.lower() in ["auto", "min"]:
         return "min"
     try:
-        return float_gt_zero_and_le_one(a)
+        a_float = float(a)
+        if abs(a_float - 1.0) <= 1e-6:
+            a_float = 1.0
+        return float_gt_zero_and_le_one(a_float)
     except ValueError as e:
         raise ValueError(e.args[0] + " Additionally, vox_size may be 'min'.") from None
 
