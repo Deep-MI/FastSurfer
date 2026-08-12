@@ -164,7 +164,9 @@ def float_gt_zero_and_le_one(a: str | float) -> float | None:
     """
     if a is None or isinstance(a, str) and a.lower() in ["none", "infinity"]:
         return None
-    a_float = float(a)
+    # round to 1e-4 precision (the default vox_eps used in conform) so that float noise in a voxel
+    # size read from a header, such as 1.0000001 from a noisy 1mm image, is accepted as 1.0
+    a_float = round(float(a), 4)
     if 0.0 < a_float <= 1.0:
         return a_float
     else:
