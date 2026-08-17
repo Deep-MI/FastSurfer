@@ -632,15 +632,15 @@ the editable CC segmentation. For example:</p>
 <li><p>Copy <code class="docutils literal notranslate"><span class="pre">&lt;subject_dir&gt;/mri/callosum.CC.upright.mgz</span></code> to
 <code class="docutils literal notranslate"><span class="pre">&lt;subject_dir&gt;/mri/callosum.CC.upright.manedit.mgz</span></code>:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">SUBJECT_DIR</span><span class="o">=</span>/data/subjects/sub001
-cp<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$SUBJECT_DIR</span><span class="s2">/mri/callosum.CC.upright.mgz&quot;</span><span class="w"> </span><span class="se">\</span>
-<span class="w">   </span><span class="s2">&quot;</span><span class="nv">$SUBJECT_DIR</span><span class="s2">/mri/callosum.CC.upright.manedit.mgz&quot;</span>
+cp<span class="w"> </span><span class="s2">"</span><span class="nv">$SUBJECT_DIR</span><span class="s2">/mri/callosum.CC.upright.mgz"</span><span class="w"> </span><span class="se">\</span>
+<span class="w">   </span><span class="s2">"</span><span class="nv">$SUBJECT_DIR</span><span class="s2">/mri/callosum.CC.upright.manedit.mgz"</span>
 </pre></div>
 </div>
 </li>
 <li><p>Edit label 192 in the manedit file using <code class="docutils literal notranslate"><span class="pre">mri/upright_volume.mgz</span></code> as the reference image. For example:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>freeview<span class="w"> </span><span class="se">\</span>
-<span class="w">    </span>-v<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$SUBJECT_DIR</span><span class="s2">/mri/upright_volume.mgz&quot;</span><span class="w"> </span><span class="se">\</span>
-<span class="w">    </span>-v<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$SUBJECT_DIR</span><span class="s2">/mri/callosum.CC.upright.manedit.mgz&quot;</span>:colormap<span class="o">=</span>lut:opacity<span class="o">=</span><span class="m">0</span>.5
+<span class="w">    </span>-v<span class="w"> </span><span class="s2">"</span><span class="nv">$SUBJECT_DIR</span><span class="s2">/mri/upright_volume.mgz"</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>-v<span class="w"> </span><span class="s2">"</span><span class="nv">$SUBJECT_DIR</span><span class="s2">/mri/callosum.CC.upright.manedit.mgz"</span>:colormap<span class="o">=</span>lut:opacity<span class="o">=</span><span class="m">0</span>.5
 </pre></div>
 </div>
 <p>A manual file containing any fornix label-250 voxels is self-contained and authoritative for the entire fornix. To

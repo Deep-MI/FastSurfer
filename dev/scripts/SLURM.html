@@ -503,8 +503,8 @@ Data- and subject-related options:
   finished (if the job fails, cleanup of this directory may be necessary) and it should be
   empty!
 --data: (root) directory to search in for t1 files (default: current work directory).
---pattern: glob string to find image files in &#39;data directory&#39; (default: *.{nii,nii.gz,mgz}),
-   for example &#39;--data /data/ --pattern &quot;*/*/mri/t1.nii.gz&quot;&#39;
+--pattern: glob string to find image files in 'data directory' (default: *.{nii,nii.gz,mgz}),
+   for example '--data /data/ --pattern "*/*/mri/t1.nii.gz"'
    will find all images of format /data/&lt;somefolder&gt;/&lt;otherfolder&gt;/mri/t1.nii.gz
 --subject_list: alternative way to define cases to process, files are of format:
   subject_id1=/path/to/t1.mgz
@@ -512,16 +512,16 @@ Data- and subject-related options:
   This option invalidates the --pattern option.
   May also add additional parameters like:
   subject_id1=/path/to/t1.mgz --vox_size 1.0
---subject_list_delim: alternative delimiter in the file (default: &quot;=&quot;). For example, if you
-  pass --subject_list_delim &quot;,&quot; the subject_list file is parsed as a comma-delimited csv file.
+--subject_list_delim: alternative delimiter in the file (default: "="). For example, if you
+  pass --subject_list_delim "," the subject_list file is parsed as a comma-delimited csv file.
 --subject_list_awk_code_sid &lt;subject_id code&gt;: alternative way to construct the subject_id
-  from the row in the subject_list (default: &#39;$1&#39;).
+  from the row in the subject_list (default: '$1').
 --subject_list_awk_code_args &lt;t1_path code&gt;: alternative way to construct the image_path and
-  additional parameters from the row in the subject_list (default: &#39;$2&#39;), other examples:
-  &#39;$2/$1/mri/orig.mgz&#39;, where the first field (of the subject_list file) is the subject_id
+  additional parameters from the row in the subject_list (default: '$2'), other examples:
+  '$2/$1/mri/orig.mgz', where the first field (of the subject_list file) is the subject_id
   and the second field is the containing folder, e.g. the study.
   Example for additional parameters:
-  --subject_list_delim &quot;,&quot; --subject_list_awk_code_args &#39;$2 &quot; --vox_size &quot; $4&#39;
+  --subject_list_delim "," --subject_list_awk_code_args '$2 " --vox_size " $4'
   to implement from the subject_list line
   subject-101,raw/T1w-101A.nii.gz,study-1,0.9
   to (additional arguments must be comma-separated)
@@ -539,7 +539,7 @@ Singularity-related options:
 --extra_singularity_options &lt;extra-options&gt;,
 --extra_singularity_options_seg &lt;extra-options&gt;, and
 --extra_singularity_options_surf &lt;extra-option&gt;: Extra options to the Singularity exec call, needs to be double quoted
-  to allow quoted strings, e.g. --extra_singularity_options &quot;-B /$(echo \&quot;/path-to-weights\&quot;):/fastsurfer/checkpoints&quot;.
+  to allow quoted strings, e.g. --extra_singularity_options "-B /$(echo \"/path-to-weights\"):/fastsurfer/checkpoints".
 
 SLURM-related options:
 --cpu_only: Do not request gpus for segmentation (only affects segmentation, default: request gpus).
@@ -552,8 +552,8 @@ SLURM-related options:
 --skip_cleanup: Do not schedule step 3, cleanup (which moves the data from --work to --sd, etc.,
   default: do the cleanup).
 --slurm_jobarray: a slurm-compatible list of jobs to run, this can be used to rerun segmentation cases
-  that have failed, for example &#39;--slurm_jobarray 4,7&#39; would only run the cases associated with a
-  (previous) run of srun_fastsurfer.sh, where log files &#39;&lt;sd&gt;/logs/seg_*_{4,7}.log&#39; indicate failure.
+  that have failed, for example '--slurm_jobarray 4,7' would only run the cases associated with a
+  (previous) run of srun_fastsurfer.sh, where log files '&lt;sd&gt;/logs/seg_*_{4,7}.log' indicate failure.
 --partition &lt;comma-separated-list-of-partitions&gt;,
 --partition_seg &lt;comma-separated-list-of-partitions&gt;, and
 --partition_surf &lt;...list&gt;: partition(s) to schedule all or only segmentation or surface reconstruction, respectively:
@@ -579,9 +579,9 @@ Jobs will be grouped into slurm job_arrays with serial segmentation and parallel
 reconstruction (via job arrays and job steps). This way, segmentation can be scheduled on machines
 with GPUs and surface reconstruction on machines without, while efficiently assigning cpus and gpus,
 see --partition flag.
-Note, that a surface reconstruction job will request up to a total of &#39;&lt;num_cases_per_task&gt; * 2&#39;
-cpus and &#39;&lt;num_cases_per_task&gt; * 10G&#39; memory per job. However, these can be distributed across
-&#39;&lt;num_cases_per_task&gt;&#39; nodes in parallel job steps.
+Note, that a surface reconstruction job will request up to a total of '&lt;num_cases_per_task&gt; * 2'
+cpus and '&lt;num_cases_per_task&gt; * 10G' memory per job. However, these can be distributed across
+'&lt;num_cases_per_task&gt;' nodes in parallel job steps.
 
 This tool requires functions in stools.sh and the brun_fastsurfer.sh scripts (expected in same
 folder as this script) in addition to the fastsurfer singularity image.
@@ -623,9 +623,9 @@ the time and memory budget in <code class="docutils literal notranslate"><span c
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span>cd &lt;subject directory&gt;
 for sub in *
 do
-  if [[ -z &quot;$(grep &quot;$sub: Finished --surf&quot; slurm/scripts/subject_success)&quot; ]]
+  if [[ -z "$(grep "$sub: Finished --surf" slurm/scripts/subject_success)" ]]
   then
-    echo &quot;$sub was terminated externally&quot;
+    echo "$sub was terminated externally"
   fi
 done
 </pre></div>

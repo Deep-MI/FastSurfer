@@ -459,7 +459,7 @@
 <span id="fastsurfercnn-utils-parser-defaults"></span><h1>FastSurferCNN.utils.parser_defaults<a class="headerlink" href="#module-FastSurferCNN.utils.parser_defaults" title="Link to this heading">¶</a></h1>
 <p>Contains the ALL_FLAGS dictionary, which can be used as follows to add default flags.</p>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">parser</span> <span class="o">=</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">()</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">ALL_FLAGS</span><span class="p">[</span><span class="s2">&quot;allow_root&quot;</span><span class="p">](</span><span class="n">parser</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s2">&quot;root&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">ALL_FLAGS</span><span class="p">[</span><span class="s2">"allow_root"</span><span class="p">](</span><span class="n">parser</span><span class="p">,</span> <span class="n">dest</span><span class="o">=</span><span class="s2">"root"</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">args</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">parse_args</span><span class="p">()</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">allows_root</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">root</span>  <span class="c1"># instead of the default dest args.allow_root</span>
 </pre></div>

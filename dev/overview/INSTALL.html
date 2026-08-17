@@ -553,12 +553,12 @@ uv<span class="w"> </span>pip<span class="w"> </span>sync<span class="w"> </span
 </div>
 <p>Next, add the fastsurfer directory to the python path:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># make sure you are in the FastSurfer directory!</span>
-<span class="nb">export</span><span class="w"> </span><span class="nv">PYTHONPATH</span><span class="o">=</span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">PYTHONPATH</span><span class="si">}</span><span class="s2">:</span><span class="nv">$PWD</span><span class="s2">&quot;</span>
+<span class="nb">export</span><span class="w"> </span><span class="nv">PYTHONPATH</span><span class="o">=</span><span class="s2">"</span><span class="si">${</span><span class="nv">PYTHONPATH</span><span class="si">}</span><span class="s2">:</span><span class="nv">$PWD</span><span class="s2">"</span>
 </pre></div>
 </div>
 <p>This will need to be done every time you want to run FastSurfer, or you need to add this line to your <code class="docutils literal notranslate"><span class="pre">~/.bashrc</span></code> if you are using bash, for example:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># make sure you are in the FastSurfer directory!</span>
-<span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;export PYTHONPATH=\&quot;\${PYTHONPATH}:</span><span class="k">$(</span><span class="nb">pwd</span><span class="k">)</span><span class="s2">\&quot;&quot;</span><span class="w"> </span>&gt;&gt;<span class="w"> </span>~/.bashrc
+<span class="nb">echo</span><span class="w"> </span><span class="s2">"export PYTHONPATH=\"\${PYTHONPATH}:</span><span class="k">$(</span><span class="nb">pwd</span><span class="k">)</span><span class="s2">\""</span><span class="w"> </span>&gt;&gt;<span class="w"> </span>~/.bashrc
 </pre></div>
 </div>
 <p>You can also download all network checkpoint files (this should be done if you are installing for multiple users):</p>
@@ -614,7 +614,7 @@ Start it and set Memory to 15 GB under Preferences -&gt; Resources (or the large
 <p>FastSurfer requires pre-installed python3.10+ and bash (at least 3.2).
 You can install these via the packet manager brew.
 To install brew and then python3.10, execute the following in a Terminal:</p>
-<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>/bin/bash<span class="w"> </span>-c<span class="w"> </span><span class="s2">&quot;</span><span class="k">$(</span>curl<span class="w"> </span>-fsSL<span class="w"> </span>https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh<span class="k">)</span><span class="s2">&quot;</span>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>/bin/bash<span class="w"> </span>-c<span class="w"> </span><span class="s2">"</span><span class="k">$(</span>curl<span class="w"> </span>-fsSL<span class="w"> </span>https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh<span class="k">)</span><span class="s2">"</span>
 brew<span class="w"> </span>install<span class="w"> </span>python@3.10
 </pre></div>
 </div>

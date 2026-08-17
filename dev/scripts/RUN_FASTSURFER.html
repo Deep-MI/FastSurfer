@@ -567,7 +567,7 @@ FLAGS:
                             If a number between 0.7 and 1 is specified (below
                             is experimental) the T1w image is conformed to
                             that voxel size and processed.
-                            If &quot;min&quot; is specified (default), the voxel size is
+                            If "min" is specified (default), the voxel size is
                             read from the size of the minimal voxel size
                             (smallest per-direction voxel size) in the T1w
                             image:
@@ -579,7 +579,7 @@ FLAGS:
                             The voxel size (whether set manually or derived)
                             determines whether the surfaces are processed with
                             highres options (below 1mm) or not.
-                            If &quot;keep&quot; is specified, the native voxel size is
+                            If "keep" is specified, the native voxel size is
                             preserved. This is experimental and only compatible
                             with the segmentation pipeline.
   --edits                 Enables manual edits by replacing select intermediate/
@@ -655,7 +655,7 @@ SEGMENTATION PIPELINE:
                             1mm conformed image, if the conformed image is *NOT*
                             already an 1mm image, an additional conformed image
                             at 1mm will be stored at the --conformed_name, but
-                            with an additional file suffix of &quot;.1mm&quot;.
+                            with an additional file suffix of ".1mm".
                             Requires an ABSOLUTE Path! Default location:
                             $SUBJECTS_DIR/$sid/mri/cerebellum.CerebNet.nii.gz
   --no_biasfield          Deactivate the calculation of partial volume-corrected
@@ -678,8 +678,8 @@ SEGMENTATION PIPELINE:
   --reg_mode &lt;none|coreg|robust&gt;
                           Ignored, if no T2 image is passed.
                             Specifies the registration method used to register T1
-                            and T2 images. Options are &#39;coreg&#39; (default) for
-                            mri_coreg, &#39;robust&#39; for mri_robust_register, and &#39;none&#39;
+                            and T2 images. Options are 'coreg' (default) for
+                            mri_coreg, 'robust' for mri_robust_register, and 'none'
                             to skip registration (this requires T1 and T2 are
                             externally co-registered).
   --qc_snap               Create QC snapshots in $SUBJECTS_DIR/$sid/qc_snapshots
@@ -692,25 +692,25 @@ SURFACE PIPELINE:
                             etiv estimates for 3T MR images, default: 1.5T atlas).
 
 Resource Options:
-  --device                Set device on which inference should be run (&quot;cpu&quot; for
-                            CPU, &quot;cuda&quot; for Nvidia GPU, or pass specific device,
+  --device                Set device on which inference should be run ("cpu" for
+                            CPU, "cuda" for Nvidia GPU, or pass specific device,
                             e.g. cuda:1), default check GPU and then CPU.
   --viewagg_device &lt;str&gt;  Define where the view aggregation should be run on.
-                            Can be &quot;auto&quot; or a device (see --device). By default,
+                            Can be "auto" or a device (see --device). By default,
                             the program checks if you have enough memory to run
                             the view aggregation on the gpu. The total memory is
                             considered for this decision. If this fails, or you
-                            actively overwrote the check with setting with &quot;cpu&quot;
+                            actively overwrote the check with setting with "cpu"
                             view agg is run on the cpu. Equivalently, if you
                             pass a different device, view agg will be run on that
                             device (no memory check will be done).
-  --threads &lt;int&gt;         Set openMP and ITK threads to &lt;int&gt; or &quot;max&quot;, also
+  --threads &lt;int&gt;         Set openMP and ITK threads to &lt;int&gt; or "max", also
   --threads_seg &lt;int&gt;       for definition of threads specific to segmentation
   --threads_surf &lt;int&gt;      and surface reconstruction (parallel hemispheres if
                             at number of threads for surfaces &gt;=2, default: 1).
   --batch &lt;batch_size&gt;    Batch size for inference (default: 1).
   --py &lt;python_cmd&gt;       Command for python, used in both pipelines.
-                            Default: &quot;python3 -s&quot;
+                            Default: "python3 -s"
                             (-s: do no search for packages in home directory)
 
  Dev Flags:

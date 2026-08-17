@@ -470,19 +470,19 @@ mkdir<span class="w"> </span>fastsurfer-test
 <span class="c1">#    It will produce the fastsurfer-gpu.sif singularity image file locally</span>
 singularity<span class="w"> </span>build<span class="w"> </span>fastsurfer-gpu.sif<span class="w"> </span>docker://deepmi/fastsurfer:latest
 
-<span class="c1"># 2. Download an example brain MRI (if you don&#39;t have your own)</span>
+<span class="c1"># 2. Download an example brain MRI (if you don't have your own)</span>
 <span class="c1">#    If you have your own, copy it to this directory and adjust</span>
 <span class="c1">#    the filename after --t1 below.</span>
-curl<span class="w"> </span>-k<span class="w"> </span>https://surfer.nmr.mgh.harvard.edu/pub/data/tutorial_data/buckner_data/tutorial_subjs/140/mri/orig.mgz<span class="w"> </span>-o<span class="w"> </span><span class="s2">&quot;./140_orig.mgz&quot;</span>
+curl<span class="w"> </span>-k<span class="w"> </span>https://surfer.nmr.mgh.harvard.edu/pub/data/tutorial_data/buckner_data/tutorial_subjs/140/mri/orig.mgz<span class="w"> </span>-o<span class="w"> </span><span class="s2">"./140_orig.mgz"</span>
 
 <span class="c1"># 3. Run FastSurfer (full brain segmentation only)</span>
 singularity<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>--nv<span class="w"> </span><span class="se">\</span>
 <span class="w">                 </span>--no-mount<span class="w"> </span>home,cwd<span class="w"> </span>-e<span class="w"> </span><span class="se">\</span>
-<span class="w">                 </span>-B<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$PWD</span><span class="s2">&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">                 </span>-B<span class="w"> </span><span class="s2">"</span><span class="nv">$PWD</span><span class="s2">"</span><span class="w"> </span><span class="se">\</span>
 <span class="w">                 </span>./fastsurfer-gpu.sif<span class="w"> </span><span class="se">\</span>
 <span class="w">                 </span>/fastsurfer/run_fastsurfer.sh<span class="w"> </span><span class="se">\</span>
-<span class="w">                 </span>--t1<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$PWD</span><span class="s2">/140_orig.mgz&quot;</span><span class="w"> </span><span class="se">\</span>
-<span class="w">                 </span>--sid<span class="w"> </span>test-case<span class="w"> </span>--sd<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$PWD</span><span class="s2">&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">                 </span>--t1<span class="w"> </span><span class="s2">"</span><span class="nv">$PWD</span><span class="s2">/140_orig.mgz"</span><span class="w"> </span><span class="se">\</span>
+<span class="w">                 </span>--sid<span class="w"> </span>test-case<span class="w"> </span>--sd<span class="w"> </span><span class="s2">"</span><span class="nv">$PWD</span><span class="s2">"</span><span class="w"> </span><span class="se">\</span>
 <span class="w">                 </span>--seg_only<span class="w"> </span>--no_biasfield<span class="w"> </span>--no_cereb<span class="w"> </span>--no_hypothal
 </pre></div>
 </div>
@@ -495,17 +495,17 @@ Also if you need the estimated total intracranial volume for correcting the stat
 mkdir<span class="w"> </span>fastsurfer-test
 <span class="nb">cd</span><span class="w"> </span>fastsurfer-test
 
-<span class="c1"># 1. Download an example brain MRI (if you don&#39;t have your own)</span>
+<span class="c1"># 1. Download an example brain MRI (if you don't have your own)</span>
 <span class="c1">#    If you have your own, copy it to this directory and adjust</span>
 <span class="c1">#    the filename after --t1 below.</span>
-curl<span class="w"> </span>-k<span class="w"> </span>https://surfer.nmr.mgh.harvard.edu/pub/data/tutorial_data/buckner_data/tutorial_subjs/140/mri/orig.mgz<span class="w"> </span>-o<span class="w"> </span><span class="s2">&quot;./140_orig.mgz&quot;</span>
+curl<span class="w"> </span>-k<span class="w"> </span>https://surfer.nmr.mgh.harvard.edu/pub/data/tutorial_data/buckner_data/tutorial_subjs/140/mri/orig.mgz<span class="w"> </span>-o<span class="w"> </span><span class="s2">"./140_orig.mgz"</span>
 
 <span class="c1"># 2. Run FastSurfer (full brain segmentation only)</span>
-docker<span class="w"> </span>run<span class="w"> </span>--gpus<span class="w"> </span>all<span class="w"> </span>-v<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$PWD</span><span class="s2">:</span><span class="nv">$PWD</span><span class="s2">&quot;</span><span class="w"> </span><span class="se">\</span>
+docker<span class="w"> </span>run<span class="w"> </span>--gpus<span class="w"> </span>all<span class="w"> </span>-v<span class="w"> </span><span class="s2">"</span><span class="nv">$PWD</span><span class="s2">:</span><span class="nv">$PWD</span><span class="s2">"</span><span class="w"> </span><span class="se">\</span>
 <span class="w">                      </span>--rm<span class="w"> </span>--user<span class="w"> </span><span class="k">$(</span>id<span class="w"> </span>-u<span class="k">)</span>:<span class="k">$(</span>id<span class="w"> </span>-g<span class="k">)</span><span class="w"> </span><span class="se">\</span>
 <span class="w">                      </span>deepmi/fastsurfer:latest<span class="w"> </span><span class="se">\</span>
-<span class="w">                      </span>--t1<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$PWD</span><span class="s2">/140_orig.mgz&quot;</span><span class="w"> </span><span class="se">\</span>
-<span class="w">                      </span>--sid<span class="w"> </span>test-case<span class="w"> </span>--sd<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$PWD</span><span class="s2">&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">                      </span>--t1<span class="w"> </span><span class="s2">"</span><span class="nv">$PWD</span><span class="s2">/140_orig.mgz"</span><span class="w"> </span><span class="se">\</span>
+<span class="w">                      </span>--sid<span class="w"> </span>test-case<span class="w"> </span>--sd<span class="w"> </span><span class="s2">"</span><span class="nv">$PWD</span><span class="s2">"</span><span class="w"> </span><span class="se">\</span>
 <span class="w">                      </span>--seg_only<span class="w"> </span>--no_biasfield<span class="w"> </span>--no_cereb<span class="w"> </span>--no_hypothal
 </pre></div>
 </div>
@@ -513,10 +513,10 @@ docker<span class="w"> </span>run<span class="w"> </span>--gpus<span class="w"> 
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Convert mgz to nifti</span>
 singularity<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>--nv<span class="w"> </span><span class="se">\</span>
 <span class="w">                 </span>--no-mount<span class="w"> </span>home<span class="w"> </span>-e<span class="w"> </span><span class="se">\</span>
-<span class="w">                 </span>-B<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$PWD</span><span class="s2">&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">                 </span>-B<span class="w"> </span><span class="s2">"</span><span class="nv">$PWD</span><span class="s2">"</span><span class="w"> </span><span class="se">\</span>
 <span class="w">                 </span>./fastsurfer-gpu.sif<span class="w"> </span><span class="se">\</span>
-<span class="w">                 </span>nib-convert<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$PWD</span><span class="s2">/test-case/mri/aparc.DKTatlas+aseg.deep.mgz&quot;</span><span class="w"> </span><span class="se">\</span>
-<span class="w">                             </span><span class="s2">&quot;</span><span class="nv">$PWD</span><span class="s2">/test-case/mri/aparc.DKTatlas+aseg.deep.nii.gz&quot;</span>
+<span class="w">                 </span>nib-convert<span class="w"> </span><span class="s2">"</span><span class="nv">$PWD</span><span class="s2">/test-case/mri/aparc.DKTatlas+aseg.deep.mgz"</span><span class="w"> </span><span class="se">\</span>
+<span class="w">                             </span><span class="s2">"</span><span class="nv">$PWD</span><span class="s2">/test-case/mri/aparc.DKTatlas+aseg.deep.nii.gz"</span>
 </pre></div>
 </div>
 <p>and find the segmentation in <code class="docutils literal notranslate"><span class="pre">./test-case/mri/aparc.DKTatlas+aseg.deep.nii.gz</span></code>. If you have FreeSurfer installed, just use FreeView to look at the result (or really any other image viewer):</p>

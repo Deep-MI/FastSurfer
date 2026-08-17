@@ -470,7 +470,7 @@ OR
 brun_fastsurfer.sh [other options]
 
 Other options:
-brun_fastsurfer.sh [...] [--batch &quot;&lt;i&gt;/&lt;n&gt;&quot;] [--parallel &lt;N&gt;|max] [--parallel_seg &lt;N&gt;|max] [--parallel_surf &lt;N&gt;|max]
+brun_fastsurfer.sh [...] [--batch "&lt;i&gt;/&lt;n&gt;"] [--parallel &lt;N&gt;|max] [--parallel_seg &lt;N&gt;|max] [--parallel_surf &lt;N&gt;|max]
     [--run_fastsurfer &lt;script to run fastsurfer&gt;] [--statusfile &lt;filename&gt;] [--debug] [--help]
     [&lt;additional run_fastsurfer.sh options&gt;]
 
@@ -489,14 +489,14 @@ i. a list passed through stdin of the format (one subject per line)
 ii. a subject_list file using the same format (use Ctrl-D to end the input), or
 iii. a list of subjects directly passed (this does not support subject-specific parameters)
 
---batch &quot;&lt;i&gt;/&lt;n&gt;&quot;: run the i-th of n batches (starting at 1) of the full list of subjects
-  (default: 1/1, == run all). &quot;slurm_task_id&quot; is a valid option for &quot;&lt;i&gt;&quot;.
+--batch "&lt;i&gt;/&lt;n&gt;": run the i-th of n batches (starting at 1) of the full list of subjects
+  (default: 1/1, == run all). "slurm_task_id" is a valid option for "&lt;i&gt;".
   Note, brun_fastsurfer.sh will also automatically detect being run in a SLURM JOBARRAY and split
   according to $SLURM_ARRAY_TASK_ID and $SLURM_ARRAY_TASK_COUNT (unless values are specifically
   assigned with the --batch argument).
 --parallel &lt;n&gt;|max: parallel execution of run_fastsurfer for &lt;n&gt; images. Creates &lt;n&gt; processes with
   each process performing segmentation and surface reconstruction. The default is this serial execution
-  mode with n=1: &#39;--parallel 1&#39;.
+  mode with n=1: '--parallel 1'.
 --parallel_seg &lt;n&gt;|max and
 --parallel_surf &lt;m&gt;|max: activate independent segmentation and surface reconstruction pipelines.
   Segmentation and Surface reconstruction have independent processing queues. After successful
@@ -505,19 +505,19 @@ iii. a list of subjects directly passed (this does not support subject-specific 
   subjects is interleaved with subject_id prepended.
 --run_fastsurfer &lt;path/command&gt;: This option enables the startup of fastsurfer in a more controlled
   manner, for example to delegate the fastsurfer run to container:
-  --run_fastsurfer &quot;singularity exec --nv --no-mount home,cwd -e -B &lt;dir&gt;:/data /fastsurfer/run_fastsurfer.sh&quot;
+  --run_fastsurfer "singularity exec --nv --no-mount home,cwd -e -B &lt;dir&gt;:/data /fastsurfer/run_fastsurfer.sh"
   Note, paths to files and --sd have to be defined in the container file system in this case.
 --statusfile &lt;filename&gt;: a file to document which subject ran successfully. Also used to skip
   surface recon, if the previous segmentation failed.
 --threads &lt;n&gt;,
 --threads_seg &lt;n&gt;, and
---threads_surf &lt;n&gt;: specify number of threads for each parallel &quot;process&quot;, i.e.
+--threads_surf &lt;n&gt;: specify number of threads for each parallel "process", i.e.
   total_threads=num_seg_processes * num_seg_threads + num_surf_processes * num_surf_threads.
 --debug: Additional debug output.
 --help: print this help.
 
 With the exception of --t1 and --sid, all run_fastsurfer.sh options are supported, see
-&#39;run_fastsurfer.sh --help&#39;.
+'run_fastsurfer.sh --help'.
 
 This tool requires functions in stools.sh (expected in same folder as this script).
 </pre></div>

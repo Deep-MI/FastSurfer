@@ -494,7 +494,7 @@ FLAGS:
   --t1  &lt;T1_input&gt;        T1 full head input (not bias corrected). This must be
                             a conformed image (dimensions: 256x256x256, voxel
                             size: 1x1x1, LIA orientation, and data type UCHAR).
-                            Images can be conformed using FastSurferCNN&#39;s
+                            Images can be conformed using FastSurferCNN's
                             conform.py script (usage example: python3
                             FastSurferCNN/data_loader/conform.py -i &lt;T1_input&gt;
                             -o &lt;conformed_T1_output&gt;). Requires an ABSOLUTE Path!
@@ -502,7 +502,7 @@ FLAGS:
                           Name of intermediate DL-based segmentation file
                             (similar to aparc+aseg). This must be conformed
                             (voxel size: isotropic, LIA orientation, and, if voxel
-                            size 1mm, dimensions: 256x256x256). FastSurferCNN&#39;s
+                            size 1mm, dimensions: 256x256x256). FastSurferCNN's
                             segmentations are conformed by default; please ensure
                             that segmentations produced otherwise are conformed.
                             Requires an ABSOLUTE Path! Default location:
@@ -521,9 +521,9 @@ FLAGS:
                             Skipped by default (--&gt; DL prediction is used which
                             is faster, and usually these mapped ones are fine).
                             Note, if you switch this on it will create all cortical
-                            parcellations with FreeSurfer&#39;s spherical atlases and
+                            parcellations with FreeSurfer's spherical atlases and
                             also map these into the aparc+aseg file instead of
-                            the FastSurfer ones. FastSurfer&#39;s cortical DKT atlas
+                            the FastSurfer ones. FastSurfer's cortical DKT atlas
                             results can still be found in:
                             &lt;hemi&gt;.aparc.DKTatlas.mapped.stats
   --3T                    Use the 3T atlas for talairach registration (gives better
@@ -551,7 +551,7 @@ Dev Flags:
   --no_surfreg            Do not run Surface registration with FreeSurfer (for
                             cross-subject correspondence). Not recommended, but
                             speeds up processing if you just need the stats and
-                            don&#39;t want to do thickness analysis on the cortex.
+                            don't want to do thickness analysis on the cortex.
 
 REFERENCES:
 

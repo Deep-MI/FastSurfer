@@ -498,13 +498,13 @@ with FastSurfer’s environment-setup wrapper and explicitly invoke <code class=
 <span class="nv">SID</span><span class="o">=</span>sub001
 
 docker<span class="w"> </span>run<span class="w"> </span>--gpus<span class="w"> </span>all<span class="w"> </span>--rm<span class="w"> </span><span class="se">\</span>
-<span class="w">    </span>--user<span class="w"> </span><span class="s2">&quot;</span><span class="k">$(</span>id<span class="w"> </span>-u<span class="k">)</span><span class="s2">:</span><span class="k">$(</span>id<span class="w"> </span>-g<span class="k">)</span><span class="s2">&quot;</span><span class="w"> </span><span class="se">\</span>
-<span class="w">    </span>--volume<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$SUBJECTS_DIR</span><span class="s2">:/output&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--user<span class="w"> </span><span class="s2">"</span><span class="k">$(</span>id<span class="w"> </span>-u<span class="k">)</span><span class="s2">:</span><span class="k">$(</span>id<span class="w"> </span>-g<span class="k">)</span><span class="s2">"</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--volume<span class="w"> </span><span class="s2">"</span><span class="nv">$SUBJECTS_DIR</span><span class="s2">:/output"</span><span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--entrypoint<span class="w"> </span>/fastsurfer/tools/Docker/entrypoint.sh<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>deepmi/fastsurfer:latest<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>python3<span class="w"> </span>/fastsurfer/CorpusCallosum/fastsurfer_cc.py<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--sd<span class="w"> </span>/output<span class="w"> </span><span class="se">\</span>
-<span class="w">    </span>--sid<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$SID</span><span class="s2">&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--sid<span class="w"> </span><span class="s2">"</span><span class="nv">$SID</span><span class="s2">"</span><span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--upright_volume<span class="w"> </span>mri/upright_volume.mgz<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--qc_image<span class="w"> </span>qc_snapshots/callosum.png<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--thickness_image<span class="w"> </span>qc_snapshots/callosum.thickness.png
@@ -520,11 +520,11 @@ the subject directory and invoke the expert script directly:</p>
 <span class="nv">FASTSURFER_SIF</span><span class="o">=</span>/containers/fastsurfer-gpu.sif
 
 singularity<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>--nv<span class="w"> </span>--no-mount<span class="w"> </span>home,cwd<span class="w"> </span>-e<span class="w"> </span><span class="se">\</span>
-<span class="w">    </span>--bind<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$SUBJECTS_DIR</span><span class="s2">:/output&quot;</span><span class="w"> </span><span class="se">\</span>
-<span class="w">    </span><span class="s2">&quot;</span><span class="nv">$FASTSURFER_SIF</span><span class="s2">&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--bind<span class="w"> </span><span class="s2">"</span><span class="nv">$SUBJECTS_DIR</span><span class="s2">:/output"</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span><span class="s2">"</span><span class="nv">$FASTSURFER_SIF</span><span class="s2">"</span><span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>python3<span class="w"> </span>/fastsurfer/CorpusCallosum/fastsurfer_cc.py<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--sd<span class="w"> </span>/output<span class="w"> </span><span class="se">\</span>
-<span class="w">    </span>--sid<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$SID</span><span class="s2">&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--sid<span class="w"> </span><span class="s2">"</span><span class="nv">$SID</span><span class="s2">"</span><span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--upright_volume<span class="w"> </span>mri/upright_volume.mgz<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--qc_image<span class="w"> </span>qc_snapshots/callosum.png<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--thickness_image<span class="w"> </span>qc_snapshots/callosum.thickness.png
@@ -758,8 +758,8 @@ edit from file geometry alone.</p>
 </div>
 <p>To reprocess a manual CC correction, first copy the automatic upright segmentation:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">SUBJECT_DIR</span><span class="o">=</span>/data/subjects/sub001
-cp<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$SUBJECT_DIR</span><span class="s2">/mri/callosum.CC.upright.mgz&quot;</span><span class="w"> </span><span class="se">\</span>
-<span class="w">   </span><span class="s2">&quot;</span><span class="nv">$SUBJECT_DIR</span><span class="s2">/mri/callosum.CC.upright.manedit.mgz&quot;</span>
+cp<span class="w"> </span><span class="s2">"</span><span class="nv">$SUBJECT_DIR</span><span class="s2">/mri/callosum.CC.upright.mgz"</span><span class="w"> </span><span class="se">\</span>
+<span class="w">   </span><span class="s2">"</span><span class="nv">$SUBJECT_DIR</span><span class="s2">/mri/callosum.CC.upright.manedit.mgz"</span>
 </pre></div>
 </div>
 <p>Edit label 192 in <code class="docutils literal notranslate"><span class="pre">mri/callosum.CC.upright.manedit.mgz</span></code> using <code class="docutils literal notranslate"><span class="pre">mri/upright_volume.mgz</span></code> as the anatomical reference.
@@ -791,13 +791,13 @@ integration is required. The top-level workflow does not currently accept suppli
 <span class="nv">SID</span><span class="o">=</span>sub001
 
 docker<span class="w"> </span>run<span class="w"> </span>--gpus<span class="w"> </span>all<span class="w"> </span>--rm<span class="w"> </span><span class="se">\</span>
-<span class="w">    </span>--user<span class="w"> </span><span class="s2">&quot;</span><span class="k">$(</span>id<span class="w"> </span>-u<span class="k">)</span><span class="s2">:</span><span class="k">$(</span>id<span class="w"> </span>-g<span class="k">)</span><span class="s2">&quot;</span><span class="w"> </span><span class="se">\</span>
-<span class="w">    </span>--volume<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$SUBJECTS_DIR</span><span class="s2">:/output&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--user<span class="w"> </span><span class="s2">"</span><span class="k">$(</span>id<span class="w"> </span>-u<span class="k">)</span><span class="s2">:</span><span class="k">$(</span>id<span class="w"> </span>-g<span class="k">)</span><span class="s2">"</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--volume<span class="w"> </span><span class="s2">"</span><span class="nv">$SUBJECTS_DIR</span><span class="s2">:/output"</span><span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--entrypoint<span class="w"> </span>/fastsurfer/tools/Docker/entrypoint.sh<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>deepmi/fastsurfer:latest<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>python3<span class="w"> </span>/fastsurfer/CorpusCallosum/fastsurfer_cc.py<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--sd<span class="w"> </span>/output<span class="w"> </span><span class="se">\</span>
-<span class="w">    </span>--sid<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$SID</span><span class="s2">&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--sid<span class="w"> </span><span class="s2">"</span><span class="nv">$SID</span><span class="s2">"</span><span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--segmentation_manedit<span class="w"> </span>mri/callosum.CC.upright.manedit.mgz<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--upright_volume<span class="w"> </span>mri/upright_volume.mgz<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--qc_image<span class="w"> </span>qc_snapshots/callosum.png<span class="w"> </span><span class="se">\</span>
@@ -809,14 +809,14 @@ on the host can instead be mounted read-only and passed by its absolute containe
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">MANUAL_EDIT</span><span class="o">=</span>/data/annotations/sub001_cc_manedit.mgz
 
 docker<span class="w"> </span>run<span class="w"> </span>--gpus<span class="w"> </span>all<span class="w"> </span>--rm<span class="w"> </span><span class="se">\</span>
-<span class="w">    </span>--user<span class="w"> </span><span class="s2">&quot;</span><span class="k">$(</span>id<span class="w"> </span>-u<span class="k">)</span><span class="s2">:</span><span class="k">$(</span>id<span class="w"> </span>-g<span class="k">)</span><span class="s2">&quot;</span><span class="w"> </span><span class="se">\</span>
-<span class="w">    </span>--volume<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$SUBJECTS_DIR</span><span class="s2">:/output&quot;</span><span class="w"> </span><span class="se">\</span>
-<span class="w">    </span>--volume<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$MANUAL_EDIT</span><span class="s2">:/manual-edit.mgz:ro&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--user<span class="w"> </span><span class="s2">"</span><span class="k">$(</span>id<span class="w"> </span>-u<span class="k">)</span><span class="s2">:</span><span class="k">$(</span>id<span class="w"> </span>-g<span class="k">)</span><span class="s2">"</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--volume<span class="w"> </span><span class="s2">"</span><span class="nv">$SUBJECTS_DIR</span><span class="s2">:/output"</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--volume<span class="w"> </span><span class="s2">"</span><span class="nv">$MANUAL_EDIT</span><span class="s2">:/manual-edit.mgz:ro"</span><span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--entrypoint<span class="w"> </span>/fastsurfer/tools/Docker/entrypoint.sh<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>deepmi/fastsurfer:latest<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>python3<span class="w"> </span>/fastsurfer/CorpusCallosum/fastsurfer_cc.py<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--sd<span class="w"> </span>/output<span class="w"> </span><span class="se">\</span>
-<span class="w">    </span>--sid<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$SID</span><span class="s2">&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--sid<span class="w"> </span><span class="s2">"</span><span class="nv">$SID</span><span class="s2">"</span><span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--segmentation_manedit<span class="w"> </span>/manual-edit.mgz<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--qc_image<span class="w"> </span>qc_snapshots/callosum.png
 </pre></div>
@@ -827,11 +827,11 @@ docker<span class="w"> </span>run<span class="w"> </span>--gpus<span class="w"> 
 <span class="nv">FASTSURFER_SIF</span><span class="o">=</span>/containers/fastsurfer-gpu.sif
 
 singularity<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>--nv<span class="w"> </span>--no-mount<span class="w"> </span>home,cwd<span class="w"> </span>-e<span class="w"> </span><span class="se">\</span>
-<span class="w">    </span>--bind<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$SUBJECTS_DIR</span><span class="s2">:/output&quot;</span><span class="w"> </span><span class="se">\</span>
-<span class="w">    </span><span class="s2">&quot;</span><span class="nv">$FASTSURFER_SIF</span><span class="s2">&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--bind<span class="w"> </span><span class="s2">"</span><span class="nv">$SUBJECTS_DIR</span><span class="s2">:/output"</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span><span class="s2">"</span><span class="nv">$FASTSURFER_SIF</span><span class="s2">"</span><span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>python3<span class="w"> </span>/fastsurfer/CorpusCallosum/fastsurfer_cc.py<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--sd<span class="w"> </span>/output<span class="w"> </span><span class="se">\</span>
-<span class="w">    </span>--sid<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$SID</span><span class="s2">&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--sid<span class="w"> </span><span class="s2">"</span><span class="nv">$SID</span><span class="s2">"</span><span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--segmentation_manedit<span class="w"> </span>mri/callosum.CC.upright.manedit.mgz<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--upright_volume<span class="w"> </span>mri/upright_volume.mgz<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--qc_image<span class="w"> </span>qc_snapshots/callosum.png<span class="w"> </span><span class="se">\</span>

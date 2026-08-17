@@ -474,7 +474,7 @@ field names to field values.</p>
     <span class="n">y</span><span class="p">:</span> <span class="nb">int</span>
 
 <span class="n">c</span> <span class="o">=</span> <span class="n">C</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
-<span class="k">assert</span> <span class="n">asdict</span><span class="p">(</span><span class="n">c</span><span class="p">)</span> <span class="o">==</span> <span class="p">{</span><span class="s1">&#39;x&#39;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;y&#39;</span><span class="p">:</span> <span class="mi">2</span><span class="p">}</span>
+<span class="k">assert</span> <span class="n">asdict</span><span class="p">(</span><span class="n">c</span><span class="p">)</span> <span class="o">==</span> <span class="p">{</span><span class="s1">'x'</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">'y'</span><span class="p">:</span> <span class="mi">2</span><span class="p">}</span>
 </pre></div>
 </div>
 <p>If given, ‘dict_factory’ will be used instead of built-in dict.
@@ -599,13 +599,13 @@ dataclass.</p>
 of either (name), (name, type) or (name, type, Field) objects. If type is
 omitted, use the string ‘typing.Any’.  Field objects are created by
 the equivalent of calling ‘field(name, type [, Field-info])’.:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">C</span> <span class="o">=</span> <span class="n">make_dataclass</span><span class="p">(</span><span class="s1">&#39;C&#39;</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;x&#39;</span><span class="p">,</span> <span class="p">(</span><span class="s1">&#39;y&#39;</span><span class="p">,</span> <span class="nb">int</span><span class="p">),</span> <span class="p">(</span><span class="s1">&#39;z&#39;</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="n">field</span><span class="p">(</span><span class="n">init</span><span class="o">=</span><span class="kc">False</span><span class="p">))],</span> <span class="n">bases</span><span class="o">=</span><span class="p">(</span><span class="n">Base</span><span class="p">,))</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">C</span> <span class="o">=</span> <span class="n">make_dataclass</span><span class="p">(</span><span class="s1">'C'</span><span class="p">,</span> <span class="p">[</span><span class="s1">'x'</span><span class="p">,</span> <span class="p">(</span><span class="s1">'y'</span><span class="p">,</span> <span class="nb">int</span><span class="p">),</span> <span class="p">(</span><span class="s1">'z'</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="n">field</span><span class="p">(</span><span class="n">init</span><span class="o">=</span><span class="kc">False</span><span class="p">))],</span> <span class="n">bases</span><span class="o">=</span><span class="p">(</span><span class="n">Base</span><span class="p">,))</span>
 </pre></div>
 </div>
 <p>is equivalent to:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="nd">@dataclass</span>
 <span class="k">class</span><span class="w"> </span><span class="nc">C</span><span class="p">(</span><span class="n">Base</span><span class="p">):</span>
-    <span class="n">x</span><span class="p">:</span> <span class="s1">&#39;typing.Any&#39;</span>
+    <span class="n">x</span><span class="p">:</span> <span class="s1">'typing.Any'</span>
     <span class="n">y</span><span class="p">:</span> <span class="nb">int</span>
     <span class="n">z</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">init</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 </pre></div>
