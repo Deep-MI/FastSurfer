@@ -1581,13 +1581,10 @@ def conformed_vox_img_size(
             _conformed_vox_size = MAX_VOX_SIZE
         target_vox_size = np.full((3,), _conformed_vox_size)
     # this is similar to mri_convert --conform_size <float>
-    elif isinstance(vox_size, float | int):
-        # round to vox_eps precision so header float noise (e.g. 1.0000001) counts as the nominal
-        # voxel size (1.0) instead of being rejected as > 1mm
-        rounded_vox_size = round(float(vox_size), decimals)
-        if not 0.0 < rounded_vox_size <= MAX_VOX_SIZE:
-            raise ValueError(f"Invalid value for vox_size passed: {vox_size}.")
-        target_vox_size = np.full((3,), rounded_vox_size)
+    # round to vox_eps precision so header float noise (e.g. 1.0000001) counts as the nominal voxel
+    # size (1.0) instead of being rejected as > 1mm
+    elif isinstance(vox_size, float | int) and 0.0 < (_vox := round(float(vox_size), decimals)) <= MAX_VOX_SIZE:
+        target_vox_size = np.full((3,), _vox)
     elif vox_size is None:
         target_vox_size = None
     else:
