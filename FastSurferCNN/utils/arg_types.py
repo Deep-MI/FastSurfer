@@ -95,19 +95,25 @@ def vox_size(a: str | float | None) -> VoxSizeOption:
     str or float or None
         If 'auto' or 'min' is provided, it returns a string('auto' or 'min').
         If a valid voxel size (between 0 and 1) is provided, it returns a float.
-        If 'any' or 'keep', it returns None.
+        If 'any', 'keep', 'none' or 'infinity', it returns None.
 
     Raises
     ------
     ValueError
         If the argument is not "min", "auto" or convertible to a float between 0 and 1.
     """
-    if a is None or isinstance(a, str) and a.lower() in ["any", "keep"]:
+    if a is None or isinstance(a, str) and a.lower() in ["any", "keep", "none", "infinity"]:
         return None
     if isinstance(a, str) and a.lower() in ["auto", "min"]:
         return "min"
     try:
-        return float_gt_zero_and_le_one(a)
+        a_float = float(a)
+        # voxel sizes are typically read from a float32 header, so a nominal 1mm image can report
+        # 1.0000001 and would be rejected by the 1mm cap; snap noise below vox_eps (the tolerance
+        # conform compares voxel sizes with) to exactly 1.0, while 1.1 is still rejected
+        if abs(a_float - 1.0) <= 1e-4:
+            a_float = 1.0
+        return float_gt_zero_and_le_one(a_float)
     except ValueError as e:
         raise ValueError(e.args[0] + " Additionally, vox_size may be 'min'.") from None
 
@@ -164,9 +170,7 @@ def float_gt_zero_and_le_one(a: str | float) -> float | None:
     """
     if a is None or isinstance(a, str) and a.lower() in ["none", "infinity"]:
         return None
-    # round to 1e-4 precision (the default vox_eps used in conform) so that float noise in a voxel
-    # size read from a header, such as 1.0000001 from a noisy 1mm image, is accepted as 1.0
-    a_float = round(float(a), 4)
+    a_float = float(a)
     if 0.0 < a_float <= 1.0:
         return a_float
     else:
