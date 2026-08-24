@@ -31,9 +31,11 @@ class CCMeasuresDict(TypedDict):
     Attributes
     ----------
     cc_index : float
-        Corpus callosum shape index.
+        Dimensionless corpus callosum index: the sum of anterior, middle, and
+        posterior widths divided by the anterior-posterior length.
     circularity : float
-        Shape circularity measure.
+        Dimensionless circularity, calculated as 4 pi times area divided by
+        squared perimeter.
     areas : np.ndarray
         Areas of subdivided regions.
     midline_length : float

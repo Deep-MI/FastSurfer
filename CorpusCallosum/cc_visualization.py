@@ -3,6 +3,7 @@ import sys
 from pathlib import Path
 from typing import Literal
 
+import matplotlib.pyplot as plt
 import nibabel as nib
 import numpy as np
 from neuroreg import LTA
@@ -18,10 +19,10 @@ logger = get_logger(__name__)
 def make_parser() -> argparse.ArgumentParser:
     """Create a command line parser for the visualization pipeline."""
     parser = argparse.ArgumentParser(description="Visualize corpus callosum from template files.")
-    parser.add_argument(
+    input_group = parser.add_mutually_exclusive_group(required=True)
+    input_group.add_argument(
         "--template_dir",
         type=str,
-        required=True,
         help=(
             "Path to a template directory containing per-slice files named "
             "thickness_values_<idx>.txt, and optionally contour_<idx>.txt "
@@ -33,6 +34,17 @@ def make_parser() -> argparse.ArgumentParser:
         ),
         metavar="TEMPLATE_DIR",
         default=None,
+    )
+    input_group.add_argument(
+        "--values_file",
+        type=str,
+        default=None,
+        metavar="VALUES_FILE",
+        help=(
+            "One-column CSV containing values ordered anterior to posterior. "
+            "The first row is treated as a header. Uses the bundled fsaverage "
+            "contour and generates a 2D plot; no template directory is required."
+        ),
     )
     parser.add_argument("--output_dir",
                         type=str,
@@ -68,7 +80,7 @@ def make_parser() -> argparse.ArgumentParser:
         type=str,
         default="red_to_yellow",
         choices=["red_to_blue", "blue_to_red", "red_to_yellow", "yellow_to_red"],
-        help="Colormap to use for thickness visualization, lower to higher values.",
+        help="Colormap progression from lower to higher values.",
     )
     parser.add_argument(
         "--color_range",
@@ -83,9 +95,43 @@ def make_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--legend",
         type=str,
-        default="Thickness (mm)",
-        help="Legend for the colorbar.",
+        default=None,
+        help="Override the colorbar label.",
         metavar="LEGEND")
+    parser.add_argument(
+        "--mode",
+        choices=["thickness", "p-value", "icc"],
+        default="thickness",
+        help="Value type for --values_file (default: thickness).",
+    )
+    parser.add_argument(
+        "--log_scale",
+        action="store_true",
+        help="Use logarithmic color normalization for --values_file.",
+    )
+    parser.add_argument(
+        "--upper_threshold",
+        type=float,
+        default=None,
+        metavar="VALUE",
+        help="Color values above this limit with --threshold_color.",
+    )
+    parser.add_argument(
+        "--threshold_color",
+        default="gray",
+        help="Matplotlib color for values above --upper_threshold (default: gray).",
+    )
+    parser.add_argument(
+        "--title",
+        default=None,
+        help="Optional title for a 2D values plot.",
+    )
+    parser.add_argument(
+        "--output_name",
+        default=None,
+        metavar="FILENAME",
+        help="Filename for the 2D PNG within --output_dir.",
+    )
     parser.add_argument(
         "--twoD",
         action="store_true",
@@ -109,6 +155,17 @@ def options_parse() -> argparse.Namespace:
     # Create output directory if it doesn't exist
     Path(args.output_dir).mkdir(parents=True, exist_ok=True)
     return args
+
+
+def load_plot_values(values_file: str | Path) -> np.ndarray:
+    """Load a one-column CSV with one header row."""
+    values = np.loadtxt(values_file, delimiter=",", skiprows=1, dtype=float)
+    values = np.atleast_1d(values)
+    if values.ndim != 1:
+        raise ValueError(f"Values file must contain exactly one column, found shape {values.shape}")
+    if len(values) < 2:
+        raise ValueError("Values file must contain at least two values")
+    return values
 
 
 def load_contours_from_template_dir(
@@ -213,7 +270,7 @@ def _upright_reference_from_template(
 
 
 def main(
-        template_dir: str | Path,
+        template_dir: str | Path | None,
         output_dir: str | Path,
         resolution: float = 1.0,
         smoothing_window: int = 5,
@@ -221,11 +278,45 @@ def main(
         color_range: tuple[float, float] | None = None,
         legend: str | None = None,
         twoD: bool = False,
+        values_file: str | Path | None = None,
+        mode: str = "thickness",
+        log_scale: bool = False,
+        upper_threshold: float | None = None,
+        threshold_color: str = "gray",
+        title: str | None = None,
+        output_name: str | None = None,
 ) -> Literal[0] | str:
     """Visualize corpus callosum templates in 2D or 3D."""
-    template_dir = Path(template_dir)
     output_dir = Path(output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
     color_range = tuple(color_range) if color_range is not None else None
+
+    if values_file is not None:
+        plot_values = load_plot_values(values_file)
+        contour = load_fsaverage_cc_template()
+        if smoothing_window > 0:
+            contour.smooth_contour(window_size=smoothing_window)
+        output_name = output_name or f"cc_{mode.replace('-', '_')}_2d.png"
+        output_path = output_dir / output_name
+        logger.info(f"Writing output to {output_path}")
+        figure = contour.plot_contour_colorfill(
+            plot_values=plot_values,
+            title=title,
+            save_path=str(output_path),
+            colorbar=True,
+            mode=mode,
+            colormap=colormap,
+            log_scale=log_scale,
+            upper_threshold=upper_threshold,
+            threshold_color=threshold_color,
+            colorbar_label=legend,
+        )
+        plt.close(figure)
+        return 0
+
+    if template_dir is None:
+        raise ValueError("template_dir is required when values_file is not provided")
+    template_dir = Path(template_dir)
 
     contours = load_contours_from_template_dir(
         template_dir, resolution=resolution, smoothing_window=smoothing_window,
@@ -313,4 +404,11 @@ if __name__ == "__main__":
         color_range=options.color_range,
         legend=options.legend,
         twoD=options.twoD,
+        values_file=options.values_file,
+        mode=options.mode,
+        log_scale=options.log_scale,
+        upper_threshold=options.upper_threshold,
+        threshold_color=options.threshold_color,
+        title=options.title,
+        output_name=options.output_name,
     ))

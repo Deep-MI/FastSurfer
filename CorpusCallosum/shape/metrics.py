@@ -142,26 +142,28 @@ def get_intersections(
 
 
 def calculate_cc_index(cc_contour: np.ndarray, plot: bool = False) -> float:
-    """Calculate CC index based on three thickness measurements.
+    """Calculate the dimensionless corpus callosum index (CCI).
 
     The AP line intersects the contour 4 times. The measurements are:
     - Anterior thickness: distance between intersection points 1 and 2
     - Posterior thickness: distance between intersection points 3 and 4
     - Middle thickness: perpendicular line through midpoint of AP line
 
-    The CC index is: (anterior + posterior + middle) / AP_length
+    The index is ``(anterior + middle + posterior) / AP_length``, following
+    Figueira et al. (2007), https://doi.org/10.1590/S0004-282X2007000600001.
 
     Parameters
     ----------
     cc_contour : np.ndarray
         Array of shape (2, N) containing contour points in ACPC space.
     plot : bool, optional
-        Whether to generate a debug plot. Default is True.
+        Whether to generate a debug plot. Default is False.
 
     Returns
     -------
     cc_index : float
-        The CC index, which is the sum of thicknesses at three measurement points divided by AP length.
+        Sum of the anterior, middle, and posterior widths divided by the
+        anterior-posterior length.
     """
     # Get anterior and posterior points (extremes along x-axis)
     # In ACPC space, X is Anterior-Posterior direction, where Anterior is positive

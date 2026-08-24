@@ -17,6 +17,7 @@ from FastSurferCNN.utils.parser_defaults import FASTSURFER_ROOT
 ### Constants
 WEIGHTS_PATH = FASTSURFER_ROOT / "checkpoints"
 FSAVERAGE_TARGET_PATH = FASTSURFER_ROOT / "CorpusCallosum" / "data" / "fsaverage_target.json"
+FSAVERAGE_CC_CONTOUR_PATH = FASTSURFER_ROOT / "CorpusCallosum" / "data" / "fsaverage_cc_contour.json"
 FSAVERAGE_REGISTRATION_LABELS = (
     2, 3, 4, 5, 7, 8, 10, 11, 12, 13, 14, 15, 16, 17, 18, 24, 26, 28, 30, 31,
     41, 42, 43, 44, 46, 47, 49, 50, 51, 52, 53, 54, 58, 60, 62, 63, 77, 85,
