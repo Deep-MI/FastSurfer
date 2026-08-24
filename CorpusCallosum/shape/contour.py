@@ -407,6 +407,11 @@ class CCContour:
         save_path: str | None = None,
         colorbar: bool = True,
         mode: str = "p-value",
+        colormap: str | None = None,
+        log_scale: bool = False,
+        upper_threshold: float | None = None,
+        threshold_color: str = "gray",
+        colorbar_label: str | None = None,
     ) -> matplotlib.figure.Figure:
         """Plot a contour with levelset visualization.
 
@@ -425,12 +430,34 @@ class CCContour:
             Whether to show the colorbar.
         mode : {"p-value", "icc", "thickness"}, default="p-value"
             Mode of the plot.
+        colormap : {"red_to_blue", "blue_to_red", "red_to_yellow", "yellow_to_red"}, optional
+            Color progression from lower to higher values. If omitted, use the
+            mode-specific legacy colormap.
+        log_scale : bool, default=False
+            Use logarithmic color normalization. All finite plot values and the
+            upper threshold, when provided, must be positive.
+        upper_threshold : float, optional
+            Draw interpolated values above this limit with ``threshold_color``.
+        threshold_color : str, default="gray"
+            Matplotlib color used for values above ``upper_threshold``.
+        colorbar_label : str, optional
+            Override the mode-specific colorbar label.
         
         Returns
         -------
         matplotlib.figure.Figure
             The created figure object.
         """
+        if mode not in ("p-value", "icc", "thickness"):
+            raise ValueError(f"Invalid mode '{mode}'")
+        finite_values = plot_values[np.isfinite(plot_values)]
+        if finite_values.size == 0:
+            raise ValueError("plot_values must contain at least one finite value")
+        if log_scale and np.any(finite_values <= 0):
+            raise ValueError("Log-scaled plot values must be positive")
+        if log_scale and upper_threshold is not None and upper_threshold <= 0:
+            raise ValueError("A log-scaled upper threshold must be positive")
+
         plot_values = plot_values[::-1] # make sure values are plotted left to right (anterior to posterior)
 
         levelpaths, *_ = self.create_levelpaths(num_points=len(plot_values)-1, inplace=False)
@@ -514,7 +541,20 @@ class CCContour:
         # Apply the mask to only show values inside the contour
         masked_values = np.where(mask, grid_values, np.nan)
 
-        if mode == "p-value":
+        named_colormaps = {
+            "red_to_blue": plt.cm.coolwarm_r,
+            "blue_to_red": plt.cm.coolwarm,
+            "red_to_yellow": plt.cm.YlOrRd_r,
+            "yellow_to_red": plt.cm.YlOrRd,
+        }
+        if colormap is not None:
+            try:
+                cmap = named_colormaps[colormap]
+            except KeyError as err:
+                raise ValueError(
+                    f"Invalid colormap '{colormap}', expected one of {tuple(named_colormaps)}"
+                ) from err
+        elif mode == "p-value":
             # Sample colormaps
             colors1 = plt.cm.binary([0.4] * 128)
             colors2 = plt.cm.hot(np.linspace(0.8, 0.1, 128))
@@ -524,14 +564,26 @@ class CCContour:
         elif mode == "thickness":
             # Blue to red colormap for thickness values
             cmap = plt.cm.coolwarm
-        else:
-            raise ValueError(f"Invalid mode '{mode}'")
 
         # Combine the color samples for p-value and icc modes
-        if mode != "thickness":
+        if colormap is None and mode != "thickness":
             colors = np.vstack((colors2, colors1))
             # Create a new colormap
             cmap = matplotlib.colors.LinearSegmentedColormap.from_list("my_colormap", colors)
+
+        if upper_threshold is not None:
+            cmap = cmap.with_extremes(over=threshold_color)
+
+        default_vmin = 0 if mode != "thickness" else np.nanmin(plot_values)
+        default_vmax = 0.10 if mode == "p-value" else (1 if mode == "icc" else np.nanmax(plot_values))
+        plot_vmax = upper_threshold if upper_threshold is not None else default_vmax
+        if log_scale:
+            plot_vmin = float(np.nanmin(finite_values))
+            if plot_vmin >= plot_vmax:
+                raise ValueError(f"Log color range must increase, got {plot_vmin} to {plot_vmax}")
+            norm = matplotlib.colors.LogNorm(vmin=plot_vmin, vmax=plot_vmax)
+        else:
+            norm = matplotlib.colors.Normalize(vmin=default_vmin, vmax=plot_vmax)
 
         # Plot CC contour with levelsets
         fig = plt.figure(figsize=(10, 3))
@@ -540,49 +592,44 @@ class CCContour:
         transform = matplotlib.transforms.Affine2D().rotate_deg(10)
         transform = transform + base
 
-        # Plot the filled contour with interpolated colors
-        plt.imshow(
+        # Plot the filled contour with interpolated colors.
+        image = plt.imshow(
             masked_values,
             extent=(x_min - margin, x_max + margin, y_min - margin, y_max + margin),
             origin="lower",
             cmap=cmap,
             alpha=1,
             interpolation="bilinear",
-            vmin=0 if mode != "thickness" else np.nanmin(plot_values),
-            vmax=0.10 if mode == "p-value" else (1 if mode == "icc" else np.nanmax(plot_values)),
-            transform=transform,
-        )
-
-        plt.imshow(
-            masked_values,
-            extent=(x_min - margin, x_max + margin, y_min - margin, y_max + margin),
-            origin="lower",
-            cmap=cmap,
-            alpha=1,
-            interpolation="bilinear",
-            vmin=0 if mode != "thickness" else np.nanmin(plot_values),
-            vmax=0.10 if mode == "p-value" else (1 if mode == "icc" else np.nanmax(plot_values)),
-            # norm=LogNorm(vmin=1e-3, vmax=0.1),  # Set minimum to avoid log(0)
+            norm=norm,
             transform=transform,
         )
 
         if colorbar:
             # Add a colorbar
-            cbar = plt.colorbar(aspect=15)
+            cbar = plt.colorbar(image, aspect=15, extend="max" if upper_threshold is not None else "neither")
             if mode == "p-value":
-                cbar.ax.set_ylim(0.001, 0.054)
-                cbar.ax.set_yticks([0.0, 0.01, 0.02, 0.03, 0.04, 0.05])
-                cbar.set_label("p-value (log scale)")
+                if log_scale:
+                    pvalue_ticks = [plot_vmin, 0.005, 0.01, plot_vmax]
+                    pvalue_ticks = sorted({tick for tick in pvalue_ticks if plot_vmin <= tick <= plot_vmax})
+                    cbar.set_ticks(pvalue_ticks)
+                    cbar.set_ticklabels([f"{tick:g}" for tick in pvalue_ticks])
+                    cbar.ax.yaxis.set_minor_formatter(matplotlib.ticker.NullFormatter())
+                elif colormap is None:
+                    cbar.ax.set_ylim(0.001, 0.054)
+                    cbar.ax.set_yticks([0.0, 0.01, 0.02, 0.03, 0.04, 0.05])
+                else:
+                    cbar.ax.set_ylim(default_vmin, plot_vmax)
+                cbar.set_label(colorbar_label or ("p-value (log scale)" if log_scale else "p-value"))
             elif mode == "icc":
                 cbar.ax.set_ylim(0, 1)
                 cbar.ax.set_yticks([0, 0.25, 0.5, 0.75, 1])
-                cbar.ax.set_label("Intraclass correlation coefficient")
+                cbar.set_label(colorbar_label or "Intraclass correlation coefficient")
             elif mode == "thickness":
                 # Set limits based on actual thickness values
                 thickness_min = np.nanmin(plot_values)
                 thickness_max = np.nanmax(plot_values)
                 cbar.ax.set_ylim(thickness_min, thickness_max)
-                cbar.set_label("Thickness (mm)")
+                cbar.set_label(colorbar_label or "Thickness (mm)")
 
         # Plot the outside contour on top for clear boundary
         plt.plot(outside_contour[0], outside_contour[1], "k-", linewidth=2, label="CC Contour", transform=transform)

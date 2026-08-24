@@ -6,6 +6,7 @@ Also segments the fornix, localizes the anterior and posterior commissure (AC an
 The documentation is split into three files, please refer to:
 - [Module Overview](../doc/overview/modules/CC.md): Description of the pipeline, and the corpus callosum measures produced.
 - [Advanced options](../doc/scripts/fastsurfer_cc.rst): Quality control, custom subdivision and visualization options.
+- [CC visualization](../doc/scripts/cc_visualization.rst): 2D/3D templates and standalone fsaverage value maps.
 - [Output Files](../doc/overview/OUTPUT_FILES.md#corpus-callosum-module): List of output files and their descriptions.
 
 Quickstart
