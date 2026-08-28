@@ -85,7 +85,8 @@ doc = [
     'sphinx>=7.3,<8',
     'sphinxcontrib-bibtex',
     'sphinxcontrib-programoutput',
-    'sphinx-argparse!=0.6.0', # does not work for -j parallel builds
+    # 0.6.0 breaks parallel builds; 0.6.1 emits warnings for unrelated MyST links.
+    'sphinx-argparse<0.6',
     'sphinx-copybutton',
     'sphinx-design',
     'sphinx-gallery',
