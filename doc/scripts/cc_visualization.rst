@@ -33,6 +33,12 @@ To visualize a 2D template (using ``--slice_selection middle --save_template_dir
         --output_dir /data/visualizations/sub001 \
         --twoD
 
+The template's ``thickness_values_<slice>.txt`` is a per-contour-vertex file,
+not a one-value-per-level-path profile. Each thickness measurement occurs at
+both ends of its level path, so the non-empty measurements follow the contour
+as anterior-to-posterior and then posterior-to-anterior. Do not copy a JSON
+``thickness_profile`` directly into this template file.
+
 To visualize a one-column CSV of p-values on the bundled fsaverage contour,
 where the first row is a header and the remaining rows contain positive values
 ordered from anterior to posterior:
@@ -48,6 +54,19 @@ ordered from anterior to posterior:
         --upper_threshold 0.05 \
         --threshold_color gray \
         --twoD
+
+The ``--values_file`` format is also the supported way to visualize a
+``thickness_profile`` copied from the FastSurfer JSON output: write its values
+once, in their existing anterior-to-posterior order, beneath a single header
+such as ``thickness`` and select ``--mode thickness``.
+
+For the default midslice metrics file, ``jq`` can create this input without
+changing the order:
+
+.. code-block:: bash
+
+    jq -r '"thickness", .thickness_profile[]' \
+        stats/callosum.CC.midslice.json > thickness_profile.csv
 
 The same command can be run from a FastSurfer container without installing
 FastSurfer or FreeSurfer on the host. From the directory containing
@@ -72,13 +91,12 @@ FastSurfer or FreeSurfer on the host. From the directory containing
         --upper_threshold 0.05 \
         --threshold_color gray \
         --legend "p-value (log scale)" \
-        --title "Smooth dummy p-values on fsaverage corpus callosum" \
+        --title "Example p-value visualization" \
         --output_name p_values_fsaverage_2d.png \
         --smoothing_window 0 \
         --twoD
 
-This CPU-only visualization does not require ``--gpus all``. The output is
-written to ``visualizations/p_values_fsaverage_2d.png``. On macOS, the
+The output is written to ``visualizations/p_values_fsaverage_2d.png``. On macOS, the
 ``--user`` option can be omitted if Docker Desktop reports a user-mapping
 problem.
 

@@ -264,6 +264,44 @@ class CCContour:
                 )
             self.thickness_values = thickness_values
 
+    def get_thickness_profile(self) -> np.ndarray:
+        """Return one thickness value per level path, ordered anterior to posterior.
+
+        Saved template thickness values are attached to vertices of the closed
+        contour.  Every level path therefore contributes the same measurement
+        at both contour intersections.  Because the two contour sides are
+        traversed in opposite directions, measurement vertices contain an
+        anterior-to-posterior sequence followed by its reverse.
+
+        Returns
+        -------
+        np.ndarray
+            One-dimensional anterior-to-posterior thickness profile.
+
+        Raises
+        ------
+        ValueError
+            If measurement vertices are unavailable, their number is odd, or
+            the measurements on the two contour sides do not agree.
+        """
+        if self.thickness_values is None or self.original_thickness_vertices is None:
+            raise ValueError("Contour does not contain original thickness measurement vertices")
+
+        measurement_values = np.asarray(self.thickness_values)[self.original_thickness_vertices]
+        if len(measurement_values) % 2:
+            raise ValueError(
+                "A thickness profile requires two contour measurements per level path, "
+                f"but found {len(measurement_values)} measurement vertices"
+            )
+
+        first_side, second_side = np.split(measurement_values, 2)
+        if not np.allclose(first_side, second_side[::-1], equal_nan=False):
+            raise ValueError(
+                "Thickness measurements on opposite contour sides do not describe the same "
+                "anterior-to-posterior profile"
+            )
+        return first_side.copy()
+
     def fill_thickness_values(self) -> None:
         """Interpolate missing thickness values using weighted averaging.
 
@@ -448,6 +486,10 @@ class CCContour:
         matplotlib.figure.Figure
             The created figure object.
         """
+        plot_values = np.asarray(plot_values, dtype=float)
+        if plot_values.ndim != 1:
+            raise ValueError(f"plot_values must be one-dimensional, found shape {plot_values.shape}")
+
         if mode not in ("p-value", "icc", "thickness"):
             raise ValueError(f"Invalid mode '{mode}'")
         finite_values = plot_values[np.isfinite(plot_values)]
@@ -458,9 +500,13 @@ class CCContour:
         if log_scale and upper_threshold is not None and upper_threshold <= 0:
             raise ValueError("A log-scaled upper threshold must be positive")
 
-        plot_values = plot_values[::-1] # make sure values are plotted left to right (anterior to posterior)
-
-        levelpaths, *_ = self.create_levelpaths(num_points=len(plot_values)-1, inplace=False)
+        # cc_thickness returns level paths in canonical anterior-to-posterior
+        # order, matching thickness_profile in the JSON output and --values_file.
+        levelpaths, *_ = self.create_levelpaths(num_points=len(plot_values), inplace=False)
+        if len(levelpaths) != len(plot_values):
+            raise RuntimeError(
+                f"Requested {len(plot_values)} level paths, but thickness estimation returned {len(levelpaths)}"
+            )
 
         outside_contour = self.points.T
 
@@ -486,7 +532,7 @@ class CCContour:
         all_level_points_y = []
         all_level_values = []
 
-        for i, path in enumerate(levelpaths):
+        for path, plot_value in zip(levelpaths, plot_values, strict=True):
 
             # add third dimension to path
             path = np.column_stack([path, np.zeros(len(path))])
@@ -494,7 +540,7 @@ class CCContour:
             if len(path) == 1:
                 all_level_points_x.append(path[0][0])
                 all_level_points_y.append(path[0][1])
-                all_level_values.append(plot_values[i])
+                all_level_values.append(plot_value)
                 continue
 
             # make levelpath
@@ -507,13 +553,13 @@ class CCContour:
             extension_start = path[0] - first_segment
             all_level_points_x.append(extension_start[0])
             all_level_points_y.append(extension_start[1])
-            all_level_values.append(plot_values[i])
+            all_level_values.append(plot_value)
 
             # Add original path points
             for point in path:
                 all_level_points_x.append(point[0])
                 all_level_points_y.append(point[1])
-                all_level_values.append(plot_values[i])
+                all_level_values.append(plot_value)
 
             # Extend at the end: add point in direction of last segment
             last_segment = path[-1] - path[-2]
@@ -522,7 +568,7 @@ class CCContour:
             extension_end = path[-1] + last_segment
             all_level_points_x.append(extension_end[0])
             all_level_points_y.append(extension_end[1])
-            all_level_values.append(plot_values[i])
+            all_level_values.append(plot_value)
 
         # Convert to numpy arrays
         all_level_points_x = np.array(all_level_points_x)

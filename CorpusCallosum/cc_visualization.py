@@ -330,9 +330,7 @@ def main(
     logger.info(f"Writing output to {output_dir / 'cc_thickness_2d.png'}")
 
     if mode == "thickness":
-        raw_thickness_values = mid_contour.thickness_values[~np.isnan(mid_contour.thickness_values)]
-        # values are duplicated because they have two measurement points per levelpath
-        raw_thickness_values = raw_thickness_values[len(raw_thickness_values) // 2:]
+        raw_thickness_values = mid_contour.get_thickness_profile()
     mid_contour.plot_contour_colorfill(
         plot_values=raw_thickness_values,
         title=None,
