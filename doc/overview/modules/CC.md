@@ -36,66 +36,11 @@ This file contains measurements from the middle sagittal slice and includes:
 #### **Shape Measurements (single values):**
 - `total_area`: Total corpus callosum area (mm²)
 - `total_perimeter`: Total perimeter length (mm)
-- `circularity`: Dimensionless shape circularity, defined below
-- `cc_index`: Dimensionless corpus callosum index (CCI), defined below
+- `circularity`: Dimensionless shape compactness, calculated as `4\pi A/P^2` (1 for a circle and lower for less circular shapes); see [Ardekani et al. (2014)](https://doi.org/10.1007/s00429-013-0503-0) and [Van Schependom et al. (2018)](https://doi.org/10.1016/j.nicl.2018.05.018)
+- `cc_index`: Dimensionless corpus callosum index (CCI), calculated as the sum of the anterior, middle, and posterior widths divided by the anterior--posterior length; see [Figueira et al. (2007)](https://doi.org/10.1590/S0004-282X2007000600001)
 - `midline_length`: Length along the corpus callosum midline (mm)
 - `curvature`: Average curve of the midline (degrees), measured by angle between its sub-segments
 - `curvature_body`: Average curve of the center 65% of the midline (degrees), measured by angle between its sub-segments
-
-##### Corpus callosum index (`cc_index`)
-
-FastSurfer-CC automates the corpus callosum index introduced as a practical
-linear marker of callosal atrophy by
-[Figueira et al. (2007)](https://doi.org/10.1590/S0004-282X2007000600001).
-After aligning the sagittal CC contour to the AC--PC coordinate system, it
-calculates
-
-```{math}
-\mathrm{CCI} = \frac{T_A + T_M + T_P}{L_{AP}},
-```
-
-where:
-
-- {math}`L_{AP}` is the distance between the outermost anterior and posterior
-  intersections of the longest anterior--posterior axis with the contour;
-- {math}`T_A` and {math}`T_P` are the anterior and posterior callosal widths measured
-  between the paired intersections on that axis; and
-- {math}`T_M` is the width between the contour intersections of the perpendicular
-  line through the midpoint of the anterior--posterior axis.
-
-The CCI is dimensionless and approximately scale-independent. A larger value
-means that the combined anterior, middle, and posterior widths are larger
-relative to the anterior--posterior length. It is an aggregate shape measure,
-not a direct estimate of callosal area or volume. FastSurfer's contour-based,
-automated construction follows the geometry of the original manual measure;
-values should therefore only be compared across data processed with consistent
-orientation, segmentation, and contour settings.
-
-The construction expects exactly four contour intersections with the
-anterior--posterior axis. If that geometry cannot be established, FastSurfer
-logs an error and reports `cc_index` as 0; this is a failure sentinel rather
-than a biologically meaningful zero.
-
-##### Circularity (`circularity`)
-
-FastSurfer-CC calculates circularity from the total sagittal area {math}`A` and
-contour perimeter {math}`P`:
-
-```{math}
-\mathrm{circularity} = \frac{4\pi A}{P^2}.
-```
-
-This dimensionless, scale-independent measure equals 1 for a perfect circle
-and approaches 0 as a shape becomes increasingly elongated or irregular.
-Because it combines area and perimeter, a lower value may reflect reduced area,
-increased boundary length, or both; it does not localize the underlying shape
-change. Perimeter is also sensitive to segmentation irregularity and contour
-smoothing, so those settings should remain consistent in group or longitudinal
-analyses.
-
-Callosal circularity has been investigated as a shape marker in Alzheimer's
-disease by [Ardekani et al. (2014)](https://doi.org/10.1007/s00429-013-0503-0)
-and [Van Schependom et al. (2018)](https://doi.org/10.1016/j.nicl.2018.05.018).
 
 #### **Subdivisions**
 - `areas`: Areas of CC using an improved Hofer-Frahm sub-division method (mm²). This gives more consistent sub-segments while preserving the original ratios.
@@ -103,7 +48,7 @@ and [Van Schependom et al. (2018)](https://doi.org/10.1016/j.nicl.2018.05.018).
 
 #### **Thickness Analysis:**
 - `thickness`: Average corpus callosum thickness (mm)
-- `thickness_profile`: Thickness profile (mm) of the corpus callosum slice (100 thickness values by default, listed from anterior to posterior CC ends)
+- `thickness_profile`: One thickness value per level path (mm; 100 values by default), listed from the anterior to the posterior CC end.
 
 #### **Volume Measurements:**
 - `cc_num_voxel`: Segmentation-based (masks) CC voxel count within a 5mm slab around the midsagittal plane (partial voxels at the edges are weighted to achieve exactly 5mm width). Multiply by `voxel_volume` to get the volume in mm³.
