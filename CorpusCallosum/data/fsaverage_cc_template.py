@@ -39,7 +39,7 @@ def load_fsaverage_cc_template() -> CCContour:
     anterior_endpoint_idx, posterior_endpoint_idx = map(int, data["endpoint_idxs"])
     return CCContour(
         points,
-        np.zeros(len(points), dtype=np.float64),
+        None,
         endpoint_idxs=(anterior_endpoint_idx, posterior_endpoint_idx),
         z_position=float(data["z_position"]),
     )
