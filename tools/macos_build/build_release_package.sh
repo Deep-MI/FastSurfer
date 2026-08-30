@@ -91,10 +91,8 @@ sed -e "s|<fastsurfer>|FastSurfer${VERSION}|g" \
     < "$build_dir/FastSurfer.py.template" \
     > "$build_dir/FastSurfer.py"
 
-MPS_FALLBACK_VALUE=$([[ "$ARCH_TYPE" = "arm" ]] && echo 1 || echo 0)
 sed -e "s|<fastsurfer>|FastSurfer${VERSION}|g" \
     -e "s|<python_version>|${PYTHON_VERSION}|g" \
-    -e "s|<mps_fallback_value>|${MPS_FALLBACK_VALUE}|g" \
     < "$build_dir/macos_setup_fastsurfer.sh.template" \
     > "$build_dir/macos_setup_fastsurfer.sh"
 
