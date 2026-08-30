@@ -137,8 +137,11 @@ include = ['FastSurferCNN*', 'CerebNet*', 'CorpusCallosum*', 'HypVINN*', 'recon_
 
 [tool.setuptools.package-data]
 # without this, only .py files are installed, and the package cannot find its own configs at
-# runtime (checkpoint_paths.yaml, the network configs, the color lookup tables, ...)
-'*' = ['*.yaml', '*.tsv', '*.txt', '*.json', '*.csv']
+# runtime (checkpoint_paths.yaml, the network configs, the color lookup tables, ...).
+# The shell scripts are needed because Python code reads them, e.g.
+# recon_surf/long_compat_segmentHA.py parses recon-surf.sh for the supported FreeSurfer version
+# while building its argument parser.
+'*' = ['*.yaml', '*.tsv', '*.txt', '*.json', '*.csv', '*.sh']
 
 [tool.pydocstyle]
 convention = 'numpy'
