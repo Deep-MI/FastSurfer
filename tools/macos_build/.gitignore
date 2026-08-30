@@ -10,3 +10,4 @@ scripts_intell/postinstall
 dist/
 resources/
 FastSurferPackageContent/
+.venv-py2app/
