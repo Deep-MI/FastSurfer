@@ -145,7 +145,10 @@ include = ['FastSurferCNN*', 'CerebNet*', 'CorpusCallosum*', 'HypVINN*', 'recon_
 convention = 'numpy'
 ignore-decorators = '(copy_doc|property|.*setter|.*getter|pyqtSlot|Slot)'
 match = '^(?!setup|__init__|test_).*\.py'
-match-dir = '^FastSurferCNN.*,^CerebNet.*,^CorpusCallosum.*,^recon_surf.*,^HypVINN.*'
+# match-dir is a single regex matched against each directory name while walking (not a list): an
+# allow-list of the package roots would also prune their subdirectories (utils, models, config,
+# ...), so exclude the non-package directories instead
+match-dir = '^(?!\.|__pycache__$|build$|checkpoints$|doc$|Documentation$|env$|test$|tools$|Tutorial$).*'
 add_ignore = 'D100,D104,D107'
 
 [tool.ruff]
