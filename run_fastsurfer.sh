@@ -28,6 +28,15 @@ then
   export FASTSURFER_HOME
 fi
 
+if [[ "$(uname -s)" == "Darwin" ]] && [[ -z "$PYTORCH_ENABLE_MPS_FALLBACK" ]]
+then
+  # device "auto" resolves to mps on Apple Silicon whenever available (no cuda on macOS), so most mac
+  # runs hit this; some ops (e.g. max_unpool2d) are still not implemented for MPS and PyTorch only
+  # honors PYTORCH_ENABLE_MPS_FALLBACK if it is set before `import torch`, so this must happen here,
+  # not later once the actual device is known
+  export PYTORCH_ENABLE_MPS_FALLBACK=1
+fi
+
 fastsurfercnndir="$FASTSURFER_HOME/FastSurferCNN"
 cerebnetdir="$FASTSURFER_HOME/CerebNet"
 hypvinndir="$FASTSURFER_HOME/HypVINN"
