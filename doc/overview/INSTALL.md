@@ -215,7 +215,7 @@ To launch a configured FastSurfer terminal session, start the FastSurfer applet 
 - sets `FASTSURFER_HOME` and `PYTHONPATH`,
 - sets `FREESURFER_HOME` to the pruned FreeSurfer installation bundled with FastSurfer and sources `SetUpFreeSurfer.sh`,
 - adds GNU `grep` and the FastSurfer directory to your `PATH` (persisted to `~/.bash_profile`, so plain Terminal windows can find `run_fastsurfer.sh` afterward too), and
-- reminds you to set `FS_LICENSE` if it is not already set.
+- reminds you to set `FS_LICENSE` if it is not already set (see "FreeSurfer license" below).
 
 In this console, you can run the full FastSurfer pipeline by typing and executing `run_fastsurfer.sh <fastsurfer-flags>`, where you replace `<fastsurfer-flags>` with the appropriate [commandline flags of FastSurfer](../../README.md#usage), for example:
 
@@ -224,12 +224,27 @@ run_fastsurfer.sh --seg_only --sd <path/to/output/dir> --sid <subject_id> --t1 <
 ```
 or, for the full pipeline:
 ```sh
-run_fastsurfer.sh --device mps --sd <path/to/output/dir> --sid <subject_id> --t1 <path/to/subjects/t1/image> --fs_license </path/to/freesurfer/license>
+run_fastsurfer.sh --device mps --sd <path/to/output/dir> --sid <subject_id> --t1 <path/to/subjects/t1/image> --fs_license ~/fs_license.txt
 ```
 
 You do not need to relaunch the applet every time: once the FastSurfer directory has been added to your `PATH` (see above), you can set up the same environment in any Terminal window by running `source macos_setup_fastsurfer.sh`.
 
-#### 4. Apple AI Accelerator support
+#### 4. FreeSurfer license (for surfaces / eTIV)
+A FreeSurfer license is only needed if you run the surface module (recon-surf) or, in segmentation-only mode, activate the Talairach registration via `--tal_reg` (used to estimate total intracranial volume, eTIV, in the stats files). Plain segmentation without `--tal_reg` does not need one.
+
+To get a license, [register at the FreeSurfer website](https://surfer.nmr.mgh.harvard.edu/registration.html) to acquire a FreeSurfer license (for free).
+
+Unlike a native Linux/source install, do not rely on FastSurfer auto-detecting the license inside `$FREESURFER_HOME`: on macOS, `$FREESURFER_HOME` points at the pruned FreeSurfer bundled with the package (`$FASTSURFER_HOME/fs-pruned`), which is installed by the `.pkg` as `root` and is not writable by your user account. Instead, save the license file somewhere in your home directory and either pass it explicitly:
+
+```sh
+run_fastsurfer.sh ... --fs_license ~/fs_license.txt
+```
+or export it once per console session, or persist it the same way the console already persists `PATH`, by adding the line to `~/.bash_profile`:
+```sh
+export FS_LICENSE=~/fs_license.txt
+```
+
+#### 5. Apple AI Accelerator support
 On modern M-Chips you can try the Apple Silicon AI Accelerator by setting `PYTORCH_ENABLE_MPS_FALLBACK` and passing `--device mps` for the segmentation module to make use of the fast GPU:
 
 ```sh
