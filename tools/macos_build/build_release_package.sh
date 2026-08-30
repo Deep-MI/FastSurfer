@@ -50,10 +50,11 @@ rsync -av --progress "$FASTSURFER_HOME/" "$FASTSURFER_TO_PACKAGE" \
       --exclude tools \
       --exclude .git
 
-# install freesurfer into temp folder
-"$tools_dir/build/install_fs_pruned.sh" "$STAGED_DIR" --url "$URL_TO_FREESURFER"
+# install pruned freesurfer (not a full install, so nested inside FastSurfer's own directory
+# rather than the canonical /Applications/freesurfer, to avoid colliding with a real FreeSurfer install)
+"$tools_dir/build/install_fs_pruned.sh" "$FASTSURFER_TO_PACKAGE" --url "$URL_TO_FREESURFER" --name fs-pruned
 
-if [[ ! -d "$STAGED_DIR/freesurfer" ]]
+if [[ ! -d "$FASTSURFER_TO_PACKAGE/fs-pruned" ]]
 then
   echo "FreeSurfer install was unsuccessful!"
   exit 1

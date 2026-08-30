@@ -18,7 +18,7 @@ source "$FASTSURFER_HOME/venv/bin/activate"
 export PYTHONPATH="${FASTSURFER_HOME}:${PYTHONPATH}"
 "$PYTHON" "$FASTSURFER_HOME/FastSurferCNN/download_checkpoints.py" --all
 
-FREESURFER_HOME="/Applications/freesurfer"
+FREESURFER_HOME="$FASTSURFER_HOME/fs-pruned"
 "$SCRIPT_DIR/link_fs.sh" "$FREESURFER_HOME"
 
 # use our python (not really needed in recon-all anyway)

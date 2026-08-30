@@ -19,12 +19,14 @@ insecure="false"
 
 if [[ "$#" -lt 1 ]]; then
     echo
-    echo "Usage: install_fs_pruned.sh install_dir [--upx] [--url freesurfer_download_url] [--insecure]"
-    echo 
+    echo "Usage: install_fs_pruned.sh install_dir [--upx] [--url freesurfer_download_url] [--insecure] [--name dirname]"
+    echo
     echo "--upx is optional, if passed, fs/bin will be packed"
     echo "--url is recommended! This is the download link for freesurfer."
     echo "  The link can be found in pyproject.toml:tool.freesurfer.url!"
     echo "--insecure will skip certificate checks when downloading freesurfer."
+    echo "--name sets the name of the directory the pruned install is placed in under install_dir"
+    echo "  (default: freesurfer)."
     echo
     exit 2
 fi
@@ -36,17 +38,19 @@ if [[ "$#" -ge 1 ]]; then
 fi
 
 upx="false"
+name="freesurfer"
 while [[ "$#" -ge 1 ]]; do
   lowercase=$(echo "$1" | tr '[:upper:]' '[:lower:]')
   case $lowercase in
   --upx) upx="true" ; shift ;;
   --url) fslink=$2 ; shift ; shift ;;
   --insecure) insecure="true" ; shift ;;
+  --name) name=$2 ; shift ; shift ;;
   *) echo "Invalid argument $1" ; exit 1 ;;
   esac
 done
 fss=$where/fs-tmp
-fsd=$where/freesurfer
+fsd=$where/$name
 
 if [[ "$fslink" == "default" ]]
 then
