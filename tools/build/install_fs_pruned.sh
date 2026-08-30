@@ -93,6 +93,22 @@ then
   exit 0
 fi
 
+# guard the rm -rf below: $name ends up as a path component of $fsd, so an empty or traversing
+# value would delete more than this script owns
+if [[ -z "$name" ]] || [[ "$name" == */* ]] || [[ "$name" == "." ]] || [[ "$name" == ".." ]]
+then
+  echo "ERROR: --name must be a single, non-empty directory name (got '$name')."
+  exit 1
+fi
+
+# $where may not exist yet (e.g. a cache directory on a CI cache miss); tar below extracts into it
+mkdir -p "$where"
+# rebuild from scratch: an outdated $fsd (different url, older prune list) would keep files that are
+# no longer copied below and then be stamped as valid, and a leftover $fss from an interrupted run
+# would make the "mv $where/freesurfer $fss" below nest the extraction inside it instead of
+# replacing it, breaking every copy that follows
+rm -rf "$fsd" "$fss" "$where/freesurfer"
+
 echo
 echo "Will install FreeSurfer to $fsd"
 echo
