@@ -65,5 +65,5 @@ echo
 for file in "${link_files[@]}"
 do
   echo "linking $file"
-  ln -s "$ltrg" "$FREESURFER_HOME/$file"
+  ln -sf "$ltrg" "$FREESURFER_HOME/$file"
 done
