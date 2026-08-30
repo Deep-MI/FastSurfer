@@ -19,7 +19,8 @@ insecure="false"
 
 if [[ "$#" -lt 1 ]]; then
     echo
-    echo "Usage: install_fs_pruned.sh install_dir [--upx] [--url freesurfer_download_url] [--insecure] [--name dirname]"
+    echo "Usage: install_fs_pruned.sh install_dir [--upx] [--url freesurfer_download_url] [--insecure]"
+    echo "                                        [--name dirname] [--fs-download-cache path]"
     echo
     echo "--upx is optional, if passed, fs/bin will be packed"
     echo "--url is recommended! This is the download link for freesurfer."
@@ -27,6 +28,10 @@ if [[ "$#" -lt 1 ]]; then
     echo "--insecure will skip certificate checks when downloading freesurfer."
     echo "--name sets the name of the directory the pruned install is placed in under install_dir"
     echo "  (default: freesurfer)."
+    echo "--fs-download-cache points at a file path for the raw FreeSurfer tarball: if it already"
+    echo "  exists there (e.g. from a prior, interrupted local run), it is reused as-is instead of"
+    echo "  downloading again; if not, the download is saved there (and kept, not deleted, so a"
+    echo "  later run can reuse it) instead of a throwaway, uniquely-named temp file."
     echo
     exit 2
 fi
@@ -39,6 +44,7 @@ fi
 
 upx="false"
 name="freesurfer"
+download_cache=""
 while [[ "$#" -ge 1 ]]; do
   lowercase=$(echo "$1" | tr '[:upper:]' '[:lower:]')
   case $lowercase in
@@ -46,6 +52,7 @@ while [[ "$#" -ge 1 ]]; do
   --url) fslink=$2 ; shift ; shift ;;
   --insecure) insecure="true" ; shift ;;
   --name) name=$2 ; shift ; shift ;;
+  --fs-download-cache) download_cache=$2 ; shift ; shift ;;
   *) echo "Invalid argument $1" ; exit 1 ;;
   esac
 done
@@ -98,7 +105,11 @@ echo
 echo "Downloading FreeSurfer and selectively unpacking required files ..."
 
 # temp freesurfer dl filename (to save the dl)
-if [[ -d /install ]] ; then
+if [[ -n "$download_cache" ]] ; then
+  freesurfer_dl="$download_cache"
+  mkdir -p "$(dirname "$freesurfer_dl")"
+  delete_freesurfer_dl="false"
+elif [[ -d /install ]] ; then
   freesurfer_dl="/install/download/$(basename "$fslink")"
   if [[ ! -d /install/download/ ]] ; then
     mkdir -p /install/download/
