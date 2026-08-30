@@ -78,6 +78,7 @@ def edit_distribution(distribution_file: Path | str, title: str) -> None:
     license_tag.attrib["mime-type"] = "text/txt"
 
     conclusion_tag = ElementTree.SubElement(root_tag, "conclusion")
+    # doc/overview/MACOS.md, shown as plain text (mime-type below), not rendered as markdown/HTML
     conclusion_tag.attrib["file"] = "MACOS.md"
     conclusion_tag.attrib["mime-type"] = "text/txt"
     
