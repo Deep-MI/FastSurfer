@@ -202,6 +202,13 @@ tar zxv --no-same-owner -C "$where" \
       --exclude='freesurfer/trctrain' \
       -f "$freesurfer_dl"
 
+if [[ "$?" != 0 ]] ; then
+  echo "ERROR: Extracting $freesurfer_dl failed (corrupt or incomplete download/cache?)."
+  # remove it so a broken --fs-download-cache/--install path isn't silently reused as "cached" again
+  rm -f "$freesurfer_dl"
+  exit 1
+fi
+
 if [[ "$delete_freesurfer_dl" == "true" ]] ; then
   echo "Deleting temporary download $freesurfer_dl ..."
   rm "$freesurfer_dl"
