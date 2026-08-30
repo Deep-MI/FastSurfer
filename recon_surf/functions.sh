@@ -12,6 +12,9 @@ if [[ -z "$FREESURFER_HOME" ]] && [[ -f "$(dirname "$binpath")/fs-pruned/build-s
 then
   FREESURFER_HOME="$(dirname "$binpath")/fs-pruned"
   export FREESURFER_HOME
+  # recon-surf.sh invokes FreeSurfer binaries (mri_convert, recon-all, ...) by bare name, relying on
+  # PATH from SetUpFreeSurfer.sh, so FREESURFER_HOME alone is not enough
+  source "$FREESURFER_HOME/SetUpFreeSurfer.sh" > /dev/null
   echo "INFO: \$FREESURFER_HOME was not set, using the pruned FreeSurfer installation shipped with FastSurfer at $FREESURFER_HOME"
 fi
 
