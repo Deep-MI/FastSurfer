@@ -67,7 +67,10 @@ fi
 if [[ -n "$FS_PRUNED_CACHE_DIR" ]]
 then
   mkdir -p "$FASTSURFER_TO_PACKAGE"
-  cp -R "$fs_pruned_where/fs-pruned" "$FASTSURFER_TO_PACKAGE/fs-pruned"
+  # remove any stale fs-pruned first: cp -R copies *into* an existing destination dir instead of
+  # replacing it, which would silently nest a leftover from an interrupted prior build
+  rm -rf "$FASTSURFER_TO_PACKAGE/fs-pruned"
+  cp -R "$fs_pruned_where/fs-pruned" "$FASTSURFER_TO_PACKAGE/"
 fi
 
 SCRIPTS_DIR="$tools_dir/macos_build/scripts" # directory with scripts executed during installation process (f.e. preinstall postinstall)
