@@ -2,12 +2,20 @@
 
 if [[ "$#" -lt 1 ]] || { [[ "$1" != "arm" ]] && [[ "$1" != "intel" ]] ; } ; then
   echo
-  echo "Usage:  build_release_package.sh <arm|intel> [--fs-download-cache path]"
+  echo "Usage:  build_release_package.sh <arm|intel> [--fs-download-cache path] [--fs-pruned-cache-dir dir]"
+  echo "                                             [--py2app-venv dir]"
   echo
   echo "--fs-download-cache points at a file path for the raw FreeSurfer tarball: if it already"
   echo "  exists there (e.g. from a prior, interrupted local run), it is reused instead of"
   echo "  downloading again; if not, the download is saved there for a later run to reuse."
   echo "  (default: \$FS_DOWNLOAD_CACHE, if set)"
+  echo "--fs-pruned-cache-dir points at a directory for the pruned FreeSurfer install: if a valid"
+  echo "  one is already there, the whole download+prune step is skipped."
+  echo "  (default: \$FS_PRUNED_CACHE_DIR, if set)"
+  echo "--py2app-venv points at a venv to create (if missing) and reuse for the py2app packaging"
+  echo "  step, isolated from your normal dev venv, whose extra installed packages (matplotlib,"
+  echo "  etc.) py2app's dependency scanner can otherwise trip over."
+  echo "  (default: \$PY2APP_VENV, or tools/macos_build/.venv-py2app)"
   echo
   exit
 fi
@@ -15,9 +23,13 @@ ARCH_TYPE=$1 # chip architecture - arm or intel
 shift
 
 fs_download_cache="$FS_DOWNLOAD_CACHE"
+fs_pruned_cache_dir="$FS_PRUNED_CACHE_DIR"
+py2app_venv="$PY2APP_VENV"
 while [[ "$#" -ge 1 ]] ; do
   case "$1" in
   --fs-download-cache) fs_download_cache=$2 ; shift ; shift ;;
+  --fs-pruned-cache-dir) fs_pruned_cache_dir=$2 ; shift ; shift ;;
+  --py2app-venv) py2app_venv=$2 ; shift ; shift ;;
   *) echo "Invalid argument $1" ; exit 1 ;;
   esac
 done
@@ -27,6 +39,7 @@ else THIS_SCRIPT="${BASH_SOURCE[0]}"
 fi
 build_dir=$(dirname "$THIS_SCRIPT")
 tools_dir=$(dirname "$build_dir")
+py2app_venv="${py2app_venv:-$build_dir/.venv-py2app}"
 
 FASTSURFER_HOME=$(dirname "$tools_dir") # directory to fastsurfer
 # version of the project
@@ -66,10 +79,10 @@ rsync -av --progress "$FASTSURFER_HOME/" "$FASTSURFER_TO_PACKAGE" \
 
 # install pruned freesurfer (not a full install, so nested inside FastSurfer's own directory
 # rather than the canonical /Applications/freesurfer, to avoid colliding with a real FreeSurfer install).
-# FS_PRUNED_CACHE_DIR, if set (e.g. by CI, restored via actions/cache), lets install_fs_pruned.sh skip
-# the download+prune entirely when a matching install is already there; either way, the result is
-# copied into the staged package content, so the packaging steps below don't need to know about caching.
-fs_pruned_where="${FS_PRUNED_CACHE_DIR:-$FASTSURFER_TO_PACKAGE}"
+# --fs-pruned-cache-dir, if set (e.g. by CI, restored via actions/cache), lets install_fs_pruned.sh
+# skip the download+prune entirely when a matching install is already there; either way, the result
+# is copied into the staged package content, so the packaging steps below don't need to know about caching.
+fs_pruned_where="${fs_pruned_cache_dir:-$FASTSURFER_TO_PACKAGE}"
 download_cache_args=()
 if [[ -n "$fs_download_cache" ]] ; then download_cache_args=(--fs-download-cache "$fs_download_cache") ; fi
 "$tools_dir/build/install_fs_pruned.sh" "$fs_pruned_where" --url "$URL_TO_FREESURFER" --name fs-pruned "${download_cache_args[@]}"
@@ -127,8 +140,18 @@ sed -e "s|<fastsurfer>|FastSurfer${VERSION}|g" \
 
 mv "$build_dir/macos_setup_fastsurfer.sh" "$FASTSURFER_TO_PACKAGE/"
 
+# isolated venv for py2app, kept separate from any dev venv: py2app's dependency scanner walks the
+# whole environment it runs in, and unrelated packages there (e.g. matplotlib) can make it fail
+if [[ ! -x "$py2app_venv/bin/python3" ]]
+then
+  echo "Creating isolated venv for py2app at $py2app_venv ..."
+  python3 -m venv "$py2app_venv"
+  "$py2app_venv/bin/python3" -m pip install --upgrade pip
+  "$py2app_venv/bin/python3" -m pip install py2app
+fi
+
 pushd "$build_dir" || exit 1
-python3 "setup.py" py2app --iconfile "${RESOURCES_DIR:$((${#build_dir} + 1))}/fastsurfer.png"
+"$py2app_venv/bin/python3" "setup.py" py2app --iconfile "${RESOURCES_DIR:$((${#build_dir} + 1))}/fastsurfer.png"
 popd || exit 1
 mv "$build_dir/dist/FastSurfer.app" "$STAGED_DIR/FastSurfer$VERSION.app"
 

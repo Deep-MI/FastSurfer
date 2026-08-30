@@ -34,12 +34,24 @@ jobs:
           echo "$GITHUB_WORKSPACE/.venv/bin" >> "$GITHUB_PATH"
           . .venv/bin/activate
           python -m pip install --upgrade pip
-          python -m pip install py2app tomli
+          # tomli is used by read_toml.py (python 3.10 here has no stdlib tomllib); py2app is not
+          # installed here since build_release_package.sh creates and caches its own isolated venv
+          # for it (tools/macos_build/.venv-py2app), kept separate so its dependency scanner doesn't
+          # trip over unrelated packages
+          python -m pip install tomli
           
           # update system to the newest version, not pin pointing package version on purpose
           brew update  
           brew upgrade || true
           brew list aria2 >/dev/null 2>&1 || brew install aria2
+      - name: Cache py2app venv
+        uses: actions/cache@v4
+        with:
+          path: tools/macos_build/.venv-py2app
+          # py2app itself isn't pinned (matching prior behavior), so this key is coarse (OS only);
+          # if a bad py2app release ever causes trouble here the way sphinx-argparse did for docs,
+          # pin the version in build_release_package.sh and fold it into this key too
+          key: py2app-venv-${{ runner.os }}
       - name: Resolve FreeSurfer cache key
         id: fs_cache
         run: |
