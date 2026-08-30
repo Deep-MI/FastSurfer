@@ -245,14 +245,13 @@ export FS_LICENSE=~/fs_license.txt
 ```
 
 #### 5. Apple AI Accelerator support
-On modern M-Chips you can try the Apple Silicon AI Accelerator by setting `PYTORCH_ENABLE_MPS_FALLBACK` and passing `--device mps` for the segmentation module to make use of the fast GPU:
+On modern M-Chips you can try the Apple Silicon AI Accelerator by passing `--device mps` for the segmentation module to make use of the fast GPU (when using `run_fastsurfer.sh`, FastSurfer sets `PYTORCH_ENABLE_MPS_FALLBACK=1` automatically on macOS unless you already set it):
 
 ```sh
-export PYTORCH_ENABLE_MPS_FALLBACK=1
 ./run_fastsurfer.sh --seg_only --device mps ....
 ```
 
-This will be at least twice as fast as `--device cpu`. Currently setting the fallback environment variable is necessary as `aten::max_unpool2d` is not yet implemented for MPS and will fall back to CPU.
+This will be at least twice as fast as `--device cpu`. The fallback is needed because `aten::max_unpool2d` is not yet implemented for MPS; expect a one-time warning about it, which is harmless.
 
 Windows
 -------
