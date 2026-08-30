@@ -141,6 +141,9 @@ fi
 
 SCRIPTS_DIR="$tools_dir/macos_build/scripts" # directory with scripts executed during installation process (f.e. preinstall postinstall)
 PYTHON_VERSION_TEMP=$(python3 "$tools_dir/read_toml.py" --file "$FASTSURFER_HOME/pyproject.toml" --key project.requires-python)
+# requires-python is a lower bound, but postinstall uses this as an exact version: it builds the
+# run environment with homebrew's python$PYTHON_VERSION. So raising requires-python also changes
+# which python users must brew-install, and doc/overview/INSTALL.md has to be updated with it.
 PYTHON_VERSION="${PYTHON_VERSION_TEMP#>=}"
 
 # substitute values in postinstall script

@@ -5,6 +5,16 @@ FASTSURFER_HOME="<fastsurfer_home_dir>"
 PYTHON="python<python_version>"
 SCRIPT_DIR="$(dirname $0)"
 
+if [[ ! -x "<homebrew_dir>/bin/$PYTHON" ]]
+then
+  # without this, the venv call below just fails with "No such file or directory" and set -e
+  # aborts the install, leaving the user with the installer's generic failure dialog
+  echo "ERROR: <homebrew_dir>/bin/$PYTHON not found." >&2
+  echo "  FastSurfer needs $PYTHON; install it with 'brew install python@<python_version>'" >&2
+  echo "  and run this installer again." >&2
+  exit 1
+fi
+
 if [[ ! -d "$FASTSURFER_HOME/venv" ]]
 then
   echo "Creating FastSurfer run environment"
