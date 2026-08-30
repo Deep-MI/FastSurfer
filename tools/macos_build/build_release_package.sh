@@ -73,6 +73,11 @@ INSTALLER_PKG="$build_dir/installer/$PACKAGE_NAME.pkg"
 # create temporary folder to package and copy FastSurfer over
 STAGED_DIR="$build_dir/FastSurferPackageContent"
 FASTSURFER_TO_PACKAGE="$STAGED_DIR/FastSurfer$VERSION"
+# start from an empty staging tree: an interrupted earlier build leaves its content behind, and
+# neither the copy below nor pkgbuild removes anything, so leftovers would be packaged. Notably a
+# run from before fs-pruned was nested leaves a "freesurfer" directory here, which would put the
+# package back to installing into /Applications/freesurfer.
+rm -rf "$STAGED_DIR"
 mkdir -p "$FASTSURFER_TO_PACKAGE"
 # top-level paths that are not needed to run FastSurfer and so stay out of the installed package.
 # Note README.md, LICENSE and pyproject.toml must NOT be listed here: postinstall pip-installs
