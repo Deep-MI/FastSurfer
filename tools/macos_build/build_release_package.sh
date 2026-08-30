@@ -37,9 +37,12 @@ done
 if [[ -z "${BASH_SOURCE[0]}" ]]; then THIS_SCRIPT="$0"
 else THIS_SCRIPT="${BASH_SOURCE[0]}"
 fi
-build_dir=$(dirname "$THIS_SCRIPT")
+# resolve to an absolute path: the py2app step below runs inside a pushd, where a relative
+# script/venv path (e.g. from `tools/macos_build/build_release_package.sh`) no longer resolves
+build_dir=$(cd "$(dirname "$THIS_SCRIPT")" && pwd)
 tools_dir=$(dirname "$build_dir")
 py2app_venv="${py2app_venv:-$build_dir/.venv-py2app}"
+case "$py2app_venv" in /*) ;; *) py2app_venv="$PWD/$py2app_venv" ;; esac
 
 FASTSURFER_HOME=$(dirname "$tools_dir") # directory to fastsurfer
 # version of the project
@@ -93,7 +96,7 @@ then
   exit 1
 fi
 
-if [[ -n "$FS_PRUNED_CACHE_DIR" ]]
+if [[ -n "$fs_pruned_cache_dir" ]]
 then
   mkdir -p "$FASTSURFER_TO_PACKAGE"
   # remove any stale fs-pruned first: cp -R copies *into* an existing destination dir instead of
@@ -145,9 +148,15 @@ mv "$build_dir/macos_setup_fastsurfer.sh" "$FASTSURFER_TO_PACKAGE/"
 if [[ ! -x "$py2app_venv/bin/python3" ]]
 then
   echo "Creating isolated venv for py2app at $py2app_venv ..."
-  python3 -m venv "$py2app_venv"
-  "$py2app_venv/bin/python3" -m pip install --upgrade pip
-  "$py2app_venv/bin/python3" -m pip install py2app
+  python3 -m venv "$py2app_venv" || exit 1
+fi
+# checked separately from the venv itself, which may pre-exist (--py2app-venv) or be a leftover
+# from an interrupted pip install, so its presence alone does not mean py2app is installed
+if ! "$py2app_venv/bin/python3" -c "import py2app" > /dev/null 2>&1
+then
+  echo "Installing py2app into $py2app_venv ..."
+  "$py2app_venv/bin/python3" -m pip install --upgrade pip || exit 1
+  "$py2app_venv/bin/python3" -m pip install py2app || exit 1
 fi
 
 pushd "$build_dir" || exit 1
