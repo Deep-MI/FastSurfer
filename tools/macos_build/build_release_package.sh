@@ -73,12 +73,46 @@ INSTALLER_PKG="$build_dir/installer/$PACKAGE_NAME.pkg"
 # create temporary folder to package and copy FastSurfer over
 STAGED_DIR="$build_dir/FastSurferPackageContent"
 FASTSURFER_TO_PACKAGE="$STAGED_DIR/FastSurfer$VERSION"
-mkdir -p "$STAGED_DIR"
-rsync -av --progress "$FASTSURFER_HOME/" "$FASTSURFER_TO_PACKAGE" \
-      --exclude requirements.txt \
-      --exclude requirements.cpu.txt \
-      --exclude tools \
-      --exclude .git
+mkdir -p "$FASTSURFER_TO_PACKAGE"
+# top-level paths that are not needed to run FastSurfer and so stay out of the installed package.
+# Note README.md, LICENSE and pyproject.toml must NOT be listed here: postinstall pip-installs
+# $FASTSURFER_HOME and pyproject.toml references both files.
+not_packaged=(
+  # build-side only, never part of an install
+  tools
+  requirements.txt
+  requirements.cpu.txt
+  # development/CI material
+  .github
+  .codespellignore
+  .dockerignore
+  .gitignore
+  CODE_OF_CONDUCT.md
+  CONTRIBUTING.md
+  # published at fastsurfer.org / only relevant in a source checkout (the build reads doc/ from
+  # $FASTSURFER_HOME itself, not from this copy)
+  doc
+  test
+  Tutorial
+  Documentation
+  env
+)
+# package git-tracked files only: everything else in the working tree (build artifacts, downloaded
+# tarballs, scratch dirs, checkpoints fetched by a previous run) would otherwise end up in the
+# installer and silently add gigabytes to it. Checkpoints are deliberately not shipped, postinstall
+# downloads them on the user's machine.
+if git -C "$FASTSURFER_HOME" rev-parse --git-dir > /dev/null 2>&1
+then
+  pathspecs=()
+  for path in "${not_packaged[@]}" ; do pathspecs+=(":(exclude)$path") ; done
+  git -C "$FASTSURFER_HOME" ls-files -z -- . "${pathspecs[@]}" \
+    | rsync -av --from0 --files-from=- "$FASTSURFER_HOME/" "$FASTSURFER_TO_PACKAGE" || exit 1
+else
+  # not a git checkout (e.g. building from a source tarball): fall back to excluding by name
+  excludes=(--exclude /.git)
+  for path in "${not_packaged[@]}" ; do excludes+=(--exclude "/$path") ; done
+  rsync -av --progress "$FASTSURFER_HOME/" "$FASTSURFER_TO_PACKAGE" "${excludes[@]}"
+fi
 
 # install pruned freesurfer (not a full install, so nested inside FastSurfer's own directory
 # rather than the canonical /Applications/freesurfer, to avoid colliding with a real FreeSurfer install).
