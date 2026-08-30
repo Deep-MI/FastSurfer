@@ -1,4 +1,5 @@
 #!/bin/bash
+set -e
 
 FASTSURFER_HOME="<fastsurfer_home_dir>"
 PYTHON="python<python_version>"
@@ -26,4 +27,4 @@ ln -sf "$FASTSURFER_HOME/venv/bin/$PYTHON" "$FREESURFER_HOME/bin/fspython"
 
 sed -i '' -e "s|(venv)|($(basename $FASTSURFER_HOME))|g" "$FASTSURFER_HOME/venv/bin/activate"
 
-xattr -dr com.apple.quarantine "$FREESURFER_HOME"/*
+xattr -dr com.apple.quarantine "$FREESURFER_HOME"/* 2>/dev/null || true
