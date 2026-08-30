@@ -144,7 +144,7 @@ include = ['FastSurferCNN*', 'CerebNet*', 'CorpusCallosum*', 'HypVINN*', 'recon_
 convention = 'numpy'
 ignore-decorators = '(copy_doc|property|.*setter|.*getter|pyqtSlot|Slot)'
 match = '^(?!setup|__init__|test_).*\.py'
-match-dir = '^FastSurferCNN.*,^CerebNet.*,^recon-surf.*,^HypVINN.*'
+match-dir = '^FastSurferCNN.*,^CerebNet.*,^CorpusCallosum.*,^recon_surf.*,^HypVINN.*'
 add_ignore = 'D100,D104,D107'
 
 [tool.ruff]
