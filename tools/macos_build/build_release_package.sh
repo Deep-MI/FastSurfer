@@ -1,11 +1,26 @@
 #!/bin/bash
 
-if [[ "$#" != 1 ]] || { [[ "$1" != "arm" ]] && [[ "$1" != "intel" ]] ; } ; then
+if [[ "$#" -lt 1 ]] || { [[ "$1" != "arm" ]] && [[ "$1" != "intel" ]] ; } ; then
   echo
-  echo "Usage:  build_release_package.sh <arm|intel>"
+  echo "Usage:  build_release_package.sh <arm|intel> [--fs-download-cache path]"
+  echo
+  echo "--fs-download-cache points at a file path for the raw FreeSurfer tarball: if it already"
+  echo "  exists there (e.g. from a prior, interrupted local run), it is reused instead of"
+  echo "  downloading again; if not, the download is saved there for a later run to reuse."
+  echo "  (default: \$FS_DOWNLOAD_CACHE, if set)"
   echo
   exit
 fi
+ARCH_TYPE=$1 # chip architecture - arm or intel
+shift
+
+fs_download_cache="$FS_DOWNLOAD_CACHE"
+while [[ "$#" -ge 1 ]] ; do
+  case "$1" in
+  --fs-download-cache) fs_download_cache=$2 ; shift ; shift ;;
+  *) echo "Invalid argument $1" ; exit 1 ;;
+  esac
+done
 
 if [[ -z "${BASH_SOURCE[0]}" ]]; then THIS_SCRIPT="$0"
 else THIS_SCRIPT="${BASH_SOURCE[0]}"
@@ -23,7 +38,6 @@ FREESURFER_VERSION=$(python3 "$tools_dir/read_toml.py" --file "$FASTSURFER_HOME/
 URL_TO_FREESURFER_TEMP=$(python3 "$tools_dir/read_toml.py" --file "$FASTSURFER_HOME/pyproject.toml" --key tool.freesurfer.urls.macOS)
 sub="{version}"
 URL_TO_FREESURFER="${URL_TO_FREESURFER_TEMP//$sub/$FREESURFER_VERSION}"
-ARCH_TYPE=$1 # chip architecture - arm or intel
 
 ARCH_TYPE_NAME="arm64"
 if [[ "$ARCH_TYPE" = "intel" ]] ; then ARCH_TYPE_NAME="x86_64" ; fi
@@ -56,7 +70,9 @@ rsync -av --progress "$FASTSURFER_HOME/" "$FASTSURFER_TO_PACKAGE" \
 # the download+prune entirely when a matching install is already there; either way, the result is
 # copied into the staged package content, so the packaging steps below don't need to know about caching.
 fs_pruned_where="${FS_PRUNED_CACHE_DIR:-$FASTSURFER_TO_PACKAGE}"
-"$tools_dir/build/install_fs_pruned.sh" "$fs_pruned_where" --url "$URL_TO_FREESURFER" --name fs-pruned
+download_cache_args=()
+if [[ -n "$fs_download_cache" ]] ; then download_cache_args=(--fs-download-cache "$fs_download_cache") ; fi
+"$tools_dir/build/install_fs_pruned.sh" "$fs_pruned_where" --url "$URL_TO_FREESURFER" --name fs-pruned "${download_cache_args[@]}"
 
 if [[ ! -f "$fs_pruned_where/fs-pruned/build-stamp.txt" ]]
 then
