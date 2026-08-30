@@ -77,6 +77,15 @@ EOF
   fi
 fi
 
+# skip the download+prune entirely if $fsd already holds a pruned install built from this exact URL
+# (e.g. restored by a CI cache); this is what makes it safe to point $where at a persistent cache dir
+source_marker="$fsd/.fs_pruned_source_url"
+if [[ -f "$source_marker" ]] && [[ "$(cat "$source_marker")" == "$fslink" ]]
+then
+  echo "Found existing pruned FreeSurfer install at $fsd built from $fslink, skipping download."
+  exit 0
+fi
+
 echo
 echo "Will install FreeSurfer to $fsd"
 echo
@@ -458,6 +467,10 @@ do
   echo "touching $file"
   touch "$fsd/$file"
 done
+
+# record what this pruned install was built from, so a re-run (e.g. from a restored CI cache) can
+# tell whether it is still valid instead of blindly reusing possibly-stale content
+echo "$fslink" > "$source_marker"
 
 #cleanup
 rm -rf "$fss"
