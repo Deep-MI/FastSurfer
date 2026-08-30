@@ -198,13 +198,36 @@ Open the latest release, expand the **Assets** section, and download the install
 
 To install, double-click the downloaded `.pkg` installer and follow the installer instructions.
 
+> **Note:** FastSurfer's `.pkg` is currently not signed/notarized by Apple, so macOS Gatekeeper will
+> block it. Depending on your macOS version, double-clicking the installer may not show an "Open"
+> option at all, just "Done" or "Move to Trash", in which case nothing happens if you click "Done".
+> To allow it: click **Done** on that warning, then go to **System Settings > Privacy & Security**,
+> scroll down to the **Security** section, and click **Open Anyway** next to the message about the
+> blocked installer. Confirm once more (you may be asked for your password or Touch ID), then
+> double-click the `.pkg` again to start the installation.
+
 After installation, you can find the FastSurfer applet, its source code, and selected FreeSurfer executables in the `/Applications` folder.
 
 #### 3. Launching FastSurfer
 
-To launch a configured FastSurfer terminal session, start the FastSurfer applet from Applications.
+To launch a configured FastSurfer terminal session, start the FastSurfer applet from Applications. This opens a regular Terminal window running a FastSurfer console: a shell with everything already set up to run FastSurfer, recognizable by the `(FastSurfer<version>)` prompt prefix. It:
+- activates the Python environment installed for FastSurfer (`FASTSURFER_HOME/venv`),
+- sets `FASTSURFER_HOME` and `PYTHONPATH`,
+- sets `FREESURFER_HOME` to the pruned FreeSurfer installation bundled with FastSurfer and sources `SetUpFreeSurfer.sh`,
+- adds GNU `grep` and the FastSurfer directory to your `PATH` (persisted to `~/.bash_profile`, so plain Terminal windows can find `run_fastsurfer.sh` afterward too), and
+- reminds you to set `FS_LICENSE` if it is not already set.
 
-Once the terminal opens, it is already configured and you can easily run the full FastSurfer pipeline by typing and executing `run_fastsurfer.sh <fastsurfer-flags>`, where you replace `<fastsurfer-flags>` with the appropriate [commandline flags of FastSurfer](../../README.md#usage).
+In this console, you can run the full FastSurfer pipeline by typing and executing `run_fastsurfer.sh <fastsurfer-flags>`, where you replace `<fastsurfer-flags>` with the appropriate [commandline flags of FastSurfer](../../README.md#usage), for example:
+
+```sh
+run_fastsurfer.sh --seg_only --sd <path/to/output/dir> --sid <subject_id> --t1 <path/to/subjects/t1/image>
+```
+or, for the full pipeline:
+```sh
+run_fastsurfer.sh --device mps --sd <path/to/output/dir> --sid <subject_id> --t1 <path/to/subjects/t1/image> --fs_license </path/to/freesurfer/license>
+```
+
+You do not need to relaunch the applet every time: once the FastSurfer directory has been added to your `PATH` (see above), you can set up the same environment in any Terminal window by running `source macos_setup_fastsurfer.sh`.
 
 #### 4. Apple AI Accelerator support
 On modern M-Chips you can try the Apple Silicon AI Accelerator by setting `PYTORCH_ENABLE_MPS_FALLBACK` and passing `--device mps` for the segmentation module to make use of the fast GPU:
