@@ -136,6 +136,11 @@ macOS = "https://surfer.nmr.mgh.harvard.edu/pub/dist/freesurfer/{version}/freesu
 # (FastSurferCNN.utils, CerebNet.models, ...) and, since it was added, CorpusCallosum as well
 include = ['FastSurferCNN*', 'CerebNet*', 'CorpusCallosum*', 'HypVINN*', 'recon_surf*']
 
+[tool.setuptools.package-data]
+# without this, only .py files are installed, and the package cannot find its own configs at
+# runtime (checkpoint_paths.yaml, the network configs, the color lookup tables, ...)
+'*' = ['*.yaml', '*.tsv', '*.txt', '*.json', '*.csv']
+
 [tool.pydocstyle]
 convention = 'numpy'
 ignore-decorators = '(copy_doc|property|.*setter|.*getter|pyqtSlot|Slot)'
