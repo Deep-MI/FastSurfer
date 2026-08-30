@@ -160,10 +160,11 @@ chmod +x "$SCRIPTS_DIR/postinstall"
 # assemble resources
 mkdir -p "$RESOURCES_DIR"
 cp "$FASTSURFER_HOME/doc/images/fastsurfer.png" "$RESOURCES_DIR"
-# MACOS.md is no longer in the sphinx docs toctree, but is still used verbatim as the plain-text
-# conclusion screen of the installer (see edit_distribution.py), so keep it around
-cp "$FASTSURFER_HOME/doc/overview/MACOS.md" "$RESOURCES_DIR"
 cp "$FASTSURFER_HOME/LICENSE" "$RESOURCES_DIR/LICENSE.txt"
+# final screen of the installer, registered as text/html by edit_distribution.py
+sed -e "s|<fastsurfer>|FastSurfer${VERSION}|g" \
+    < "$build_dir/conclusion.html.template" \
+    > "$RESOURCES_DIR/conclusion.html"
 
 # create fastsurfer applet
 sed -e "s|<fastsurfer>|FastSurfer${VERSION}|g" \

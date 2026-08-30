@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<!-- Shown as the final ("conclusion") screen of the macOS installer. build_release_package.sh
+     substitutes <fastsurfer> with FastSurfer<version> and copies the result into the installer
+     resources; edit_distribution.py registers it as text/html, so the links below are clickable.
+     Keep it short: the pane is narrow and scrolling is easy to miss. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<style>
+  :root { color-scheme: light dark; }
+  body {
+    font: 13px -apple-system, "Helvetica Neue", sans-serif;
+    line-height: 1.45;
+    margin: 0;
+    padding: 2px 4px 12px;
+  }
+  h2 { font-size: 13px; margin: 14px 0 3px; }
+  p, ul { margin: 3px 0; }
+  ul { padding-left: 17px; }
+  pre {
+    background: rgba(127, 127, 127, 0.14);
+    border-radius: 5px;
+    font: 11px ui-monospace, Menlo, monospace;
+    margin: 5px 0;
+    padding: 6px 8px;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+  code { font: 11px ui-monospace, Menlo, monospace; }
+  .muted { opacity: 0.75; }
+</style>
+</head>
+<body>
+
+<p><b>FastSurfer is installed in /Applications/<fastsurfer></b></p>
+
+<h2>Open the FastSurfer console</h2>
+<p>Double-click <b><fastsurfer></b> in your Applications folder. It opens a Terminal window that
+has everything set up &mdash; the Python environment, the pruned FreeSurfer bundled with this
+package, and <code>run_fastsurfer.sh</code> on your <code>PATH</code>. You can recognize it by the
+<code>(<fastsurfer>)</code> prefix in the prompt.</p>
+<p class="muted">Afterwards any Terminal window works too: run
+<code>source macos_setup_fastsurfer.sh</code>.</p>
+
+<h2>Run FastSurfer</h2>
+<p>Segmentation only (no FreeSurfer license needed):</p>
+<pre>run_fastsurfer.sh --seg_only --device mps \
+  --sd &lt;output/dir&gt; --sid &lt;subject_id&gt; --t1 &lt;subject/t1.nii.gz&gt;</pre>
+<p>Full pipeline, including surfaces:</p>
+<pre>run_fastsurfer.sh --device mps --fs_license ~/fs_license.txt \
+  --sd &lt;output/dir&gt; --sid &lt;subject_id&gt; --t1 &lt;subject/t1.nii.gz&gt;</pre>
+<p class="muted"><code>--device mps</code> uses the GPU of Apple silicon Macs and is roughly twice
+as fast as <code>--device cpu</code>.</p>
+
+<h2>FreeSurfer license</h2>
+<p>The surface pipeline (and <code>--tal_reg</code> for eTIV) needs a free FreeSurfer license:
+<a href="https://surfer.nmr.mgh.harvard.edu/registration.html">register here</a>, then save the
+license file in your home directory and pass it with <code>--fs_license</code>. It cannot be stored
+inside the bundled FreeSurfer, which this installer wrote as <code>root</code>.</p>
+
+<h2>Documentation</h2>
+<ul>
+  <li><a href="https://deep-mi.org/FastSurfer/stable/overview/INSTALL.html#macos">macOS installation and usage</a></li>
+  <li><a href="https://deep-mi.org/FastSurfer/stable/">FastSurfer documentation</a></li>
+  <li><a href="https://github.com/Deep-MI/FastSurfer/issues">Report a problem</a></li>
+</ul>
+
+</body>
+</html>
