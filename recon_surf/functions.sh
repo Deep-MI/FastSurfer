@@ -5,6 +5,16 @@ else binpath="$FASTSURFER_HOME/recon_surf/"
 fi
 export binpath
 
+# if FREESURFER_HOME is not set, fall back to the pruned FreeSurfer installation shipped with the
+# macOS package (uses binpath, not FASTSURFER_HOME directly, since FASTSURFER_HOME may not be set
+# yet if functions.sh is sourced standalone)
+if [[ -z "$FREESURFER_HOME" ]] && [[ -f "$(dirname "$binpath")/fs-pruned/build-stamp.txt" ]]
+then
+  FREESURFER_HOME="$(dirname "$binpath")/fs-pruned"
+  export FREESURFER_HOME
+  echo "INFO: \$FREESURFER_HOME was not set, using the pruned FreeSurfer installation shipped with FastSurfer at $FREESURFER_HOME"
+fi
+
 # fs_time command from fs60, fs72 fails in parallel mode, use local one
 # also check for failure (e.g. on mac it fails, so we cannot use it there)
 if "${binpath}fs_time" --no-load echo testing &> /dev/null ; then timecmd="${binpath}fs_time"
