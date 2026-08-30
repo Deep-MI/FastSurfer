@@ -3,7 +3,6 @@
 export FASTSURFER_HOME=/Applications/<fastsurfer>
 source $FASTSURFER_HOME/venv/bin/activate
 export PYTHONPATH=$FASTSURFER_HOME/venv/lib/python<python_version>/site-packages:$PYTHONPATH
-export PYTORCH_ENABLE_MPS_FALLBACK=<mps_fallback_value>
 export FREESURFER_HOME=$FASTSURFER_HOME/fs-pruned
 source $FREESURFER_HOME/SetUpFreeSurfer.sh > /dev/null
 echo
