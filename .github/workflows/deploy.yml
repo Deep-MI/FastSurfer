@@ -40,7 +40,26 @@ jobs:
           brew update  
           brew upgrade || true
           brew list aria2 >/dev/null 2>&1 || brew install aria2
+      - name: Resolve FreeSurfer cache key
+        id: fs_cache
+        run: |
+          fs_version=$(python3 tools/read_toml.py --file pyproject.toml --key tool.freesurfer.version)
+          url_template=$(python3 tools/read_toml.py --file pyproject.toml --key tool.freesurfer.urls.macOS)
+          fs_url="${url_template//\{version\}/$fs_version}"
+          url_hash=$(echo -n "$fs_url" | shasum -a 256 | cut -c1-16)
+          echo "cache_dir=$HOME/.cache/fastsurfer-fs-pruned" >> "$GITHUB_OUTPUT"
+          echo "url_hash=$url_hash" >> "$GITHUB_OUTPUT"
+      - name: Cache pruned FreeSurfer
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.fs_cache.outputs.cache_dir }}
+          # bumps on a FreeSurfer version/URL change (url_hash) or a change to what gets pruned
+          # (install_fs_pruned.sh); arm and intel currently resolve the same darwin_x86_64 url and
+          # so share one cache entry, this stops being true automatically if that ever changes
+          key: fs-pruned-${{ hashFiles('tools/build/install_fs_pruned.sh') }}-${{ steps.fs_cache.outputs.url_hash }}
       - name: package app for ${{ matrix.arch }}
+        env:
+          FS_PRUNED_CACHE_DIR: ${{ steps.fs_cache.outputs.cache_dir }}
         run: tools/macos_build/build_release_package.sh ${{ matrix.arch }}
       - name: Move assets.
         if: github.event_name == 'release' && github.event.action == 'published'

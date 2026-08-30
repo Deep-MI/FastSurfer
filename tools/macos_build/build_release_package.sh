@@ -51,13 +51,23 @@ rsync -av --progress "$FASTSURFER_HOME/" "$FASTSURFER_TO_PACKAGE" \
       --exclude .git
 
 # install pruned freesurfer (not a full install, so nested inside FastSurfer's own directory
-# rather than the canonical /Applications/freesurfer, to avoid colliding with a real FreeSurfer install)
-"$tools_dir/build/install_fs_pruned.sh" "$FASTSURFER_TO_PACKAGE" --url "$URL_TO_FREESURFER" --name fs-pruned
+# rather than the canonical /Applications/freesurfer, to avoid colliding with a real FreeSurfer install).
+# FS_PRUNED_CACHE_DIR, if set (e.g. by CI, restored via actions/cache), lets install_fs_pruned.sh skip
+# the download+prune entirely when a matching install is already there; either way, the result is
+# copied into the staged package content, so the packaging steps below don't need to know about caching.
+fs_pruned_where="${FS_PRUNED_CACHE_DIR:-$FASTSURFER_TO_PACKAGE}"
+"$tools_dir/build/install_fs_pruned.sh" "$fs_pruned_where" --url "$URL_TO_FREESURFER" --name fs-pruned
 
-if [[ ! -d "$FASTSURFER_TO_PACKAGE/fs-pruned" ]]
+if [[ ! -f "$fs_pruned_where/fs-pruned/build-stamp.txt" ]]
 then
   echo "FreeSurfer install was unsuccessful!"
   exit 1
+fi
+
+if [[ -n "$FS_PRUNED_CACHE_DIR" ]]
+then
+  mkdir -p "$FASTSURFER_TO_PACKAGE"
+  cp -R "$fs_pruned_where/fs-pruned" "$FASTSURFER_TO_PACKAGE/fs-pruned"
 fi
 
 SCRIPTS_DIR="$tools_dir/macos_build/scripts" # directory with scripts executed during installation process (f.e. preinstall postinstall)
