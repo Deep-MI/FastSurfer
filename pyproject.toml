@@ -85,7 +85,8 @@ doc = [
     'sphinx>=7.3,<8',
     'sphinxcontrib-bibtex',
     'sphinxcontrib-programoutput',
-    # 0.6.0 breaks parallel builds; 0.6.1 emits warnings for unrelated MyST links.
+    # avoid >=0.6: 0.6.0 does not work for -j parallel builds, 0.6.1 (2026-08-21) broke command
+    # xref resolution (spurious "no command xref target" warnings for unrelated README.md links)
     'sphinx-argparse<0.6',
     'sphinx-copybutton',
     'sphinx-design',

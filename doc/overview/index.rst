@@ -16,3 +16,8 @@ User Guide
     LONG.md
     SECURITY.md
     license
+
+.. toctree::
+    :hidden:
+
+    MACOS.md
