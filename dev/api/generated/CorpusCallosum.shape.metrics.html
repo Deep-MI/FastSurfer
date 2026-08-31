@@ -459,25 +459,27 @@
 <span id="corpuscallosum-shape-metrics"></span><h1>CorpusCallosum.shape.metrics<a class="headerlink" href="#module-CorpusCallosum.shape.metrics" title="Link to this heading">¶</a></h1>
 <dl class="py function">
 <dt class="sig sig-object py" id="CorpusCallosum.shape.metrics.calculate_cc_index">
-<span class="sig-prename descclassname"><span class="pre">CorpusCallosum.shape.metrics.</span></span><span class="sig-name descname"><span class="pre">calculate_cc_index</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cc_contour</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">plot</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//CorpusCallosum/shape/metrics.py#L144-L234"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CorpusCallosum.shape.metrics.calculate_cc_index" title="Link to this definition">¶</a></dt>
-<dd><p>Calculate CC index based on three thickness measurements.</p>
+<span class="sig-prename descclassname"><span class="pre">CorpusCallosum.shape.metrics.</span></span><span class="sig-name descname"><span class="pre">calculate_cc_index</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cc_contour</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">plot</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//CorpusCallosum/shape/metrics.py#L144-L236"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CorpusCallosum.shape.metrics.calculate_cc_index" title="Link to this definition">¶</a></dt>
+<dd><p>Calculate the dimensionless corpus callosum index (CCI).</p>
 <p>The AP line intersects the contour 4 times. The measurements are:
 - Anterior thickness: distance between intersection points 1 and 2
 - Posterior thickness: distance between intersection points 3 and 4
 - Middle thickness: perpendicular line through midpoint of AP line</p>
-<p>The CC index is: (anterior + posterior + middle) / AP_length</p>
+<p>The index is <code class="docutils literal notranslate"><span class="pre">(anterior</span> <span class="pre">+</span> <span class="pre">middle</span> <span class="pre">+</span> <span class="pre">posterior)</span> <span class="pre">/</span> <span class="pre">AP_length</span></code>, following
+Figueira et al. (2007), <a class="reference external" href="https://doi.org/10.1590/S0004-282X2007000600001">https://doi.org/10.1590/S0004-282X2007000600001</a>.</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><dl>
 <dt><strong>cc_contour</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.5)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></span></dt><dd><p>Array of shape (2, N) containing contour points in ACPC space.</p>
 </dd>
-<dt><strong>plot</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">bool</span></code></a>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">optional</span></code></span></dt><dd><p>Whether to generate a debug plot. Default is True.</p>
+<dt><strong>plot</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">bool</span></code></a>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">optional</span></code></span></dt><dd><p>Whether to generate a debug plot. Default is False.</p>
 </dd>
 </dl>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><dl>
-<dt><strong>cc_index</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a></span></dt><dd><p>The CC index, which is the sum of thicknesses at three measurement points divided by AP length.</p>
+<dt><strong>cc_index</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a></span></dt><dd><p>Sum of the anterior, middle, and posterior widths divided by the
+anterior-posterior length.</p>
 </dd>
 </dl>
 </dd>
@@ -510,7 +512,7 @@
 
 <dl class="py function">
 <dt class="sig sig-object py" id="CorpusCallosum.shape.metrics.plot_cc_index_calculation">
-<span class="sig-prename descclassname"><span class="pre">CorpusCallosum.shape.metrics.</span></span><span class="sig-name descname"><span class="pre">plot_cc_index_calculation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ax</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cc_contour</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">anterior_idx</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">posterior_idx</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ap_intersections</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">middle_intersections</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">midpoint</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//CorpusCallosum/shape/metrics.py#L237-L331"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CorpusCallosum.shape.metrics.plot_cc_index_calculation" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">CorpusCallosum.shape.metrics.</span></span><span class="sig-name descname"><span class="pre">plot_cc_index_calculation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ax</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cc_contour</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">anterior_idx</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">posterior_idx</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ap_intersections</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">middle_intersections</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">midpoint</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//CorpusCallosum/shape/metrics.py#L239-L333"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CorpusCallosum.shape.metrics.plot_cc_index_calculation" title="Link to this definition">¶</a></dt>
 <dd><p>Plot the CC index measurements.</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>

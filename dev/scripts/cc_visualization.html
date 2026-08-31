@@ -459,12 +459,16 @@
 <h1>CorpusCallosum: cc_visualization.py<a class="headerlink" href="#corpuscallosum-cc-visualization-py" title="Link to this heading">¶</a></h1>
 <p><p>Visualize corpus callosum from template files.</p>
 </p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">usage</span><span class="p">:</span> <span class="n">cc_visualization</span><span class="o">.</span><span class="n">py</span> <span class="p">[</span><span class="o">-</span><span class="n">h</span><span class="p">]</span> <span class="o">--</span><span class="n">template_dir</span> <span class="n">TEMPLATE_DIR</span> <span class="o">--</span><span class="n">output_dir</span>
-                           <span class="n">OUTPUT_DIR</span> <span class="p">[</span><span class="o">--</span><span class="n">resolution</span> <span class="n">RESOLUTION</span><span class="p">]</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">usage</span><span class="p">:</span> <span class="n">cc_visualization</span><span class="o">.</span><span class="n">py</span> <span class="p">[</span><span class="o">-</span><span class="n">h</span><span class="p">]</span>
+                           <span class="p">(</span><span class="o">--</span><span class="n">template_dir</span> <span class="n">TEMPLATE_DIR</span> <span class="o">|</span> <span class="o">--</span><span class="n">values_file</span> <span class="n">VALUES_FILE</span><span class="p">)</span>
+                           <span class="o">--</span><span class="n">output_dir</span> <span class="n">OUTPUT_DIR</span> <span class="p">[</span><span class="o">--</span><span class="n">resolution</span> <span class="n">RESOLUTION</span><span class="p">]</span>
                            <span class="p">[</span><span class="o">--</span><span class="n">smoothing_window</span> <span class="n">SMOOTHING_WINDOW</span><span class="p">]</span>
                            <span class="p">[</span><span class="o">--</span><span class="n">colormap</span> <span class="p">{</span><span class="n">red_to_blue</span><span class="p">,</span><span class="n">blue_to_red</span><span class="p">,</span><span class="n">red_to_yellow</span><span class="p">,</span><span class="n">yellow_to_red</span><span class="p">}]</span>
-                           <span class="p">[</span><span class="o">--</span><span class="n">color_range</span> <span class="n">MIN</span> <span class="n">MAX</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">legend</span> <span class="n">LEGEND</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">twoD</span><span class="p">]</span>
-                           <span class="p">[</span><span class="o">-</span><span class="n">v</span><span class="p">]</span>
+                           <span class="p">[</span><span class="o">--</span><span class="n">color_range</span> <span class="n">MIN</span> <span class="n">MAX</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">legend</span> <span class="n">LEGEND</span><span class="p">]</span>
+                           <span class="p">[</span><span class="o">--</span><span class="n">mode</span> <span class="p">{</span><span class="n">thickness</span><span class="p">,</span><span class="n">p</span><span class="o">-</span><span class="n">value</span><span class="p">,</span><span class="n">icc</span><span class="p">}]</span> <span class="p">[</span><span class="o">--</span><span class="n">log_scale</span><span class="p">]</span>
+                           <span class="p">[</span><span class="o">--</span><span class="n">upper_threshold</span> <span class="n">VALUE</span><span class="p">]</span>
+                           <span class="p">[</span><span class="o">--</span><span class="n">threshold_color</span> <span class="n">THRESHOLD_COLOR</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">title</span> <span class="n">TITLE</span><span class="p">]</span>
+                           <span class="p">[</span><span class="o">--</span><span class="n">output_name</span> <span class="n">FILENAME</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">twoD</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">v</span><span class="p">]</span>
 </pre></div>
 </div>
 <section id="CorpusCallosum.cc_visualization-make_parser-named-arguments">
@@ -472,6 +476,9 @@
 <dl class="option-list">
 <dt><kbd>--template_dir</kbd></dt>
 <dd><p>Path to a template directory containing per-slice files named thickness_values_&lt;idx&gt;.txt, and optionally contour_&lt;idx&gt;.txt and thickness_measurement_points_&lt;idx&gt;.txt. If contour_&lt;idx&gt;.txt and thickness_measurement_points_&lt;idx&gt;.txt are not provided, uses fsaverage template. For FreeSurfer surfaces in orig.mgz reference space, also provide mri/orig.mgz and mri/transforms/cc_up.lta in this directory.</p>
+</dd>
+<dt><kbd>--values_file</kbd></dt>
+<dd><p>One-column CSV containing values ordered anterior to posterior. The first row is treated as a header. Uses the bundled fsaverage contour and generates a 2D plot; no template directory is required.</p>
 </dd>
 <dt><kbd>--output_dir</kbd></dt>
 <dd><p>Directory for output files. Writes: cc_mesh.html - Interactive 3D mesh visualization (HTML file) midslice_2d.png - 2D midslice visualization of the corpus callosum cc_mesh.vtk - VTK mesh file format cc_mesh.fssurf - FreeSurfer surface file cc_mesh_overlay.curv - FreeSurfer curvature overlay file cc_mesh_snap.png - Screenshot/snapshot of the 3D mesh (requires whippersnappy&gt;=2.1). If template_dir does not contain orig.mgz and cc_up.lta, output_dir/mri/upright.mgz is used as the fallback reference when available; otherwise FreeSurfer surfaces are written without a reference space.</p>
@@ -486,15 +493,36 @@
 </dd>
 <dt><kbd>--colormap</kbd></dt>
 <dd><p>Possible choices: red_to_blue, blue_to_red, red_to_yellow, yellow_to_red</p>
-<p>Colormap to use for thickness visualization, lower to higher values.</p>
+<p>Colormap progression from lower to higher values.</p>
 <p>Default: <code class="docutils literal notranslate"><span class="pre">'red_to_yellow'</span></code></p>
 </dd>
 <dt><kbd>--color_range</kbd></dt>
 <dd><p>Specify the range for the colorbar (2 values: min max). Defaults to automatic choice.               (e.g. –color_range 0 10).</p>
 </dd>
 <dt><kbd>--legend</kbd></dt>
-<dd><p>Legend for the colorbar.</p>
-<p>Default: <code class="docutils literal notranslate"><span class="pre">'Thickness</span> <span class="pre">(mm)'</span></code></p>
+<dd><p>Override the colorbar label.</p>
+</dd>
+<dt><kbd>--mode</kbd></dt>
+<dd><p>Possible choices: thickness, p-value, icc</p>
+<p>Value type for –values_file (default: thickness).</p>
+<p>Default: <code class="docutils literal notranslate"><span class="pre">'thickness'</span></code></p>
+</dd>
+<dt><kbd>--log_scale</kbd></dt>
+<dd><p>Use logarithmic color normalization for –values_file.</p>
+<p>Default: <code class="docutils literal notranslate"><span class="pre">False</span></code></p>
+</dd>
+<dt><kbd>--upper_threshold</kbd></dt>
+<dd><p>Color values above this limit with –threshold_color.</p>
+</dd>
+<dt><kbd>--threshold_color</kbd></dt>
+<dd><p>Matplotlib color for values above –upper_threshold (default: gray).</p>
+<p>Default: <code class="docutils literal notranslate"><span class="pre">'gray'</span></code></p>
+</dd>
+<dt><kbd>--title</kbd></dt>
+<dd><p>Optional title for a 2D values plot.</p>
+</dd>
+<dt><kbd>--output_name</kbd></dt>
+<dd><p>Filename for the 2D PNG within –output_dir.</p>
 </dd>
 <dt><kbd>--twoD</kbd></dt>
 <dd><p>Generate 2D visualization instead of 3D mesh.</p>
@@ -512,7 +540,7 @@
 <h3>3D Visualization<a class="headerlink" href="#d-visualization" title="Link to this heading">¶</a></h3>
 <p>To visualize a 3D template generated by <code class="docutils literal notranslate"><span class="pre">fastsurfer_cc.py</span></code> (using <code class="docutils literal notranslate"><span class="pre">--slice_selection</span> <span class="pre">all</span> <span class="pre">--save_template_dir</span> <span class="pre">...</span></code>),
 point the script to the exported template directory:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python3<span class="w"> </span>cc_visualization.py<span class="w"> </span><span class="se">\</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python3<span class="w"> </span>-m<span class="w"> </span>CorpusCallosum.cc_visualization<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--template_dir<span class="w"> </span>/data/templates/sub001/cc_template<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--output_dir<span class="w"> </span>/data/visualizations/sub001
 </pre></div>
@@ -521,16 +549,86 @@ point the script to the exported template directory:</p>
 <section id="id1">
 <h3>2D Visualization<a class="headerlink" href="#id1" title="Link to this heading">¶</a></h3>
 <p>To visualize a 2D template (using <code class="docutils literal notranslate"><span class="pre">--slice_selection</span> <span class="pre">middle</span> <span class="pre">--save_template_dir</span> <span class="pre">...</span></code>):</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python3<span class="w"> </span>cc_visualization.py<span class="w"> </span><span class="se">\</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python3<span class="w"> </span>-m<span class="w"> </span>CorpusCallosum.cc_visualization<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--template_dir<span class="w"> </span>/data/templates/sub001/cc_template<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--output_dir<span class="w"> </span>/data/visualizations/sub001<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--twoD
 </pre></div>
 </div>
+<p>The template’s <code class="docutils literal notranslate"><span class="pre">thickness_values_&lt;slice&gt;.txt</span></code> is a per-contour-vertex file,
+not a one-value-per-level-path profile. Each thickness measurement occurs at
+both ends of its level path, so the non-empty measurements follow the contour
+as anterior-to-posterior and then posterior-to-anterior. Do not copy a JSON
+<code class="docutils literal notranslate"><span class="pre">thickness_profile</span></code> directly into this template file.</p>
+<p>To visualize a one-column CSV of p-values on the bundled fsaverage contour,
+where the first row is a header and the remaining rows contain positive values
+ordered from anterior to posterior:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python3<span class="w"> </span>-m<span class="w"> </span>CorpusCallosum.cc_visualization<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--values_file<span class="w"> </span>/data/p_values.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--output_dir<span class="w"> </span>/data/visualizations<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--mode<span class="w"> </span>p-value<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--colormap<span class="w"> </span>yellow_to_red<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--log_scale<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--upper_threshold<span class="w"> </span><span class="m">0</span>.05<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--threshold_color<span class="w"> </span>gray<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--twoD
+</pre></div>
+</div>
+<p>The <code class="docutils literal notranslate"><span class="pre">--values_file</span></code> format is also the supported way to visualize a
+<code class="docutils literal notranslate"><span class="pre">thickness_profile</span></code> copied from the FastSurfer JSON output: write its values
+once, in their existing anterior-to-posterior order, beneath a single header
+such as <code class="docutils literal notranslate"><span class="pre">thickness</span></code> and select <code class="docutils literal notranslate"><span class="pre">--mode</span> <span class="pre">thickness</span></code>.</p>
+<p>For the default midslice metrics file, <code class="docutils literal notranslate"><span class="pre">jq</span></code> can create this input without
+changing the order:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>jq<span class="w"> </span>-r<span class="w"> </span><span class="s1">'"thickness", .thickness_profile[]'</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>stats/callosum.CC.midslice.json<span class="w"> </span>&gt;<span class="w"> </span>thickness_profile.csv
+</pre></div>
+</div>
+<p>The same command can be run from a FastSurfer container without installing
+FastSurfer or FreeSurfer on the host. From the directory containing
+<code class="docutils literal notranslate"><span class="pre">p_values.csv</span></code>:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>mkdir<span class="w"> </span>-p<span class="w"> </span>visualizations
+
+docker<span class="w"> </span>run<span class="w"> </span>--rm<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--user<span class="w"> </span><span class="s2">"</span><span class="k">$(</span>id<span class="w"> </span>-u<span class="k">)</span><span class="s2">:</span><span class="k">$(</span>id<span class="w"> </span>-g<span class="k">)</span><span class="s2">"</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--volume<span class="w"> </span><span class="s2">"</span><span class="nv">$PWD</span><span class="s2">/p_values.csv:/input/p_values.csv:ro"</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--volume<span class="w"> </span><span class="s2">"</span><span class="nv">$PWD</span><span class="s2">/visualizations:/output"</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--entrypoint<span class="w"> </span>/fastsurfer/tools/Docker/entrypoint.sh<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>deepmi/fastsurfer:latest<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>python3<span class="w"> </span>/fastsurfer/CorpusCallosum/cc_visualization.py<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--values_file<span class="w"> </span>/input/p_values.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--output_dir<span class="w"> </span>/output<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--mode<span class="w"> </span>p-value<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--colormap<span class="w"> </span>yellow_to_red<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--log_scale<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--upper_threshold<span class="w"> </span><span class="m">0</span>.05<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--threshold_color<span class="w"> </span>gray<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--legend<span class="w"> </span><span class="s2">"p-value (log scale)"</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--title<span class="w"> </span><span class="s2">"Example p-value visualization"</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--output_name<span class="w"> </span>p_values_fsaverage_2d.png<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--smoothing_window<span class="w"> </span><span class="m">0</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--twoD
+</pre></div>
+</div>
+<p>The output is written to <code class="docutils literal notranslate"><span class="pre">visualizations/p_values_fsaverage_2d.png</span></code>. On macOS, the
+<code class="docutils literal notranslate"><span class="pre">--user</span></code> option can be omitted if Docker Desktop reports a user-mapping
+problem.</p>
+<p>The following example uses 100 smoothly varying dummy p-values. Values above
+0.05 are shown in gray; the remaining values use a logarithmic yellow-to-red
+scale.</p>
+<figure class="align-default" id="id2">
+<a class="reference internal image-reference" href="../_images/cc_pvalues_fsaverage_2d.png"><img alt="Smooth dummy p-values plotted on the bundled fsaverage corpus callosum contour" src="../_images/cc_pvalues_fsaverage_2d.png" style="width: 100%;" />
+</a>
+<figcaption>
+<p><span class="caption-text">A 2D p-value visualization generated by the container command above.</span><a class="headerlink" href="#id2" title="Link to this image">¶</a></p>
+</figcaption>
+</figure>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>The <code class="docutils literal notranslate"><span class="pre">--template_dir</span></code> is the required way to load the templates
-produced by <code class="docutils literal notranslate"><span class="pre">fastsurfer_cc.py</span></code>.</p>
+<p>Use <code class="docutils literal notranslate"><span class="pre">--template_dir</span></code> to load templates produced by <code class="docutils literal notranslate"><span class="pre">fastsurfer_cc.py</span></code>.</p>
+<p><code class="docutils literal notranslate"><span class="pre">--values_file</span></code> instead uses a precomputed fsaverage corpus-callosum
+contour bundled with FastSurfer. It does not require <code class="docutils literal notranslate"><span class="pre">FREESURFER_HOME</span></code> or
+a separate FreeSurfer installation.</p>
 </div>
 </section>
 </section>
@@ -548,6 +646,7 @@ produced by <code class="docutils literal notranslate"><span class="pre">fastsur
 </dd>
 <dt>2D Mode Outputs (when <code class="docutils literal notranslate"><span class="pre">--twoD</span></code> is specified):</dt><dd><ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">cc_thickness_2d.png</span></code>: 2D contour visualization with thickness colormap</p></li>
+<li><p>The filename passed to <code class="docutils literal notranslate"><span class="pre">--output_name</span></code> for <code class="docutils literal notranslate"><span class="pre">--values_file</span></code> input</p></li>
 </ul>
 </dd>
 </dl>

@@ -492,8 +492,8 @@ Advanced options, like custom subdivision schemes and quality control are descri
 <ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">total_area</span></code>: Total corpus callosum area (mm²)</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">total_perimeter</span></code>: Total perimeter length (mm)</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">circularity</span></code>: Shape circularity measure (4π × area / perimeter²)</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">cc_index</span></code>: Corpus callosum shape index (length/width ratio)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">circularity</span></code>: Dimensionless shape compactness, calculated as <code class="docutils literal notranslate"><span class="pre">4\pi</span> <span class="pre">A/P^2</span></code> (1 for a circle and lower for less circular shapes); see <a class="reference external" href="https://doi.org/10.1007/s00429-013-0503-0">Ardekani et al. (2014)</a> and <a class="reference external" href="https://doi.org/10.1016/j.nicl.2018.05.018">Van Schependom et al. (2018)</a></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">cc_index</span></code>: Dimensionless corpus callosum index (CCI), calculated as the sum of the anterior, middle, and posterior widths divided by the anterior–posterior length; see <a class="reference external" href="https://doi.org/10.1590/S0004-282X2007000600001">Figueira et al. (2007)</a></p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">midline_length</span></code>: Length along the corpus callosum midline (mm)</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">curvature</span></code>: Average curve of the midline (degrees), measured by angle between its sub-segments</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">curvature_body</span></code>: Average curve of the center 65% of the midline (degrees), measured by angle between its sub-segments</p></li>
@@ -510,7 +510,7 @@ Advanced options, like custom subdivision schemes and quality control are descri
 <h4><strong>Thickness Analysis:</strong><a class="headerlink" href="#thickness-analysis" title="Link to this heading">¶</a></h4>
 <ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">thickness</span></code>: Average corpus callosum thickness (mm)</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">thickness_profile</span></code>: Thickness profile (mm) of the corpus callosum slice (100 thickness values by default, listed from anterior to posterior CC ends)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">thickness_profile</span></code>: One thickness value per level path (mm; 100 values by default), listed from the anterior to the posterior CC end.</p></li>
 </ul>
 </section>
 <section id="volume-measurements">

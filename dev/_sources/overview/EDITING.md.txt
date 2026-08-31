@@ -234,7 +234,7 @@ Over- and/or under-segmentation of the cortical gray matter: voxels that should 
 
 ### What to do
 Often, these errors should be fixed in [asegdkt_segfile](#asegdkt_segfile) `<subject_dir>/mri/aparc.DKTatlas+aseg.deep.manedit.mgz`, but if that is not successful:
-1. Open end edit `<subject_dir>/mri/brain.finalsurfs.manedit.mgz` (overwriting values in `<subject_dir>/mri/brain.finalsurfs.mgz`).
+1. Open and edit `<subject_dir>/mri/brain.finalsurfs.manedit.mgz` (overwriting values in `<subject_dir>/mri/brain.finalsurfs.mgz`).
 2. [Re-run FastSurfer](#general-process) to fix the pial surface.
 The manual label 255 indicates a voxel should be included in the gray matter and a voxel labeled 1 should not.
 

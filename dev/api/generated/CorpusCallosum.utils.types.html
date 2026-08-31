@@ -459,17 +459,17 @@
 <span id="corpuscallosum-utils-types"></span><h1>CorpusCallosum.utils.types<a class="headerlink" href="#module-CorpusCallosum.utils.types" title="Link to this heading">¶</a></h1>
 <dl class="py class">
 <dt class="sig sig-object py" id="CorpusCallosum.utils.types.CCMeasuresDict">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">CorpusCallosum.utils.types.</span></span><span class="sig-name descname"><span class="pre">CCMeasuresDict</span></span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//CorpusCallosum/utils/types.py#L28-L75"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CorpusCallosum.utils.types.CCMeasuresDict" title="Link to this definition">¶</a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">CorpusCallosum.utils.types.</span></span><span class="sig-name descname"><span class="pre">CCMeasuresDict</span></span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//CorpusCallosum/utils/types.py#L28-L77"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CorpusCallosum.utils.types.CCMeasuresDict" title="Link to this definition">¶</a></dt>
 <dd><p>TypedDict for corpus callosum measures.</p>
 <p class="rubric">Attributes</p>
 <div class="table-wrapper docutils container">
 <table class="docutils align-default">
 <tbody>
 <tr class="row-odd"><td><p><strong>cc_index</strong></p></td>
-<td><p>(float) Corpus callosum shape index.</p></td>
+<td><p>(float) Dimensionless corpus callosum index: the sum of anterior, middle, and posterior widths divided by the anterior-posterior length.</p></td>
 </tr>
 <tr class="row-even"><td><p><strong>circularity</strong></p></td>
-<td><p>(float) Shape circularity measure.</p></td>
+<td><p>(float) Dimensionless circularity, calculated as 4 pi times area divided by squared perimeter.</p></td>
 </tr>
 <tr class="row-odd"><td><p><strong>areas</strong></p></td>
 <td><p>(np.ndarray) Areas of subdivided regions.</p></td>

@@ -459,45 +459,15 @@
 <span id="corpuscallosum-data-fsaverage-cc-template"></span><h1>CorpusCallosum.data.fsaverage_cc_template<a class="headerlink" href="#module-CorpusCallosum.data.fsaverage_cc_template" title="Link to this heading">¶</a></h1>
 <dl class="py function">
 <dt class="sig sig-object py" id="CorpusCallosum.data.fsaverage_cc_template.load_fsaverage_cc_template">
-<span class="sig-prename descclassname"><span class="pre">CorpusCallosum.data.fsaverage_cc_template.</span></span><span class="sig-name descname"><span class="pre">load_fsaverage_cc_template</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//CorpusCallosum/data/fsaverage_cc_template.py#L70-L153"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CorpusCallosum.data.fsaverage_cc_template.load_fsaverage_cc_template" title="Link to this definition">¶</a></dt>
-<dd><p>Load and process the fsaverage corpus callosum template.</p>
-<p>This function loads the fsaverage segmentation from FreeSurfer’s data directory,
-extracts the corpus callosum mask, and processes it to create a smooth template.</p>
+<span class="sig-prename descclassname"><span class="pre">CorpusCallosum.data.fsaverage_cc_template.</span></span><span class="sig-name descname"><span class="pre">load_fsaverage_cc_template</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//CorpusCallosum/data/fsaverage_cc_template.py#L23-L45"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CorpusCallosum.data.fsaverage_cc_template.load_fsaverage_cc_template" title="Link to this definition">¶</a></dt>
+<dd><p>Load the bundled fsaverage corpus callosum contour.</p>
+<p>The contour was precomputed from FreeSurfer 7.4.1’s fsaverage
+<code class="docutils literal notranslate"><span class="pre">aparc+aseg.mgz</span></code> and is stored alongside the fsaverage centroid target.
+Loading it does not require a FreeSurfer installation.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
 <dd class="field-odd"><dl class="simple">
-<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">CCContour</span></code></dt><dd><p>Object with all the contour information including:
-- contour : tuple[np.ndarray, np.ndarray] : x and y coordinates of the contour points.
-- anterior_endpoint_idx : np.ndarray : Index of the anterior endpoint.
-- posterior_endpoint_idx : np.ndarray : Index of the posterior endpoint.</p>
-</dd>
-</dl>
-</dd>
-<dt class="field-even">Raises<span class="colon">:</span></dt>
-<dd class="field-even"><dl class="simple">
-<dt><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#OSError" title="(in Python v3.14)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">OSError</span></code></a></dt><dd><p>If FREESURFER_HOME environment variable is not set correctly.</p>
-</dd>
-</dl>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="CorpusCallosum.data.fsaverage_cc_template.smooth_contour">
-<span class="sig-prename descclassname"><span class="pre">CorpusCallosum.data.fsaverage_cc_template.</span></span><span class="sig-name descname"><span class="pre">smooth_contour</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">contour</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">window_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//CorpusCallosum/data/fsaverage_cc_template.py#L33-L67"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CorpusCallosum.data.fsaverage_cc_template.smooth_contour" title="Link to this definition">¶</a></dt>
-<dd><p>Smooth a contour using a moving average filter.</p>
-<dl class="field-list">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><dl>
-<dt><strong>contour</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">tuple</span></code></a> <code class="xref py py-obj docutils literal notranslate"><span class="pre">of</span></code> <code class="xref py py-obj docutils literal notranslate"><span class="pre">arrays</span></code></span></dt><dd><p>The contour coordinates (x, y).</p>
-</dd>
-<dt><strong>window_size</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">int</span></code></a></span></dt><dd><p>Size of the smoothing window.</p>
-</dd>
-</dl>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><dl class="simple">
-<dt><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">tuple</span></code></a> <code class="xref py py-obj docutils literal notranslate"><span class="pre">of</span></code> <code class="xref py py-obj docutils literal notranslate"><span class="pre">arrays</span></code></dt><dd><p>The smoothed contour coordinates (x, y).</p>
+<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">CCContour</span></code></dt><dd><p>The precomputed contour, endpoint indices, and zero slice position.</p>
 </dd>
 </dl>
 </dd>
@@ -569,7 +539,6 @@ extracts the corpus callosum mask, and processes it to create a smooth template.
             <ul>
 <li><a class="reference internal" href="#">CorpusCallosum.data.fsaverage_cc_template</a><ul>
 <li><a class="reference internal" href="#CorpusCallosum.data.fsaverage_cc_template.load_fsaverage_cc_template"><code class="docutils literal notranslate"><span class="pre">load_fsaverage_cc_template()</span></code></a></li>
-<li><a class="reference internal" href="#CorpusCallosum.data.fsaverage_cc_template.smooth_contour"><code class="docutils literal notranslate"><span class="pre">smooth_contour()</span></code></a></li>
 </ul>
 </li>
 </ul>
