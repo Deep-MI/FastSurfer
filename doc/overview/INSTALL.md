@@ -180,13 +180,15 @@ Continue with the example in [Example 2](EXAMPLES.md#example-2-fastsurfer-docker
 ### Package
 
 #### 1. Requirements
-FastSurfer requires pre-installed python3.10+ and bash (at least 3.2).
-You can install these via the packet manager brew.
-To install brew and then python3.10, execute the following in a Terminal:
+The installer needs pre-installed python3.12 and bash (at least 3.2).
+Note this is an exact version, not a minimum: the installer builds FastSurfer's run environment
+from `python3.12` specifically, and fails with an error if it is missing.
+You can install it via the packet manager brew.
+To install brew and then python3.12, execute the following in a Terminal:
 
 ```sh
 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-brew install python@3.10
+brew install python@3.12
 ```
 
 #### 2. FastSurfer package

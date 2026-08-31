@@ -153,11 +153,15 @@ then
 fi
 
 SCRIPTS_DIR="$tools_dir/macos_build/scripts" # directory with scripts executed during installation process (f.e. preinstall postinstall)
-PYTHON_VERSION_TEMP=$(python3 "$tools_dir/read_toml.py" --file "$FASTSURFER_HOME/pyproject.toml" --key project.requires-python)
-# requires-python is a lower bound, but postinstall uses this as an exact version: it builds the
-# run environment with homebrew's python$PYTHON_VERSION. So raising requires-python also changes
-# which python users must brew-install, and doc/overview/INSTALL.md has to be updated with it.
-PYTHON_VERSION="${PYTHON_VERSION_TEMP#>=}"
+# the exact python the installed environment is built with. This must be an exact version, not a
+# range: postinstall creates the venv from homebrew's python$PYTHON_VERSION, and
+# macos_setup_fastsurfer.sh hardcodes the venv's lib/python$PYTHON_VERSION/site-packages path.
+# tool.python.version is that exact value, shared with the docker build (see pyproject.toml).
+# Previously this read project.requires-python and stripped the ">=", i.e. it silently shipped the
+# oldest *supported* python rather than the one the project builds and tests against.
+# Raising the key also changes which python users must brew-install: keep the macOS requirements
+# in doc/overview/INSTALL.md in sync.
+PYTHON_VERSION=$(python3 "$tools_dir/read_toml.py" --file "$FASTSURFER_HOME/pyproject.toml" --key tool.python.version)
 
 # substitute values in postinstall script
 PATH_TO_FASTSURFER="$INSTALLATION_DIR/FastSurfer$VERSION"

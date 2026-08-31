@@ -16,8 +16,8 @@
 Guard the single-source-of-truth for the shipped python version.
 
 ``tool.python.version`` in pyproject.toml declares the exact interpreter FastSurfer is built
-with. tools/Docker/build.py reads it directly, but two consumers cannot and therefore hold
-hardcoded copies:
+with. tools/Docker/build.py and tools/macos_build/build_release_package.sh read it directly, but
+two consumers cannot and therefore hold hardcoded copies:
 
 * the ``ARG PYTHON_VERSION`` default in tools/Docker/Dockerfile -- a Dockerfile cannot parse a
   toml file at build time,
@@ -40,6 +40,7 @@ DOCKERFILE = FASTSURFER_HOME / "tools" / "Docker" / "Dockerfile"
 BUILD_PY = FASTSURFER_HOME / "tools" / "Docker" / "build.py"
 QUICKTEST_YAML = FASTSURFER_HOME / ".github" / "workflows" / "quicktest.yaml"
 UNITTEST_YAML = FASTSURFER_HOME / ".github" / "workflows" / "unittest.yaml"
+MACOS_BUILD_SH = FASTSURFER_HOME / "tools" / "macos_build" / "build_release_package.sh"
 
 
 def _load_pyproject() -> dict:
@@ -184,6 +185,21 @@ def test_build_py_forwards_the_key() -> None:
     assert "PYTHON_VERSION={pyproject_python['version']}" in text, (
         f"{BUILD_PY.name} no longer forwards PYTHON_VERSION from pyproject.toml; the docker image "
         f"would silently fall back to the Dockerfile ARG default"
+    )
+
+
+def test_macos_build_reads_the_key() -> None:
+    """Check the macOS installer derives its interpreter from the key, not from the floor."""
+    text = MACOS_BUILD_SH.read_text()
+    assert "--key tool.python.version" in text, (
+        f"{MACOS_BUILD_SH.name} no longer reads tool.python.version. It must not fall back to "
+        f"project.requires-python: that is a lower bound, while postinstall needs an exact "
+        f"version to create the venv from homebrew's python<version>"
+    )
+    assert "--key project.requires-python" not in text, (
+        f"{MACOS_BUILD_SH.name} reads project.requires-python for the interpreter version. That "
+        f"is the support floor, so the installer would ship the oldest supported python instead "
+        f"of the one the project builds and tests against"
     )
 
 

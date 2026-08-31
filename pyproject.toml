@@ -127,15 +127,14 @@ tracker = 'https://github.com/Deep-MI/FastSurfer/issues'
 # The single exact python version FastSurfer is built and shipped with.
 #
 # Who uses it today:
-#   - tools/Docker/build.py reads this key and passes it to the build as PYTHON_VERSION. The
-#     docker image is currently the only consumer that truly derives its interpreter from here.
+#   - tools/Docker/build.py reads this key and passes it to the build as PYTHON_VERSION.
+#   - tools/macos_build/build_release_package.sh reads it and substitutes it into the installer's
+#     postinstall (which creates the venv from homebrew's python<version>) and into
+#     macos_setup_fastsurfer.sh (which needs the venv's lib/python<version> path).
 #   - Two places keep a hardcoded copy because neither can read this file: the ARG PYTHON_VERSION
 #     default in tools/Docker/Dockerfile (a Dockerfile cannot parse toml) and the python-version
 #     in .github/workflows/quicktest.yaml (that step provides the interpreter which then reads
 #     this file). test/config/test_python_version.py asserts both against this key.
-#   - NOT the macOS installer: tools/macos_build/build_release_package.sh still derives its
-#     interpreter from project.requires-python, i.e. from the floor. Repointing it at this key is
-#     pending in the macOS packaging work.
 #   - NOT .github/workflows/unittest.yaml, which pins the requires-python floor on purpose.
 #
 # This key is deliberately separate from project.requires-python, which answers a different
@@ -147,8 +146,9 @@ tracker = 'https://github.com/Deep-MI/FastSurfer/issues'
 # Raising this version also requires updating the following, none of which can read this key:
 #   - requirements.txt, re-exported for the new interpreter (tools/export_pip-r.sh)
 #   - the two hardcoded copies listed above (CI will fail if you miss one)
-#   - the version quoted in user-facing docs: doc/overview/INSTALL.md, README.md,
-#     Tutorial/README.md
+#   - the version quoted in user-facing docs: doc/overview/INSTALL.md (both the native and the
+#     macOS-package requirements, the latter being the python users must brew-install),
+#     README.md, Tutorial/README.md
 version = "3.12"
 
 [tool.freesurfer]
