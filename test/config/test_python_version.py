@@ -82,6 +82,59 @@ def _load_pyproject() -> dict:
     return {"python_version": version.group(1), "requires_python": requires.group(1)}
 
 
+def _as_tuple(version: str) -> tuple[int, ...]:
+    """
+    Turn a dotted version string into a comparable tuple.
+
+    Parameters
+    ----------
+    version : str
+        A dotted version, e.g. "3.10".
+
+    Returns
+    -------
+    tuple of int
+        The numeric components, e.g. (3, 10).
+    """
+    return tuple(int(part) for part in version.split("."))
+
+
+def _support_floor(requires_python: str) -> str:
+    """
+    Extract the lower bound from a project.requires-python specifier set.
+
+    requires-python is a PEP 440 specifier set whose comma-separated clauses are *unordered*, so
+    the lower bound cannot be assumed to come first: ">=3.10,<4" and "<4,>=3.10" are equivalent.
+    Only clauses that actually impose a lower bound are considered, and if several do, the
+    tightest one is the effective floor.
+
+    Uses packaging rather than a regex because packaging is a declared runtime dependency of this
+    project (see project.dependencies), so it is present wherever the test suite runs. That is not
+    true of tomli, which is why _load_pyproject above has to hand-roll a fallback.
+
+    Parameters
+    ----------
+    requires_python : str
+        The raw project.requires-python value, e.g. ">=3.10" or "<4,>=3.10".
+
+    Returns
+    -------
+    str
+        The version of the tightest lower-bound clause, e.g. "3.10".
+    """
+    from packaging.specifiers import SpecifierSet
+
+    lower_bounds = [
+        clause for clause in SpecifierSet(requires_python) if clause.operator in (">=", "~=", "==")
+    ]
+    assert lower_bounds, (
+        f"project.requires-python is {requires_python!r}, which declares no lower bound "
+        f"(>=, ~= or ==). The unittest workflow pins the oldest supported version, so a floor "
+        f"has to be derivable; add one or teach _support_floor about the new form"
+    )
+    return max(lower_bounds, key=lambda clause: _as_tuple(clause.version)).version
+
+
 @pytest.fixture(scope="module")
 def config() -> dict:
     """
@@ -107,12 +160,10 @@ def test_shipped_version_is_a_bare_minor_version(config: dict) -> None:
 
 def test_shipped_version_satisfies_the_support_floor(config: dict) -> None:
     """Check the shipped version is not older than the declared support floor."""
-    floor_spec = config["requires_python"]
-    floor = re.sub(r"^[><=~!]+", "", floor_spec.split(",")[0]).strip()
-    shipped = tuple(int(part) for part in config["python_version"].split("."))
-    assert shipped >= tuple(int(part) for part in floor.split(".")), (
+    floor = _support_floor(config["requires_python"])
+    assert _as_tuple(config["python_version"]) >= _as_tuple(floor), (
         f"tool.python.version ({config['python_version']}) is older than the "
-        f"project.requires-python floor ({floor_spec})"
+        f"project.requires-python floor ({config['requires_python']!r}, floor {floor})"
     )
 
 
@@ -150,12 +201,12 @@ def test_quicktest_workflow_matches(config: dict) -> None:
 
 def test_unittest_workflow_pins_the_support_floor(config: dict) -> None:
     """Check the unittest job still tests the oldest supported version, not the shipped one."""
-    floor_spec = config["requires_python"]
-    floor = re.sub(r"^[><=~!]+", "", floor_spec.split(",")[0]).strip()
+    floor = _support_floor(config["requires_python"])
     versions = re.findall(r"^\s*python-version:\s*['\"]([^'\"]+)['\"]", UNITTEST_YAML.read_text(), re.M)
     assert versions, f"no python-version found in {UNITTEST_YAML}"
     for version in versions:
-        assert version == floor, (
+        # compare at major.minor, the granularity setup-python is pinned at
+        assert _as_tuple(version)[:2] == _as_tuple(floor)[:2], (
             f"{UNITTEST_YAML.name} pins python {version}, but it should pin the "
             f"project.requires-python floor ({floor}). This job is the only thing that tests the "
             f"oldest-supported claim; pointing it at the shipped default would drop that coverage"
