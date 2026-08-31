@@ -15,25 +15,35 @@ then
   exit 1
 fi
 
-if [[ ! -d "$FASTSURFER_HOME/venv" ]]
-then
-  echo "Creating FastSurfer run environment"
-  "<homebrew_dir>/bin/$PYTHON" -m venv --copies "$FASTSURFER_HOME/venv"
-fi
+# Always build the run environment from scratch rather than reusing whatever is there.
+# $FASTSURFER_HOME is version-suffixed, so a release bump installs into a fresh directory, but dev
+# builds reuse the version string (as does a rebuilt release), and a leftover venv there may even
+# have been created by a different python. Reusing such a venv is not merely incomplete: it has no
+# bin/$PYTHON, so $PYTHON resolves to homebrew's interpreter *outside* the venv and pip installs
+# FastSurfer plus its dependencies into the user's homebrew python (not PEP 668 marked, so nothing
+# refuses) while the venv stays empty. Recreating also drops packages that a previous install
+# pulled in but the current dependency set no longer contains.
+# --clear empties the directory if it exists, so the replacement happens without rm -rf'ing a path
+# assembled from a build-time substitution.
+echo "Creating FastSurfer run environment"
+"<homebrew_dir>/bin/$PYTHON" -m venv --copies --clear "$FASTSURFER_HOME/venv"
 
+# call the venv interpreter by absolute path instead of relying on PATH after activate: if it is
+# ever missing, this fails loudly instead of silently installing into whatever python PATH finds
+VENV_PYTHON="$FASTSURFER_HOME/venv/bin/$PYTHON"
 source "$FASTSURFER_HOME/venv/bin/activate"
-"$PYTHON" -m pip install --upgrade pip
-"$PYTHON" -m pip install "$FASTSURFER_HOME[qc]"
+"$VENV_PYTHON" -m pip install --upgrade pip
+"$VENV_PYTHON" -m pip install "$FASTSURFER_HOME[qc]"
 
 export PYTHONPATH="${FASTSURFER_HOME}:${PYTHONPATH}"
-"$PYTHON" "$FASTSURFER_HOME/FastSurferCNN/download_checkpoints.py" --all
+"$VENV_PYTHON" "$FASTSURFER_HOME/FastSurferCNN/download_checkpoints.py" --all
 
 FREESURFER_HOME="$FASTSURFER_HOME/fs-pruned"
 "$SCRIPT_DIR/link_fs.sh" "$FREESURFER_HOME"
 
 # use our python (not really needed in recon-all anyway)
 # TODO: soft-linking python has proven to break the python installation for the docker container
-ln -sf "$FASTSURFER_HOME/venv/bin/$PYTHON" "$FREESURFER_HOME/bin/fspython"
+ln -sf "$VENV_PYTHON" "$FREESURFER_HOME/bin/fspython"
 
 sed -i '' -e "s|(venv)|($(basename $FASTSURFER_HOME))|g" "$FASTSURFER_HOME/venv/bin/activate"
 
