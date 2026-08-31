@@ -54,7 +54,7 @@ need for running the application. You do not need to install anything else. See 
 If you decide against using docker, you need either python + pip or anaconda (conda) to install FastSurfer.
 
 #### 1. Python + pip
-Python 3.10 is generally recommended to run FastSurfer. In addition you will need the package manager pip to install the
+Python 3.12 is generally recommended to run FastSurfer (3.10 is the minimum supported version). In addition you will need the package manager pip to install the
 python dependencies used for FastSurfer (see requirements.txt in the main directory for a list). On Linux, pip is not 
 installed by default. You can install it via 
 

@@ -661,6 +661,7 @@ def main(
         pyproject_toml = tomllib.load(fp)
         pyproject_repository_url = pyproject_toml["project"]["urls"]["source"]
         pyproject_freesurfer = pyproject_toml["tool"]["freesurfer"]
+        pyproject_python = pyproject_toml["tool"]["python"]
 
     if target not in get_args(Target):
         raise ValueError(f"Invalid target: {target}")
@@ -679,6 +680,9 @@ def main(
         f"FREESURFER_VERSION={pyproject_freesurfer['version']}",
         f"INSECURE_FLAG={'--insecure' if insecure else ''}",
         f"PINNED_REQUIREMENTS={'true' if pinned_requirements else 'false'}",
+        # a Dockerfile ARG cannot read pyproject.toml, so the version is passed in here; the
+        # ARG default in the Dockerfile is only a fallback for a direct `docker build`
+        f"PYTHON_VERSION={pyproject_python['version']}",
     ]
     if debug:
         kwargs["build_arg"].append("DEBUG=true")

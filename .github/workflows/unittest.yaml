@@ -30,19 +30,24 @@ permissions:
 
 jobs:
   image-test:
-    name: 'Run FastSurfer unit tests from test/image'
+    name: 'Run FastSurfer unit tests from test/${{ matrix.tests }}'
     runs-on: ubuntu-latest
     timeout-minutes: 180
     strategy:
       matrix:
-        tests: ["image"]
+        # image: image-processing unit tests. config: consistency of declared versions across
+        # pyproject.toml, the Dockerfile and the workflows (see test/config/test_python_version.py)
+        tests: ["image", "config"]
         pytest-flags: [""]
 
     steps:
       - uses: actions/checkout@v7
-      - name: Setup Python 3.10
+      - name: Setup Python 3.10 (oldest supported)
         uses: actions/setup-python@v7
         with:
+          # deliberately NOT tool.python.version (the shipped default): this job pins the lower
+          # bound from project.requires-python so that the supported-version claim stays tested.
+          # Bump this only when requires-python itself is raised.
           python-version: '3.10'
           architecture: 'x64'
           cache: 'pip' # caching pip dependencies
