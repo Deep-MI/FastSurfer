@@ -124,22 +124,29 @@ source = 'https://github.com/Deep-MI/FastSurfer'
 tracker = 'https://github.com/Deep-MI/FastSurfer/issues'
 
 [tool.python]
-# The single python version FastSurfer is built and shipped with: the docker image, the CI jobs
-# and the macOS installer all derive their interpreter from this key.
+# The single exact python version FastSurfer is built and shipped with.
 #
-# This is deliberately NOT project.requires-python. The two answer different questions:
-#   requires-python is the support floor, a *range*, and is what pip enforces for anyone doing
-#     `pip install fastsurfer`. The unittest CI job pins itself to that floor on purpose, so the
-#     oldest-supported claim stays tested.
-#   tool.python.version is the one *exact* version we build against. Wheels are cp3XX-tagged, so
-#     anything shipping a pre-resolved environment needs an exact version, not a lower bound.
+# Who uses it today:
+#   - tools/Docker/build.py reads this key and passes it to the build as PYTHON_VERSION. The
+#     docker image is currently the only consumer that truly derives its interpreter from here.
+#   - Two places keep a hardcoded copy because neither can read this file: the ARG PYTHON_VERSION
+#     default in tools/Docker/Dockerfile (a Dockerfile cannot parse toml) and the python-version
+#     in .github/workflows/quicktest.yaml (that step provides the interpreter which then reads
+#     this file). test/config/test_python_version.py asserts both against this key.
+#   - NOT the macOS installer: tools/macos_build/build_release_package.sh still derives its
+#     interpreter from project.requires-python, i.e. from the floor. Repointing it at this key is
+#     pending in the macOS packaging work.
+#   - NOT .github/workflows/unittest.yaml, which pins the requires-python floor on purpose.
 #
-# Raising this version also requires:
-#   - re-exporting requirements.txt for the new interpreter (tools/export_pip-r.sh)
-#   - the ARG PYTHON_VERSION default in tools/Docker/Dockerfile (a Dockerfile cannot read this
-#     file) and the python-version in .github/workflows/quicktest.yaml (that step provides the
-#     interpreter that reads this file). Both are asserted against this key by
-#     test/config/test_python_version.py, so CI will tell you if you miss one.
+# This key is deliberately separate from project.requires-python, which answers a different
+# question: requires-python is the support *floor*, a range, and is what pip enforces for anyone
+# doing `pip install fastsurfer`. This key is the one *exact* version we build against, which a
+# range cannot express -- wheels are cp3XX-tagged, so anything shipping a pre-resolved
+# environment needs an exact version.
+#
+# Raising this version also requires updating the following, none of which can read this key:
+#   - requirements.txt, re-exported for the new interpreter (tools/export_pip-r.sh)
+#   - the two hardcoded copies listed above (CI will fail if you miss one)
 #   - the version quoted in user-facing docs: doc/overview/INSTALL.md, README.md,
 #     Tutorial/README.md
 version = "3.12"

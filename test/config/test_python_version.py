@@ -15,8 +15,9 @@
 """
 Guard the single-source-of-truth for the shipped python version.
 
-``tool.python.version`` in pyproject.toml is the one place the interpreter FastSurfer is built
-with is declared. Two consumers cannot read it and therefore hold hardcoded copies:
+``tool.python.version`` in pyproject.toml declares the exact interpreter FastSurfer is built
+with. tools/Docker/build.py reads it directly, but two consumers cannot and therefore hold
+hardcoded copies:
 
 * the ``ARG PYTHON_VERSION`` default in tools/Docker/Dockerfile -- a Dockerfile cannot parse a
   toml file at build time,
