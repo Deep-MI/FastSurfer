@@ -3,6 +3,7 @@
 /tools/Docker/custom-ssl.crt
 /.idea/**
 /rough_work/**
+/scratch/**
 /scripts/**
 /doc-build/**
 /checkpoints/**
@@ -18,6 +19,14 @@ __pycache__/
 .venv/**
 fastsurfer.egg-info
 uv.lock
+
+# pytest JUnit reports. junit-results.xml lands in the repo root on *every* local pytest run,
+# because --junit-xml=junit-results.xml is in addopts ([tool.pytest.ini_options] in pyproject.toml).
+# The fastsurfer-{quick,unit}test-*.junit.xml names are what CI produces (per quicktest subject and
+# per unittest matrix entry); CI writes them under /tmp, but they land here when downloaded from a
+# workflow run to inspect a failure.
+/junit-results.xml
+*.junit.xml
 /doc/api/generated/
 /tools/debug-helpers
 .agentbridge/
