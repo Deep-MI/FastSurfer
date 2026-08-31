@@ -471,7 +471,10 @@ echo
 for file in "${copy_files[@]}"
 do
   echo "copying $file"
-  cp -r "$fss/$file" "$fsd/$file"
+  # stop on the first missing file (e.g. after a FreeSurfer version bump moved or renamed it):
+  # continuing would leave an incomplete install that still gets stamped as valid below and, with
+  # --fs-pruned-cache-dir, cached and reused as if it were good
+  cp -r "$fss/$file" "$fsd/$file" || exit 1
 done
 
 # pack if desired with upx (do this before adding all the links)

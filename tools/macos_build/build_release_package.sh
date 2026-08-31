@@ -1,5 +1,13 @@
 #!/bin/bash
 
+# abort on the first failure: nearly every step here feeds the next one, so an unchecked error
+# (a partial cp of fs-pruned, a py2app build that did not produce the .app, a sed that wrote an
+# empty postinstall) otherwise runs on into pkgbuild and yields an installer that looks fine but
+# is incomplete. pipefail additionally covers the "git ls-files | rsync" pipeline below, where a
+# failing git would just hand rsync an empty file list and "succeed".
+set -e
+set -o pipefail
+
 if [[ "$#" -lt 1 ]] || { [[ "$1" != "arm" ]] && [[ "$1" != "intel" ]] ; } ; then
   echo
   echo "Usage:  build_release_package.sh <arm|intel> [--fs-download-cache path] [--fs-pruned-cache-dir dir]"
