@@ -123,6 +123,27 @@ documentation = 'https://fastsurfer.org'
 source = 'https://github.com/Deep-MI/FastSurfer'
 tracker = 'https://github.com/Deep-MI/FastSurfer/issues'
 
+[tool.python]
+# The single python version FastSurfer is built and shipped with: the docker image, the CI jobs
+# and the macOS installer all derive their interpreter from this key.
+#
+# This is deliberately NOT project.requires-python. The two answer different questions:
+#   requires-python is the support floor, a *range*, and is what pip enforces for anyone doing
+#     `pip install fastsurfer`. The unittest CI job pins itself to that floor on purpose, so the
+#     oldest-supported claim stays tested.
+#   tool.python.version is the one *exact* version we build against. Wheels are cp3XX-tagged, so
+#     anything shipping a pre-resolved environment needs an exact version, not a lower bound.
+#
+# Raising this version also requires:
+#   - re-exporting requirements.txt for the new interpreter (tools/export_pip-r.sh)
+#   - the ARG PYTHON_VERSION default in tools/Docker/Dockerfile (a Dockerfile cannot read this
+#     file) and the python-version in .github/workflows/quicktest.yaml (that step provides the
+#     interpreter that reads this file). Both are asserted against this key by
+#     test/config/test_python_version.py, so CI will tell you if you miss one.
+#   - the version quoted in user-facing docs: doc/overview/INSTALL.md, README.md,
+#     Tutorial/README.md
+version = "3.12"
+
 [tool.freesurfer]
 version = "7.4.1"
 # The following URLs use the {version} placeholder, which should be replaced
