@@ -287,6 +287,9 @@ def main(
         output_name: str | None = None,
 ) -> Literal[0] | str:
     """Visualize corpus callosum templates in 2D or 3D."""
+    if values_file is None and mode != "thickness":
+        raise ValueError("--mode is only supported with --values_file")
+
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
     color_range = tuple(color_range) if color_range is not None else None
@@ -325,12 +328,9 @@ def main(
     # 2D visualization
     mid_contour = contours[len(contours) // 2]
 
-    # for now, we only support thickness visualization, this is preparing to plot also p-values and icc values
-    mode = "thickness"
     logger.info(f"Writing output to {output_dir / 'cc_thickness_2d.png'}")
 
-    if mode == "thickness":
-        raw_thickness_values = mid_contour.get_thickness_profile()
+    raw_thickness_values = mid_contour.get_thickness_profile()
     mid_contour.plot_contour_colorfill(
         plot_values=raw_thickness_values,
         title=None,
