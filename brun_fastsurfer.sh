@@ -127,7 +127,12 @@ function warn_old()
 
 function fail_bash_version_lt4()
 {
-  if [[ ! "$(bash --version | head -n 1)" =~ [vV]ersion[[:space:]][4-9] ]]
+  # BASH_VERSINFO is the interpreter actually running this script. Asking `bash --version` instead
+  # inspects whatever bash comes first on PATH, which need not be the same one: the shebang here is
+  # /bin/bash, so on macOS this always runs under Apple's 3.2, and a newer bash on PATH (homebrew
+  # installs one) would let the mapfile calls below through to an interpreter that has no mapfile,
+  # leaving the arrays silently empty instead of reporting this error.
+  if [[ "${BASH_VERSINFO[0]}" -lt 4 ]]
   then
     echo "ERROR: The brun_fastsurfer script requires at minimum bash version 4 for the options --subject_list and"
     echo "  subjects via stdin. Specifying a specific number of concurrent processes (--parallel <num>,"
@@ -679,7 +684,8 @@ function process_by_token()
       fi
     fi # if can spawn and has job in queue
   done
-  if [[ "$(bash --version | head -n 1)" =~ [vV]ersion[[:space:]][4-9] ]] ; then mapfile -t running_jobs < <(jobs -pr)
+  # as in fail_bash_version_lt4: test the running interpreter, not the first bash on PATH
+  if [[ "${BASH_VERSINFO[0]}" -ge 4 ]] ; then mapfile -t running_jobs < <(jobs -pr)
   else running_jobs=()
   fi
   # wait for jobs to finish
