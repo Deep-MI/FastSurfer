@@ -14,8 +14,13 @@
     margin: 0;
     padding: 2px 4px 12px;
   }
-  h2 { font-size: 13px; margin: 14px 0 3px; }
-  p, ul { margin: 3px 0; }
+  h2 {
+    border-top: 1px solid rgba(127, 127, 127, 0.25);
+    font-size: 13px;
+    margin: 20px 0 5px;
+    padding-top: 12px;
+  }
+  p, ul { margin: 4px 0; }
   ul { padding-left: 17px; }
   pre {
     background: rgba(127, 127, 127, 0.14);
@@ -35,36 +40,31 @@
 <p><b>FastSurfer is installed in /Applications/<fastsurfer></b></p>
 
 <h2>Open the FastSurfer console</h2>
-<p>Double-click <b><fastsurfer></b> in your Applications folder. It opens a Terminal window that
-has everything set up &mdash; the Python environment, the pruned FreeSurfer bundled with this
-package, and <code>run_fastsurfer.sh</code> on your <code>PATH</code>. You can recognize it by the
-<code>(<fastsurfer>)</code> prefix in the prompt.</p>
-<p class="muted">Any Terminal window works too, in any shell &mdash; source the same script:</p>
+<p>Double-click <b><fastsurfer></b> in your Applications folder. It opens a Terminal window with
+everything set up, recognizable by the <code>(<fastsurfer>)</code> prompt prefix.</p>
+<p class="muted">Any Terminal window works too, in any shell:</p>
 <pre>source /Applications/<fastsurfer>/macos_setup_fastsurfer.sh</pre>
-<p class="muted">Nothing is added to your shell profile, so this is needed once per Terminal
-window. Putting only the directory on <code>PATH</code> is not enough: FastSurfer also needs the
-bundled Python and <code>FREESURFER_HOME</code>, which the script sets.</p>
+<p class="muted">Your shell profile is not modified, so this is needed once per window.</p>
 
 <h2>Run FastSurfer</h2>
 <p>Segmentation only (no FreeSurfer license needed):</p>
-<pre>run_fastsurfer.sh --seg_only --device mps \
-  --sd &lt;output/dir&gt; --sid &lt;subject_id&gt; --t1 &lt;subject/t1.nii.gz&gt;</pre>
+<pre>run_fastsurfer.sh --seg_only --sid &lt;subject_id&gt; \
+  --t1 /full/path/to/t1.nii.gz --sd /full/path/to/output</pre>
 <p>Full pipeline, including surfaces:</p>
-<pre>run_fastsurfer.sh --device mps --fs_license ~/fs_license.txt \
-  --sd &lt;output/dir&gt; --sid &lt;subject_id&gt; --t1 &lt;subject/t1.nii.gz&gt;</pre>
-<p class="muted"><code>--device mps</code> uses the GPU of Apple silicon Macs and is roughly twice
-as fast as <code>--device cpu</code>.</p>
+<pre>run_fastsurfer.sh --sid &lt;subject_id&gt; --fs_license ~/fs_license.txt \
+  --t1 /full/path/to/t1.nii.gz --sd /full/path/to/output</pre>
+<p class="muted">Give <code>--t1</code> and <code>--sd</code> as full paths; a relative
+<code>--t1</code> is rejected. The Apple GPU is used automatically where available.</p>
 
 <h2>FreeSurfer license</h2>
 <p>The surface pipeline (and <code>--tal_reg</code> for eTIV) needs a free FreeSurfer license:
-<a href="https://surfer.nmr.mgh.harvard.edu/registration.html">register here</a>, then save the
-license file in your home directory and pass it with <code>--fs_license</code>. It cannot be stored
-inside the bundled FreeSurfer, which this installer wrote as <code>root</code>.</p>
+<a href="https://surfer.nmr.mgh.harvard.edu/registration.html">register here</a>, save the file in
+your home directory and pass it with <code>--fs_license</code>. It cannot live inside the bundled
+FreeSurfer, which is installed as <code>root</code>.</p>
 
 <h2>Uninstalling</h2>
-<p>Drag both <b><fastsurfer></b> and <b><fastsurfer>.app</b> from your Applications folder to the
-Trash; macOS asks for your password. Nothing is installed outside that directory and no shell
-profile is modified, so that is all there is to remove.</p>
+<p>Drag both <b><fastsurfer></b> and <b><fastsurfer>.app</b> to the Trash; macOS asks for your
+password. Nothing is installed elsewhere, so that is all there is to remove.</p>
 
 <h2>Documentation</h2>
 <ul>
