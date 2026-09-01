@@ -329,6 +329,10 @@ fi
 PYTHONPATH="$FASTSURFER_TO_PACKAGE" "$BUNDLED_INTERPRETER" \
     "$FASTSURFER_TO_PACKAGE/FastSurferCNN/version.py" --sections "$version_sections" \
     --build_cache "$git_build_info" -o "$FASTSURFER_TO_PACKAGE/BUILD.info"
+# Both generated sections name absolute paths, the checkpoint files and pip's Location column, and
+# they are written from the staging tree. finalize_bundled_python.py only retargets python/, so
+# rewrite them here or the installed --version reports build-machine paths.
+sed -i '' -e "s|$FASTSURFER_TO_PACKAGE|$PATH_TO_FASTSURFER|g" "$FASTSURFER_TO_PACKAGE/BUILD.info"
 rm -f "$git_build_info"
 sed -n '1p' "$FASTSURFER_TO_PACKAGE/BUILD.info" | sed 's/^/  /'
 grep -cE "^[a-z_ ]+:$" "$FASTSURFER_TO_PACKAGE/BUILD.info" | sed 's/^/  sections recorded: /'
