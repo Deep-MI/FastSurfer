@@ -78,8 +78,11 @@ ARCH_TYPE_NAME="arm64"
 if [[ "$ARCH_TYPE" = "intel" ]] ; then ARCH_TYPE_NAME="x86_64" ; fi
 
 RESOURCES_DIR="$build_dir/resources"
-# name of the package displayed in the installer
-PACKAGE_NAME=FastSurfer$VERSION_NO_DOTS-macos-darwin_${ARCH_TYPE_NAME}
+# File name of the installer. Deliberately carries no version, so the docs can link to
+# releases/latest/download/<PACKAGE_NAME>.pkg, which GitHub only resolves for a fixed name.
+PACKAGE_NAME=FastSurfer-macos-darwin_${ARCH_TYPE_NAME}
+# ... so the version has to be shown somewhere else: this is the installer's window title
+PACKAGE_TITLE=FastSurfer$VERSION_NO_DOTS-macos-darwin_${ARCH_TYPE_NAME}
 # package identifier (f.e. com.mycompany.productid)
 ID="org.deep-mi.FastSurfer.${VERSION_NO_DOTS}_${ARCH_TYPE_NAME}"
 # install location for the content of the package
@@ -455,8 +458,8 @@ DISTRIBUTION_FILE="$RESOURCES_DIR/distribution.xml"
 productbuild --synthesize --package "$OUTPUT_PKG" "$DISTRIBUTION_FILE"
 
 # edit the distribution file
-# set title to package name (f.e. package_name.pkg -> <title>package_name</title>)
-python3 "$build_dir/edit_distribution.py" --file "$DISTRIBUTION_FILE" --title "$PACKAGE_NAME"
+# the title is what the installer window shows, so it carries the version, unlike the file name
+python3 "$build_dir/edit_distribution.py" --file "$DISTRIBUTION_FILE" --title "$PACKAGE_TITLE"
 
 # create installer package
 mkdir -p "$build_dir/installer"
