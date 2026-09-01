@@ -2,11 +2,19 @@
 
 export FASTSURFER_HOME=/Applications/<fastsurfer>
 
+# Prepend to PATH unless already present, so repeated sourcing does not grow it without bound.
+fastsurfer_prepend_path() {
+    case ":$PATH:" in
+        *":$1:"*) ;;
+        *) export PATH="$1:$PATH" ;;
+    esac
+}
+
 # The package bundles its own python distribution, so putting its bin first is all that is needed
 # for python3 to resolve to it; there is no virtual environment to activate. Its site-packages is
 # found via the prefix and deliberately kept off PYTHONPATH, which would otherwise let an unrelated
 # python on PATH import binary extensions built for this interpreter.
-export PATH="$FASTSURFER_HOME/python/bin:$PATH"
+fastsurfer_prepend_path "$FASTSURFER_HOME/python/bin"
 
 # $FASTSURFER_HOME first, matching what run_fastsurfer.sh does before invoking python: FastSurfer's
 # own modules live there, shipped as a source tree rather than installed into the bundle.
@@ -22,22 +30,35 @@ echo
 echo "This is the FastSurfer console. Call \`run_fastsurfer.sh -t1 ...\` in here! " 
 echo "See also https://deep-mi.org/FastSurfer/stable/overview/INSTALL.html#macos"
 
+# run_fastsurfer.sh lives here. Set unconditionally: the console has to work in every session, not
+# only the first one, so this must not depend on whether the profile was already updated below.
+fastsurfer_prepend_path "$FASTSURFER_HOME"
+
 # GNU grep, if homebrew provides it. The package bundles everything it runs and does not need
 # homebrew, so this is skipped rather than failing when brew is absent.
+gnubin=""
 if command -v brew > /dev/null 2>&1 ; then
     gnubin="$(brew --prefix)/opt/grep/libexec/gnubin"
-    if [[ -d "$gnubin" ]] && ! grep -q "export PATH=\"$gnubin:\$PATH\"" ~/.bash_profile 2>/dev/null; then
-        echo "export PATH=\"$gnubin:\$PATH\"" >> ~/.bash_profile;
-        export PATH="$gnubin:$PATH"
-        echo "GNU grep has been added to path"
-    fi
+    if [[ -d "$gnubin" ]] ; then fastsurfer_prepend_path "$gnubin" ; else gnubin="" ; fi
 fi
 
-if ! grep -q "export PATH=\"$FASTSURFER_HOME:\$PATH\"" ~/.bash_profile 2>/dev/null; then 
-    echo "export PATH=\"$FASTSURFER_HOME:\$PATH\"" >> ~/.bash_profile; 
-    export PATH="$FASTSURFER_HOME:$PATH"
-    echo "FastSurfer dir has been added to path"
-fi
+# Persist for plain Terminal windows that do not source this script. Write to the profile the login
+# shell actually reads: zsh is the macOS default and never reads ~/.bash_profile, so persisting
+# there silently did nothing.
+case "$(basename "${SHELL:-/bin/zsh}")" in
+    zsh) fastsurfer_profile="$HOME/.zprofile" ;;
+    *)   fastsurfer_profile="$HOME/.bash_profile" ;;
+esac
+for fastsurfer_dir in "$gnubin" "$FASTSURFER_HOME" ; do
+    [[ -z "$fastsurfer_dir" ]] && continue
+    fastsurfer_line="export PATH=\"$fastsurfer_dir:\$PATH\""
+    if ! grep -qF "$fastsurfer_line" "$fastsurfer_profile" 2>/dev/null ; then
+        echo "$fastsurfer_line" >> "$fastsurfer_profile"
+        echo "$fastsurfer_dir has been added to PATH in $fastsurfer_profile"
+    fi
+done
+unset -f fastsurfer_prepend_path
+unset gnubin fastsurfer_profile fastsurfer_dir fastsurfer_line
 
 if [[ -z "${FS_LICENSE}" ]]; then 
     echo "Set FS_LICENSE environmental variable"
