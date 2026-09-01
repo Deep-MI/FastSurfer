@@ -3,7 +3,7 @@
 # The applet starts `bash --init-file <this script>`, which reads this file *instead of* ~/.bashrc.
 # Load that first, so the console keeps the user's own aliases and settings while FastSurfer's PATH
 # entries and prompt marker below still win.
-if [[ -n "$FASTSURFER_CONSOLE" ]]; then
+if [[ -n "${FASTSURFER_CONSOLE-}" ]]; then
     [[ -r "$HOME/.bashrc" ]] && source "$HOME/.bashrc"
     # one-shot: it is exported, and a shell started from the console is not reading an init file
     unset FASTSURFER_CONSOLE
@@ -26,13 +26,22 @@ fastsurfer_prepend_path "$FASTSURFER_HOME/python/bin"
 
 # $FASTSURFER_HOME first, matching what run_fastsurfer.sh does before invoking python: FastSurfer's
 # own modules live there, shipped as a source tree rather than installed into the bundle.
-export PYTHONPATH="$FASTSURFER_HOME:$PYTHONPATH"
+export PYTHONPATH="$FASTSURFER_HOME${PYTHONPATH:+:$PYTHONPATH}"
 
 export FREESURFER_HOME=$FASTSURFER_HOME/fs-pruned
+# SetUpFreeSurfer.sh and the FreeSurferEnv.sh it sources are not written for strict mode: they read
+# variables unguarded and run commands whose failure is normal, so they abort a caller that sourced
+# us with `set -u` or `set -e`. Suspend both across them and restore whatever the caller had.
+fastsurfer_caller_opts="$-"
+set +ue
 source $FREESURFER_HOME/SetUpFreeSurfer.sh > /dev/null
+case "$fastsurfer_caller_opts" in *u*) set -u ;; esac
+case "$fastsurfer_caller_opts" in *e*) set -e ;; esac
+unset fastsurfer_caller_opts
 
-# mark the shell, as a virtual environment's activate script would
-PS1="(<fastsurfer>) $PS1"
+# mark the shell, as a virtual environment's activate script would. PS1 is unset in a
+# non-interactive shell, hence the default.
+PS1="(<fastsurfer>) ${PS1-}"
 
 echo
 echo "This is the FastSurfer console. Call \`run_fastsurfer.sh -t1 ...\` in here! " 
@@ -57,6 +66,6 @@ fi
 # this script is the whole setup, and the package leaves no per-version leftovers in dotfiles.
 unset -f fastsurfer_prepend_path
 
-if [[ -z "${FS_LICENSE}" ]]; then 
+if [[ -z "${FS_LICENSE-}" ]]; then
     echo "Set FS_LICENSE environmental variable"
 fi
