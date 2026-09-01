@@ -181,10 +181,10 @@ Continue with the example in [Example 2](EXAMPLES.md#example-2-fastsurfer-docker
 
 #### 1. Requirements
 Only the shells macOS already ships: `/bin/bash` (at least 3.2) for FastSurfer's own scripts and
-`/bin/tcsh` for the FreeSurfer ones. Your own login shell does not matter -- zsh, the macOS default,
-is fine. No Python installation and no Homebrew are needed: the package bundles its own Python, all
-Python dependencies, the network checkpoints and a reduced FreeSurfer, so installing it requires no
-internet connection and downloads nothing.
+`/bin/tcsh` for the FreeSurfer ones. Your own Terminal shell needs to be bash or zsh -- zsh is the
+macOS default, so this is the usual case. No Python installation and no Homebrew are needed: the
+package bundles its own Python, all Python dependencies, the network checkpoints and a reduced
+FreeSurfer, so installing it requires no internet connection and downloads nothing.
 
 In exchange the installer is large: expect a download of under a gigabyte and a couple of gigabytes
 of disk space once installed.
@@ -227,11 +227,13 @@ or, for the full pipeline:
 run_fastsurfer.sh --device mps --sd <path/to/output/dir> --sid <subject_id> --t1 <path/to/subjects/t1/image> --fs_license ~/fs_license.txt
 ```
 
-You do not need to use the applet: you can set up exactly the same environment in any Terminal window by sourcing the same script, whatever your shell:
+You do not need to use the applet: in a bash or zsh Terminal window, you can set up exactly the same environment by sourcing the same script:
 
 ```sh
 source /Applications/FastSurfer<version>/macos_setup_fastsurfer.sh
 ```
+
+The script is bash syntax, so from a shell that does not understand it, such as tcsh or fish, start a `bash` (or `zsh`) session first and source it in there.
 
 Adding only the FastSurfer directory to your `PATH` instead is not enough and is best avoided: `run_fastsurfer.sh` would be found, but `python3` would still be Apple's system Python -- too old for FastSurfer -- and `FREESURFER_HOME` would be unset, so it fails with a confusing error. Sourcing the script sets all of it.
 
