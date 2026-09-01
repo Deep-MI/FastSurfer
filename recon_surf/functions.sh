@@ -90,7 +90,11 @@ function time_it()
     # functions.sh is sourced. Repeating it per timed command only buries the real output.
     "${cmd[@]}"
   fi
-  if [[ "${PIPESTATUS[0]}" != 0 ]] ; then exit "${PIPESTATUS[0]}" ; fi
+  # Capture the status before testing it. A test is itself a command, so it overwrites PIPESTATUS:
+  # reading PIPESTATUS again inside the branch yields the status of the test (0), not of cmd, which
+  # made this exit 0 on failure -- stopping the pipeline while reporting success.
+  local exit_status="${PIPESTATUS[0]}"
+  if [[ "$exit_status" != 0 ]] ; then exit "$exit_status" ; fi
 }
 
 function RunIt()
