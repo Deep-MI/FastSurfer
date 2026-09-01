@@ -1,5 +1,15 @@
 #!/bin/bash
 
+# The applet starts `bash --init-file <this script>`, so that the FastSurfer console works whatever
+# shell Terminal is configured to open. bash then reads this file *instead of* ~/.bashrc, so load
+# that first to keep the console a normal shell with the user's own aliases and settings. It runs
+# before everything below, so FastSurfer's own PATH entries and the prompt marker still win.
+if [[ -n "$FASTSURFER_CONSOLE" ]]; then
+    [[ -r "$HOME/.bashrc" ]] && source "$HOME/.bashrc"
+    # one-shot: it is exported, and a shell started from the console is not reading an init file
+    unset FASTSURFER_CONSOLE
+fi
+
 export FASTSURFER_HOME=/Applications/<fastsurfer>
 
 # Prepend to PATH unless already present, so repeated sourcing does not grow it without bound.
@@ -28,7 +38,7 @@ PS1="(<fastsurfer>) $PS1"
 
 echo
 echo "This is the FastSurfer console. Call \`run_fastsurfer.sh -t1 ...\` in here! " 
-echo "In any other Terminal window, set up the same environment with:"
+echo "In any other bash or zsh Terminal window, set up the same environment with:"
 echo "  source $FASTSURFER_HOME/macos_setup_fastsurfer.sh"
 echo "See also https://deep-mi.org/FastSurfer/stable/overview/INSTALL.html#macos"
 

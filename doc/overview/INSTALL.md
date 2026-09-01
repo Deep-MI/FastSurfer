@@ -181,10 +181,11 @@ Continue with the example in [Example 2](EXAMPLES.md#example-2-fastsurfer-docker
 
 #### 1. Requirements
 Only the shells macOS already ships: `/bin/bash` (at least 3.2) for FastSurfer's own scripts and
-`/bin/tcsh` for the FreeSurfer ones. Your own Terminal shell needs to be bash or zsh -- zsh is the
-macOS default, so this is the usual case. No Python installation and no Homebrew are needed: the
-package bundles its own Python, all Python dependencies, the network checkpoints and a reduced
-FreeSurfer, so installing it requires no internet connection and downloads nothing.
+`/bin/tcsh` for the FreeSurfer ones. Your own Terminal shell does not matter -- the applet starts a
+bash session itself -- though setting the environment up by hand (see below) needs bash or zsh. No
+Python installation and no Homebrew are needed: the package bundles its own Python, all Python
+dependencies, the network checkpoints and a reduced FreeSurfer, so installing it requires no
+internet connection and downloads nothing.
 
 In exchange the installer is large: expect a download of under a gigabyte and a couple of gigabytes
 of disk space once installed.
@@ -210,11 +211,12 @@ After installation, you can find the FastSurfer applet, its source code, and sel
 
 #### 3. Launching FastSurfer
 
-To launch a configured FastSurfer terminal session, start the FastSurfer applet from Applications. This opens a regular Terminal window running a FastSurfer console: a shell with everything already set up to run FastSurfer, recognizable by the `(FastSurfer<version>)` prompt prefix. It:
+To launch a configured FastSurfer terminal session, start the FastSurfer applet from Applications. This opens a regular Terminal window running a FastSurfer console: a bash session with everything already set up to run FastSurfer, recognizable by the `(FastSurfer<version>)` prompt prefix. It:
 - puts the Python distribution bundled with FastSurfer (`FASTSURFER_HOME/python`) first on `PATH`,
 - sets `FASTSURFER_HOME` and `PYTHONPATH`,
 - sets `FREESURFER_HOME` to the pruned FreeSurfer installation bundled with FastSurfer and sources `SetUpFreeSurfer.sh`,
-- adds the FastSurfer directory (and GNU `grep`, if you happen to have it via Homebrew) to your `PATH`, for this session only -- no shell profile is modified, and
+- adds the FastSurfer directory (and GNU `grep`, if you happen to have it via Homebrew) to your `PATH`, for this session only -- no shell profile is modified,
+- reads your `~/.bashrc` first, if you have one, so your own aliases and settings are still there, and
 - reminds you to set `FS_LICENSE` if it is not already set (see "FreeSurfer license" below).
 
 In this console, you can run the full FastSurfer pipeline by typing and executing `run_fastsurfer.sh <fastsurfer-flags>`, where you replace `<fastsurfer-flags>` with the appropriate [commandline flags of FastSurfer](../../README.md#usage), for example:
