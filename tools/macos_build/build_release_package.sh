@@ -268,31 +268,32 @@ cp -R "$checkpoints_dir" "$FASTSURFER_TO_PACKAGE/checkpoints"
 # and version.py then refuses to compute a section itself, failing with "Could not find a valid
 # value for checkpoints!" if the cache lacks one it was asked for.
 #
-# Two passes, because the sections have different correct sources:
+# Two passes, because the sections have different correct sources -- the same approach the docker
+# build takes (see the version.py call at the end of tools/Docker/Dockerfile):
 #   git      - only the checkout knows it, and only version.py run from there can read it
 #   the rest - must describe what is *shipped*: the checkpoints staged into the package (which may
 #             come from --checkpoints-dir rather than the checkout) and the packages in the bundled
 #             environment, not whatever the build machine's python3 happens to have installed
+# The second pass takes the first as --build_cache, so version.py merges them itself.
 echo "Recording build provenance ..."
+git_build_info="$build_dir/BUILD.info.git"
 if git -C "$FASTSURFER_HOME" rev-parse --git-dir > /dev/null 2>&1
 then
-  version_sections=("--sections" "+git")
+  version_sections="+git+checkpoints+pip"
+  PYTHONPATH="$FASTSURFER_HOME" python3 "$FASTSURFER_HOME/FastSurferCNN/version.py" \
+      --sections +git -o "$git_build_info"
 else
   # a source tarball has no git, and +git would fail on the missing status; the version alone is
   # still better than the placeholder
   echo "  not a git checkout: recording the version without commit information"
-  version_sections=()
+  version_sections="+checkpoints+pip"
+  PYTHONPATH="$FASTSURFER_HOME" python3 "$FASTSURFER_HOME/FastSurferCNN/version.py" \
+      -o "$git_build_info"
 fi
-PYTHONPATH="$FASTSURFER_HOME" python3 "$FASTSURFER_HOME/FastSurferCNN/version.py" \
-    "${version_sections[@]}" -o "$FASTSURFER_TO_PACKAGE/BUILD.info"
-# second pass from inside the package, so version.py's project root is the staged tree
 PYTHONPATH="$FASTSURFER_TO_PACKAGE" "$BUNDLED_INTERPRETER" \
-    "$FASTSURFER_TO_PACKAGE/FastSurferCNN/version.py" --sections +checkpoints+pip \
-    -o "$FASTSURFER_TO_PACKAGE/BUILD.info.parts"
-# append only the section blocks; line 1 is a version line without git info, which would override
-# the one written above
-sed -n '2,$p' "$FASTSURFER_TO_PACKAGE/BUILD.info.parts" >> "$FASTSURFER_TO_PACKAGE/BUILD.info"
-rm -f "$FASTSURFER_TO_PACKAGE/BUILD.info.parts"
+    "$FASTSURFER_TO_PACKAGE/FastSurferCNN/version.py" --sections "$version_sections" \
+    --build_cache "$git_build_info" -o "$FASTSURFER_TO_PACKAGE/BUILD.info"
+rm -f "$git_build_info"
 sed -n '1p' "$FASTSURFER_TO_PACKAGE/BUILD.info" | sed 's/^/  /'
 grep -cE "^[a-z_ ]+:$" "$FASTSURFER_TO_PACKAGE/BUILD.info" | sed 's/^/  sections recorded: /'
 
