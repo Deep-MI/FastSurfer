@@ -39,8 +39,11 @@
 has everything set up &mdash; the Python environment, the pruned FreeSurfer bundled with this
 package, and <code>run_fastsurfer.sh</code> on your <code>PATH</code>. You can recognize it by the
 <code>(<fastsurfer>)</code> prefix in the prompt.</p>
-<p class="muted">Afterwards any Terminal window works too: run
-<code>source macos_setup_fastsurfer.sh</code>.</p>
+<p class="muted">Any Terminal window works too, in any shell &mdash; source the same script:</p>
+<pre>source /Applications/<fastsurfer>/macos_setup_fastsurfer.sh</pre>
+<p class="muted">Nothing is added to your shell profile, so this is needed once per Terminal
+window. Putting only the directory on <code>PATH</code> is not enough: FastSurfer also needs the
+bundled Python and <code>FREESURFER_HOME</code>, which the script sets.</p>
 
 <h2>Run FastSurfer</h2>
 <p>Segmentation only (no FreeSurfer license needed):</p>
@@ -57,6 +60,11 @@ as fast as <code>--device cpu</code>.</p>
 <a href="https://surfer.nmr.mgh.harvard.edu/registration.html">register here</a>, then save the
 license file in your home directory and pass it with <code>--fs_license</code>. It cannot be stored
 inside the bundled FreeSurfer, which this installer wrote as <code>root</code>.</p>
+
+<h2>Uninstalling</h2>
+<p>Drag both <b><fastsurfer></b> and <b><fastsurfer>.app</b> from your Applications folder to the
+Trash; macOS asks for your password. Nothing is installed outside that directory and no shell
+profile is modified, so that is all there is to remove.</p>
 
 <h2>Documentation</h2>
 <ul>
