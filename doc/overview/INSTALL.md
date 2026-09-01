@@ -213,9 +213,10 @@ In exchange the installer is large: expect a download of under a gigabyte and a 
 of disk space once installed.
 
 #### 2. FastSurfer package
-From version 2.5 onward, FastSurfer ships macOS installer packages on the
-[GitHub Releases page](https://github.com/Deep-MI/FastSurfer/releases/).
-Open the latest release, expand the **Assets** section, and download the `arm64` installer.
+Download **[FastSurfer-macos-darwin_arm64.pkg](https://github.com/Deep-MI/FastSurfer/releases/latest/download/FastSurfer-macos-darwin_arm64.pkg)**,
+which always points at the newest release. Its version is shown in the installer window, and after
+installing by `run_fastsurfer.sh --version`. Earlier versions are on the
+[releases page](https://github.com/Deep-MI/FastSurfer/releases/).
 
 To install, double-click the downloaded `.pkg` installer and follow the installer instructions.
 
