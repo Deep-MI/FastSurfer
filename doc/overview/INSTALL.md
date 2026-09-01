@@ -180,11 +180,14 @@ Continue with the example in [Example 2](EXAMPLES.md#example-2-fastsurfer-docker
 ### Package
 
 #### 1. Requirements
-macOS 15 (Sequoia) or newer, on either Apple silicon or Intel. Download the installer that matches
-your Mac (see below); the two are not interchangeable. The packages are built on macOS 15, and the
-bundled binaries come from upstream wheels whose own minimum can rise with any dependency update, so
-that is the version we test and support. An older macOS may happen to work, but we cannot promise it
-from one release to the next.
+An Apple silicon Mac (M1/M2/M3/...) running macOS 15 (Sequoia) or newer. **Intel Macs cannot use the
+package**: PyTorch has published no macOS x86_64 wheels since 2.2, so the environment the package
+bundles cannot be built for them. On an Intel Mac, use [Docker](#docker-currently-only-supported-for-intel-cpus)
+above instead, which runs natively there and supports the full pipeline.
+
+The package is built on macOS 15, and its binaries come from upstream wheels whose own minimum can
+rise with any dependency update, so that is the version we test and support. An older macOS may
+happen to work, but we cannot promise it from one release to the next.
 
 Only the shells macOS already ships: `/bin/bash` (at least 3.2) for FastSurfer's own scripts and
 `/bin/tcsh` for the FreeSurfer ones. Your own Terminal shell does not matter -- the applet starts a
@@ -212,9 +215,7 @@ of disk space once installed.
 #### 2. FastSurfer package
 From version 2.5 onward, FastSurfer ships macOS installer packages on the
 [GitHub Releases page](https://github.com/Deep-MI/FastSurfer/releases/).
-Open the latest release, expand the **Assets** section, and download the installer that matches your Mac:
-- `arm64` for Apple silicon (M1/M2/M3/...)
-- `x86_64` for Intel Macs
+Open the latest release, expand the **Assets** section, and download the `arm64` installer.
 
 To install, double-click the downloaded `.pkg` installer and follow the installer instructions.
 
