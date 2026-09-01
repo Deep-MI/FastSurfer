@@ -266,12 +266,12 @@ echo "Checking the macOS deployment target of the bundled binaries ..."
 macos_min_found="$( { otool -l "$BUNDLED_INTERPRETER" ;
     find "$BUNDLED_PYTHON" -type f \( -name "*.so" -o -name "*.dylib" \) -print0 \
       | xargs -0 otool -l 2>/dev/null ; } \
-  | awk '/^ *minos /{print $2}' | sort -V | tail -1 )"
+  | awk '/^ *minos /{print $2}' | sort -t. -k1,1n -k2,2n -k3,3n | tail -1 )"
 if [[ -z "$macos_min_found" ]]
 then
   echo "ERROR: could not read a deployment target from any bundled binary." >&2
   exit 1
-elif [[ "$(printf '%s\n%s\n' "$MACOS_MIN_SUPPORTED" "$macos_min_found" | sort -V | tail -1)" != "$MACOS_MIN_SUPPORTED" ]]
+elif [[ "$(printf '%s\n%s\n' "$MACOS_MIN_SUPPORTED" "$macos_min_found" | sort -t. -k1,1n -k2,2n -k3,3n | tail -1)" != "$MACOS_MIN_SUPPORTED" ]]
 then
   echo "ERROR: a bundled binary needs macOS $macos_min_found, above the supported $MACOS_MIN_SUPPORTED." >&2
   echo "  Raise it here and in doc/overview/INSTALL.md together." >&2
