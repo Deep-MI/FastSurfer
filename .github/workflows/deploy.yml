@@ -11,7 +11,9 @@ permissions:
 
 jobs:
   deploy-mac:
-    runs-on: macos-14
+    # uv resolves the bundled python and wheels for the host, so each package needs a runner of its
+    # own architecture; build_release_package.sh fails on a mismatch.
+    runs-on: ${{ matrix.arch == 'arm' && 'macos-15' || 'macos-15-intel' }}
     timeout-minutes: 60
     strategy:
       matrix:
@@ -51,10 +53,11 @@ jobs:
         uses: actions/cache@v4
         with:
           path: tools/macos_build/.venv-py2app
-          # py2app itself isn't pinned (matching prior behavior), so this key is coarse (OS only);
-          # if a bad py2app release ever causes trouble here the way sphinx-argparse did for docs,
-          # pin the version in build_release_package.sh and fold it into this key too
-          key: py2app-venv-${{ runner.os }}
+          # py2app itself isn't pinned (matching prior behavior), so this key is coarse; if a bad
+          # release ever causes trouble the way sphinx-argparse did for docs, pin the version in
+          # build_release_package.sh and fold it in here too.
+          # matrix.arch is needed because runner.os is "macOS" on both, and this venv is arch specific
+          key: py2app-venv-${{ runner.os }}-${{ matrix.arch }}
       - name: Resolve cache keys
         id: fs_cache
         run: |

@@ -180,12 +180,31 @@ Continue with the example in [Example 2](EXAMPLES.md#example-2-fastsurfer-docker
 ### Package
 
 #### 1. Requirements
+macOS 15 (Sequoia) or newer, on either Apple silicon or Intel. Download the installer that matches
+your Mac (see below); the two are not interchangeable. The packages are built on macOS 15, and the
+bundled binaries come from upstream wheels whose own minimum can rise with any dependency update, so
+that is the version we test and support. An older macOS may happen to work, but we cannot promise it
+from one release to the next.
+
 Only the shells macOS already ships: `/bin/bash` (at least 3.2) for FastSurfer's own scripts and
 `/bin/tcsh` for the FreeSurfer ones. Your own Terminal shell does not matter -- the applet starts a
 bash session itself -- though setting the environment up by hand (see below) needs bash or zsh. No
 Python installation and no Homebrew are needed: the package bundles its own Python, all Python
 dependencies, the network checkpoints and a reduced FreeSurfer, so installing it requires no
 internet connection and downloads nothing.
+
+On Apple silicon, the full pipeline additionally needs **Rosetta 2**. FastSurfer bundles the
+official FreeSurfer build, which upstream currently ships for Intel only, so the FreeSurfer
+executables run through Rosetta even in the Apple silicon package. Segmentation
+(`--seg_only`) does not use them and works without it. Most Macs already have Rosetta 2, and if not,
+you can install it once with:
+
+```sh
+softwareupdate --install-rosetta
+```
+
+Note this is the one step that does need an internet connection, so install it before you rely on
+the package being fully offline.
 
 In exchange the installer is large: expect a download of under a gigabyte and a couple of gigabytes
 of disk space once installed.

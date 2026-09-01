@@ -217,6 +217,18 @@ rm -rf "$BUNDLED_PYTHON"
 cp -R "$standalone_root" "$BUNDLED_PYTHON"
 BUNDLED_INTERPRETER="$BUNDLED_PYTHON/bin/python$PYTHON_VERSION"
 
+# uv installs a python for the host architecture and resolves the wheels for it, while $ARCH_TYPE
+# only names the package. On the wrong runner that ships arm64 binaries as darwin_x86_64.
+interpreter_archs="$(lipo -archs "$BUNDLED_INTERPRETER")"
+case " $interpreter_archs " in
+  *" $ARCH_TYPE_NAME "*) echo "  bundled python is $interpreter_archs, matching the package name" ;;
+  *)
+    echo "ERROR: an $ARCH_TYPE_NAME package needs an $ARCH_TYPE_NAME host," >&2
+    echo "  but the bundled python is $interpreter_archs." >&2
+    exit 1
+    ;;
+esac
+
 # Dependencies go into the distribution's own site-packages, with no virtual environment in
 # between. A venv records its location in pyvenv.cfg and its activate scripts, none of which
 # survive the move to the install directory, and it duplicates the interpreter. The distribution
@@ -246,6 +258,29 @@ fi
 # PYTHONPATH. Installing it as well would put a second, shadowed copy of every module in
 # site-packages, which is how the console and the pipeline previously ended up importing different
 # copies of the same module.
+
+# The oldest macOS the package runs on is set by the wheels, not by us (numpy and scipy are at 14
+# today, against the interpreter's 11.0), and uv accepts platform tags up to the build host's
+# version, so the host caps how far it can rise. Hence the runner's macOS here rather than today's
+# measured value, which makes this a guard against bumping the runner in .github/workflows/deploy.yml
+# without updating doc/overview/INSTALL.md.
+MACOS_MIN_SUPPORTED="15.0"
+echo "Checking the macOS deployment target of the bundled binaries ..."
+macos_min_found="$( { otool -l "$BUNDLED_INTERPRETER" ;
+    find "$BUNDLED_PYTHON" -type f \( -name "*.so" -o -name "*.dylib" \) -print0 \
+      | xargs -0 otool -l 2>/dev/null ; } \
+  | awk '/^ *minos /{print $2}' | sort -V | tail -1 )"
+if [[ -z "$macos_min_found" ]]
+then
+  echo "ERROR: could not read a deployment target from any bundled binary." >&2
+  exit 1
+elif [[ "$(printf '%s\n%s\n' "$MACOS_MIN_SUPPORTED" "$macos_min_found" | sort -V | tail -1)" != "$MACOS_MIN_SUPPORTED" ]]
+then
+  echo "ERROR: a bundled binary needs macOS $macos_min_found, above the supported $MACOS_MIN_SUPPORTED." >&2
+  echo "  Raise it here and in doc/overview/INSTALL.md together." >&2
+  exit 1
+fi
+echo "  highest deployment target: macOS $macos_min_found (supported: $MACOS_MIN_SUPPORTED)"
 
 # ============================ BUNDLED CHECKPOINTS =========================================
 # Ship the network weights, so a fresh install does not have to download them on first run.
