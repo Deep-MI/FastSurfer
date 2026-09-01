@@ -128,9 +128,9 @@ tracker = 'https://github.com/Deep-MI/FastSurfer/issues'
 #
 # Who uses it today:
 #   - tools/Docker/build.py reads this key and passes it to the build as PYTHON_VERSION.
-#   - tools/macos_build/build_release_package.sh reads it and substitutes it into the installer's
-#     postinstall (which creates the venv from homebrew's python<version>) and into
-#     macos_setup_fastsurfer.sh (which needs the venv's lib/python<version> path).
+#   - tools/macos_build/build_release_package.sh reads it to fetch the relocatable standalone
+#     CPython it bundles into the installer, and substitutes it into the paths that name the
+#     version: python/bin/python<version>, python/lib/python<version>/site-packages.
 #   - Two places keep a hardcoded copy because neither can read this file: the ARG PYTHON_VERSION
 #     default in tools/Docker/Dockerfile (a Dockerfile cannot parse toml) and the python-version
 #     in .github/workflows/quicktest.yaml (that step provides the interpreter which then reads

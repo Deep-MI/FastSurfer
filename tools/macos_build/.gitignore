@@ -5,9 +5,12 @@ installer/
 
 .eggs
 build
-scripts/postinstall
-scripts_intell/postinstall
 dist/
 resources/
 FastSurferPackageContent/
 .venv-py2app/
+# the installer scripts are now generated into their own directory rather than into scripts/, so
+# nothing generated lands in the tracked source tree
+pkg-scripts/
+# standalone python distributions fetched by uv for bundling
+.uv-pythons/

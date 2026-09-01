@@ -1,50 +1,50 @@
 #!/bin/bash
 set -e
 
-FASTSURFER_HOME="<fastsurfer_home_dir>"
-PYTHON="python<python_version>"
-SCRIPT_DIR="$(dirname $0)"
+# The package ships a complete, self-contained python distribution (python/) with all dependencies
+# already installed, plus the network checkpoints. This script therefore does no downloading, no
+# pip install and no environment creation: it only wires up the parts that depend on the final
+# install location.
 
-if [[ ! -x "<homebrew_dir>/bin/$PYTHON" ]]
+FASTSURFER_HOME="<fastsurfer_home_dir>"
+SCRIPT_DIR="$(dirname $0)"
+PYTHON="$FASTSURFER_HOME/python/bin/python<python_version>"
+
+# Clear the quarantine flag before anything else runs the bundled binaries. Everything here arrives
+# from a downloaded, unsigned package: the FreeSurfer executables, the python interpreter and the
+# compiled extensions in site-packages (torch, SimpleITK, ...). Without this, Gatekeeper refuses to
+# load them and the failure surfaces much later as an obscure import or exec error.
+# 2>/dev/null || true: xattr fails on paths that never had the attribute, which is not an error.
+xattr -dr com.apple.quarantine "$FASTSURFER_HOME" 2>/dev/null || true
+
+# Fail here rather than at first use if the bundled distribution did not survive packaging.
+if [[ ! -x "$PYTHON" ]]
 then
-  # without this, the venv call below just fails with "No such file or directory" and set -e
-  # aborts the install, leaving the user with the installer's generic failure dialog
-  echo "ERROR: <homebrew_dir>/bin/$PYTHON not found." >&2
-  echo "  FastSurfer needs $PYTHON; install it with 'brew install python@<python_version>'" >&2
-  echo "  and run this installer again." >&2
+  echo "ERROR: the bundled python is missing at $PYTHON." >&2
+  echo "  The package appears to be incomplete; please report this with the installer version." >&2
+  exit 1
+fi
+if ! "$PYTHON" -c "import torch, numpy, nibabel" > /dev/null 2>&1
+then
+  echo "ERROR: the bundled python at $PYTHON cannot import its own dependencies." >&2
+  echo "  Diagnose with: $PYTHON -c 'import torch'" >&2
   exit 1
 fi
 
-# Always build the run environment from scratch rather than reusing whatever is there.
-# $FASTSURFER_HOME is version-suffixed, so a release bump installs into a fresh directory, but dev
-# builds reuse the version string (as does a rebuilt release), and a leftover venv there may even
-# have been created by a different python. Reusing such a venv is not merely incomplete: it has no
-# bin/$PYTHON, so $PYTHON resolves to homebrew's interpreter *outside* the venv and pip installs
-# FastSurfer plus its dependencies into the user's homebrew python (not PEP 668 marked, so nothing
-# refuses) while the venv stays empty. Recreating also drops packages that a previous install
-# pulled in but the current dependency set no longer contains.
-# --clear empties the directory if it exists, so the replacement happens without rm -rf'ing a path
-# assembled from a build-time substitution.
-echo "Creating FastSurfer run environment"
-"<homebrew_dir>/bin/$PYTHON" -m venv --copies --clear "$FASTSURFER_HOME/venv"
-
-# call the venv interpreter by absolute path instead of relying on PATH after activate: if it is
-# ever missing, this fails loudly instead of silently installing into whatever python PATH finds
-VENV_PYTHON="$FASTSURFER_HOME/venv/bin/$PYTHON"
-source "$FASTSURFER_HOME/venv/bin/activate"
-"$VENV_PYTHON" -m pip install --upgrade pip
-"$VENV_PYTHON" -m pip install "$FASTSURFER_HOME[qc]"
-
-export PYTHONPATH="${FASTSURFER_HOME}:${PYTHONPATH}"
-"$VENV_PYTHON" "$FASTSURFER_HOME/FastSurferCNN/download_checkpoints.py" --all
+# Precompile bytecode now, while this runs as root and can write into the install directory. The
+# build deliberately ships none: a .pyc records its source path, and the ones built in the staging
+# directory would point every traceback at a path that does not exist. Compiling here records the
+# real paths and keeps startup fast, which matters because /Applications is typically not writable
+# by the user running FastSurfer, so anything not compiled now is recompiled on every run.
+# Non-fatal: a failure here costs startup time, it does not break the install.
+"$PYTHON" -m compileall -q "$FASTSURFER_HOME/python/lib" > /dev/null 2>&1 || true
+"$PYTHON" -m compileall -q \
+    "$FASTSURFER_HOME/FastSurferCNN" "$FASTSURFER_HOME/CerebNet" "$FASTSURFER_HOME/HypVINN" \
+    "$FASTSURFER_HOME/CorpusCallosum" "$FASTSURFER_HOME/recon_surf" > /dev/null 2>&1 || true
 
 FREESURFER_HOME="$FASTSURFER_HOME/fs-pruned"
 "$SCRIPT_DIR/link_fs.sh" "$FREESURFER_HOME"
 
 # use our python (not really needed in recon-all anyway)
 # TODO: soft-linking python has proven to break the python installation for the docker container
-ln -sf "$VENV_PYTHON" "$FREESURFER_HOME/bin/fspython"
-
-sed -i '' -e "s|(venv)|($(basename $FASTSURFER_HOME))|g" "$FASTSURFER_HOME/venv/bin/activate"
-
-xattr -dr com.apple.quarantine "$FREESURFER_HOME"/* 2>/dev/null || true
+ln -sf "$PYTHON" "$FREESURFER_HOME/bin/fspython"
