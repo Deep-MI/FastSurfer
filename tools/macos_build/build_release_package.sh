@@ -124,9 +124,9 @@ not_packaged=(
   env
 )
 # package git-tracked files only: everything else in the working tree (build artifacts, downloaded
-# tarballs, scratch dirs, checkpoints fetched by a previous run) would otherwise end up in the
-# installer and silently add gigabytes to it. Checkpoints are deliberately not shipped, postinstall
-# downloads them on the user's machine.
+# tarballs, scratch dirs) would otherwise end up in the installer and silently add gigabytes to it.
+# The checkpoints are gitignored, so they are excluded here as well; they are staged deliberately in
+# the BUNDLED CHECKPOINTS section below, from --checkpoints-dir rather than from the working tree.
 if git -C "$FASTSURFER_HOME" rev-parse --git-dir > /dev/null 2>&1
 then
   pathspecs=()
