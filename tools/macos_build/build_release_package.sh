@@ -240,8 +240,14 @@ then
 else
   echo "  WARNING: requirements.txt did not resolve for macOS/python$PYTHON_VERSION," >&2
   echo "    falling back to resolving from pyproject.toml (versions are then build-date dependent)" >&2
-  # [qc] pulls in whippersnappy, which run_fastsurfer.sh --qc_snap requires
-  uv pip install --python "$BUNDLED_INTERPRETER" "$FASTSURFER_HOME[qc]"
+  # Resolve first, install second. Installing "$FASTSURFER_HOME[qc]" directly would install
+  # FastSurfer itself alongside its dependencies, which is exactly the shadowed second copy in
+  # site-packages that the note below rules out. [qc] pulls in whippersnappy, for --qc_snap.
+  fallback_requirements="$(mktemp -t fastsurfer-requirements)"
+  uv pip compile --python "$BUNDLED_INTERPRETER" --extra qc --no-header \
+      -o "$fallback_requirements" "$FASTSURFER_HOME/pyproject.toml"
+  uv pip install --python "$BUNDLED_INTERPRETER" -r "$fallback_requirements"
+  rm -f "$fallback_requirements"
 fi
 
 # FastSurfer itself is deliberately NOT installed into the environment: the package ships its own
