@@ -184,7 +184,8 @@ Only bash (at least 3.2), which macOS already provides. No Python installation a
 needed: the package bundles its own Python, all Python dependencies, the network checkpoints and a
 reduced FreeSurfer, so installing it requires no internet connection and downloads nothing.
 
-The download is correspondingly large (roughly 900 MB), and about 4 GB is used once installed.
+In exchange the installer is large: expect a download of under a gigabyte and a couple of gigabytes
+of disk space once installed.
 
 #### 2. FastSurfer package
 From version 2.5 onward, FastSurfer ships macOS installer packages on the

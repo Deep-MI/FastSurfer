@@ -10,13 +10,28 @@ import os
 from setuptools import setup
 
 build_dir = os.path.dirname(os.path.realpath(__file__))
-APP = [build_dir + '/FastSurfer.py']
+APP = [build_dir + "/FastSurfer.py"]
 DATA_FILES = []
-OPTIONS = {}
+
+# The bundle identifier has to be unique per version. py2app defaults to
+# "org.pythonmac.unspecified.FastSurfer", shared by every version, and the Installer uses the
+# identifier to place a bundle: given a match it installs over the older applet instead of at the
+# packaged path, leaving nothing where the new one belongs.
+# FASTSURFER_VERSION is set by build_release_package.sh; the fallback keeps a bare
+# `python setup.py py2app` working.
+VERSION = os.environ.get("FASTSURFER_VERSION", "dev")
+# No CFBundleName on purpose: py2app derives the output bundle's filename from it, which would
+# rename dist/FastSurfer.app and break the build step that stages the result.
+OPTIONS = {
+    "plist": {
+        "CFBundleIdentifier": f"org.deep-mi.FastSurfer.applet.{VERSION}",
+        "CFBundleShortVersionString": VERSION,
+    },
+}
 
 setup(
     app=APP,
     data_files=DATA_FILES,
-    options={'py2app': OPTIONS},
+    options={"py2app": OPTIONS},
     py_modules=[],
 )

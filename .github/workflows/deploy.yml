@@ -78,9 +78,9 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.cache/fastsurfer-uv
-          # the standalone python distribution (~24 MB) and the dependency wheels (~260 MB). Keyed
-          # on the python version and the pinned dependency set, so it is reused until either
-          # actually changes; per-arch because the wheels are platform specific.
+          # the standalone python distribution and the dependency wheels. Keyed on the python
+          # version and the pinned dependency set, so it is reused until either actually changes;
+          # per-arch because the wheels are platform specific.
           key: uv-${{ matrix.arch }}-py${{ steps.fs_cache.outputs.python_version }}-${{ hashFiles('requirements.txt', 'pyproject.toml') }}
           restore-keys: |
             uv-${{ matrix.arch }}-py${{ steps.fs_cache.outputs.python_version }}-
@@ -88,8 +88,8 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.cache/fastsurfer-checkpoints
-          # ~290 MB of network weights, bundled into the package so a fresh install needs no
-          # download. The filenames are version stamped, so the checkpoint config is the key.
+          # the network weights, bundled into the package so a fresh install needs no download.
+          # The filenames are version stamped, so the checkpoint config is the key.
           key: checkpoints-${{ hashFiles('*/config/checkpoint_paths.yaml') }}
       - name: package app for ${{ matrix.arch }}
         env:
