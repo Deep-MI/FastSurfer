@@ -252,12 +252,28 @@ fi
 echo "Bundling checkpoints ..."
 checkpoints_dir="${checkpoints_dir:-$FASTSURFER_HOME/checkpoints}"
 mkdir -p "$checkpoints_dir"
-# download_checkpoints.py is idempotent: it skips files that are already present, so an existing
-# (or CI-cached) directory only fetches what is missing.
-FASTSURFER_HOME="$FASTSURFER_HOME" PYTHONPATH="$FASTSURFER_HOME" "$BUNDLED_INTERPRETER" \
-    "$FASTSURFER_HOME/FastSurferCNN/download_checkpoints.py" --all
+# The downloader cannot be pointed at a directory: it resolves the relative paths from
+# */config/checkpoint_paths.yaml against the location of the FastSurferCNN package it imports
+# (FASTSURFER_ROOT in utils/parser_defaults.py), and reads no environment variable for it. So aim it
+# by choosing which copy to run -- the staged tree, which is where the weights have to end up anyway.
+# Running the checkout's copy instead wrote them into the checkout and left the package empty
+# whenever --checkpoints-dir pointed elsewhere, as it does in CI.
 rm -rf "$FASTSURFER_TO_PACKAGE/checkpoints"
-cp -R "$checkpoints_dir" "$FASTSURFER_TO_PACKAGE/checkpoints"
+mkdir -p "$FASTSURFER_TO_PACKAGE/checkpoints"
+# Seed from the cache first; download_checkpoints.py is idempotent and skips files that are already
+# present, so only what is missing is fetched.
+rsync -a "$checkpoints_dir/" "$FASTSURFER_TO_PACKAGE/checkpoints/"
+PYTHONPATH="$FASTSURFER_TO_PACKAGE" "$BUNDLED_INTERPRETER" \
+    "$FASTSURFER_TO_PACKAGE/FastSurferCNN/download_checkpoints.py" --all
+# Hand anything newly downloaded back to the cache, so the next build starts from a complete set.
+# No --delete: the cache defaults to the checkout's own checkpoints directory, which may hold weights
+# this build did not ask for.
+rsync -a "$FASTSURFER_TO_PACKAGE/checkpoints/" "$checkpoints_dir/"
+if [[ -z "$(ls -A "$FASTSURFER_TO_PACKAGE/checkpoints")" ]]
+then
+  echo "ERROR: no checkpoints were staged into the package." >&2
+  exit 1
+fi
 
 # ============================ BUILD PROVENANCE ============================================
 # Record what this package was built from. The package ships no .git (it is staged from git
