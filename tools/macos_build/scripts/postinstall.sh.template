@@ -10,10 +10,9 @@ FASTSURFER_HOME="<fastsurfer_home_dir>"
 SCRIPT_DIR="$(dirname $0)"
 PYTHON="$FASTSURFER_HOME/python/bin/python<python_version>"
 
-# Clear the quarantine flag before anything else runs the bundled binaries. Everything here arrives
-# from a downloaded, unsigned package: the FreeSurfer executables, the python interpreter and the
-# compiled extensions in site-packages (torch, SimpleITK, ...). Without this, Gatekeeper refuses to
-# load them and the failure surfaces much later as an obscure import or exec error.
+# Clear quarantine before anything runs the bundled binaries. They arrive from a downloaded,
+# unsigned package -- FreeSurfer executables, the interpreter, compiled extensions -- and Gatekeeper
+# otherwise refuses to load them, surfacing much later as an obscure import or exec error.
 # 2>/dev/null || true: xattr fails on paths that never had the attribute, which is not an error.
 xattr -dr com.apple.quarantine "$FASTSURFER_HOME" 2>/dev/null || true
 
@@ -31,12 +30,11 @@ then
   exit 1
 fi
 
-# Precompile bytecode now, while this runs as root and can write into the install directory. The
-# build deliberately ships none: a .pyc records its source path, and the ones built in the staging
-# directory would point every traceback at a path that does not exist. Compiling here records the
-# real paths and keeps startup fast, which matters because /Applications is typically not writable
-# by the user running FastSurfer, so anything not compiled now is recompiled on every run.
-# Non-fatal: a failure here costs startup time, it does not break the install.
+# Precompile bytecode while this still runs as root and can write into the install directory. The
+# build ships none, because a .pyc records its source path and staging-built ones would point every
+# traceback at a path that does not exist. Compiling here records the real paths and keeps startup
+# fast: /Applications is usually not writable by the user, so whatever is not compiled now is
+# recompiled on every run. Non-fatal -- a failure costs startup time, it does not break the install.
 "$PYTHON" -m compileall -q "$FASTSURFER_HOME/python/lib" > /dev/null 2>&1 || true
 "$PYTHON" -m compileall -q \
     "$FASTSURFER_HOME/FastSurferCNN" "$FASTSURFER_HOME/CerebNet" "$FASTSURFER_HOME/HypVINN" \

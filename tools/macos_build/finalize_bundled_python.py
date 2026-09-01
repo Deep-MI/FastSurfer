@@ -17,18 +17,15 @@
 """
 Make a bundled python distribution independent of where it was built.
 
-The macOS installer builds its python distribution in a staging directory and ships it to
-/Applications/FastSurfer<version>. The interpreter itself needs no help -- it derives its prefix
-from its own location, so the tree can be moved anywhere -- but two kinds of file record the build
-path and have to be corrected:
+The macOS installer builds its python distribution in a staging directory and ships it to the
+install location. The interpreter needs no help -- it derives its prefix from its own location, so
+the tree can be moved anywhere -- but two kinds of file record the build path:
 
 * **console scripts** in ``bin/``. pip and uv write these as ``#!/bin/sh`` wrappers that ``exec``
-  the interpreter by absolute path (the workaround for shebangs being length-limited), so each of
-  the ~57 of them -- including ``pip`` itself and neuroreg's ``coreg``/``robreg`` -- would exec an
-  interpreter that does not exist on the user's machine.
-* **compiled bytecode**. A ``.pyc`` stores the absolute path of its source for tracebacks, and it
-  is binary, so it cannot be rewritten as text. These are simply removed; the installer's
-  postinstall regenerates them, with correct paths, once the files are in place.
+  the interpreter by absolute path, working around the length limit on shebangs, so every one of
+  them would exec an interpreter that is absent on the user's machine.
+* **compiled bytecode**. A ``.pyc`` stores its source path for tracebacks and is binary, so it
+  cannot be rewritten as text. These are removed; postinstall regenerates them in place.
 
 Rewriting text in place is safe here because the staging path is a long, unambiguous absolute path
 that cannot appear in these files for any other reason.

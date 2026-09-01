@@ -178,11 +178,10 @@ PYTHON_VERSION=$(python3 "$tools_dir/read_toml.py" --file "$FASTSURFER_HOME/pypr
 PATH_TO_FASTSURFER="$INSTALLATION_DIR/FastSurfer$VERSION"
 
 # ============================ BUNDLED PYTHON ENVIRONMENT ==================================
-# Ship a complete, self-contained python environment so installing needs no network and no
-# pre-installed python: FreeSurfer's own installer works the same way. Homebrew's python cannot be
-# bundled -- even a --copies venv built from it links against /opt/homebrew/Cellar/... and resolves
-# its stdlib there -- so this uses a relocatable standalone CPython (python-build-standalone, the
-# distribution uv manages), which only links against /usr/lib and system frameworks.
+# Ship a complete python environment, so installing needs no network and no pre-installed python
+# (FreeSurfer's own installer works the same way). Homebrew's python cannot be bundled: even a
+# --copies venv built from it links against the Cellar and resolves its stdlib there. This uses the
+# relocatable standalone CPython that uv manages, which only needs /usr/lib and system frameworks.
 if ! command -v uv > /dev/null 2>&1
 then
   echo "ERROR: uv not found, but it is required to fetch the standalone python and the" >&2
@@ -195,15 +194,12 @@ if [[ -n "$uv_cache_dir" ]] ; then export UV_CACHE_DIR="$uv_cache_dir" ; fi
 BUNDLED_PYTHON="$FASTSURFER_TO_PACKAGE/python"
 
 echo "Fetching standalone python $PYTHON_VERSION ..."
-# Keep the managed distribution in a build-local directory rather than uv's default: that default is
-# shared with the developer's own uv installs, and this step copies a whole distribution, so the
-# build has to know exactly which one it got.
+# Install into a build-local directory rather than uv's default, which is shared with the
+# developer's own uv installs: this step copies a whole distribution, so it must know which one.
 UV_PYTHON_DIR="$build_dir/.uv-pythons"
 UV_PYTHON_INSTALL_DIR="$UV_PYTHON_DIR" uv python install "$PYTHON_VERSION"
-# Locate it by globbing the install directory instead of asking uv to search: the directory is
-# build-local and holds exactly the distribution just installed, which is more predictable than
-# relying on interpreter-discovery semantics (those also consider virtual environments and the
-# system python, and change between uv releases).
+# Glob for it rather than using `uv python find`: this directory holds exactly what was just
+# installed, whereas interpreter discovery also considers venvs and the system python.
 standalone_root=""
 for candidate in "$UV_PYTHON_DIR"/cpython-"$PYTHON_VERSION"*/ ; do
   if [[ -x "$candidate/bin/python$PYTHON_VERSION" ]] ; then standalone_root="${candidate%/}" ; fi
@@ -221,16 +217,13 @@ rm -rf "$BUNDLED_PYTHON"
 cp -R "$standalone_root" "$BUNDLED_PYTHON"
 BUNDLED_INTERPRETER="$BUNDLED_PYTHON/bin/python$PYTHON_VERSION"
 
-# Dependencies go straight into the bundled distribution's own site-packages, with no virtual
-# environment in between. A venv would have to be un-picked afterwards: it records its location in
-# pyvenv.cfg, its activate scripts and every console-script shebang, none of which survive the move
-# from the staging directory to $PATH_TO_FASTSURFER. The distribution itself needs no such fixup --
-# it derives its prefix from the interpreter's own location, so the whole tree can be moved
-# anywhere. It also avoids a second, 18 MB copy of the interpreter inside the venv.
+# Dependencies go into the distribution's own site-packages, with no virtual environment in
+# between. A venv records its location in pyvenv.cfg and its activate scripts, none of which
+# survive the move to the install directory, and it duplicates the interpreter. The distribution
+# derives its prefix from the interpreter's location, so it can be moved as-is.
 #
-# uv marks distributions it manages with an EXTERNALLY-MANAGED file saying they "should not be
-# modified", which is correct for the shared installation it keeps for the developer, but not for
-# this private copy that is about to be shipped as one unit. Remove it in the copy only.
+# uv marks the distributions it manages as EXTERNALLY-MANAGED ("should not be modified"), which is
+# right for the copy it keeps for the developer but not for this private one. Remove it here only.
 rm -f "$BUNDLED_PYTHON/lib/python$PYTHON_VERSION/EXTERNALLY-MANAGED"
 
 echo "Installing dependencies into the bundled distribution ..."
@@ -255,7 +248,7 @@ fi
 # copies of the same module.
 
 # ============================ BUNDLED CHECKPOINTS =========================================
-# Ship the network weights, so a fresh install does not have to download ~300 MB on first run.
+# Ship the network weights, so a fresh install does not have to download them on first run.
 echo "Bundling checkpoints ..."
 checkpoints_dir="${checkpoints_dir:-$FASTSURFER_HOME/checkpoints}"
 mkdir -p "$checkpoints_dir"
@@ -266,25 +259,21 @@ FASTSURFER_HOME="$FASTSURFER_HOME" PYTHONPATH="$FASTSURFER_HOME" "$BUNDLED_INTER
 rm -rf "$FASTSURFER_TO_PACKAGE/checkpoints"
 cp -R "$checkpoints_dir" "$FASTSURFER_TO_PACKAGE/checkpoints"
 
-# Retarget the bundled distribution from the staging directory to the install directory. The
-# interpreter needs no help -- it derives its prefix from its own location -- but pip and uv write
-# console scripts as /bin/sh wrappers that exec the interpreter by absolute path, so all ~57 of them
-# (including pip itself and neuroreg's coreg/robreg) would otherwise exec a path that does not exist
-# on the user's machine. This also strips compiled bytecode, which records source paths and cannot be
-# rewritten; postinstall regenerates it in place.
-# Unlike a virtual environment, this does not stop the distribution working in the staging tree, so
-# it does not have to be the last step -- but keeping it here means the verification inside covers
-# everything that came before.
+# Retarget the distribution from the staging directory to the install directory. The interpreter
+# needs no help, but pip and uv write console scripts as /bin/sh wrappers that exec the interpreter
+# by absolute path, so every one of them would exec a path absent on the user's machine. This also
+# strips compiled bytecode, which records source paths and cannot be rewritten as text; postinstall
+# regenerates it in place. Unlike a venv this leaves the distribution usable here, so the step need
+# not come last -- but placing it last lets its verification cover everything before it.
 echo "Retargeting the bundled python to the install prefix ..."
 python3 "$build_dir/finalize_bundled_python.py" \
     --dist "$BUNDLED_PYTHON" \
     --from "$FASTSURFER_TO_PACKAGE" \
     --to "$PATH_TO_FASTSURFER"
 
-# Assemble the installer scripts in a directory of their own. pkgbuild --scripts packages the whole
-# directory it is given, so pointing it at the tracked source directory shipped the template and any
-# stray AppleDouble (._*) files inside the installer, and forced the generated files to be written
-# into (and then deleted from) a git-tracked directory.
+# Assemble the installer scripts in a directory of their own: pkgbuild --scripts packages the whole
+# directory it is given, so pointing it at the tracked source directory shipped the template too and
+# meant writing generated files into (then deleting them from) a git-tracked directory.
 PKG_SCRIPTS_DIR="$build_dir/pkg-scripts"
 rm -rf "$PKG_SCRIPTS_DIR"
 mkdir -p "$PKG_SCRIPTS_DIR"
@@ -298,10 +287,9 @@ sed -e "s|<fastsurfer_home_dir>|${PATH_TO_FASTSURFER}|g" \
 cp "$tools_dir/build/link_fs.sh" "$PKG_SCRIPTS_DIR/link_fs.sh"
 
 chmod +x "$PKG_SCRIPTS_DIR/postinstall" "$PKG_SCRIPTS_DIR/link_fs.sh"
-# Note: the installer's script archive will also contain AppleDouble (._postinstall, ._link_fs.sh)
-# entries. That is unavoidable rather than an oversight: pkgbuild stores extended attributes that
-# way, and macOS tags every file with com.apple.provenance, which `xattr -c` cannot remove. They are
-# 163 bytes each and are ignored by the installer.
+# Note: the script archive will also contain AppleDouble (._*) entries. That is unavoidable, not an
+# oversight: pkgbuild stores extended attributes that way and macOS tags every file with
+# com.apple.provenance, which xattr -c cannot remove. The installer ignores them.
 
 # assemble resources
 mkdir -p "$RESOURCES_DIR"
@@ -341,7 +329,9 @@ then
 fi
 
 pushd "$build_dir" || exit 1
-"$py2app_venv/bin/python3" "setup.py" py2app --iconfile "${RESOURCES_DIR:$((${#build_dir} + 1))}/fastsurfer.png"
+# FASTSURFER_VERSION gives the applet a version-unique CFBundleIdentifier (see setup.py)
+FASTSURFER_VERSION="$VERSION" \
+    "$py2app_venv/bin/python3" "setup.py" py2app --iconfile "${RESOURCES_DIR:$((${#build_dir} + 1))}/fastsurfer.png"
 popd || exit 1
 mv "$build_dir/dist/FastSurfer.app" "$STAGED_DIR/FastSurfer$VERSION.app"
 
@@ -350,11 +340,34 @@ chmod -R 755 "$STAGED_DIR"/*
 
 # create raw package
 mkdir -p "$build_dir/raw_package"
+
+# Pin bundles to the location they are packaged for. pkgbuild marks a .app as relocatable by
+# default, so the Installer overwrites any existing bundle with the same CFBundleIdentifier instead
+# of installing at the packaged path -- which silently replaced an older applet and left none at the
+# new one's path. setup.py also makes the identifier unique per version, but that only avoids the
+# collision; this removes the mechanism.
+COMPONENT_PLIST="$build_dir/component.plist"
+pkgbuild --analyze --root "$STAGED_DIR" "$COMPONENT_PLIST"
+python3 - "$COMPONENT_PLIST" <<'PYTHON'
+import plistlib
+import sys
+
+path = sys.argv[1]
+with open(path, "rb") as fp:
+    components = plistlib.load(fp)
+for component in components:
+    component["BundleIsRelocatable"] = False
+with open(path, "wb") as fp:
+    plistlib.dump(components, fp)
+print(f"  pinned {len(components)} bundle component(s) to their packaged location")
+PYTHON
+
 pkgbuild \
     --root "$STAGED_DIR" \
     --version "$VERSION" \
     --identifier "$ID" \
     --install-location "$INSTALLATION_DIR" \
+    --component-plist "$COMPONENT_PLIST" \
     --scripts "$PKG_SCRIPTS_DIR" \
     "$OUTPUT_PKG"
 
@@ -377,4 +390,5 @@ productbuild \
 
 # get rid of temporary folders. PKG_SCRIPTS_DIR and .uv-pythons are build-local, so nothing has to
 # be cleaned out of the tracked source tree any more.
-rm -rf "$STAGED_DIR" "$RESOURCES_DIR" "$build_dir/dist" "$build_dir/build" "$PKG_SCRIPTS_DIR"
+rm -rf "$STAGED_DIR" "$RESOURCES_DIR" "$build_dir/dist" "$build_dir/build" "$PKG_SCRIPTS_DIR" \
+       "$COMPONENT_PLIST"

@@ -2,16 +2,14 @@
 
 export FASTSURFER_HOME=/Applications/<fastsurfer>
 
-# The package bundles its own python distribution, so putting its bin directory first is all that
-# is needed for python3 to resolve to it (there is no virtual environment to activate). The
-# distribution finds its own site-packages through its prefix, so nothing has to be added to
-# PYTHONPATH for the dependencies -- and deliberately so: putting site-packages there would let an
-# unrelated python on PATH import binary extensions built for this interpreter.
+# The package bundles its own python distribution, so putting its bin first is all that is needed
+# for python3 to resolve to it; there is no virtual environment to activate. Its site-packages is
+# found via the prefix and deliberately kept off PYTHONPATH, which would otherwise let an unrelated
+# python on PATH import binary extensions built for this interpreter.
 export PATH="$FASTSURFER_HOME/python/bin:$PATH"
 
-# $FASTSURFER_HOME comes first, matching what run_fastsurfer.sh does before invoking python: this
-# is where FastSurfer's own modules live, since the package ships them as a source tree rather than
-# installing them into the bundled environment.
+# $FASTSURFER_HOME first, matching what run_fastsurfer.sh does before invoking python: FastSurfer's
+# own modules live there, shipped as a source tree rather than installed into the bundle.
 export PYTHONPATH="$FASTSURFER_HOME:$PYTHONPATH"
 
 export FREESURFER_HOME=$FASTSURFER_HOME/fs-pruned
@@ -24,8 +22,8 @@ echo
 echo "This is the FastSurfer console. Call \`run_fastsurfer.sh -t1 ...\` in here! " 
 echo "See also https://deep-mi.org/FastSurfer/stable/overview/INSTALL.html#macos"
 
-# GNU grep, if homebrew provides it. The package itself does not need homebrew -- it bundles
-# everything it runs -- so this is skipped rather than failing when brew is absent.
+# GNU grep, if homebrew provides it. The package bundles everything it runs and does not need
+# homebrew, so this is skipped rather than failing when brew is absent.
 if command -v brew > /dev/null 2>&1 ; then
     gnubin="$(brew --prefix)/opt/grep/libexec/gnubin"
     if [[ -d "$gnubin" ]] && ! grep -q "export PATH=\"$gnubin:\$PATH\"" ~/.bash_profile 2>/dev/null; then
