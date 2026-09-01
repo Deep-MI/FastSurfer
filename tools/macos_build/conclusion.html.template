@@ -42,7 +42,7 @@
 <h2>Open the FastSurfer console</h2>
 <p>Double-click <b><fastsurfer></b> in your Applications folder. It opens a Terminal window with
 everything set up, recognizable by the <code>(<fastsurfer>)</code> prompt prefix.</p>
-<p class="muted">Any Terminal window works too, in any shell:</p>
+<p class="muted">Any bash or zsh Terminal window works too:</p>
 <pre>source /Applications/<fastsurfer>/macos_setup_fastsurfer.sh</pre>
 <p class="muted">Your shell profile is not modified, so this is needed once per window.</p>
 
