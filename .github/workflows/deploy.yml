@@ -62,7 +62,11 @@ jobs:
           url_template=$(python3 tools/read_toml.py --file pyproject.toml --key tool.freesurfer.urls.macOS)
           fs_url="${url_template//\{version\}/$fs_version}"
           url_hash=$(echo -n "$fs_url" | shasum -a 256 | cut -c1-16)
+          # Cache directories are resolved here, in a shell, so $HOME is expanded once and the same
+          # absolute path is used by both actions/cache and the build.
           echo "cache_dir=$HOME/.cache/fastsurfer-fs-pruned" >> "$GITHUB_OUTPUT"
+          echo "uv_cache_dir=$HOME/.cache/fastsurfer-uv" >> "$GITHUB_OUTPUT"
+          echo "checkpoints_dir=$HOME/.cache/fastsurfer-checkpoints" >> "$GITHUB_OUTPUT"
           echo "url_hash=$url_hash" >> "$GITHUB_OUTPUT"
           # the bundled python version, so the uv cache is invalidated when it is bumped
           echo "python_version=$(python3 tools/read_toml.py --file pyproject.toml --key tool.python.version)" >> "$GITHUB_OUTPUT"
@@ -77,7 +81,7 @@ jobs:
       - name: Cache uv downloads
         uses: actions/cache@v4
         with:
-          path: ~/.cache/fastsurfer-uv
+          path: ${{ steps.fs_cache.outputs.uv_cache_dir }}
           # the standalone python distribution and the dependency wheels. Keyed on the python
           # version and the pinned dependency set, so it is reused until either actually changes;
           # per-arch because the wheels are platform specific.
@@ -87,15 +91,15 @@ jobs:
       - name: Cache checkpoints
         uses: actions/cache@v4
         with:
-          path: ~/.cache/fastsurfer-checkpoints
+          path: ${{ steps.fs_cache.outputs.checkpoints_dir }}
           # the network weights, bundled into the package so a fresh install needs no download.
           # The filenames are version stamped, so the checkpoint config is the key.
           key: checkpoints-${{ hashFiles('*/config/checkpoint_paths.yaml') }}
       - name: package app for ${{ matrix.arch }}
         env:
           FS_PRUNED_CACHE_DIR: ${{ steps.fs_cache.outputs.cache_dir }}
-          UV_CACHE_DIR: ~/.cache/fastsurfer-uv
-          FASTSURFER_CHECKPOINTS_DIR: ~/.cache/fastsurfer-checkpoints
+          UV_CACHE_DIR: ${{ steps.fs_cache.outputs.uv_cache_dir }}
+          FASTSURFER_CHECKPOINTS_DIR: ${{ steps.fs_cache.outputs.checkpoints_dir }}
         run: tools/macos_build/build_release_package.sh ${{ matrix.arch }}
       - name: Move assets.
         if: github.event_name == 'release' && github.event.action == 'published'
