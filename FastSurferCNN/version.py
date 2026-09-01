@@ -8,8 +8,10 @@ import subprocess
 from collections.abc import Iterable, Sequence
 from concurrent.futures import Future, ThreadPoolExecutor
 from functools import lru_cache
+from hashlib import md5
 from os import PathLike
 from pathlib import Path
+from time import perf_counter
 from typing import Any, Literal, TextIO, TypedDict, cast, get_args
 
 
@@ -308,7 +310,19 @@ def main(
                 files = list(map(str, cast(Iterable[Path], DEFAULTS.PROJECT_ROOT.glob("checkpoints/*"))))
                 if len(files) == 0:
                     return MessageBuffer(out=b"", err=b"No checkpoints found.", retcode=0, runtime=0.0)
-                return Popen(["md5sum"] + files, **kw_root).finish(timeout=10.0)
+                # hashlib rather than the md5sum binary, which macOS did not ship until recently:
+                # the checkpoints are hundreds of MB, so read them in chunks. The output format is
+                # md5sum's, two spaces between hash and path, so BUILD.info is unchanged.
+                start = perf_counter()
+                lines = []
+                for checkpoint_file in files:
+                    digest = md5(usedforsecurity=False)
+                    with open(checkpoint_file, "rb") as checkpoint:
+                        while chunk := checkpoint.read(1 << 22):
+                            digest.update(chunk)
+                    lines.append(f"{digest.hexdigest()}  {checkpoint_file}\n")
+                out = "".join(lines).encode("utf-8")
+                return MessageBuffer(out=out, err=b"", retcode=0, runtime=perf_counter() - start)
 
             futures["checkpoints"] = pool.submit(calculate_md5_for_checkpoints)
 
