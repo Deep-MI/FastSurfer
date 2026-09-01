@@ -85,7 +85,9 @@ function time_it()
     printf -v key "%s\n-> " "$(echo_quoted "${cmd[@]}")"
     "${binpath}fs_time" -k "$key" --no-load -o "$TF" -a "${cmd[@]}"
   else
-    echo "WARNING: Using time_it, but time seems to fail. Not timing..."
+    # No warning here: an empty timecmd is the expected state wherever fs_time does not work (macOS,
+    # where /usr/bin/time is BSD and has no -f), and the INFO above already says so once when
+    # functions.sh is sourced. Repeating it per timed command only buries the real output.
     "${cmd[@]}"
   fi
   if [[ "${PIPESTATUS[0]}" != 0 ]] ; then exit "${PIPESTATUS[0]}" ; fi
