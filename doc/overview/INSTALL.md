@@ -180,9 +180,11 @@ Continue with the example in [Example 2](EXAMPLES.md#example-2-fastsurfer-docker
 ### Package
 
 #### 1. Requirements
-Only bash (at least 3.2), which macOS already provides. No Python installation and no Homebrew are
-needed: the package bundles its own Python, all Python dependencies, the network checkpoints and a
-reduced FreeSurfer, so installing it requires no internet connection and downloads nothing.
+Only the shells macOS already ships: `/bin/bash` (at least 3.2) for FastSurfer's own scripts and
+`/bin/tcsh` for the FreeSurfer ones. Your own login shell does not matter -- zsh, the macOS default,
+is fine. No Python installation and no Homebrew are needed: the package bundles its own Python, all
+Python dependencies, the network checkpoints and a reduced FreeSurfer, so installing it requires no
+internet connection and downloads nothing.
 
 In exchange the installer is large: expect a download of under a gigabyte and a couple of gigabytes
 of disk space once installed.
