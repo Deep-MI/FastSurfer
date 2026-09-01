@@ -107,6 +107,18 @@ jobs:
           UV_CACHE_DIR: ${{ steps.fs_cache.outputs.uv_cache_dir }}
           FASTSURFER_CHECKPOINTS_DIR: ${{ steps.fs_cache.outputs.checkpoints_dir }}
         run: tools/macos_build/build_release_package.sh ${{ matrix.arch }}
+      # So a workflow_dispatch run on any branch produces a downloadable installer without publishing
+      # a release. Skipped for releases, where the package is attached to the release itself below.
+      - name: Upload the installer as a build artifact
+        if: github.event_name != 'release'
+        uses: actions/upload-artifact@v4
+        with:
+          name: FastSurfer-macos-darwin_${{ matrix.arch }}-${{ github.sha }}
+          path: tools/macos_build/installer/*.pkg
+          if-no-files-found: error
+          # a .pkg is already compressed, so re-zipping it only costs minutes
+          compression-level: 0
+          retention-days: 14
       - name: Move assets.
         if: github.event_name == 'release' && github.event.action == 'published'
         run: |
