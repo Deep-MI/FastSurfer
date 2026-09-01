@@ -259,6 +259,25 @@ FASTSURFER_HOME="$FASTSURFER_HOME" PYTHONPATH="$FASTSURFER_HOME" "$BUNDLED_INTER
 rm -rf "$FASTSURFER_TO_PACKAGE/checkpoints"
 cp -R "$checkpoints_dir" "$FASTSURFER_TO_PACKAGE/checkpoints"
 
+# ============================ BUILD PROVENANCE ============================================
+# Record which commit this package was built from. The package ships no .git (it is staged from
+# git ls-files), so without this file version.py falls back to a placeholder hash and
+# `run_fastsurfer.sh --version` reports +0000000, losing the link to the source.
+# The docker build writes the same file, with the same sections.
+echo "Recording build provenance ..."
+if git -C "$FASTSURFER_HOME" rev-parse --git-dir > /dev/null 2>&1
+then
+  version_sections=("--sections" "+git")
+else
+  # a source tarball has no git, and +git would fail on the missing status; the version alone is
+  # still better than the placeholder
+  echo "  not a git checkout: recording the version without commit information"
+  version_sections=()
+fi
+PYTHONPATH="$FASTSURFER_HOME" python3 "$FASTSURFER_HOME/FastSurferCNN/version.py" \
+    "${version_sections[@]}" -o "$FASTSURFER_TO_PACKAGE/BUILD.info"
+sed -n '1p' "$FASTSURFER_TO_PACKAGE/BUILD.info" | sed 's/^/  /'
+
 # Retarget the distribution from the staging directory to the install directory. The interpreter
 # needs no help, but pip and uv write console scripts as /bin/sh wrappers that exec the interpreter
 # by absolute path, so every one of them would exec a path absent on the user's machine. This also
