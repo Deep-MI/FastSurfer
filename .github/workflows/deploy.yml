@@ -44,6 +44,9 @@ jobs:
           brew update  
           brew upgrade || true
           brew list aria2 >/dev/null 2>&1 || brew install aria2
+          # uv fetches the relocatable standalone python and the dependencies that get bundled
+          # into the package (see the BUNDLED PYTHON ENVIRONMENT section of the build script)
+          brew list uv >/dev/null 2>&1 || brew install uv
       - name: Cache py2app venv
         uses: actions/cache@v4
         with:
@@ -52,7 +55,7 @@ jobs:
           # if a bad py2app release ever causes trouble here the way sphinx-argparse did for docs,
           # pin the version in build_release_package.sh and fold it into this key too
           key: py2app-venv-${{ runner.os }}
-      - name: Resolve FreeSurfer cache key
+      - name: Resolve cache keys
         id: fs_cache
         run: |
           fs_version=$(python3 tools/read_toml.py --file pyproject.toml --key tool.freesurfer.version)
@@ -61,6 +64,8 @@ jobs:
           url_hash=$(echo -n "$fs_url" | shasum -a 256 | cut -c1-16)
           echo "cache_dir=$HOME/.cache/fastsurfer-fs-pruned" >> "$GITHUB_OUTPUT"
           echo "url_hash=$url_hash" >> "$GITHUB_OUTPUT"
+          # the bundled python version, so the uv cache is invalidated when it is bumped
+          echo "python_version=$(python3 tools/read_toml.py --file pyproject.toml --key tool.python.version)" >> "$GITHUB_OUTPUT"
       - name: Cache pruned FreeSurfer
         uses: actions/cache@v4
         with:
@@ -69,9 +74,28 @@ jobs:
           # (install_fs_pruned.sh); arm and intel currently resolve the same darwin_x86_64 url and
           # so share one cache entry, this stops being true automatically if that ever changes
           key: fs-pruned-${{ hashFiles('tools/build/install_fs_pruned.sh') }}-${{ steps.fs_cache.outputs.url_hash }}
+      - name: Cache uv downloads
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/fastsurfer-uv
+          # the standalone python distribution (~24 MB) and the dependency wheels (~260 MB). Keyed
+          # on the python version and the pinned dependency set, so it is reused until either
+          # actually changes; per-arch because the wheels are platform specific.
+          key: uv-${{ matrix.arch }}-py${{ steps.fs_cache.outputs.python_version }}-${{ hashFiles('requirements.txt', 'pyproject.toml') }}
+          restore-keys: |
+            uv-${{ matrix.arch }}-py${{ steps.fs_cache.outputs.python_version }}-
+      - name: Cache checkpoints
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/fastsurfer-checkpoints
+          # ~290 MB of network weights, bundled into the package so a fresh install needs no
+          # download. The filenames are version stamped, so the checkpoint config is the key.
+          key: checkpoints-${{ hashFiles('*/config/checkpoint_paths.yaml') }}
       - name: package app for ${{ matrix.arch }}
         env:
           FS_PRUNED_CACHE_DIR: ${{ steps.fs_cache.outputs.cache_dir }}
+          UV_CACHE_DIR: ~/.cache/fastsurfer-uv
+          FASTSURFER_CHECKPOINTS_DIR: ~/.cache/fastsurfer-checkpoints
         run: tools/macos_build/build_release_package.sh ${{ matrix.arch }}
       - name: Move assets.
         if: github.event_name == 'release' && github.event.action == 'published'

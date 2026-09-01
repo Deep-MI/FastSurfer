@@ -1,26 +1,41 @@
 #!/bin/bash
 
 export FASTSURFER_HOME=/Applications/<fastsurfer>
-source $FASTSURFER_HOME/venv/bin/activate
-# $FASTSURFER_HOME comes first, matching what run_fastsurfer.sh does before invoking python.
-# Without it, FastSurfer's own modules resolve to the copy pip placed in site-packages rather than
-# to the source shipped in $FASTSURFER_HOME, so the console and the pipeline import different
-# copies of the same module -- and any package that setuptools discovery missed is not importable
-# in the console at all.
-export PYTHONPATH=$FASTSURFER_HOME:$FASTSURFER_HOME/venv/lib/python<python_version>/site-packages:$PYTHONPATH
+
+# The package bundles its own python distribution, so putting its bin directory first is all that
+# is needed for python3 to resolve to it (there is no virtual environment to activate). The
+# distribution finds its own site-packages through its prefix, so nothing has to be added to
+# PYTHONPATH for the dependencies -- and deliberately so: putting site-packages there would let an
+# unrelated python on PATH import binary extensions built for this interpreter.
+export PATH="$FASTSURFER_HOME/python/bin:$PATH"
+
+# $FASTSURFER_HOME comes first, matching what run_fastsurfer.sh does before invoking python: this
+# is where FastSurfer's own modules live, since the package ships them as a source tree rather than
+# installing them into the bundled environment.
+export PYTHONPATH="$FASTSURFER_HOME:$PYTHONPATH"
+
 export FREESURFER_HOME=$FASTSURFER_HOME/fs-pruned
 source $FREESURFER_HOME/SetUpFreeSurfer.sh > /dev/null
+
+# mark the shell, as a virtual environment's activate script would
+PS1="(<fastsurfer>) $PS1"
+
 echo
 echo "This is the FastSurfer console. Call \`run_fastsurfer.sh -t1 ...\` in here! " 
 echo "See also https://deep-mi.org/FastSurfer/stable/overview/INSTALL.html#macos"
 
-if ! grep -q "export PATH=\"$(brew --prefix)/opt/grep/libexec/gnubin:\$PATH\"" ~/.bash_profile; then 
-    echo "export PATH=\"$(brew --prefix)/opt/grep/libexec/gnubin:\$PATH\"" >> ~/.bash_profile;
-    export PATH="$(brew --prefix)/opt/grep/libexec/gnubin:$PATH" 
-    echo "GNU grep has been added to path"
+# GNU grep, if homebrew provides it. The package itself does not need homebrew -- it bundles
+# everything it runs -- so this is skipped rather than failing when brew is absent.
+if command -v brew > /dev/null 2>&1 ; then
+    gnubin="$(brew --prefix)/opt/grep/libexec/gnubin"
+    if [[ -d "$gnubin" ]] && ! grep -q "export PATH=\"$gnubin:\$PATH\"" ~/.bash_profile 2>/dev/null; then
+        echo "export PATH=\"$gnubin:\$PATH\"" >> ~/.bash_profile;
+        export PATH="$gnubin:$PATH"
+        echo "GNU grep has been added to path"
+    fi
 fi
 
-if ! grep -q "export PATH=\"$FASTSURFER_HOME:\$PATH\"" ~/.bash_profile; then 
+if ! grep -q "export PATH=\"$FASTSURFER_HOME:\$PATH\"" ~/.bash_profile 2>/dev/null; then 
     echo "export PATH=\"$FASTSURFER_HOME:\$PATH\"" >> ~/.bash_profile; 
     export PATH="$FASTSURFER_HOME:$PATH"
     echo "FastSurfer dir has been added to path"

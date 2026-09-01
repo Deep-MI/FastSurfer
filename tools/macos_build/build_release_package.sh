@@ -11,7 +11,8 @@ set -o pipefail
 if [[ "$#" -lt 1 ]] || { [[ "$1" != "arm" ]] && [[ "$1" != "intel" ]] ; } ; then
   echo
   echo "Usage:  build_release_package.sh <arm|intel> [--fs-download-cache path] [--fs-pruned-cache-dir dir]"
-  echo "                                             [--py2app-venv dir]"
+  echo "                                             [--py2app-venv dir] [--uv-cache-dir dir]"
+  echo "                                             [--checkpoints-dir dir]"
   echo
   echo "--fs-download-cache points at a file path for the raw FreeSurfer tarball: if it already"
   echo "  exists there (e.g. from a prior, interrupted local run), it is reused instead of"
@@ -24,6 +25,14 @@ if [[ "$#" -lt 1 ]] || { [[ "$1" != "arm" ]] && [[ "$1" != "intel" ]] ; } ; then
   echo "  step, isolated from your normal dev venv, whose extra installed packages (matplotlib,"
   echo "  etc.) py2app's dependency scanner can otherwise trip over."
   echo "  (default: \$PY2APP_VENV, or tools/macos_build/.venv-py2app)"
+  echo "--uv-cache-dir points at a directory for uv's download cache (the standalone python"
+  echo "  distribution and the dependency wheels), so repeated builds and CI do not re-download"
+  echo "  several hundred MB."
+  echo "  (default: \$UV_CACHE_DIR, if set, else uv's own default)"
+  echo "--checkpoints-dir points at a directory holding the network checkpoints. They are copied"
+  echo "  into the package, so the installed FastSurfer needs no download on first run. If the"
+  echo "  directory is missing or incomplete, the missing checkpoints are downloaded into it."
+  echo "  (default: \$FASTSURFER_CHECKPOINTS_DIR, else <fastsurfer>/checkpoints)"
   echo
   exit
 fi
@@ -33,11 +42,15 @@ shift
 fs_download_cache="$FS_DOWNLOAD_CACHE"
 fs_pruned_cache_dir="$FS_PRUNED_CACHE_DIR"
 py2app_venv="$PY2APP_VENV"
+uv_cache_dir="$UV_CACHE_DIR"
+checkpoints_dir="$FASTSURFER_CHECKPOINTS_DIR"
 while [[ "$#" -ge 1 ]] ; do
   case "$1" in
   --fs-download-cache) fs_download_cache=$2 ; shift ; shift ;;
   --fs-pruned-cache-dir) fs_pruned_cache_dir=$2 ; shift ; shift ;;
   --py2app-venv) py2app_venv=$2 ; shift ; shift ;;
+  --uv-cache-dir) uv_cache_dir=$2 ; shift ; shift ;;
+  --checkpoints-dir) checkpoints_dir=$2 ; shift ; shift ;;
   *) echo "Invalid argument $1" ; exit 1 ;;
   esac
 done
@@ -153,29 +166,142 @@ then
 fi
 
 SCRIPTS_DIR="$tools_dir/macos_build/scripts" # directory with scripts executed during installation process (f.e. preinstall postinstall)
-# the exact python the installed environment is built with. This must be an exact version, not a
-# range: postinstall creates the venv from homebrew's python$PYTHON_VERSION, and
-# macos_setup_fastsurfer.sh hardcodes the venv's lib/python$PYTHON_VERSION/site-packages path.
+# the exact python that is bundled into the package. This must be an exact version, not a range:
+# the bundled interpreter lives at python/bin/python$PYTHON_VERSION and its packages at
+# python/lib/python$PYTHON_VERSION/site-packages, both referred to by name.
 # tool.python.version is that exact value, shared with the docker build (see pyproject.toml).
-# Previously this read project.requires-python and stripped the ">=", i.e. it silently shipped the
-# oldest *supported* python rather than the one the project builds and tests against.
-# Raising the key also changes which python users must brew-install: keep the macOS requirements
-# in doc/overview/INSTALL.md in sync.
 PYTHON_VERSION=$(python3 "$tools_dir/read_toml.py" --file "$FASTSURFER_HOME/pyproject.toml" --key tool.python.version)
 
-# substitute values in postinstall script
+# where the package will live once installed, substituted into the installer scripts and the
+# console script. The bundled python distribution does not need to know this path: it derives its
+# prefix from the interpreter's own location, so it works wherever the installer puts it.
 PATH_TO_FASTSURFER="$INSTALLATION_DIR/FastSurfer$VERSION"
-HOMEBREW_DIR=$([[ "$ARCH_TYPE" = "arm" ]] && echo "/opt/homebrew" || echo "/usr/local")
 
+# ============================ BUNDLED PYTHON ENVIRONMENT ==================================
+# Ship a complete, self-contained python environment so installing needs no network and no
+# pre-installed python: FreeSurfer's own installer works the same way. Homebrew's python cannot be
+# bundled -- even a --copies venv built from it links against /opt/homebrew/Cellar/... and resolves
+# its stdlib there -- so this uses a relocatable standalone CPython (python-build-standalone, the
+# distribution uv manages), which only links against /usr/lib and system frameworks.
+if ! command -v uv > /dev/null 2>&1
+then
+  echo "ERROR: uv not found, but it is required to fetch the standalone python and the" >&2
+  echo "  dependencies for the bundled environment. Install it with 'brew install uv' or" >&2
+  echo "  'curl -LsSf https://astral.sh/uv/install.sh | sh'." >&2
+  exit 1
+fi
+if [[ -n "$uv_cache_dir" ]] ; then export UV_CACHE_DIR="$uv_cache_dir" ; fi
+
+BUNDLED_PYTHON="$FASTSURFER_TO_PACKAGE/python"
+
+echo "Fetching standalone python $PYTHON_VERSION ..."
+# Keep the managed distribution in a build-local directory rather than uv's default: that default is
+# shared with the developer's own uv installs, and this step copies a whole distribution, so the
+# build has to know exactly which one it got.
+UV_PYTHON_DIR="$build_dir/.uv-pythons"
+UV_PYTHON_INSTALL_DIR="$UV_PYTHON_DIR" uv python install "$PYTHON_VERSION"
+# Locate it by globbing the install directory instead of asking uv to search: the directory is
+# build-local and holds exactly the distribution just installed, which is more predictable than
+# relying on interpreter-discovery semantics (those also consider virtual environments and the
+# system python, and change between uv releases).
+standalone_root=""
+for candidate in "$UV_PYTHON_DIR"/cpython-"$PYTHON_VERSION"*/ ; do
+  if [[ -x "$candidate/bin/python$PYTHON_VERSION" ]] ; then standalone_root="${candidate%/}" ; fi
+done
+if [[ -z "$standalone_root" ]]
+then
+  echo "ERROR: uv installed no usable standalone python $PYTHON_VERSION under $UV_PYTHON_DIR." >&2
+  echo "  Found: $(ls "$UV_PYTHON_DIR" 2>/dev/null | tr '\n' ' ')" >&2
+  exit 1
+fi
+echo "  using $standalone_root"
+
+echo "Bundling the python distribution ..."
+rm -rf "$BUNDLED_PYTHON"
+cp -R "$standalone_root" "$BUNDLED_PYTHON"
+BUNDLED_INTERPRETER="$BUNDLED_PYTHON/bin/python$PYTHON_VERSION"
+
+# Dependencies go straight into the bundled distribution's own site-packages, with no virtual
+# environment in between. A venv would have to be un-picked afterwards: it records its location in
+# pyvenv.cfg, its activate scripts and every console-script shebang, none of which survive the move
+# from the staging directory to $PATH_TO_FASTSURFER. The distribution itself needs no such fixup --
+# it derives its prefix from the interpreter's own location, so the whole tree can be moved
+# anywhere. It also avoids a second, 18 MB copy of the interpreter inside the venv.
+#
+# uv marks distributions it manages with an EXTERNALLY-MANAGED file saying they "should not be
+# modified", which is correct for the shared installation it keeps for the developer, but not for
+# this private copy that is about to be shipped as one unit. Remove it in the copy only.
+rm -f "$BUNDLED_PYTHON/lib/python$PYTHON_VERSION/EXTERNALLY-MANAGED"
+
+echo "Installing dependencies into the bundled distribution ..."
+# requirements.txt pins exact versions, so every build of a given commit ships the same packages.
+# It is exported from the linux container, so fall back to resolving from pyproject.toml if a pin
+# has no macOS wheel for this python.
+if uv pip install --python "$BUNDLED_INTERPRETER" -r "$FASTSURFER_HOME/requirements.txt"
+then
+  # requirements.txt already pins whippersnappy, i.e. the whole of the [qc] extra
+  echo "  installed from requirements.txt (pinned)"
+else
+  echo "  WARNING: requirements.txt did not resolve for macOS/python$PYTHON_VERSION," >&2
+  echo "    falling back to resolving from pyproject.toml (versions are then build-date dependent)" >&2
+  # [qc] pulls in whippersnappy, which run_fastsurfer.sh --qc_snap requires
+  uv pip install --python "$BUNDLED_INTERPRETER" "$FASTSURFER_HOME[qc]"
+fi
+
+# FastSurfer itself is deliberately NOT installed into the environment: the package ships its own
+# source tree at $PATH_TO_FASTSURFER and both run_fastsurfer.sh and the console put that on
+# PYTHONPATH. Installing it as well would put a second, shadowed copy of every module in
+# site-packages, which is how the console and the pipeline previously ended up importing different
+# copies of the same module.
+
+# ============================ BUNDLED CHECKPOINTS =========================================
+# Ship the network weights, so a fresh install does not have to download ~300 MB on first run.
+echo "Bundling checkpoints ..."
+checkpoints_dir="${checkpoints_dir:-$FASTSURFER_HOME/checkpoints}"
+mkdir -p "$checkpoints_dir"
+# download_checkpoints.py is idempotent: it skips files that are already present, so an existing
+# (or CI-cached) directory only fetches what is missing.
+FASTSURFER_HOME="$FASTSURFER_HOME" PYTHONPATH="$FASTSURFER_HOME" "$BUNDLED_INTERPRETER" \
+    "$FASTSURFER_HOME/FastSurferCNN/download_checkpoints.py" --all
+rm -rf "$FASTSURFER_TO_PACKAGE/checkpoints"
+cp -R "$checkpoints_dir" "$FASTSURFER_TO_PACKAGE/checkpoints"
+
+# Retarget the bundled distribution from the staging directory to the install directory. The
+# interpreter needs no help -- it derives its prefix from its own location -- but pip and uv write
+# console scripts as /bin/sh wrappers that exec the interpreter by absolute path, so all ~57 of them
+# (including pip itself and neuroreg's coreg/robreg) would otherwise exec a path that does not exist
+# on the user's machine. This also strips compiled bytecode, which records source paths and cannot be
+# rewritten; postinstall regenerates it in place.
+# Unlike a virtual environment, this does not stop the distribution working in the staging tree, so
+# it does not have to be the last step -- but keeping it here means the verification inside covers
+# everything that came before.
+echo "Retargeting the bundled python to the install prefix ..."
+python3 "$build_dir/finalize_bundled_python.py" \
+    --dist "$BUNDLED_PYTHON" \
+    --from "$FASTSURFER_TO_PACKAGE" \
+    --to "$PATH_TO_FASTSURFER"
+
+# Assemble the installer scripts in a directory of their own. pkgbuild --scripts packages the whole
+# directory it is given, so pointing it at the tracked source directory shipped the template and any
+# stray AppleDouble (._*) files inside the installer, and forced the generated files to be written
+# into (and then deleted from) a git-tracked directory.
+PKG_SCRIPTS_DIR="$build_dir/pkg-scripts"
+rm -rf "$PKG_SCRIPTS_DIR"
+mkdir -p "$PKG_SCRIPTS_DIR"
+
+# substitute values in postinstall script
 sed -e "s|<fastsurfer_home_dir>|${PATH_TO_FASTSURFER}|g" \
     -e "s|<python_version>|${PYTHON_VERSION}|g" \
-    -e "s|<homebrew_dir>|$HOMEBREW_DIR|g" \
     < "$SCRIPTS_DIR/postinstall.sh.template" \
-    > "$SCRIPTS_DIR/postinstall"
-# copy link_fs script (do not keep double copies, so delete after build)
-cp "$tools_dir/build/link_fs.sh" "$SCRIPTS_DIR/link_fs.sh"
+    > "$PKG_SCRIPTS_DIR/postinstall"
+# postinstall calls link_fs.sh, so it has to travel with it
+cp "$tools_dir/build/link_fs.sh" "$PKG_SCRIPTS_DIR/link_fs.sh"
 
-chmod +x "$SCRIPTS_DIR/postinstall"
+chmod +x "$PKG_SCRIPTS_DIR/postinstall" "$PKG_SCRIPTS_DIR/link_fs.sh"
+# Note: the installer's script archive will also contain AppleDouble (._postinstall, ._link_fs.sh)
+# entries. That is unavoidable rather than an oversight: pkgbuild stores extended attributes that
+# way, and macOS tags every file with com.apple.provenance, which `xattr -c` cannot remove. They are
+# 163 bytes each and are ignored by the installer.
 
 # assemble resources
 mkdir -p "$RESOURCES_DIR"
@@ -229,10 +355,8 @@ pkgbuild \
     --version "$VERSION" \
     --identifier "$ID" \
     --install-location "$INSTALLATION_DIR" \
-    --scripts "$SCRIPTS_DIR" \
+    --scripts "$PKG_SCRIPTS_DIR" \
     "$OUTPUT_PKG"
-
-rm -f "$SCRIPTS_DIR/postinstall"
 
 # create distribution file template based on provided package
 DISTRIBUTION_FILE="$RESOURCES_DIR/distribution.xml"
@@ -251,7 +375,6 @@ productbuild \
     --package-path "$build_dir/raw_package" \
     "$INSTALLER_PKG"
 
-# get rid of temporary folder
-rm -rf "$STAGED_DIR" "$RESOURCES_DIR" "$build_dir/dist" "$build_dir/build"
-# remove the previously copied link_fs.sh script
-rm "$SCRIPTS_DIR/link_fs.sh"
+# get rid of temporary folders. PKG_SCRIPTS_DIR and .uv-pythons are build-local, so nothing has to
+# be cleaned out of the tracked source tree any more.
+rm -rf "$STAGED_DIR" "$RESOURCES_DIR" "$build_dir/dist" "$build_dir/build" "$PKG_SCRIPTS_DIR"

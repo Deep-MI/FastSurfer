@@ -193,13 +193,41 @@ def test_macos_build_reads_the_key() -> None:
     text = MACOS_BUILD_SH.read_text()
     assert "--key tool.python.version" in text, (
         f"{MACOS_BUILD_SH.name} no longer reads tool.python.version. It must not fall back to "
-        f"project.requires-python: that is a lower bound, while postinstall needs an exact "
-        f"version to create the venv from homebrew's python<version>"
+        f"project.requires-python: that is a lower bound, while the bundled environment needs an "
+        f"exact version (it is baked into python/bin/python<version> and "
+        f"python/lib/python<version>/site-packages)"
     )
     assert "--key project.requires-python" not in text, (
         f"{MACOS_BUILD_SH.name} reads project.requires-python for the interpreter version. That "
         f"is the support floor, so the installer would ship the oldest supported python instead "
         f"of the one the project builds and tests against"
+    )
+
+
+def test_macos_postinstall_does_not_install_at_runtime() -> None:
+    """
+    Check the installer ships a complete environment instead of building one on the user's machine.
+
+    The package bundles python, the dependencies and the checkpoints, so postinstall must not pip
+    install, create a venv or download anything. Regressing this would silently reintroduce the
+    network dependency and make two installs of the same package differ.
+    """
+    postinstall = MACOS_BUILD_SH.parent / "scripts" / "postinstall.sh.template"
+    # only executable lines: the comments legitimately mention these phrases to explain that the
+    # script deliberately does *not* do them
+    code = "\n".join(
+        line for line in postinstall.read_text().splitlines() if not line.lstrip().startswith("#")
+    )
+    forbidden = {
+        "pip install": "installs packages at install time instead of shipping them",
+        "-m venv": "creates the environment on the user's machine instead of shipping it",
+        "download_checkpoints": "downloads the network weights instead of shipping them",
+        "brew install": "requires the user to have homebrew and a system python",
+    }
+    found = [f"{needle!r} ({why})" for needle, why in forbidden.items() if needle in code]
+    assert not found, (
+        f"{postinstall.name} does work that the build is supposed to have done already: "
+        + "; ".join(found)
     )
 
 
