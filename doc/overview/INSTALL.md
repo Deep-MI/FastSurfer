@@ -245,8 +245,11 @@ run_fastsurfer.sh --seg_only --sd <path/to/output/dir> --sid <subject_id> --t1 <
 ```
 or, for the full pipeline:
 ```sh
-run_fastsurfer.sh --device mps --sd <path/to/output/dir> --sid <subject_id> --t1 <path/to/subjects/t1/image> --fs_license ~/fs_license.txt
+run_fastsurfer.sh --sd <path/to/output/dir> --sid <subject_id> --t1 <path/to/subjects/t1/image> --fs_license ~/fs_license.txt
 ```
+No `--device` flag is needed: the default already picks the Apple GPU (`mps`) where it is available
+and the CPU otherwise. Passing `--device mps` explicitly is an error on a Mac without an
+MPS-capable GPU, rather than falling back.
 
 You do not need to use the applet: in a bash or zsh Terminal window, you can set up exactly the same environment by sourcing the same script:
 
