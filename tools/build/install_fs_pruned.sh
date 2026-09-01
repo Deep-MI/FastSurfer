@@ -85,9 +85,20 @@ EOF
 fi
 
 # skip the download+prune entirely if $fsd already holds a pruned install built from this exact URL
-# (e.g. restored by a CI cache); this is what makes it safe to point $where at a persistent cache dir
+# by this exact version of this script (e.g. restored by a CI cache); this is what makes it safe to
+# point $where at a persistent cache dir.
+# The digest matters as much as the URL: the file list below decides what a pruned install contains,
+# so changing it makes an existing install stale even though its URL still matches. CI keys its
+# actions/cache entry on this file too, but a local --fs-pruned-cache-dir has nothing else to notice.
+if command -v shasum > /dev/null 2>&1
+then script_digest="$(shasum -a 256 "$THIS_SCRIPT" | cut -d " " -f 1)"
+elif command -v sha256sum > /dev/null 2>&1
+then script_digest="$(sha256sum "$THIS_SCRIPT" | cut -d " " -f 1)"
+else script_digest="no-digest" # neither tool available: fall back to matching on the url alone
+fi
+cache_stamp="$fslink $script_digest"
 source_marker="$fsd/.fs_pruned_source_url"
-if [[ -f "$source_marker" ]] && [[ -f "$fsd/build-stamp.txt" ]] && [[ "$(cat "$source_marker")" == "$fslink" ]]
+if [[ -f "$source_marker" ]] && [[ -f "$fsd/build-stamp.txt" ]] && [[ "$(cat "$source_marker")" == "$cache_stamp" ]]
 then
   echo "Found existing pruned FreeSurfer install at $fsd built from $fslink, skipping download."
   exit 0
@@ -507,7 +518,7 @@ done
 
 # record what this pruned install was built from, so a re-run (e.g. from a restored CI cache) can
 # tell whether it is still valid instead of blindly reusing possibly-stale content
-echo "$fslink" > "$source_marker"
+echo "$cache_stamp" > "$source_marker"
 
 #cleanup
 rm -rf "$fss"

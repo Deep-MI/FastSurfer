@@ -146,8 +146,8 @@ tracker = 'https://github.com/Deep-MI/FastSurfer/issues'
 # Raising this version also requires updating the following, none of which can read this key:
 #   - requirements.txt, re-exported for the new interpreter (tools/export_pip-r.sh)
 #   - the two hardcoded copies listed above (CI will fail if you miss one)
-#   - the version quoted in user-facing docs: doc/overview/INSTALL.md (both the native and the
-#     macOS-package requirements, the latter being the python users must brew-install),
+#   - the version quoted in user-facing docs: doc/overview/INSTALL.md (native installation only;
+#     the macOS package bundles this interpreter, so its requirements quote no python version),
 #     README.md, Tutorial/README.md
 version = "3.12"
 
