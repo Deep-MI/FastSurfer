@@ -4,7 +4,15 @@ proc = run(["/usr/bin/osascript",
 "-e",
 "tell app \"Terminal\"", 
 "-e",
-"do script \"source /Applications/<fastsurfer>/macos_setup_fastsurfer.sh\"",
+# `do script` runs this text in whatever shell Terminal is configured to start, which need not be
+# one that understands the setup script, so exec an explicit bash and let it read the script as its
+# init file. `exec` and `env` are spelled the same way in sh, bash, zsh, tcsh and fish, so this line
+# works whatever the configured shell is. FASTSURFER_CONSOLE tells the script it is running as an
+# init file, where ~/.bashrc has not been read.
+# BASH_SILENCE_DEPRECATION_WARNING keeps Apple's /etc/bashrc from telling the user that zsh is the
+# default shell now, which is noise here: FastSurfer's scripts need bash, so the console is bash on
+# purpose. It has to be in the environment before bash starts, hence `env` rather than the script.
+"do script \"exec /usr/bin/env FASTSURFER_CONSOLE=1 BASH_SILENCE_DEPRECATION_WARNING=1 /bin/bash --init-file '/Applications/<fastsurfer>/macos_setup_fastsurfer.sh'\"",
 "-e",
 "activate",
 "-e",
