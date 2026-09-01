@@ -58,6 +58,9 @@ while [[ "$#" -ge 1 ]]; do
 done
 fss=$where/fs-tmp
 fsd=$where/$name
+# The tarball's top-level directory is "freesurfer", so extract into a private directory rather than
+# straight into $where: with --name, $where/freesurfer may well be the user's real FreeSurfer install.
+fse=$where/.fs-extract
 
 if [[ "$fslink" == "default" ]]
 then
@@ -94,7 +97,8 @@ elif command -v sha256sum > /dev/null 2>&1
 then script_digest="$(sha256sum "$THIS_SCRIPT" | cut -d " " -f 1)"
 else script_digest="no-digest" # neither tool available: fall back to matching on the url alone
 fi
-cache_stamp="$fslink $script_digest"
+# --upx changes what gets installed, so it is part of the cache identity too
+cache_stamp="$fslink $script_digest upx=$upx"
 source_marker="$fsd/.fs_pruned_source_url"
 if [[ -f "$source_marker" ]] && [[ -f "$fsd/build-stamp.txt" ]] && [[ "$(cat "$source_marker")" == "$cache_stamp" ]]
 then
@@ -113,10 +117,10 @@ fi
 # $where may not exist yet (e.g. a cache directory on a CI cache miss); tar below extracts into it
 mkdir -p "$where"
 # rebuild from scratch: an outdated $fsd (different url, older prune list) would keep files that are
-# no longer copied below and then be stamped as valid, and a leftover $fss from an interrupted run
-# would make the "mv $where/freesurfer $fss" below nest the extraction inside it instead of
-# replacing it, breaking every copy that follows
-rm -rf "$fsd" "$fss" "$where/freesurfer"
+# no longer copied below and then be stamped as valid, and leftovers from an interrupted run would
+# make the "mv" below nest the extraction inside them instead of replacing them. Only paths this
+# script owns are removed; $where/freesurfer is deliberately not one of them.
+rm -rf "$fsd" "$fss" "$fse"
 
 echo
 echo "Will install FreeSurfer to $fsd"
@@ -147,6 +151,15 @@ else
   delete_freesurfer_dl="true"
 fi
 
+# A cached tarball is only the right one if it came from this URL. Without the sidecar check, a
+# version bump with an unchanged --fs-download-cache path would prune the *old* archive and then
+# stamp it as the new version, producing a plausible but wrongly versioned install.
+freesurfer_dl_url="$freesurfer_dl.url"
+if [[ -f "$freesurfer_dl" ]] && [[ "$(cat "$freesurfer_dl_url" 2>/dev/null)" != "$fslink" ]] ; then
+  echo "Cached download $freesurfer_dl came from a different URL, discarding it ..."
+  rm -f "$freesurfer_dl" "$freesurfer_dl_url"
+fi
+
 if [[ -f "$freesurfer_dl" ]] ; then
   echo "Found cached download $freesurfer_dl, using that ..."
 else
@@ -166,6 +179,7 @@ else
 
   echo "Downloading FreeSurfer from $fslink with ${dl[0]}..."
   "${dl[@]}"
+  echo "$fslink" > "$freesurfer_dl_url"
 fi
 
 
@@ -175,7 +189,8 @@ if [[ ! -f "$freesurfer_dl" ]] ; then
   exit 1
 fi
 
-tar zxv --no-same-owner -C "$where" \
+mkdir -p "$fse"
+tar zxv --no-same-owner -C "$fse" \
       --exclude='freesurfer/average/*.gca' \
       --exclude='freesurfer/average/Buckner_JNeurophysiol11_MNI152' \
       --exclude='freesurfer/average/Choi_JNeurophysiol12_MNI152' \
@@ -230,7 +245,7 @@ tar zxv --no-same-owner -C "$where" \
 if [[ "$?" != 0 ]] ; then
   echo "ERROR: Extracting $freesurfer_dl failed (corrupt or incomplete download/cache?)."
   # remove it so a broken --fs-download-cache/--install path isn't silently reused as "cached" again
-  rm -f "$freesurfer_dl"
+  rm -f "$freesurfer_dl" "$freesurfer_dl_url"
   exit 1
 fi
 
@@ -240,7 +255,7 @@ if [[ "$delete_freesurfer_dl" == "true" ]] ; then
 fi
 
 # rename download to tmp
-mv "$where/freesurfer" "$fss"
+mv "$fse/freesurfer" "$fss"
 
 # mk directories
 mkdir -p "$fsd/average"
@@ -519,4 +534,4 @@ done
 echo "$cache_stamp" > "$source_marker"
 
 #cleanup
-rm -rf "$fss"
+rm -rf "$fss" "$fse"
