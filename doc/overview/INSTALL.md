@@ -214,7 +214,7 @@ To launch a configured FastSurfer terminal session, start the FastSurfer applet 
 - puts the Python distribution bundled with FastSurfer (`FASTSURFER_HOME/python`) first on `PATH`,
 - sets `FASTSURFER_HOME` and `PYTHONPATH`,
 - sets `FREESURFER_HOME` to the pruned FreeSurfer installation bundled with FastSurfer and sources `SetUpFreeSurfer.sh`,
-- adds the FastSurfer directory (and GNU `grep`, if you happen to have it via Homebrew) to your `PATH`, persisted to `~/.bash_profile` so plain Terminal windows can find `run_fastsurfer.sh` afterward too, and
+- adds the FastSurfer directory (and GNU `grep`, if you happen to have it via Homebrew) to your `PATH`, for this session only -- no shell profile is modified, and
 - reminds you to set `FS_LICENSE` if it is not already set (see "FreeSurfer license" below).
 
 In this console, you can run the full FastSurfer pipeline by typing and executing `run_fastsurfer.sh <fastsurfer-flags>`, where you replace `<fastsurfer-flags>` with the appropriate [commandline flags of FastSurfer](../../README.md#usage), for example:
@@ -227,7 +227,13 @@ or, for the full pipeline:
 run_fastsurfer.sh --device mps --sd <path/to/output/dir> --sid <subject_id> --t1 <path/to/subjects/t1/image> --fs_license ~/fs_license.txt
 ```
 
-You do not need to relaunch the applet every time: once the FastSurfer directory has been added to your `PATH` (see above), you can set up the same environment in any Terminal window by running `source macos_setup_fastsurfer.sh`.
+You do not need to use the applet: you can set up exactly the same environment in any Terminal window by sourcing the same script, whatever your shell:
+
+```sh
+source /Applications/FastSurfer<version>/macos_setup_fastsurfer.sh
+```
+
+Adding only the FastSurfer directory to your `PATH` instead is not enough and is best avoided: `run_fastsurfer.sh` would be found, but `python3` would still be Apple's system Python -- too old for FastSurfer -- and `FREESURFER_HOME` would be unset, so it fails with a confusing error. Sourcing the script sets all of it.
 
 #### 4. FreeSurfer license (for surfaces / eTIV)
 A FreeSurfer license is only needed if you run the surface module (recon-surf) or, in segmentation-only mode, activate the Talairach registration via `--tal_reg` (used to estimate total intracranial volume, eTIV, in the stats files). Plain segmentation without `--tal_reg` does not need one.
@@ -239,10 +245,11 @@ Unlike a native Linux/source install, do not rely on FastSurfer auto-detecting t
 ```sh
 run_fastsurfer.sh ... --fs_license ~/fs_license.txt
 ```
-or export it once per console session, or persist it the same way the console already persists `PATH`, by adding the line to `~/.bash_profile`:
+or export it once per console session:
 ```sh
 export FS_LICENSE=~/fs_license.txt
 ```
+or, to have it set in every shell, add that line to your shell profile yourself (`~/.zprofile` for zsh, the macOS default; `~/.bash_profile` for bash). FastSurfer does not modify these files.
 
 #### 5. Apple AI Accelerator support
 On modern M-Chips you can try the Apple Silicon AI Accelerator by passing `--device mps` for the segmentation module to make use of the fast GPU (when using `run_fastsurfer.sh`, FastSurfer sets `PYTORCH_ENABLE_MPS_FALLBACK=1` automatically on macOS unless you already set it):
@@ -252,6 +259,23 @@ On modern M-Chips you can try the Apple Silicon AI Accelerator by passing `--dev
 ```
 
 This will be at least twice as fast as `--device cpu`. The fallback is needed because `aten::max_unpool2d` is not yet implemented for MPS; expect a one-time warning about it, which is harmless.
+
+#### 6. Uninstalling
+Drag both items from your Applications folder to the Trash:
+- `FastSurfer<version>` (the installation)
+- `FastSurfer<version>.app` (the applet)
+
+macOS will ask for your password, because the installer places them as `root`. Everything FastSurfer
+installed lives in that one directory: no shell profile is modified and nothing is written elsewhere,
+so there is nothing else to clean up. Installations of other versions are independent and are not
+affected.
+
+Optionally, to also drop the installer's receipt (bookkeeping only, it does not affect anything you
+run):
+```sh
+sudo pkgutil --forget org.deep-mi.FastSurfer.<version-without-dots>_<arch>
+```
+`pkgutil --pkgs | grep -i fastsurfer` lists the exact identifiers.
 
 Windows
 -------

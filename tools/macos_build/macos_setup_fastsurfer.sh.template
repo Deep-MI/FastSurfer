@@ -28,37 +28,29 @@ PS1="(<fastsurfer>) $PS1"
 
 echo
 echo "This is the FastSurfer console. Call \`run_fastsurfer.sh -t1 ...\` in here! " 
+echo "In any other Terminal window, set up the same environment with:"
+echo "  source $FASTSURFER_HOME/macos_setup_fastsurfer.sh"
 echo "See also https://deep-mi.org/FastSurfer/stable/overview/INSTALL.html#macos"
 
-# run_fastsurfer.sh lives here. Set unconditionally: the console has to work in every session, not
-# only the first one, so this must not depend on whether the profile was already updated below.
+# run_fastsurfer.sh lives here.
 fastsurfer_prepend_path "$FASTSURFER_HOME"
 
 # GNU grep, if homebrew provides it. The package bundles everything it runs and does not need
 # homebrew, so this is skipped rather than failing when brew is absent.
-gnubin=""
 if command -v brew > /dev/null 2>&1 ; then
     gnubin="$(brew --prefix)/opt/grep/libexec/gnubin"
-    if [[ -d "$gnubin" ]] ; then fastsurfer_prepend_path "$gnubin" ; else gnubin="" ; fi
+    [[ -d "$gnubin" ]] && fastsurfer_prepend_path "$gnubin"
+    unset gnubin
 fi
 
-# Persist for plain Terminal windows that do not source this script. Write to the profile the login
-# shell actually reads: zsh is the macOS default and never reads ~/.bash_profile, so persisting
-# there silently did nothing.
-case "$(basename "${SHELL:-/bin/zsh}")" in
-    zsh) fastsurfer_profile="$HOME/.zprofile" ;;
-    *)   fastsurfer_profile="$HOME/.bash_profile" ;;
-esac
-for fastsurfer_dir in "$gnubin" "$FASTSURFER_HOME" ; do
-    [[ -z "$fastsurfer_dir" ]] && continue
-    fastsurfer_line="export PATH=\"$fastsurfer_dir:\$PATH\""
-    if ! grep -qF "$fastsurfer_line" "$fastsurfer_profile" 2>/dev/null ; then
-        echo "$fastsurfer_line" >> "$fastsurfer_profile"
-        echo "$fastsurfer_dir has been added to PATH in $fastsurfer_profile"
-    fi
-done
+# Nothing is written to ~/.zprofile or ~/.bash_profile on purpose. Persisting only the PATH entry
+# used to look helpful but was a trap: in a plain shell run_fastsurfer.sh would then be found while
+# python3 still resolved to Apple's system python and FREESURFER_HOME was unset, so it failed with a
+# confusing TypeError from a python too old for the sources. Everything needed lives in this script,
+# so a plain Terminal wants `source <this script>` rather than a PATH entry. It also means the
+# package touches nothing outside its own directory, keeps no per-version leftovers in dotfiles, and
+# cannot shadow another FastSurfer checkout.
 unset -f fastsurfer_prepend_path
-unset gnubin fastsurfer_profile fastsurfer_dir fastsurfer_line
 
 if [[ -z "${FS_LICENSE}" ]]; then 
     echo "Set FS_LICENSE environmental variable"
