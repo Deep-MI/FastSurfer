@@ -1000,8 +1000,22 @@ trap "{ echo \"run_fastsurfer.sh terminated via signal at \$(date -R)!\" | tee -
 
 # create the build log, file with all version info in parallel
 # uses ${version_cache_args}, which is filled exactly if a build_cache file exists
+# Limit the runtime if the platform can: timeout is GNU coreutils, absent on macOS (gtimeout when
+# coreutils is installed via homebrew). Running unbounded is an acceptable fallback rather than a
+# compromise, because version.py already puts a 10s timeout on every subprocess it spawns (git,
+# md5sum, pip) and so cannot hang indefinitely; this is only a second line of defence. Without the
+# fallback the command just fails on macOS and the invocation block below is never appended.
+# A function, not an array: "${arr[@]}" on an empty array is an error under `set -u` in bash 3.2,
+# which is what macOS ships.
+function run_with_timeout()
+{
+  if command -v timeout > /dev/null 2>&1 ; then timeout 20 "$@"
+  elif command -v gtimeout > /dev/null 2>&1 ; then gtimeout 20 "$@"
+  else "$@"
+  fi
+}
 (
-  if timeout 20 $python "$FASTSURFER_HOME/FastSurferCNN/version.py" --sections all -o "$build_log" "${version_cache_args[@]}"
+  if run_with_timeout $python "$FASTSURFER_HOME/FastSurferCNN/version.py" --sections all -o "$build_log" "${version_cache_args[@]}"
   then
     {
       echo ""
