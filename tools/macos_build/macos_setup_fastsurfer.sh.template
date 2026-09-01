@@ -33,7 +33,7 @@ export FREESURFER_HOME=$FASTSURFER_HOME/fs-pruned
 # variables unguarded and run commands whose failure is normal, so they abort a caller that sourced
 # us with `set -u` or `set -e`. Suspend both across them and restore whatever the caller had.
 fastsurfer_caller_opts="$-"
-set +ue
+set +u +e
 source $FREESURFER_HOME/SetUpFreeSurfer.sh > /dev/null
 case "$fastsurfer_caller_opts" in *u*) set -u ;; esac
 case "$fastsurfer_caller_opts" in *e*) set -e ;; esac
