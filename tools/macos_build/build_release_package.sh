@@ -260,10 +260,19 @@ rm -rf "$FASTSURFER_TO_PACKAGE/checkpoints"
 cp -R "$checkpoints_dir" "$FASTSURFER_TO_PACKAGE/checkpoints"
 
 # ============================ BUILD PROVENANCE ============================================
-# Record which commit this package was built from. The package ships no .git (it is staged from
-# git ls-files), so without this file version.py falls back to a placeholder hash and
+# Record what this package was built from. The package ships no .git (it is staged from git
+# ls-files), so without this file version.py falls back to a placeholder hash and
 # `run_fastsurfer.sh --version` reports +0000000, losing the link to the source.
-# The docker build writes the same file, with the same sections.
+#
+# The file has to be complete: run_fastsurfer.sh passes --prefer_cache whenever BUILD.info exists,
+# and version.py then refuses to compute a section itself, failing with "Could not find a valid
+# value for checkpoints!" if the cache lacks one it was asked for.
+#
+# Two passes, because the sections have different correct sources:
+#   git      - only the checkout knows it, and only version.py run from there can read it
+#   the rest - must describe what is *shipped*: the checkpoints staged into the package (which may
+#             come from --checkpoints-dir rather than the checkout) and the packages in the bundled
+#             environment, not whatever the build machine's python3 happens to have installed
 echo "Recording build provenance ..."
 if git -C "$FASTSURFER_HOME" rev-parse --git-dir > /dev/null 2>&1
 then
@@ -276,7 +285,16 @@ else
 fi
 PYTHONPATH="$FASTSURFER_HOME" python3 "$FASTSURFER_HOME/FastSurferCNN/version.py" \
     "${version_sections[@]}" -o "$FASTSURFER_TO_PACKAGE/BUILD.info"
+# second pass from inside the package, so version.py's project root is the staged tree
+PYTHONPATH="$FASTSURFER_TO_PACKAGE" "$BUNDLED_INTERPRETER" \
+    "$FASTSURFER_TO_PACKAGE/FastSurferCNN/version.py" --sections +checkpoints+pip \
+    -o "$FASTSURFER_TO_PACKAGE/BUILD.info.parts"
+# append only the section blocks; line 1 is a version line without git info, which would override
+# the one written above
+sed -n '2,$p' "$FASTSURFER_TO_PACKAGE/BUILD.info.parts" >> "$FASTSURFER_TO_PACKAGE/BUILD.info"
+rm -f "$FASTSURFER_TO_PACKAGE/BUILD.info.parts"
 sed -n '1p' "$FASTSURFER_TO_PACKAGE/BUILD.info" | sed 's/^/  /'
+grep -cE "^[a-z_ ]+:$" "$FASTSURFER_TO_PACKAGE/BUILD.info" | sed 's/^/  sections recorded: /'
 
 # Retarget the distribution from the staging directory to the install directory. The interpreter
 # needs no help, but pip and uv write console scripts as /bin/sh wrappers that exec the interpreter
