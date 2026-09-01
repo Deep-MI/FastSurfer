@@ -11,13 +11,15 @@ permissions:
 
 jobs:
   deploy-mac:
-    # uv resolves the bundled python and wheels for the host, so each package needs a runner of its
-    # own architecture; build_release_package.sh fails on a mismatch.
-    runs-on: ${{ matrix.arch == 'arm' && 'macos-15' || 'macos-15-intel' }}
+    # arm only: PyTorch ships no macOS x86_64 wheels after 2.2, so the bundled environment cannot be
+    # resolved for Intel at all (see doc/overview/INSTALL.md, which points Intel users at Docker).
+    # uv resolves the python and wheels for the host, so re-adding intel needs an intel runner too;
+    # build_release_package.sh fails the build on a mismatch.
+    runs-on: macos-15
     timeout-minutes: 60
     strategy:
       matrix:
-        arch: [intel, arm]
+        arch: [arm]
     steps:
       - name: Get repository name.
         run: echo "FASTSURFER_DIR=$GITHUB_WORKSPACE" >> $GITHUB_ENV
@@ -56,7 +58,8 @@ jobs:
           # py2app itself isn't pinned (matching prior behavior), so this key is coarse; if a bad
           # release ever causes trouble the way sphinx-argparse did for docs, pin the version in
           # build_release_package.sh and fold it in here too.
-          # matrix.arch is needed because runner.os is "macOS" on both, and this venv is arch specific
+          # matrix.arch, although only arm builds today: runner.os is "macOS" on every mac runner, so
+          # without it a re-added intel build would restore this arm venv
           key: py2app-venv-${{ runner.os }}-${{ matrix.arch }}
       - name: Resolve cache keys
         id: fs_cache
@@ -78,8 +81,8 @@ jobs:
         with:
           path: ${{ steps.fs_cache.outputs.cache_dir }}
           # bumps on a FreeSurfer version/URL change (url_hash) or a change to what gets pruned
-          # (install_fs_pruned.sh); arm and intel currently resolve the same darwin_x86_64 url and
-          # so share one cache entry, this stops being true automatically if that ever changes
+          # (install_fs_pruned.sh). No arch in the key: FreeSurfer ships one darwin_x86_64 build that
+          # both a future intel job and today's arm job (via Rosetta) would download
           key: fs-pruned-${{ hashFiles('tools/build/install_fs_pruned.sh') }}-${{ steps.fs_cache.outputs.url_hash }}
       - name: Cache uv downloads
         uses: actions/cache@v4
