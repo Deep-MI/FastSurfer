@@ -297,15 +297,19 @@ PKG_SCRIPTS_DIR="$build_dir/pkg-scripts"
 rm -rf "$PKG_SCRIPTS_DIR"
 mkdir -p "$PKG_SCRIPTS_DIR"
 
-# substitute values in postinstall script
-sed -e "s|<fastsurfer_home_dir>|${PATH_TO_FASTSURFER}|g" \
-    -e "s|<python_version>|${PYTHON_VERSION}|g" \
-    < "$SCRIPTS_DIR/postinstall.sh.template" \
-    > "$PKG_SCRIPTS_DIR/postinstall"
+# substitute values in the install scripts. preinstall clears a previous installation of this
+# version, so what ends up installed is exactly the payload.
+for script in preinstall postinstall ; do
+  sed -e "s|<fastsurfer_home_dir>|${PATH_TO_FASTSURFER}|g" \
+      -e "s|<python_version>|${PYTHON_VERSION}|g" \
+      < "$SCRIPTS_DIR/$script.sh.template" \
+      > "$PKG_SCRIPTS_DIR/$script"
+done
 # postinstall calls link_fs.sh, so it has to travel with it
 cp "$tools_dir/build/link_fs.sh" "$PKG_SCRIPTS_DIR/link_fs.sh"
 
-chmod +x "$PKG_SCRIPTS_DIR/postinstall" "$PKG_SCRIPTS_DIR/link_fs.sh"
+chmod +x "$PKG_SCRIPTS_DIR/preinstall" "$PKG_SCRIPTS_DIR/postinstall" \
+         "$PKG_SCRIPTS_DIR/link_fs.sh"
 # Note: the script archive will also contain AppleDouble (._*) entries. That is unavoidable, not an
 # oversight: pkgbuild stores extended attributes that way and macOS tags every file with
 # com.apple.provenance, which xattr -c cannot remove. The installer ignores them.
