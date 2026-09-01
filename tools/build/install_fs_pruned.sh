@@ -84,12 +84,10 @@ EOF
   fi
 fi
 
-# skip the download+prune entirely if $fsd already holds a pruned install built from this exact URL
-# by this exact version of this script (e.g. restored by a CI cache); this is what makes it safe to
-# point $where at a persistent cache dir.
-# The digest matters as much as the URL: the file list below decides what a pruned install contains,
-# so changing it makes an existing install stale even though its URL still matches. CI keys its
-# actions/cache entry on this file too, but a local --fs-pruned-cache-dir has nothing else to notice.
+# Skip the download+prune if $fsd already holds an install built from this URL by this version of
+# this script, which is what makes it safe to point $where at a persistent cache dir. The digest
+# matters as much as the URL: the file list below decides what a pruned install contains, so editing
+# it makes an existing install stale while its URL still matches.
 if command -v shasum > /dev/null 2>&1
 then script_digest="$(shasum -a 256 "$THIS_SCRIPT" | cut -d " " -f 1)"
 elif command -v sha256sum > /dev/null 2>&1

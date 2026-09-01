@@ -1,9 +1,8 @@
 #!/bin/bash
 
-# The applet starts `bash --init-file <this script>`, so that the FastSurfer console works whatever
-# shell Terminal is configured to open. bash then reads this file *instead of* ~/.bashrc, so load
-# that first to keep the console a normal shell with the user's own aliases and settings. It runs
-# before everything below, so FastSurfer's own PATH entries and the prompt marker still win.
+# The applet starts `bash --init-file <this script>`, which reads this file *instead of* ~/.bashrc.
+# Load that first, so the console keeps the user's own aliases and settings while FastSurfer's PATH
+# entries and prompt marker below still win.
 if [[ -n "$FASTSURFER_CONSOLE" ]]; then
     [[ -r "$HOME/.bashrc" ]] && source "$HOME/.bashrc"
     # one-shot: it is exported, and a shell started from the console is not reading an init file
@@ -20,10 +19,9 @@ fastsurfer_prepend_path() {
     esac
 }
 
-# The package bundles its own python distribution, so putting its bin first is all that is needed
-# for python3 to resolve to it; there is no virtual environment to activate. Its site-packages is
-# found via the prefix and deliberately kept off PYTHONPATH, which would otherwise let an unrelated
-# python on PATH import binary extensions built for this interpreter.
+# The bundled distribution needs no activation: its bin first on PATH is enough. site-packages is
+# found via the prefix and kept off PYTHONPATH, which would otherwise let an unrelated python on
+# PATH import binary extensions built for this interpreter.
 fastsurfer_prepend_path "$FASTSURFER_HOME/python/bin"
 
 # $FASTSURFER_HOME first, matching what run_fastsurfer.sh does before invoking python: FastSurfer's
@@ -53,13 +51,10 @@ if command -v brew > /dev/null 2>&1 ; then
     unset gnubin
 fi
 
-# Nothing is written to ~/.zprofile or ~/.bash_profile on purpose. Persisting only the PATH entry
-# used to look helpful but was a trap: in a plain shell run_fastsurfer.sh would then be found while
-# python3 still resolved to Apple's system python and FREESURFER_HOME was unset, so it failed with a
-# confusing TypeError from a python too old for the sources. Everything needed lives in this script,
-# so a plain Terminal wants `source <this script>` rather than a PATH entry. It also means the
-# package touches nothing outside its own directory, keeps no per-version leftovers in dotfiles, and
-# cannot shadow another FastSurfer checkout.
+# Nothing is written to ~/.zprofile or ~/.bash_profile on purpose. Persisting just the PATH entry
+# was a trap: run_fastsurfer.sh would then be found in a plain shell while python3 still resolved to
+# Apple's system python and FREESURFER_HOME was unset, failing with a confusing TypeError. Sourcing
+# this script is the whole setup, and the package leaves no per-version leftovers in dotfiles.
 unset -f fastsurfer_prepend_path
 
 if [[ -z "${FS_LICENSE}" ]]; then 
