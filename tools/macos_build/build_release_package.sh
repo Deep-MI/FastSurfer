@@ -1,10 +1,8 @@
 #!/bin/bash
 
-# abort on the first failure: nearly every step here feeds the next one, so an unchecked error
-# (a partial cp of fs-pruned, a py2app build that did not produce the .app, a sed that wrote an
-# empty postinstall) otherwise runs on into pkgbuild and yields an installer that looks fine but
-# is incomplete. pipefail additionally covers the "git ls-files | rsync" pipeline below, where a
-# failing git would just hand rsync an empty file list and "succeed".
+# abort on the first failure: nearly every step feeds the next, so an unchecked error runs on into
+# pkgbuild and yields an installer that looks fine but is incomplete. pipefail additionally covers
+# the "git ls-files | rsync" pipeline below, where a failing git would hand rsync an empty list.
 set -e
 set -o pipefail
 
@@ -94,15 +92,13 @@ INSTALLER_PKG="$build_dir/installer/$PACKAGE_NAME.pkg"
 # create temporary folder to package and copy FastSurfer over
 STAGED_DIR="$build_dir/FastSurferPackageContent"
 FASTSURFER_TO_PACKAGE="$STAGED_DIR/FastSurfer$VERSION"
-# start from an empty staging tree: an interrupted earlier build leaves its content behind, and
-# neither the copy below nor pkgbuild removes anything, so leftovers would be packaged. Notably a
-# run from before fs-pruned was nested leaves a "freesurfer" directory here, which would put the
-# package back to installing into /Applications/freesurfer.
+# start from an empty staging tree: neither the copy below nor pkgbuild removes anything, so an
+# interrupted build's leftovers would be packaged. A run from before fs-pruned was nested leaves a
+# "freesurfer" directory here, which would install into /Applications/freesurfer again.
 rm -rf "$STAGED_DIR"
 mkdir -p "$FASTSURFER_TO_PACKAGE"
 # top-level paths that are not needed to run FastSurfer and so stay out of the installed package.
-# Note README.md, LICENSE and pyproject.toml must NOT be listed here: postinstall pip-installs
-# $FASTSURFER_HOME and pyproject.toml references both files.
+# Do not add pyproject.toml (version.py reads it at runtime) or LICENSE (shipped for redistribution).
 not_packaged=(
   # build-side only, never part of an install
   tools
@@ -123,10 +119,9 @@ not_packaged=(
   Documentation
   env
 )
-# package git-tracked files only: everything else in the working tree (build artifacts, downloaded
-# tarballs, scratch dirs) would otherwise end up in the installer and silently add gigabytes to it.
-# The checkpoints are gitignored, so they are excluded here as well; they are staged deliberately in
-# the BUNDLED CHECKPOINTS section below, from --checkpoints-dir rather than from the working tree.
+# package git-tracked files only: build artifacts, downloaded tarballs and scratch dirs would
+# otherwise add gigabytes to the installer. The checkpoints are gitignored and excluded here too;
+# they are staged deliberately from --checkpoints-dir in the BUNDLED CHECKPOINTS section below.
 if git -C "$FASTSURFER_HOME" rev-parse --git-dir > /dev/null 2>&1
 then
   pathspecs=()
@@ -140,11 +135,10 @@ else
   rsync -av --progress "$FASTSURFER_HOME/" "$FASTSURFER_TO_PACKAGE" "${excludes[@]}"
 fi
 
-# install pruned freesurfer (not a full install, so nested inside FastSurfer's own directory
-# rather than the canonical /Applications/freesurfer, to avoid colliding with a real FreeSurfer install).
-# --fs-pruned-cache-dir, if set (e.g. by CI, restored via actions/cache), lets install_fs_pruned.sh
-# skip the download+prune entirely when a matching install is already there; either way, the result
-# is copied into the staged package content, so the packaging steps below don't need to know about caching.
+# install pruned freesurfer, nested inside FastSurfer's own directory rather than the canonical
+# /Applications/freesurfer, so it cannot collide with a real FreeSurfer install.
+# --fs-pruned-cache-dir lets install_fs_pruned.sh skip the download+prune when a matching install is
+# already there; either way the result is copied into the staged tree.
 fs_pruned_where="${fs_pruned_cache_dir:-$FASTSURFER_TO_PACKAGE}"
 download_cache_args=()
 if [[ -n "$fs_download_cache" ]] ; then download_cache_args=(--fs-download-cache "$fs_download_cache") ; fi
@@ -166,22 +160,19 @@ then
 fi
 
 SCRIPTS_DIR="$tools_dir/macos_build/scripts" # directory with scripts executed during installation process (f.e. preinstall postinstall)
-# the exact python that is bundled into the package. This must be an exact version, not a range:
-# the bundled interpreter lives at python/bin/python$PYTHON_VERSION and its packages at
-# python/lib/python$PYTHON_VERSION/site-packages, both referred to by name.
-# tool.python.version is that exact value, shared with the docker build (see pyproject.toml).
+# the exact python bundled into the package: the interpreter lives at python/bin/python$PYTHON_VERSION
+# and its packages under python/lib/python$PYTHON_VERSION, both referred to by name, so this has to
+# be one version and not a range. See pyproject.toml for why tool.python.version is separate.
 PYTHON_VERSION=$(python3 "$tools_dir/read_toml.py" --file "$FASTSURFER_HOME/pyproject.toml" --key tool.python.version)
 
-# where the package will live once installed, substituted into the installer scripts and the
-# console script. The bundled python distribution does not need to know this path: it derives its
-# prefix from the interpreter's own location, so it works wherever the installer puts it.
+# where the package will live once installed, substituted into the installer and console scripts.
+# The bundled python needs no such help: it derives its prefix from the interpreter's own location.
 PATH_TO_FASTSURFER="$INSTALLATION_DIR/FastSurfer$VERSION"
 
 # ============================ BUNDLED PYTHON ENVIRONMENT ==================================
-# Ship a complete python environment, so installing needs no network and no pre-installed python
-# (FreeSurfer's own installer works the same way). Homebrew's python cannot be bundled: even a
-# --copies venv built from it links against the Cellar and resolves its stdlib there. This uses the
-# relocatable standalone CPython that uv manages, which only needs /usr/lib and system frameworks.
+# Ship a complete python environment, so installing needs no network and no pre-installed python.
+# Homebrew's python cannot be bundled: even a --copies venv links against the Cellar and resolves
+# its stdlib there. uv's relocatable standalone CPython needs only /usr/lib and system frameworks.
 if ! command -v uv > /dev/null 2>&1
 then
   echo "ERROR: uv not found, but it is required to fetch the standalone python and the" >&2
@@ -287,22 +278,18 @@ echo "  highest deployment target: macOS $macos_min_found (supported: $MACOS_MIN
 echo "Bundling checkpoints ..."
 checkpoints_dir="${checkpoints_dir:-$FASTSURFER_HOME/checkpoints}"
 mkdir -p "$checkpoints_dir"
-# The downloader cannot be pointed at a directory: it resolves the relative paths from
-# */config/checkpoint_paths.yaml against the location of the FastSurferCNN package it imports
-# (FASTSURFER_ROOT in utils/parser_defaults.py), and reads no environment variable for it. So aim it
-# by choosing which copy to run -- the staged tree, which is where the weights have to end up anyway.
-# Running the checkout's copy instead wrote them into the checkout and left the package empty
-# whenever --checkpoints-dir pointed elsewhere, as it does in CI.
+# The downloader has no target-directory option: it resolves the paths from
+# */config/checkpoint_paths.yaml against the FastSurferCNN package it imports (FASTSURFER_ROOT in
+# utils/parser_defaults.py), so the only way to aim it is to run the staged copy, which is where the
+# weights have to end up anyway.
 rm -rf "$FASTSURFER_TO_PACKAGE/checkpoints"
 mkdir -p "$FASTSURFER_TO_PACKAGE/checkpoints"
-# Seed from the cache first; download_checkpoints.py is idempotent and skips files that are already
-# present, so only what is missing is fetched.
+# seed from the cache; download_checkpoints.py skips files already present, so only gaps are fetched
 rsync -a "$checkpoints_dir/" "$FASTSURFER_TO_PACKAGE/checkpoints/"
 PYTHONPATH="$FASTSURFER_TO_PACKAGE" "$BUNDLED_INTERPRETER" \
     "$FASTSURFER_TO_PACKAGE/FastSurferCNN/download_checkpoints.py" --all
-# Hand anything newly downloaded back to the cache, so the next build starts from a complete set.
-# No --delete: the cache defaults to the checkout's own checkpoints directory, which may hold weights
-# this build did not ask for.
+# hand new downloads back to the cache. No --delete: it defaults to the checkout's own checkpoints
+# directory, which may hold weights this build did not ask for.
 rsync -a "$FASTSURFER_TO_PACKAGE/checkpoints/" "$checkpoints_dir/"
 if [[ -z "$(ls -A "$FASTSURFER_TO_PACKAGE/checkpoints")" ]]
 then
@@ -311,21 +298,13 @@ then
 fi
 
 # ============================ BUILD PROVENANCE ============================================
-# Record what this package was built from. The package ships no .git (it is staged from git
-# ls-files), so without this file version.py falls back to a placeholder hash and
-# `run_fastsurfer.sh --version` reports +0000000, losing the link to the source.
-#
-# The file has to be complete: run_fastsurfer.sh passes --prefer_cache whenever BUILD.info exists,
-# and version.py then refuses to compute a section itself, failing with "Could not find a valid
-# value for checkpoints!" if the cache lacks one it was asked for.
-#
-# Two passes, because the sections have different correct sources -- the same approach the docker
-# build takes (see the version.py call at the end of tools/Docker/Dockerfile):
-#   git      - only the checkout knows it, and only version.py run from there can read it
-#   the rest - must describe what is *shipped*: the checkpoints staged into the package (which may
-#             come from --checkpoints-dir rather than the checkout) and the packages in the bundled
-#             environment, not whatever the build machine's python3 happens to have installed
-# The second pass takes the first as --build_cache, so version.py merges them itself.
+# Record what this package was built from: it ships no .git, so without this file version.py falls
+# back to a placeholder and `run_fastsurfer.sh --version` reports +0000000. It has to be complete,
+# because run_fastsurfer.sh passes --prefer_cache whenever BUILD.info exists and version.py then
+# refuses to compute a missing section itself.
+# Two passes, as the docker build does: git is only readable from the checkout, while the other
+# sections must describe what is *shipped* (the staged checkpoints, the bundled environment) rather
+# than whatever the build machine's python3 has. The second pass merges the first via --build_cache.
 echo "Recording build provenance ..."
 git_build_info="$build_dir/BUILD.info.git"
 if git -C "$FASTSURFER_HOME" rev-parse --git-dir > /dev/null 2>&1
@@ -348,12 +327,10 @@ rm -f "$git_build_info"
 sed -n '1p' "$FASTSURFER_TO_PACKAGE/BUILD.info" | sed 's/^/  /'
 grep -cE "^[a-z_ ]+:$" "$FASTSURFER_TO_PACKAGE/BUILD.info" | sed 's/^/  sections recorded: /'
 
-# Retarget the distribution from the staging directory to the install directory. The interpreter
-# needs no help, but pip and uv write console scripts as /bin/sh wrappers that exec the interpreter
-# by absolute path, so every one of them would exec a path absent on the user's machine. This also
-# strips compiled bytecode, which records source paths and cannot be rewritten as text; postinstall
-# regenerates it in place. Unlike a venv this leaves the distribution usable here, so the step need
-# not come last -- but placing it last lets its verification cover everything before it.
+# Retarget the distribution from the staging to the install directory: the interpreter needs no
+# help, but pip and uv write console scripts as /bin/sh wrappers that exec it by absolute path. This
+# also strips compiled bytecode, which records source paths and cannot be rewritten as text;
+# postinstall regenerates it. Placing it last lets its verification cover everything before it.
 echo "Retargeting the bundled python to the install prefix ..."
 python3 "$build_dir/finalize_bundled_python.py" \
     --dist "$BUNDLED_PYTHON" \
@@ -361,8 +338,7 @@ python3 "$build_dir/finalize_bundled_python.py" \
     --to "$PATH_TO_FASTSURFER"
 
 # Assemble the installer scripts in a directory of their own: pkgbuild --scripts packages the whole
-# directory it is given, so pointing it at the tracked source directory shipped the template too and
-# meant writing generated files into (then deleting them from) a git-tracked directory.
+# directory it is given, so pointing it at the tracked source directory shipped the templates too.
 PKG_SCRIPTS_DIR="$build_dir/pkg-scripts"
 rm -rf "$PKG_SCRIPTS_DIR"
 mkdir -p "$PKG_SCRIPTS_DIR"
@@ -380,9 +356,8 @@ cp "$tools_dir/build/link_fs.sh" "$PKG_SCRIPTS_DIR/link_fs.sh"
 
 chmod +x "$PKG_SCRIPTS_DIR/preinstall" "$PKG_SCRIPTS_DIR/postinstall" \
          "$PKG_SCRIPTS_DIR/link_fs.sh"
-# Note: the script archive will also contain AppleDouble (._*) entries. That is unavoidable, not an
-# oversight: pkgbuild stores extended attributes that way and macOS tags every file with
-# com.apple.provenance, which xattr -c cannot remove. The installer ignores them.
+# The script archive will also contain AppleDouble (._*) entries: pkgbuild stores extended
+# attributes that way and macOS tags every file with com.apple.provenance. The installer ignores them.
 
 # assemble resources
 mkdir -p "$RESOURCES_DIR"

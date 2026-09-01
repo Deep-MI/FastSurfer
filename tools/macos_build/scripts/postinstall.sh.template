@@ -10,10 +10,9 @@ FASTSURFER_HOME="<fastsurfer_home_dir>"
 SCRIPT_DIR="$(dirname $0)"
 PYTHON="$FASTSURFER_HOME/python/bin/python<python_version>"
 
-# Clear quarantine before anything runs the bundled binaries. They arrive from a downloaded,
-# unsigned package -- FreeSurfer executables, the interpreter, compiled extensions -- and Gatekeeper
-# otherwise refuses to load them, surfacing much later as an obscure import or exec error.
-# 2>/dev/null || true: xattr fails on paths that never had the attribute, which is not an error.
+# Clear quarantine before anything runs the bundled binaries: they arrive from a downloaded,
+# unsigned package, and Gatekeeper otherwise refuses to load them, surfacing much later as an
+# obscure import or exec error. xattr fails on paths that never had the attribute, hence the || true.
 xattr -dr com.apple.quarantine "$FASTSURFER_HOME" 2>/dev/null || true
 
 # Fail here rather than at first use if the bundled distribution did not survive packaging.
@@ -32,9 +31,8 @@ fi
 
 # Precompile bytecode while this still runs as root and can write into the install directory. The
 # build ships none, because a .pyc records its source path and staging-built ones would point every
-# traceback at a path that does not exist. Compiling here records the real paths and keeps startup
-# fast: /Applications is usually not writable by the user, so whatever is not compiled now is
-# recompiled on every run. Non-fatal -- a failure costs startup time, it does not break the install.
+# traceback at a path that does not exist. /Applications is usually not writable by the user, so
+# whatever is not compiled now is recompiled on every run. Non-fatal: it only costs startup time.
 "$PYTHON" -m compileall -q "$FASTSURFER_HOME/python/lib" > /dev/null 2>&1 || true
 "$PYTHON" -m compileall -q \
     "$FASTSURFER_HOME/FastSurferCNN" "$FASTSURFER_HOME/CerebNet" "$FASTSURFER_HOME/HypVINN" \
