@@ -323,7 +323,9 @@ fi
 # sections must describe what is *shipped* (the staged checkpoints, the bundled environment) rather
 # than whatever the build machine's python3 has. The second pass merges the first via --build_cache.
 echo "Recording build provenance ..."
-git_build_info="$build_dir/BUILD.info.git"
+# Outside the checkout: version.py's -o creates the file before it runs `git status -sb`, so a path
+# inside the tree would show up as untracked and every package would report a dirty source tree.
+git_build_info="$(mktemp -t fastsurfer-buildinfo)"
 if git -C "$FASTSURFER_HOME" rev-parse --git-dir > /dev/null 2>&1
 then
   version_sections="+git+checkpoints+pip"
