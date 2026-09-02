@@ -267,12 +267,11 @@ fi
 # site-packages, which is how the console and the pipeline previously ended up importing different
 # copies of the same module.
 
-# The oldest macOS the package runs on is set by the wheels, not by us (numpy and scipy are at 14
-# today, against the interpreter's 11.0), and uv accepts platform tags up to the build host's
-# version, so the host caps how far it can rise. Hence the runner's macOS here rather than today's
-# measured value, which makes this a guard against bumping the runner in .github/workflows/deploy.yml
-# without updating doc/overview/INSTALL.md.
-MACOS_MIN_SUPPORTED="15.0"
+# The oldest macOS the package can run on is set by the wheels, not by us: numpy and scipy are at 14
+# today, against the interpreter's own 11.0. uv accepts platform tags up to the build host's version,
+# so a dependency update can raise this silently. The value below is what doc/overview/INSTALL.md
+# tells users, so the check makes that statement fail loudly rather than rot.
+MACOS_MIN_DOCUMENTED="14.0"
 echo "Checking the macOS deployment target of the bundled binaries ..."
 macos_min_found="$( { otool -l "$BUNDLED_INTERPRETER" ;
     find "$BUNDLED_PYTHON" -type f \( -name "*.so" -o -name "*.dylib" \) -print0 \
@@ -282,13 +281,13 @@ if [[ -z "$macos_min_found" ]]
 then
   echo "ERROR: could not read a deployment target from any bundled binary." >&2
   exit 1
-elif [[ "$(printf '%s\n%s\n' "$MACOS_MIN_SUPPORTED" "$macos_min_found" | sort -t. -k1,1n -k2,2n -k3,3n | tail -1)" != "$MACOS_MIN_SUPPORTED" ]]
+elif [[ "$(printf '%s\n%s\n' "$MACOS_MIN_DOCUMENTED" "$macos_min_found" | sort -t. -k1,1n -k2,2n -k3,3n | tail -1)" != "$MACOS_MIN_DOCUMENTED" ]]
 then
-  echo "ERROR: a bundled binary needs macOS $macos_min_found, above the supported $MACOS_MIN_SUPPORTED." >&2
-  echo "  Raise it here and in doc/overview/INSTALL.md together." >&2
+  echo "ERROR: a bundled binary needs macOS $macos_min_found, but doc/overview/INSTALL.md says the" >&2
+  echo "  package runs on $MACOS_MIN_DOCUMENTED. Update both together." >&2
   exit 1
 fi
-echo "  highest deployment target: macOS $macos_min_found (supported: $MACOS_MIN_SUPPORTED)"
+echo "  highest deployment target: macOS $macos_min_found (documented: $MACOS_MIN_DOCUMENTED)"
 
 # ============================ BUNDLED CHECKPOINTS =========================================
 # Ship the network weights, so a fresh install does not have to download them on first run.

@@ -155,7 +155,7 @@ docker run --cap-add=SYS_PTRACE --security-opt seccomp=unconfined --device=/dev/
 ```
 Note, that this docker image is experimental, uses a different Python version and python packages, so results can differ from our validation results. Please do visual QC.
 
-MacOS
+macOS
 -----
 Processing on Mac CPUs is possible. On Apple Silicon, you can even use the GPU by passing ```--device mps```.
 
@@ -180,14 +180,14 @@ Continue with the example in [Example 2](EXAMPLES.md#example-2-fastsurfer-docker
 ### Package
 
 #### 1. Requirements
-An Apple silicon Mac (M1/M2/M3/...) running macOS 15 (Sequoia) or newer. **Intel Macs cannot use the
-package**: PyTorch has published no macOS x86_64 wheels since 2.2, so the environment the package
-bundles cannot be built for them. On an Intel Mac, use [Docker](#docker-currently-only-supported-for-intel-cpus)
-above instead, which runs natively there and supports the full pipeline.
+An Apple silicon Mac (M1/M2/M3/...). **Intel Macs cannot use the package**: PyTorch has published no
+macOS x86_64 wheels since 2.2, so the environment the package bundles cannot be built for them. On an
+Intel Mac, use [Docker](#docker-currently-only-supported-for-intel-cpus) above instead, which runs
+natively there and supports the full pipeline.
 
-The package is built on macOS 15, and its binaries come from upstream wheels whose own minimum can
-rise with any dependency update, so that is the version we test and support. An older macOS may
-happen to work, but we cannot promise it from one release to the next.
+**macOS 14** (Sonoma) or newer: the bundled binaries are compiled for it and cannot load on anything
+older. We do not test specific versions, so treat this as a lower bound rather than a support
+statement.
 
 Only the shells macOS already ships: `/bin/bash` (at least 3.2) for FastSurfer's own scripts and
 `/bin/tcsh` for the FreeSurfer ones. Your own Terminal shell does not matter -- the applet starts a
