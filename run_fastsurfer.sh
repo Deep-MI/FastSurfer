@@ -1036,30 +1036,29 @@ then
   } | tee -a "$seg_log"
 fi
 
-# mapfile builtin requires bash 4 (BASH_VERSINFO is available in bash 3)
-if [[ "${BASH_VERSINFO[0]}" -gt 3 ]]
-then
-  function filter_log_build()
-  {
-    # filter expected files $LF and scripts/BUILD.log
-    IFS=""
-    while read -r file ; do
-      if [[ "$sd/$subject/${file:2}" != "$seg_log" ]] && [[ "$file" != "./scripts/BUILD.log" ]] ; then echo "$file" ; fi
-    done
-  }
+function filter_log_build()
+{
+  # filter expected files $LF and scripts/BUILD.log
+  IFS=""
+  while read -r file ; do
+    if [[ "$sd/$subject/${file:2}" != "$seg_log" ]] && [[ "$file" != "./scripts/BUILD.log" ]] ; then echo "$file" ; fi
+  done
+}
 
-  pushd "$subject_dir" > /dev/null || { echo "ERROR: Could not access $subject_dir!" ; exit 1 ; }
-    mapfile -t content_of_subject_dir < <(find "." -type f | filter_log_build)
-  popd > /dev/null || exit 1
-  if [[ "${#content_of_subject_dir[@]}" -gt 1 ]] ; then
-    if [[ "$edits" == "true" ]] ; then LABEL="INFO" ; else LABEL="WARNING" ; fi
-    {
-      echo "$LABEL: Found ${#content_of_subject_dir[@]} files in subject directory \$SUBJECTS_DIR/$subject:"
-      files=("${content_of_subject_dir[@]:0:6}")
-      if [[ "${#content_of_subject_dir[@]}" -gt 6 ]] ; then files+=("...") ; fi
-      echo "  Potentially Overwriting: ${files[*]}"
-    } | tee -a "$seg_log"
-  fi
+pushd "$subject_dir" > /dev/null || { echo "ERROR: Could not access $subject_dir!" ; exit 1 ; }
+  # read into the array rather than with mapfile, which is bash 4+ while macOS ships bash 3.2
+  content_of_subject_dir=()
+  while IFS= read -r found_file ; do content_of_subject_dir+=("$found_file") ; done \
+    < <(find "." -type f | filter_log_build)
+popd > /dev/null || exit 1
+if [[ "${#content_of_subject_dir[@]}" -gt 1 ]] ; then
+  if [[ "$edits" == "true" ]] ; then LABEL="INFO" ; else LABEL="WARNING" ; fi
+  {
+    echo "$LABEL: Found ${#content_of_subject_dir[@]} files in subject directory \$SUBJECTS_DIR/$subject:"
+    files=("${content_of_subject_dir[@]:0:6}")
+    if [[ "${#content_of_subject_dir[@]}" -gt 6 ]] ; then files+=("...") ; fi
+    echo "  Potentially Overwriting: ${files[*]}"
+  } | tee -a "$seg_log"
 fi
 
 asegdkt_segfile_manedit=$(add_file_suffix "$asegdkt_segfile" "manedit")
