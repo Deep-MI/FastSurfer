@@ -361,7 +361,7 @@ def main(
             # if not 0, return_value is a string describing the error
             logger.error(return_value)
 
-        logger.info(f"Processing segmentation finished in {time() - seg:0.4f} seconds.")
+        logger.info(f"Processing the hypothalamus segmentation finished in {time() - seg:0.4f} seconds.")
     except (FileNotFoundError, RuntimeError) as e:
         logger.info(f"Failed Evaluation on {subject_name}:")
         logger.exception(e)
@@ -378,7 +378,9 @@ def main(
             else:
                 logger.info(f"QC snapshots saved in {qc_future.result()} seconds.")
 
-        logger.info(f"Processing whole pipeline finished in {time() - start:.4f} seconds.")
+        # the HypVINN module only, not the FastSurfer run: this is the last timing line a user sees,
+        # so calling it the whole pipeline made a seg-only run look as short as this one module
+        logger.info(f"Processing the hypothalamus module finished in {time() - start:.4f} seconds.")
 
         return return_value
 
