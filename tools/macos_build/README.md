@@ -1,21 +1,30 @@
-# FastSurfer MacOS packaging
-## Create MacOS package
+# FastSurfer macOS packaging
+## Create macOS package
 
-In order to build the MacOS package of FastSurfer, simply run:
+To build the macOS package of FastSurfer, run:
 
 ```bash
-./build_release_package.sh <architecture>
+./build_release_package.sh arm
 ```
 
-Script creates release package for MacOS, where `<architecture>` is `arm` for arm64 arch based chips and `intel` for `x86_64` arch based chips.
+`arm` (arm64, Apple silicon) is the only buildable architecture. PyTorch publishes no macOS x86_64
+wheels after 2.2, so the environment this package bundles cannot be resolved for Intel; an `intel`
+invocation is refused. Intel Mac users run the Docker image instead, see
+[INSTALL.md](../../doc/overview/INSTALL.md). Run the script without arguments for the full list of
+options (cache directories for the FreeSurfer download, the pruned install, uv and the checkpoints).
 
 ### Dependencies for the script
 
-Script is using py2app python dependency, which isn't installed through any requirements file of FastSurfer, so in order to run the script, make sure that py2app is installed.
+[uv](https://docs.astral.sh/uv/) (`brew install uv`), which fetches the relocatable standalone Python
+and the dependencies that get bundled into the package.
+
+py2app needs no manual install: the script creates and caches a venv of its own for it
+(`--py2app-venv`). That isolation is deliberate, since py2app's dependency scanner walks the whole
+environment it runs in and fails over unrelated packages that happen to be installed there.
 
 ### Running the package
 
-After the script is executed, `installer` folder will be created along with the MacOS package of FastSurfer inside.
+After the script is executed, `installer` folder will be created along with the macOS package of FastSurfer inside.
 Run the package by opening it and follow instructions.
 
 After successful installation, FastSurfer applet and its source code will appear under the `/Applications` folder.
