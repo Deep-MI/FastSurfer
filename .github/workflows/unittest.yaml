@@ -37,9 +37,11 @@ jobs:
       matrix:
         # image: image-processing unit tests. config: consistency of declared versions across
         # pyproject.toml, the Dockerfile and the workflows (see test/config/test_python_version.py).
-        # shell: the shipped scripts stay runnable under macOS's bash 3.2; the static part of that
-        # runs anywhere, the functional part needs a real bash 3.2 (see the macos-shell-test job)
-        tests: ["image", "config", "shell"]
+        # test/shell is deliberately absent: its static half only reads files and runs in the much
+        # lighter code-style workflow, and its functional half needs a real bash 3.2, so it runs in
+        # the macos-shell-test job below. Adding it here would spin up a whole job, including the
+        # quicktest dependency install, to execute a text scan.
+        tests: ["image", "config"]
         pytest-flags: [""]
 
     steps:
@@ -123,4 +125,5 @@ jobs:
         env:
           FASTSURFER_HOME: ${{ github.workspace }}
         shell: bash
-        run: python -m pytest -v test/shell
+        # only the functional file; the static lint runs in the code-style workflow
+        run: python -m pytest -v test/shell/test_brun_bash32.py

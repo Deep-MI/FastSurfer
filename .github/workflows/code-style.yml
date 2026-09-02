@@ -23,6 +23,11 @@ jobs:
           python-version: '3.10'
       - name: Run Ruff
         run: uv run --project src --extra style ruff check src
+      - name: Check the shell scripts for constructs macOS cannot run
+        # --no-project on purpose: this only reads files and needs nothing but pytest, so there is no
+        # reason to resolve FastSurfer's dependencies for it. Runs in about a second. The half of
+        # test/shell that needs a real bash 3.2 runs in the macos-shell-test job in unittest.yaml.
+        run: uv run --no-project --with pytest pytest -v src/test/shell/test_bash4_lint.py
       - name: Run codespell
         uses: codespell-project/actions-codespell@master
         with:
