@@ -6,11 +6,19 @@
 set -e
 set -o pipefail
 
-if [[ "$#" -lt 1 ]] || { [[ "$1" != "arm" ]] && [[ "$1" != "intel" ]] ; } ; then
+# Recognised but refused, rather than falling through to the usage text, so the reason is visible
+# and nobody spends an hour of build time discovering it.
+if [[ "${1-}" == "intel" ]] ; then
+  echo "ERROR: the Intel package cannot be built." >&2
+  echo "  PyTorch publishes no macOS x86_64 wheels after 2.2, so the bundled environment does not" >&2
+  echo "  resolve. Intel Mac users run the Docker image, see doc/overview/INSTALL.md." >&2
+  exit 1
+fi
+if [[ "$#" -lt 1 ]] || [[ "$1" != "arm" ]] ; then
   echo
-  echo "Usage:  build_release_package.sh <arm|intel> [--fs-download-cache path] [--fs-pruned-cache-dir dir]"
-  echo "                                             [--py2app-venv dir] [--uv-cache-dir dir]"
-  echo "                                             [--checkpoints-dir dir]"
+  echo "Usage:  build_release_package.sh arm [--fs-download-cache path] [--fs-pruned-cache-dir dir]"
+  echo "                                     [--py2app-venv dir] [--uv-cache-dir dir]"
+  echo "                                     [--checkpoints-dir dir]"
   echo
   echo "--fs-download-cache points at a file path for the raw FreeSurfer tarball: if it already"
   echo "  exists there (e.g. from a prior, interrupted local run), it is reused instead of"
@@ -34,7 +42,7 @@ if [[ "$#" -lt 1 ]] || { [[ "$1" != "arm" ]] && [[ "$1" != "intel" ]] ; } ; then
   echo
   exit
 fi
-ARCH_TYPE=$1 # chip architecture - arm or intel
+ARCH_TYPE=$1 # chip architecture, only "arm" is buildable, see the check above
 shift
 
 fs_download_cache="$FS_DOWNLOAD_CACHE"
@@ -74,8 +82,8 @@ URL_TO_FREESURFER_TEMP=$(python3 "$tools_dir/read_toml.py" --file "$FASTSURFER_H
 sub="{version}"
 URL_TO_FREESURFER="${URL_TO_FREESURFER_TEMP//$sub/$FREESURFER_VERSION}"
 
+# no x86_64 branch: an intel build is refused at the top, so this is the only reachable value
 ARCH_TYPE_NAME="arm64"
-if [[ "$ARCH_TYPE" = "intel" ]] ; then ARCH_TYPE_NAME="x86_64" ; fi
 
 RESOURCES_DIR="$build_dir/resources"
 # File name of the installer. Deliberately carries no version, so the docs can link to
