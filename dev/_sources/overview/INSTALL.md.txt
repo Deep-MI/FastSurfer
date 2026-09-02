@@ -155,7 +155,7 @@ docker run --cap-add=SYS_PTRACE --security-opt seccomp=unconfined --device=/dev/
 ```
 Note, that this docker image is experimental, uses a different Python version and python packages, so results can differ from our validation results. Please do visual QC.
 
-MacOS
+macOS
 -----
 Processing on Mac CPUs is possible. On Apple Silicon, you can even use the GPU by passing ```--device mps```.
 
@@ -180,41 +180,130 @@ Continue with the example in [Example 2](EXAMPLES.md#example-2-fastsurfer-docker
 ### Package
 
 #### 1. Requirements
-FastSurfer requires pre-installed python3.10+ and bash (at least 3.2).
-You can install these via the packet manager brew.
-To install brew and then python3.10, execute the following in a Terminal:
+An Apple silicon Mac (M1/M2/M3/...). **Intel Macs cannot use the package**: PyTorch has published no
+macOS x86_64 wheels since 2.2, so the environment the package bundles cannot be built for them. On an
+Intel Mac, use [Docker](#docker-currently-only-supported-for-intel-cpus) above instead, which runs
+natively there and supports the full pipeline.
+
+**macOS 14** (Sonoma) or newer: the bundled binaries are compiled for it and cannot load on anything
+older. We do not test specific versions, so treat this as a lower bound rather than a support
+statement.
+
+Only the shells macOS already ships: `/bin/bash` (at least 3.2) for FastSurfer's own scripts and
+`/bin/tcsh` for the FreeSurfer ones. Your own Terminal shell does not matter -- the applet starts a
+bash session itself -- though setting the environment up by hand (see below) needs bash or zsh. No
+Python installation and no Homebrew are needed: the package bundles its own Python, all Python
+dependencies, the network checkpoints and a reduced FreeSurfer, so installing it requires no
+internet connection and downloads nothing.
+
+On Apple silicon, the full pipeline additionally needs **Rosetta 2**. FastSurfer bundles the
+official FreeSurfer build, which upstream currently ships for Intel only, so the FreeSurfer
+executables run through Rosetta even in the Apple silicon package. Segmentation
+(`--seg_only`) does not use them and works without it. Most Macs already have Rosetta 2, and if not,
+you can install it once with:
 
 ```sh
-/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-brew install python@3.10
+softwareupdate --install-rosetta
 ```
 
+Note this is the one step that does need an internet connection, so install it before you rely on
+the package being fully offline.
+
+In exchange the installer is large: expect a download of under a gigabyte and a couple of gigabytes
+of disk space once installed.
+
 #### 2. FastSurfer package
-From version 2.5 onward, FastSurfer ships macOS installer packages on the
-[GitHub Releases page](https://github.com/Deep-MI/FastSurfer/releases/).
-Open the latest release, expand the **Assets** section, and download the installer that matches your Mac:
-- `arm64` for Apple silicon (M1/M2/M3/...)
-- `x86_64` for Intel Macs
+Download **[FastSurfer-macos-darwin_arm64.pkg](https://github.com/Deep-MI/FastSurfer/releases/latest/download/FastSurfer-macos-darwin_arm64.pkg)**,
+which always points at the newest release. Its version is shown in the installer window, and after
+installing by `run_fastsurfer.sh --version`. Earlier versions are on the
+[releases page](https://github.com/Deep-MI/FastSurfer/releases/).
 
 To install, double-click the downloaded `.pkg` installer and follow the installer instructions.
+
+> **Note:** FastSurfer's `.pkg` is currently not signed/notarized by Apple, so macOS Gatekeeper will
+> block it. Depending on your macOS version, double-clicking the installer may not show an "Open"
+> option at all, just "Done" or "Move to Trash", in which case nothing happens if you click "Done".
+> To allow it: click **Done** on that warning, then go to **System Settings > Privacy & Security**,
+> scroll down to the **Security** section, and click **Open Anyway** next to the message about the
+> blocked installer. Confirm once more (you may be asked for your password or Touch ID), then
+> double-click the `.pkg` again to start the installation.
 
 After installation, you can find the FastSurfer applet, its source code, and selected FreeSurfer executables in the `/Applications` folder.
 
 #### 3. Launching FastSurfer
 
-To launch a configured FastSurfer terminal session, start the FastSurfer applet from Applications.
+To launch a configured FastSurfer terminal session, start the FastSurfer applet from Applications. This opens a regular Terminal window running a FastSurfer console: a bash session with everything already set up to run FastSurfer, recognizable by the `(FastSurfer<version>)` prompt prefix. It:
+- puts the Python distribution bundled with FastSurfer (`FASTSURFER_HOME/python`) first on `PATH`,
+- sets `FASTSURFER_HOME` and `PYTHONPATH`,
+- sets `FREESURFER_HOME` to the pruned FreeSurfer installation bundled with FastSurfer and sources `SetUpFreeSurfer.sh`,
+- adds the FastSurfer directory (and GNU `grep`, if you happen to have it via Homebrew) to your `PATH`, for this session only -- no shell profile is modified,
+- reads your `~/.bashrc` first, if you have one, so your own aliases and settings are still there, and
+- reminds you to set `FS_LICENSE` if it is not already set (see "FreeSurfer license" below).
 
-Once the terminal opens, it is already configured and you can easily run the full FastSurfer pipeline by typing and executing `run_fastsurfer.sh <fastsurfer-flags>`, where you replace `<fastsurfer-flags>` with the appropriate [commandline flags of FastSurfer](../../README.md#usage).
-
-#### 4. Apple AI Accelerator support
-On modern M-Chips you can try the Apple Silicon AI Accelerator by setting `PYTORCH_ENABLE_MPS_FALLBACK` and passing `--device mps` for the segmentation module to make use of the fast GPU:
+In this console, you can run the full FastSurfer pipeline by typing and executing `run_fastsurfer.sh <fastsurfer-flags>`, where you replace `<fastsurfer-flags>` with the appropriate [commandline flags of FastSurfer](../../README.md#usage), for example:
 
 ```sh
-export PYTORCH_ENABLE_MPS_FALLBACK=1
+run_fastsurfer.sh --seg_only --sd <path/to/output/dir> --sid <subject_id> --t1 <path/to/subjects/t1/image>
+```
+or, for the full pipeline:
+```sh
+run_fastsurfer.sh --sd <path/to/output/dir> --sid <subject_id> --t1 <path/to/subjects/t1/image> --fs_license ~/fs_license.txt
+```
+No `--device` flag is needed: the default already picks the Apple GPU (`mps`) where it is available
+and the CPU otherwise. Passing `--device mps` explicitly is an error on a Mac without an
+MPS-capable GPU, rather than falling back.
+
+You do not need to use the applet: in a bash or zsh Terminal window, you can set up exactly the same environment by sourcing the same script:
+
+```sh
+source /Applications/FastSurfer<version>/macos_setup_fastsurfer.sh
+```
+
+The script is bash syntax, so from a shell that does not understand it, such as tcsh or fish, start a `bash` (or `zsh`) session first and source it in there.
+
+Adding only the FastSurfer directory to your `PATH` instead is not enough and is best avoided: `run_fastsurfer.sh` would be found, but `python3` would still be Apple's system Python -- too old for FastSurfer -- and `FREESURFER_HOME` would be unset, so it fails with a confusing error. Sourcing the script sets all of it.
+
+#### 4. FreeSurfer license (for surfaces / eTIV)
+A FreeSurfer license is only needed if you run the surface module (recon-surf) or, in segmentation-only mode, activate the Talairach registration via `--tal_reg` (used to estimate total intracranial volume, eTIV, in the stats files). Plain segmentation without `--tal_reg` does not need one.
+
+To get a license, [register at the FreeSurfer website](https://surfer.nmr.mgh.harvard.edu/registration.html) to acquire a FreeSurfer license (for free).
+
+Unlike a native Linux/source install, do not rely on FastSurfer auto-detecting the license inside `$FREESURFER_HOME`: on macOS, `$FREESURFER_HOME` points at the pruned FreeSurfer bundled with the package (`$FASTSURFER_HOME/fs-pruned`), which is installed by the `.pkg` as `root` and is not writable by your user account. Instead, save the license file somewhere in your home directory and either pass it explicitly:
+
+```sh
+run_fastsurfer.sh ... --fs_license ~/fs_license.txt
+```
+or export it once per console session:
+```sh
+export FS_LICENSE=~/fs_license.txt
+```
+or, to have it set in every shell, add that line to your shell profile yourself (`~/.zprofile` for zsh, the macOS default; `~/.bash_profile` for bash). FastSurfer does not modify these files.
+
+#### 5. Apple AI Accelerator support
+On modern M-Chips you can try the Apple Silicon AI Accelerator by passing `--device mps` for the segmentation module to make use of the fast GPU (when using `run_fastsurfer.sh`, FastSurfer sets `PYTORCH_ENABLE_MPS_FALLBACK=1` automatically on macOS unless you already set it):
+
+```sh
 ./run_fastsurfer.sh --seg_only --device mps ....
 ```
 
-This will be at least twice as fast as `--device cpu`. Currently setting the fallback environment variable is necessary as `aten::max_unpool2d` is not yet implemented for MPS and will fall back to CPU.
+This will be at least twice as fast as `--device cpu`. The fallback is needed because `aten::max_unpool2d` is not yet implemented for MPS; expect a one-time warning about it, which is harmless.
+
+#### 6. Uninstalling
+Drag both items from your Applications folder to the Trash:
+- `FastSurfer<version>` (the installation)
+- `FastSurfer<version>.app` (the applet)
+
+macOS will ask for your password, because the installer places them as `root`. Everything FastSurfer
+installed lives in that one directory: no shell profile is modified and nothing is written elsewhere,
+so there is nothing else to clean up. Installations of other versions are independent and are not
+affected.
+
+Optionally, to also drop the installer's receipt (bookkeeping only, it does not affect anything you
+run):
+```sh
+sudo pkgutil --forget org.deep-mi.FastSurfer.<version-without-dots>_<arch>
+```
+`pkgutil --pkgs | grep -i fastsurfer` lists the exact identifiers.
 
 Windows
 -------

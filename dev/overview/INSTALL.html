@@ -206,7 +206,6 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="docker.html">Docker Support</a></li>
 <li class="toctree-l2"><a class="reference internal" href="SINGULARITY.html">Singularity Support</a></li>
-<li class="toctree-l2"><a class="reference internal" href="MACOS.html">Running FastSurfer as MacOS package</a></li>
 <li class="toctree-l2"><a class="reference internal" href="EDITING.html">Manual Edits</a></li>
 <li class="toctree-l2"><a class="reference internal" href="LONG.html">Longitudinal Processing</a></li>
 <li class="toctree-l2"><a class="reference internal" href="SECURITY.html">Security Policy</a></li>
@@ -592,7 +591,7 @@ python<span class="w"> </span>FastSurferCNN/download_checkpoints.py<span class="
 </section>
 </section>
 <section id="macos">
-<h2>MacOS<a class="headerlink" href="#macos" title="Link to this heading">¶</a></h2>
+<h2>macOS<a class="headerlink" href="#macos" title="Link to this heading">¶</a></h2>
 <p>Processing on Mac CPUs is possible. On Apple Silicon, you can even use the GPU by passing <code class="docutils literal notranslate"><span class="pre">--device</span> <span class="pre">mps</span></code>.</p>
 <p>Recommended System Spec: Mac with Apple Silicon M-Chip and 16 GB system memory.</p>
 <p>For older Intel CPUs, we only support cpu-only, which will be 2-4 times slower.</p>
@@ -611,39 +610,118 @@ Start it and set Memory to 15 GB under Preferences -&gt; Resources (or the large
 <h3>Package<a class="headerlink" href="#package" title="Link to this heading">¶</a></h3>
 <section id="requirements">
 <h4>1. Requirements<a class="headerlink" href="#requirements" title="Link to this heading">¶</a></h4>
-<p>FastSurfer requires pre-installed python3.10+ and bash (at least 3.2).
-You can install these via the packet manager brew.
-To install brew and then python3.10, execute the following in a Terminal:</p>
-<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>/bin/bash<span class="w"> </span>-c<span class="w"> </span><span class="s2">"</span><span class="k">$(</span>curl<span class="w"> </span>-fsSL<span class="w"> </span>https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh<span class="k">)</span><span class="s2">"</span>
-brew<span class="w"> </span>install<span class="w"> </span>python@3.10
+<p>An Apple silicon Mac (M1/M2/M3/…). <strong>Intel Macs cannot use the package</strong>: PyTorch has published no
+macOS x86_64 wheels since 2.2, so the environment the package bundles cannot be built for them. On an
+Intel Mac, use <a class="reference internal" href="#docker-currently-only-supported-for-intel-cpus"><span class="std std-ref">Docker</span></a> above instead, which runs
+natively there and supports the full pipeline.</p>
+<p><strong>macOS 14</strong> (Sonoma) or newer: the bundled binaries are compiled for it and cannot load on anything
+older. We do not test specific versions, so treat this as a lower bound rather than a support
+statement.</p>
+<p>Only the shells macOS already ships: <code class="docutils literal notranslate"><span class="pre">/bin/bash</span></code> (at least 3.2) for FastSurfer’s own scripts and
+<code class="docutils literal notranslate"><span class="pre">/bin/tcsh</span></code> for the FreeSurfer ones. Your own Terminal shell does not matter – the applet starts a
+bash session itself – though setting the environment up by hand (see below) needs bash or zsh. No
+Python installation and no Homebrew are needed: the package bundles its own Python, all Python
+dependencies, the network checkpoints and a reduced FreeSurfer, so installing it requires no
+internet connection and downloads nothing.</p>
+<p>On Apple silicon, the full pipeline additionally needs <strong>Rosetta 2</strong>. FastSurfer bundles the
+official FreeSurfer build, which upstream currently ships for Intel only, so the FreeSurfer
+executables run through Rosetta even in the Apple silicon package. Segmentation
+(<code class="docutils literal notranslate"><span class="pre">--seg_only</span></code>) does not use them and works without it. Most Macs already have Rosetta 2, and if not,
+you can install it once with:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>softwareupdate<span class="w"> </span>--install-rosetta
 </pre></div>
 </div>
+<p>Note this is the one step that does need an internet connection, so install it before you rely on
+the package being fully offline.</p>
+<p>In exchange the installer is large: expect a download of under a gigabyte and a couple of gigabytes
+of disk space once installed.</p>
 </section>
 <section id="fastsurfer-package">
 <h4>2. FastSurfer package<a class="headerlink" href="#fastsurfer-package" title="Link to this heading">¶</a></h4>
-<p>From version 2.5 onward, FastSurfer ships macOS installer packages on the
-<a class="reference external" href="https://github.com/Deep-MI/FastSurfer/releases/">GitHub Releases page</a>.
-Open the latest release, expand the <strong>Assets</strong> section, and download the installer that matches your Mac:</p>
-<ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">arm64</span></code> for Apple silicon (M1/M2/M3/…)</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">x86_64</span></code> for Intel Macs</p></li>
-</ul>
+<p>Download <strong><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/releases/latest/download/FastSurfer-macos-darwin_arm64.pkg">FastSurfer-macos-darwin_arm64.pkg</a></strong>,
+which always points at the newest release. Its version is shown in the installer window, and after
+installing by <code class="docutils literal notranslate"><span class="pre">run_fastsurfer.sh</span> <span class="pre">--version</span></code>. Earlier versions are on the
+<a class="reference external" href="https://github.com/Deep-MI/FastSurfer/releases/">releases page</a>.</p>
 <p>To install, double-click the downloaded <code class="docutils literal notranslate"><span class="pre">.pkg</span></code> installer and follow the installer instructions.</p>
+<blockquote>
+<div><p><strong>Note:</strong> FastSurfer’s <code class="docutils literal notranslate"><span class="pre">.pkg</span></code> is currently not signed/notarized by Apple, so macOS Gatekeeper will
+block it. Depending on your macOS version, double-clicking the installer may not show an “Open”
+option at all, just “Done” or “Move to Trash”, in which case nothing happens if you click “Done”.
+To allow it: click <strong>Done</strong> on that warning, then go to <strong>System Settings &gt; Privacy &amp; Security</strong>,
+scroll down to the <strong>Security</strong> section, and click <strong>Open Anyway</strong> next to the message about the
+blocked installer. Confirm once more (you may be asked for your password or Touch ID), then
+double-click the <code class="docutils literal notranslate"><span class="pre">.pkg</span></code> again to start the installation.</p>
+</div></blockquote>
 <p>After installation, you can find the FastSurfer applet, its source code, and selected FreeSurfer executables in the <code class="docutils literal notranslate"><span class="pre">/Applications</span></code> folder.</p>
 </section>
 <section id="launching-fastsurfer">
 <h4>3. Launching FastSurfer<a class="headerlink" href="#launching-fastsurfer" title="Link to this heading">¶</a></h4>
-<p>To launch a configured FastSurfer terminal session, start the FastSurfer applet from Applications.</p>
-<p>Once the terminal opens, it is already configured and you can easily run the full FastSurfer pipeline by typing and executing <code class="docutils literal notranslate"><span class="pre">run_fastsurfer.sh</span> <span class="pre">&lt;fastsurfer-flags&gt;</span></code>, where you replace <code class="docutils literal notranslate"><span class="pre">&lt;fastsurfer-flags&gt;</span></code> with the appropriate <a class="reference internal" href="intro.html"><span class="doc std std-ref">commandline flags of FastSurfer</span></a>.</p>
-</section>
-<section id="apple-ai-accelerator-support">
-<h4>4. Apple AI Accelerator support<a class="headerlink" href="#apple-ai-accelerator-support" title="Link to this heading">¶</a></h4>
-<p>On modern M-Chips you can try the Apple Silicon AI Accelerator by setting <code class="docutils literal notranslate"><span class="pre">PYTORCH_ENABLE_MPS_FALLBACK</span></code> and passing <code class="docutils literal notranslate"><span class="pre">--device</span> <span class="pre">mps</span></code> for the segmentation module to make use of the fast GPU:</p>
-<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span><span class="w"> </span><span class="nv">PYTORCH_ENABLE_MPS_FALLBACK</span><span class="o">=</span><span class="m">1</span>
-./run_fastsurfer.sh<span class="w"> </span>--seg_only<span class="w"> </span>--device<span class="w"> </span>mps<span class="w"> </span>....
+<p>To launch a configured FastSurfer terminal session, start the FastSurfer applet from Applications. This opens a regular Terminal window running a FastSurfer console: a bash session with everything already set up to run FastSurfer, recognizable by the <code class="docutils literal notranslate"><span class="pre">(FastSurfer&lt;version&gt;)</span></code> prompt prefix. It:</p>
+<ul class="simple">
+<li><p>puts the Python distribution bundled with FastSurfer (<code class="docutils literal notranslate"><span class="pre">FASTSURFER_HOME/python</span></code>) first on <code class="docutils literal notranslate"><span class="pre">PATH</span></code>,</p></li>
+<li><p>sets <code class="docutils literal notranslate"><span class="pre">FASTSURFER_HOME</span></code> and <code class="docutils literal notranslate"><span class="pre">PYTHONPATH</span></code>,</p></li>
+<li><p>sets <code class="docutils literal notranslate"><span class="pre">FREESURFER_HOME</span></code> to the pruned FreeSurfer installation bundled with FastSurfer and sources <code class="docutils literal notranslate"><span class="pre">SetUpFreeSurfer.sh</span></code>,</p></li>
+<li><p>adds the FastSurfer directory (and GNU <code class="docutils literal notranslate"><span class="pre">grep</span></code>, if you happen to have it via Homebrew) to your <code class="docutils literal notranslate"><span class="pre">PATH</span></code>, for this session only – no shell profile is modified,</p></li>
+<li><p>reads your <code class="docutils literal notranslate"><span class="pre">~/.bashrc</span></code> first, if you have one, so your own aliases and settings are still there, and</p></li>
+<li><p>reminds you to set <code class="docutils literal notranslate"><span class="pre">FS_LICENSE</span></code> if it is not already set (see “FreeSurfer license” below).</p></li>
+</ul>
+<p>In this console, you can run the full FastSurfer pipeline by typing and executing <code class="docutils literal notranslate"><span class="pre">run_fastsurfer.sh</span> <span class="pre">&lt;fastsurfer-flags&gt;</span></code>, where you replace <code class="docutils literal notranslate"><span class="pre">&lt;fastsurfer-flags&gt;</span></code> with the appropriate <a class="reference internal" href="intro.html"><span class="doc std std-ref">commandline flags of FastSurfer</span></a>, for example:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>run_fastsurfer.sh<span class="w"> </span>--seg_only<span class="w"> </span>--sd<span class="w"> </span>&lt;path/to/output/dir&gt;<span class="w"> </span>--sid<span class="w"> </span>&lt;subject_id&gt;<span class="w"> </span>--t1<span class="w"> </span>&lt;path/to/subjects/t1/image&gt;
 </pre></div>
 </div>
-<p>This will be at least twice as fast as <code class="docutils literal notranslate"><span class="pre">--device</span> <span class="pre">cpu</span></code>. Currently setting the fallback environment variable is necessary as <code class="docutils literal notranslate"><span class="pre">aten::max_unpool2d</span></code> is not yet implemented for MPS and will fall back to CPU.</p>
+<p>or, for the full pipeline:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>run_fastsurfer.sh<span class="w"> </span>--sd<span class="w"> </span>&lt;path/to/output/dir&gt;<span class="w"> </span>--sid<span class="w"> </span>&lt;subject_id&gt;<span class="w"> </span>--t1<span class="w"> </span>&lt;path/to/subjects/t1/image&gt;<span class="w"> </span>--fs_license<span class="w"> </span>~/fs_license.txt
+</pre></div>
+</div>
+<p>No <code class="docutils literal notranslate"><span class="pre">--device</span></code> flag is needed: the default already picks the Apple GPU (<code class="docutils literal notranslate"><span class="pre">mps</span></code>) where it is available
+and the CPU otherwise. Passing <code class="docutils literal notranslate"><span class="pre">--device</span> <span class="pre">mps</span></code> explicitly is an error on a Mac without an
+MPS-capable GPU, rather than falling back.</p>
+<p>You do not need to use the applet: in a bash or zsh Terminal window, you can set up exactly the same environment by sourcing the same script:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span><span class="nb">source</span><span class="w"> </span>/Applications/FastSurfer&lt;version&gt;/macos_setup_fastsurfer.sh
+</pre></div>
+</div>
+<p>The script is bash syntax, so from a shell that does not understand it, such as tcsh or fish, start a <code class="docutils literal notranslate"><span class="pre">bash</span></code> (or <code class="docutils literal notranslate"><span class="pre">zsh</span></code>) session first and source it in there.</p>
+<p>Adding only the FastSurfer directory to your <code class="docutils literal notranslate"><span class="pre">PATH</span></code> instead is not enough and is best avoided: <code class="docutils literal notranslate"><span class="pre">run_fastsurfer.sh</span></code> would be found, but <code class="docutils literal notranslate"><span class="pre">python3</span></code> would still be Apple’s system Python – too old for FastSurfer – and <code class="docutils literal notranslate"><span class="pre">FREESURFER_HOME</span></code> would be unset, so it fails with a confusing error. Sourcing the script sets all of it.</p>
+</section>
+<section id="freesurfer-license-for-surfaces-etiv">
+<h4>4. FreeSurfer license (for surfaces / eTIV)<a class="headerlink" href="#freesurfer-license-for-surfaces-etiv" title="Link to this heading">¶</a></h4>
+<p>A FreeSurfer license is only needed if you run the surface module (recon-surf) or, in segmentation-only mode, activate the Talairach registration via <code class="docutils literal notranslate"><span class="pre">--tal_reg</span></code> (used to estimate total intracranial volume, eTIV, in the stats files). Plain segmentation without <code class="docutils literal notranslate"><span class="pre">--tal_reg</span></code> does not need one.</p>
+<p>To get a license, <a class="reference external" href="https://surfer.nmr.mgh.harvard.edu/registration.html">register at the FreeSurfer website</a> to acquire a FreeSurfer license (for free).</p>
+<p>Unlike a native Linux/source install, do not rely on FastSurfer auto-detecting the license inside <code class="docutils literal notranslate"><span class="pre">$FREESURFER_HOME</span></code>: on macOS, <code class="docutils literal notranslate"><span class="pre">$FREESURFER_HOME</span></code> points at the pruned FreeSurfer bundled with the package (<code class="docutils literal notranslate"><span class="pre">$FASTSURFER_HOME/fs-pruned</span></code>), which is installed by the <code class="docutils literal notranslate"><span class="pre">.pkg</span></code> as <code class="docutils literal notranslate"><span class="pre">root</span></code> and is not writable by your user account. Instead, save the license file somewhere in your home directory and either pass it explicitly:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>run_fastsurfer.sh<span class="w"> </span>...<span class="w"> </span>--fs_license<span class="w"> </span>~/fs_license.txt
+</pre></div>
+</div>
+<p>or export it once per console session:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span><span class="w"> </span><span class="nv">FS_LICENSE</span><span class="o">=</span>~/fs_license.txt
+</pre></div>
+</div>
+<p>or, to have it set in every shell, add that line to your shell profile yourself (<code class="docutils literal notranslate"><span class="pre">~/.zprofile</span></code> for zsh, the macOS default; <code class="docutils literal notranslate"><span class="pre">~/.bash_profile</span></code> for bash). FastSurfer does not modify these files.</p>
+</section>
+<section id="apple-ai-accelerator-support">
+<h4>5. Apple AI Accelerator support<a class="headerlink" href="#apple-ai-accelerator-support" title="Link to this heading">¶</a></h4>
+<p>On modern M-Chips you can try the Apple Silicon AI Accelerator by passing <code class="docutils literal notranslate"><span class="pre">--device</span> <span class="pre">mps</span></code> for the segmentation module to make use of the fast GPU (when using <code class="docutils literal notranslate"><span class="pre">run_fastsurfer.sh</span></code>, FastSurfer sets <code class="docutils literal notranslate"><span class="pre">PYTORCH_ENABLE_MPS_FALLBACK=1</span></code> automatically on macOS unless you already set it):</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>./run_fastsurfer.sh<span class="w"> </span>--seg_only<span class="w"> </span>--device<span class="w"> </span>mps<span class="w"> </span>....
+</pre></div>
+</div>
+<p>This will be at least twice as fast as <code class="docutils literal notranslate"><span class="pre">--device</span> <span class="pre">cpu</span></code>. The fallback is needed because <code class="docutils literal notranslate"><span class="pre">aten::max_unpool2d</span></code> is not yet implemented for MPS; expect a one-time warning about it, which is harmless.</p>
+</section>
+<section id="uninstalling">
+<h4>6. Uninstalling<a class="headerlink" href="#uninstalling" title="Link to this heading">¶</a></h4>
+<p>Drag both items from your Applications folder to the Trash:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">FastSurfer&lt;version&gt;</span></code> (the installation)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">FastSurfer&lt;version&gt;.app</span></code> (the applet)</p></li>
+</ul>
+<p>macOS will ask for your password, because the installer places them as <code class="docutils literal notranslate"><span class="pre">root</span></code>. Everything FastSurfer
+installed lives in that one directory: no shell profile is modified and nothing is written elsewhere,
+so there is nothing else to clean up. Installations of other versions are independent and are not
+affected.</p>
+<p>Optionally, to also drop the installer’s receipt (bookkeeping only, it does not affect anything you
+run):</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>sudo<span class="w"> </span>pkgutil<span class="w"> </span>--forget<span class="w"> </span>org.deep-mi.FastSurfer.&lt;version-without-dots&gt;_&lt;arch&gt;
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">pkgutil</span> <span class="pre">--pkgs</span> <span class="pre">|</span> <span class="pre">grep</span> <span class="pre">-i</span> <span class="pre">fastsurfer</span></code> lists the exact identifiers.</p>
 </section>
 </section>
 </section>
@@ -781,13 +859,15 @@ Open the latest release, expand the <strong>Assets</strong> section, and downloa
 <li><a class="reference internal" href="#amd-gpus-experimental">AMD GPUs (experimental)</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#macos">MacOS</a><ul>
+<li><a class="reference internal" href="#macos">macOS</a><ul>
 <li><a class="reference internal" href="#docker-currently-only-supported-for-intel-cpus">Docker (currently only supported for Intel CPUs)</a></li>
 <li><a class="reference internal" href="#package">Package</a><ul>
 <li><a class="reference internal" href="#requirements">1. Requirements</a></li>
 <li><a class="reference internal" href="#fastsurfer-package">2. FastSurfer package</a></li>
 <li><a class="reference internal" href="#launching-fastsurfer">3. Launching FastSurfer</a></li>
-<li><a class="reference internal" href="#apple-ai-accelerator-support">4. Apple AI Accelerator support</a></li>
+<li><a class="reference internal" href="#freesurfer-license-for-surfaces-etiv">4. FreeSurfer license (for surfaces / eTIV)</a></li>
+<li><a class="reference internal" href="#apple-ai-accelerator-support">5. Apple AI Accelerator support</a></li>
+<li><a class="reference internal" href="#uninstalling">6. Uninstalling</a></li>
 </ul>
 </li>
 </ul>

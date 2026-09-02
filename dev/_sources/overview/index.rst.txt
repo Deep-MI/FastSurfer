@@ -12,7 +12,6 @@ User Guide
     modules/index
     docker
     SINGULARITY.md
-    MACOS.md
     EDITING.md
     LONG.md
     SECURITY.md
