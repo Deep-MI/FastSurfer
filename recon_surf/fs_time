@@ -29,6 +29,7 @@ and field 6 the elapsed seconds. Keep those positions if you change anything her
 """
 
 import os
+import signal
 import sys
 import time
 from datetime import datetime
@@ -160,11 +161,16 @@ def format_load() -> str:
     return "L " + " ".join(f"{value:.2f}" for value in os.getloadavg())
 
 
-def make_line(key: str, command: str, nargs: int, extra: str = "") -> str:
-    """One output line: `<key> <timestamp> <command> N <nargs>[ <extra>]`."""
+def make_line(key: str, command: str, nargs: int, extra: str = "", when: "datetime | None" = None) -> str:
+    """One output line: `<key> <timestamp> <command> N <nargs>[ <extra>]`.
+
+    `when` defaults to now, but the main line has to pass the time the command *started*: the help
+    calls field 2 the timestamp at the onset of execution, and extract_recon_surf_time_info.py adds
+    the elapsed seconds to it to get the end time.
+    """
     if extra and not extra.startswith(" "):
         extra = " " + extra
-    stamp = datetime.now().strftime("%Y:%m:%d:%H:%M:%S")
+    stamp = (when or datetime.now()).strftime("%Y:%m:%d:%H:%M:%S")
     return f"{key} {stamp} {command} N {nargs}{extra}"
 
 
@@ -179,8 +185,10 @@ def main(argv: list[str]) -> int:
     append = False
     cmd: list[str] = []
     verbose = False
-    # on unless FSTIME_LOAD says otherwise, matching the previous behaviour
-    print_load = os.environ.get("FSTIME_LOAD", "1") == "1"
+    # on unless FSTIME_LOAD says otherwise. Unset and empty both mean on, as in the bash version
+    # (which assigned the variable and then tested -z) and as the help describes.
+    fstime_load = os.environ.get("FSTIME_LOAD", "")
+    print_load = not fstime_load or fstime_load == "1"
 
     index = 0
     while index < len(argv):
@@ -241,9 +249,15 @@ def main(argv: list[str]) -> int:
     # posix_spawn rather than fork+exec: it reports a missing command in the parent, so there is no
     # child to fail inside, and it leaves the child's minor-fault count reflecting the command
     # rather than the cost of copying our own address space.
+    # setsigdef because python starts life with SIGPIPE and SIGXFSZ ignored and a spawned child
+    # inherits that. The command would then get EPIPE errors where every other caller gets killed
+    # by SIGPIPE, so `cmd | head` inside a timed script would report a write failure instead of
+    # finishing quietly. This is what subprocess's restore_signals does, and it restores the
+    # behaviour the /usr/bin/time version had, since bash execs children with default dispositions.
+    onset = datetime.now()
     start = time.monotonic()
     try:
-        pid = os.posix_spawnp(cmd[0], cmd, os.environ)
+        pid = os.posix_spawnp(cmd[0], cmd, os.environ, setsigdef=[signal.SIGPIPE, signal.SIGXFSZ])
     except FileNotFoundError:
         print(f"fs_time: {cmd[0]}: command not found", file=sys.stderr)
         return 127
@@ -283,7 +297,7 @@ def main(argv: list[str]) -> int:
     if print_load:
         measurements += " " + format_load()
 
-    line = make_line(key, command, nargs, measurements)
+    line = make_line(key, command, nargs, measurements, when=onset)
     if outfile:
         with open(outfile, "a" if append else "w") as handle:
             handle.write(line + "\n")
@@ -292,7 +306,10 @@ def main(argv: list[str]) -> int:
         print(line, file=sys.stderr)
 
     if print_load:
-        print(make_line("@#@FSLOADPOST", command, nargs))
+        # with the load: the whole point of a post-run sample, and what the help documents. The
+        # bash version passed no load here, so the line carried nothing but a timestamp; the
+        # original tcsh fs_time did include it.
+        print(make_line("@#@FSLOADPOST", command, nargs, format_load()))
 
     if os.WIFSIGNALED(status):
         return 128 + os.WTERMSIG(status)
