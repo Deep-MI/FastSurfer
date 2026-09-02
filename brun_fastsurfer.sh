@@ -64,8 +64,9 @@ ii. a subject_list file using the same format (use Ctrl-D to end the input), or
 iii. a list of subjects directly passed (this does not support subject-specific parameters)
 
 A path or parameter that contains a space has to be quoted or escaped as it would be in the shell,
-i.e. '/data/my subject/t1.mgz', "/data/my subject/t1.mgz" or /data/my\ subject/t1.mgz. A literal
-backslash likewise has to be written \\\\.
+i.e. '/data/my subject/t1.mgz', "/data/my subject/t1.mgz" or /data/my\ subject/t1.mgz. Single
+quotes are the simplest, because everything inside them is taken literally, including backslashes.
+No expansion is performed in either kind of quotes, so a \$ or a \` is just that character.
 
 --batch "<i>/<n>": run the i-th of n batches (starting at 1) of the full list of subjects
   (default: 1/1, == run all). "slurm_task_id" is a valid option for "<i>".

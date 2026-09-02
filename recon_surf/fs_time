@@ -120,9 +120,11 @@ O 20408 : Number of file system outputs by the process.
 
 If the env variable FSTIME_LOAD is set to 1, the output looks something like
 
-@#@FSLOADPOST 2016:01:23:15:11 mri_convert N 2 0.00 0.03 0.06
+@#@FSLOADPRE 2016:01:23:15:11:04 mri_convert N 2 L 0.00 0.03 0.06
+@#@FSLOADPOST 2016:01:23:15:11:06 mri_convert N 2 L 0.01 0.03 0.06
 
-The 3 numbers are the system load averages for the past 1, 5, and 15 minutes.
+One sample before the command and one after it. The 3 numbers following the L are the system load
+averages for the past 1, 5, and 15 minutes.
 """
 
 

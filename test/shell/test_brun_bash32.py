@@ -67,8 +67,15 @@ def subjects(tmp_path: Path) -> str:
 
 
 def _run_brun(stub: Path, log: Path, tmp_path: Path, *args: str, stdin: str | None = None):
+    """Run brun_fastsurfer under bash 3.2 and require it to succeed.
+
+    Every caller expects success, so the status is checked here rather than in each of them: the
+    log assertions alone would pass a regression that starts each stub and then exits nonzero.
+    Note brun_fastsurfer.sh ends with an unconditional `exit 0`, so what this really guards is the
+    early-exit paths, e.g. the "No subjects specified" and "Could not parse the line" errors.
+    """
     env = dict(os.environ, BT_LOG=str(log))
-    return subprocess.run(
+    result = subprocess.run(
         [
             SYSTEM_BASH,
             str(FASTSURFER_HOME / "brun_fastsurfer.sh"),
@@ -85,6 +92,11 @@ def _run_brun(stub: Path, log: Path, tmp_path: Path, *args: str, stdin: str | No
         cwd=FASTSURFER_HOME,
         timeout=300,
     )
+    assert result.returncode == 0, (
+        f"brun_fastsurfer.sh exited {result.returncode}\n"
+        f"--- stdout ---\n{result.stdout}\n--- stderr ---\n{result.stderr}"
+    )
+    return result
 
 
 def _started(log: Path) -> list[str]:

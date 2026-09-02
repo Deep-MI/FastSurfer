@@ -54,12 +54,18 @@ SHIPPED_SCRIPTS = (
     ]
 )
 
+# A declaration keyword followed by its option list, up to the flag letter the caller appends.
+# readonly is included because `readonly -A` is the same bash 4 associative array as `declare -A`.
+_DECLARE = r"\b(declare|local|typeset|readonly)\b(\s+-[A-Za-z]+)*\s+-[A-Za-z]*"
+
 # Constructs that bash 3.2 does not have. The value is what to use instead, quoted in the failure.
 BASH4_ONLY = {
     r"\bmapfile\b": 'while IFS= read -r line ; do arr+=("$line") ; done < <(...)',
     r"\breadarray\b": 'while IFS= read -r line ; do arr+=("$line") ; done < <(...)',
-    r"\b(declare|local)\s+-A\b": "parallel indexed arrays, or a delimited string",
-    r"\b(declare|local)\s+-n\b": "pass the value, or eval",
+    # the flag can sit anywhere in the option list and can be bundled with others, so `declare -rA`
+    # and `local -r -n ref` have to be caught as well as the plain spelling
+    _DECLARE + r"A[A-Za-z]*\b": "parallel indexed arrays, or a delimited string",
+    _DECLARE + r"n[A-Za-z]*\b": "pass the value, or eval",
     r"\bcoproc\b": "a named pipe (mkfifo)",
     r"\bwait\s+-n\b": "wait for a specific pid from `jobs -pr`",
     r"\$\{[A-Za-z_][A-Za-z_0-9]*\^\^": "tr '[:lower:]' '[:upper:]'",
@@ -110,6 +116,48 @@ def _findings(script: str, patterns: dict[str, str]) -> list[str]:
         for pattern, alternative in patterns.items()
         if re.search(pattern, line)
     ]
+
+
+# (line, must be flagged). The rules are regexes over source text, so a rule that silently stops
+# matching is indistinguishable from a clean repo. These cases pin the spellings down, in both
+# directions: the False rows are valid bash 3.2 that must not be reported.
+RULE_CASES = [
+    ("declare -A colours", True),
+    ("declare -rA colours", True),  # bundled with another flag
+    ("declare -Ar colours", True),
+    ("local -A m", True),
+    ("typeset -A m", True),
+    ("readonly -A m", True),  # same associative array, different keyword
+    ("local -n ref=$1", True),
+    ("local -r -n ref=$1", True),  # flag not adjacent to the keyword
+    ("mapfile -t arr < <(cmd)", True),
+    ("readarray -t arr < file", True),
+    ('echo "${name^^}"', True),
+    ('echo "${name,,}"', True),
+    ("cmd &>> file", True),
+    ("wait -n", True),
+    ("declare -a list", False),  # indexed array, fine in 3.2
+    ("readonly -a list", False),
+    ("declare -i count=0", False),
+    ("local -r frozen=1", False),
+    ('local prev_ifs="$IFS"', False),
+    ("export -n VAR", False),  # not a declaration keyword, and valid in 3.2
+    ("cmd >> file 2>&1", False),
+    ("wait \"${running_jobs[@]}\"", False),
+    ('sed "s/[[:space:]]*$//"', False),
+    ("cut -d= -f2-1000", False),
+]
+
+
+@pytest.mark.parametrize(("line", "flagged"), RULE_CASES)
+def test_rules_match_the_spellings_they_claim_to(line: str, flagged: bool):
+    """Each rule fires on the constructs it is for, and stays quiet on valid bash 3.2."""
+    rules = {**BASH4_ONLY, **GNU_ONLY}
+    hits = [pattern for pattern in rules if re.search(pattern, line)]
+    if flagged:
+        assert hits, f"no rule flagged {line!r}, which bash 3.2 cannot run"
+    else:
+        assert not hits, f"{hits} flagged {line!r}, which is valid bash 3.2"
 
 
 @pytest.mark.parametrize("script", SHIPPED_SCRIPTS)
