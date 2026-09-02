@@ -63,8 +63,8 @@ Getting started
 ### Installation 
 There are three ways to run FastSurfer (links are to installation instructions):
 
-1. For Linux and Windows users, we recommend running FastSurfer in a container [Singularity/Apptainer](doc/overview/INSTALL.md#singularity) or [Docker](doc/overview/INSTALL.md#docker): (OS: [Linux](doc/overview/INSTALL.md#linux), [Windows](doc/overview/INSTALL.md#windows), [MacOS on Intel](doc/overview/INSTALL.md#docker-currently-only-supported-for-intel-cpus)),
-2. for macOS users, we recommend [installing the FastSurfer package](doc/overview/INSTALL.md#package), and
+1. For Linux, macOS (Intel only), and Windows users, we recommend running FastSurfer in a container [Singularity/Apptainer](doc/overview/INSTALL.md#singularity) or [Docker](doc/overview/INSTALL.md#docker): (OS: [Linux](doc/overview/INSTALL.md#linux), [Windows](doc/overview/INSTALL.md#windows), [macOS on Intel](doc/overview/INSTALL.md#docker-currently-only-supported-for-intel-cpus)),
+2. for macOS on Apple silicon (ARM), we recommend [installing the FastSurfer package](doc/overview/INSTALL.md#package), and
 3. for developers, the native install gives full control (only documented for [Linux](doc/overview/INSTALL.md#native-ubuntu-2004-or-ubuntu-2204)).
 
 The images we provide on [DockerHub](https://hub.docker.com/r/deepmi/fastsurfer) conveniently include everything needed for FastSurfer. You will also need a [FreeSurfer license](https://surfer.nmr.mgh.harvard.edu/fswiki/License) file for the [Surface pipeline](#surface-reconstruction). We have detailed per-OS Installation instructions in the [INSTALL.md](doc/overview/INSTALL.md) file.
