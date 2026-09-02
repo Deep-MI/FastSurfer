@@ -544,6 +544,8 @@ function unquote()
   # does what the shell would do, without eval, which would run substitutions from a subject list.
   # A literal backslash in a filename consequently has to be written \\, as in any shell.
   local rest="$1" out="" chunk sq="'"
+  # the only characters a backslash escapes inside double quotes
+  local dq_escapable='$`"\'
   while [[ -n "$rest" ]]
   do
     case "$rest" in
@@ -554,11 +556,13 @@ function unquote()
         # single quotes: everything up to the next one is literal
         rest="${rest:1}" ; chunk="${rest%%$sq*}" ; out="$out$chunk" ; rest="${rest:$((${#chunk} + 1))}" ;;
       '"'*)
-        # double quotes: literal too, except that a backslash still escapes
+        # double quotes: literal, except that a backslash escapes one of $ ` " \ only. Before any
+        # other character it stays, as in the shell, where "a\ b" keeps its backslash.
         rest="${rest:1}"
         while [[ -n "$rest" ]] && [[ "${rest:0:1}" != '"' ]]
         do
-          if [[ "${rest:0:1}" == "\\" ]] && [[ -n "${rest:1:1}" ]]
+          if [[ "${rest:0:1}" == "\\" ]] && [[ -n "${rest:1:1}" ]] \
+             && [[ "$dq_escapable" == *"${rest:1:1}"* ]]
           then out="$out${rest:1:1}" ; rest="${rest:2}"
           else out="$out${rest:0:1}" ; rest="${rest:1}"
           fi

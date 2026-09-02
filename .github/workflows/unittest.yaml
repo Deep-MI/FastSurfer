@@ -125,5 +125,6 @@ jobs:
         env:
           FASTSURFER_HOME: ${{ github.workspace }}
         shell: bash
-        # only the functional file; the static lint runs in the code-style workflow
-        run: python -m pytest -v test/shell/test_brun_bash32.py
+        # the bash 3.2 tests, which only run here, plus the fs_time ones for their macOS branches;
+        # the latter also run on ubuntu in the code-style workflow, for the linux branches
+        run: python -m pytest -v test/shell/test_brun_bash32.py test/shell/test_fs_time.py

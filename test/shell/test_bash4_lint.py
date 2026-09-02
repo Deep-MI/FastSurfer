@@ -88,7 +88,8 @@ GNU_ONLY = {
     r"\bexpr\b[^|;&]*\\\|": "bash's own =~ with an ERE, which needs no expr",
     r"\bexpr\b[^|;&]*\\\+": "bash's own =~ with an ERE, which needs no expr",
     r"\bsort\b[^|;&]*\s-V\b": "sort -t. -k1,1n -k2,2n -k3,3n",
-    r"\\s[*+?]": "[[:space:]], the POSIX class; BSD sed reads \\s as the letter s",
+    # any quantifier, and bare: \s{2} and a lone \s are just as wrong as \s*
+    r"\\[sSwW]": "the POSIX class, e.g. [[:space:]]; BSD sed reads \\s as the letter s",
 }
 
 

@@ -150,7 +150,9 @@ def test_parallel_limit_is_enforced(stub: Path, tmp_path: Path, subjects: str):
     listfile.write_text(subjects)
     result = _run_brun(stub, log, tmp_path, "--subject_list", str(listfile), "--parallel", "2")
     assert len(_started(log)) == 3, result.stdout + result.stderr
-    assert _peak_concurrency(log) <= 2, f"expected at most 2 concurrent, log:\n{log.read_text()}"
+    # exactly 2, not at most 2: a peak of 1 would mean it serialised the run instead of throttling
+    # it, which is also broken job accounting, so the upper bound alone would let that through
+    assert _peak_concurrency(log) == 2, f"expected exactly 2 concurrent, log:\n{log.read_text()}"
 
 
 @requires_bash3
@@ -203,7 +205,10 @@ def test_quoted_t1_paths_reach_run_fastsurfer(stub: Path, tmp_path: Path):
     spaced = tmp_path / "a b.mgz"
     apostrophe = tmp_path / "it's.mgz"
     plain = tmp_path / "plain.mgz"
-    for image in (spaced, apostrophe, plain):
+    # a name with a real backslash in it, to pin down the double-quote rule: inside double quotes a
+    # backslash only escapes $ ` " and \, so "a\ b.mgz" has to keep its backslash, as in the shell
+    backslashed = tmp_path / "a\\ b.mgz"
+    for image in (spaced, apostrophe, plain, backslashed):
         image.write_bytes(b"")
     listfile = tmp_path / "subjects.txt"
     listfile.write_text(
@@ -212,6 +217,7 @@ def test_quoted_t1_paths_reach_run_fastsurfer(stub: Path, tmp_path: Path):
         f"single='{spaced}'\n"
         f'double="{spaced}"\n'
         f"apostrophe=\"{apostrophe}\"\n"
+        f'backslash="{backslashed}"\n'
     )
     result = _run_brun(stub, log, tmp_path, "--subject_list", str(listfile), "--parallel", "max")
     started = _t1_paths(log)
@@ -221,6 +227,7 @@ def test_quoted_t1_paths_reach_run_fastsurfer(stub: Path, tmp_path: Path):
         "single": str(spaced),
         "double": str(spaced),
         "apostrophe": str(apostrophe),
+        "backslash": str(backslashed),
     }
     assert sorted(started) == sorted(expected), result.stdout + result.stderr
     for sid, path in expected.items():
@@ -230,11 +237,11 @@ def test_quoted_t1_paths_reach_run_fastsurfer(stub: Path, tmp_path: Path):
 
 
 @requires_bash3
-def test_fs_time_works(tmp_path: Path):
-    """fs_time reports timings under bash 3.2, where the GNU-time version could not run at all.
+def test_fs_time_runs_under_bash32(tmp_path: Path):
+    """fs_time works when recon-surf is driven by bash 3.2, where GNU time could not run at all.
 
-    functions.sh probes fs_time and silently disables per-command timings if it fails, which is what
-    happened on every macOS run.
+    Everything else about fs_time is platform independent and lives in test_fs_time.py, which runs
+    on linux too; this only pins down that the bash 3.2 caller can use it.
     """
     log = tmp_path / "exectime.log"
     script = (
@@ -251,6 +258,4 @@ def test_fs_time_works(tmp_path: Path):
     )
     assert "PROBE-FAILED" not in result.stdout, "functions.sh could not use fs_time"
     assert log.exists(), result.stdout + result.stderr
-    entry = log.read_text()
-    # the elapsed field is what the log is for, and what extract_recon_surf_time_info.py reads
-    assert " e 1." in entry, f"expected ~1 s elapsed, got:\n{entry}"
+    assert " e 1." in log.read_text(), f"expected ~1 s elapsed, got:\n{log.read_text()}"

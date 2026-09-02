@@ -242,6 +242,17 @@ def main(argv: list[str]) -> int:
         print(f"  {' '.join(cmd)}")
         print("")
 
+    # open -o before running anything, as /usr/bin/time does: it exits 125 without touching the
+    # command when it cannot write its output. Opening afterwards would spend a whole command's
+    # runtime and then throw the result away.
+    handle = None
+    if outfile:
+        try:
+            handle = open(outfile, "a" if append else "w")
+        except OSError as e:
+            print(f"fs_time: {outfile}: {e.strerror}", file=sys.stderr)
+            return 125
+
     if print_load:
         print(make_line("@#@FSLOADPRE", command, nargs, format_load()))
         sys.stdout.flush()
@@ -298,8 +309,8 @@ def main(argv: list[str]) -> int:
         measurements += " " + format_load()
 
     line = make_line(key, command, nargs, measurements, when=onset)
-    if outfile:
-        with open(outfile, "a" if append else "w") as handle:
+    if handle is not None:
+        with handle:
             handle.write(line + "\n")
     else:
         # stderr, as /usr/bin/time does: run_it in functions.sh relies on `2>&1 | tee` to capture it
