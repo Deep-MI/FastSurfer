@@ -179,7 +179,6 @@ else
 
   echo "Downloading FreeSurfer from $fslink with ${dl[0]}..."
   "${dl[@]}"
-  echo "$fslink" > "$freesurfer_dl_url"
 fi
 
 
@@ -188,6 +187,9 @@ if [[ ! -f "$freesurfer_dl" ]] ; then
   echo "  This is not recoverable, see message above and retry!"
   exit 1
 fi
+# Only now that the archive is known to exist: stamping it earlier would leave a sidecar behind for
+# an archive that was never downloaded. A reused one already matched, so rewriting changes nothing.
+echo "$fslink" > "$freesurfer_dl_url"
 
 mkdir -p "$fse"
 tar zxv --no-same-owner -C "$fse" \
@@ -251,7 +253,8 @@ fi
 
 if [[ "$delete_freesurfer_dl" == "true" ]] ; then
   echo "Deleting temporary download $freesurfer_dl ..."
-  rm "$freesurfer_dl"
+  # the .url sidecar goes with it; only a persistent cache needs to remember where it came from
+  rm -f "$freesurfer_dl" "$freesurfer_dl_url"
 fi
 
 # rename download to tmp
