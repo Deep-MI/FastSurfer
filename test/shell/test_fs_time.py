@@ -12,8 +12,10 @@ The bash-3.2-specific tests live in test_brun_bash32.py and only run on macOS.
 
 import os
 import re
+import signal
 import subprocess
 import sys
+import time
 from datetime import datetime
 from pathlib import Path
 
@@ -26,7 +28,7 @@ FS_TIME = FASTSURFER_HOME / "recon_surf" / "fs_time"
 UNMEASURED = ("I", "O", "W") if sys.platform == "darwin" else ()
 
 
-def run_fs_time(*args: str, env: "dict[str, str] | None" = None):
+def run_fs_time(*args: str, env: dict[str, str] | None = None):
     """Run fs_time with FASTSURFER_HOME set, and return the completed process."""
     return subprocess.run(
         [str(FS_TIME), *args],
@@ -37,7 +39,7 @@ def run_fs_time(*args: str, env: "dict[str, str] | None" = None):
     )
 
 
-def parse_fields(line: str) -> "dict[str, str]":
+def parse_fields(line: str) -> dict[str, str]:
     """The `<name> <value>` pairs after `N <nargs>`, as a mapping."""
     parts = line.split()
     tail = parts[parts.index("N") + 2 :]
@@ -157,6 +159,34 @@ def test_unwritable_outfile_fails_before_running_the_command(tmp_path: Path):
     assert not marker.exists(), "the command ran even though its timing could not be written"
 
 
+def test_interrupt_still_reports(tmp_path: Path):
+    """Ctrl-C still writes the timing line, rather than a traceback.
+
+    A terminal sends SIGINT to the whole foreground process group, so the wrapper is interrupted
+    while it waits for the command. Exiting there loses the record for the command the user just
+    interrupted and prints a python traceback into the log, once per command still in flight.
+    """
+    outfile = tmp_path / "times.txt"
+    process = subprocess.Popen(
+        [str(FS_TIME), "-k", "@#@FSTIME", "--no-load", "-o", str(outfile), "sleep", "30"],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        env=dict(os.environ, FASTSURFER_HOME=str(FASTSURFER_HOME)),
+        start_new_session=True,  # its own process group, so the signal can target the group
+    )
+    time.sleep(1)
+    os.killpg(process.pid, signal.SIGINT)
+    _, stderr = process.communicate(timeout=60)
+
+    assert "Traceback" not in stderr, stderr
+    assert process.returncode == 128 + signal.SIGINT, f"expected 130, got {process.returncode}"
+    assert outfile.exists(), f"no timing line written; stderr:\n{stderr}"
+    fields = parse_fields(outfile.read_text().strip())
+    # it was interrupted after about a second, so the elapsed figure has to reflect that, not the 30
+    assert 0.5 <= float(fields["e"]) < 10, outfile.read_text()
+
+
 def test_outfile_is_written_and_appended(tmp_path: Path):
     """-o redirects the line to a file, and -a appends rather than truncating."""
     outfile = tmp_path / "times.txt"
@@ -172,7 +202,7 @@ def test_outfile_is_written_and_appended(tmp_path: Path):
     ("value", "load_expected"),
     [(None, True), ("", True), ("1", True), ("0", False), ("2", False)],
 )
-def test_fstime_load_default(value: "str | None", load_expected: bool):
+def test_fstime_load_default(value: str | None, load_expected: bool):
     """Unset and empty both mean on, which is what the bash version did and what the help says."""
     env = {} if value is None else {"FSTIME_LOAD": value}
     if value is None:

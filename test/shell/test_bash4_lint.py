@@ -108,8 +108,9 @@ def _code_lines(path: Path):
 
 def _findings(script: str, patterns: dict[str, str]) -> list[str]:
     path = FASTSURFER_HOME / script
-    if not path.exists():
-        pytest.skip(f"{script} does not exist")
+    # a failure, not a skip: the hardcoded half of SHIPPED_SCRIPTS would otherwise let a rename
+    # quietly drop a script out of the scan, which is the coverage this file exists to provide
+    assert path.exists(), f"{script} is in SHIPPED_SCRIPTS but does not exist; renamed or removed?"
     return [
         f"  {script}:{number}: {line.strip()}\n    use instead: {alternative}"
         for number, line in _code_lines(path)

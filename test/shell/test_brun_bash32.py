@@ -115,8 +115,11 @@ def _t1_paths(log: Path) -> dict[str, str]:
     return started
 
 
-def _peak_concurrency(log: Path) -> int:
-    """The largest number of stubs that were running at once.
+def _peak_concurrency(log: Path, suffix: str = "") -> int:
+    """The largest number of stubs that were running at once, optionally only those named `suffix`.
+
+    `suffix` selects one pipeline stage when the stub encodes it in the subject field, which is how
+    the two-stage test checks each scheduler's own limit.
 
     In log order, not sorted by the timestamp. The stubs append to one file, so the file is already
     in event order, whereas the timestamps have a one-second resolution and sorting ties puts every
@@ -126,8 +129,14 @@ def _peak_concurrency(log: Path) -> int:
     """
     current = peak = 0
     for line in log.read_text().splitlines():
-        current += 1 if " START " in line else -1
-        peak = max(peak, current)
+        parts = line.split()
+        if suffix and not parts[2].endswith(suffix):
+            continue
+        if parts[1] == "START":
+            current += 1
+            peak = max(peak, current)
+        elif parts[1] == "END":
+            current -= 1
     return peak
 
 
@@ -165,6 +174,53 @@ def test_parallel_limit_is_enforced(stub: Path, tmp_path: Path, subjects: str):
     # exactly 2, not at most 2: a peak of 1 would mean it serialised the run instead of throttling
     # it, which is also broken job accounting, so the upper bound alone would let that through
     assert _peak_concurrency(log) == 2, f"expected exactly 2 concurrent, log:\n{log.read_text()}"
+
+
+@pytest.fixture
+def mode_stub(tmp_path: Path) -> Path:
+    """Like `stub`, but records which pipeline stage it was called for, appended to the subject id.
+
+    Keeping it in the subject field means the existing log helpers work unchanged, and a stage can
+    be selected with their `suffix` argument.
+    """
+    script = tmp_path / "mode_stub.sh"
+    script.write_text(
+        "#!/bin/bash\n"
+        'sid="" ; mode=both\n'
+        'while [[ "$#" -gt 0 ]] ; do\n'
+        '  if [[ "$1" == "--sid" ]] ; then sid="$2" ; fi\n'
+        '  if [[ "$1" == "--seg_only" ]] ; then mode=seg ; fi\n'
+        '  if [[ "$1" == "--surf_only" ]] ; then mode=surf ; fi\n'
+        "  shift\n"
+        "done\n"
+        'echo "$(date +%s) START $sid-$mode" >> "$BT_LOG"\n'
+        "sleep 1\n"
+        'echo "$(date +%s) END $sid-$mode" >> "$BT_LOG"\n'
+    )
+    script.chmod(0o755)
+    return script
+
+
+@requires_bash3
+def test_two_stage_pipelines_are_enforced(mode_stub: Path, tmp_path: Path, subjects: str):
+    """--parallel_seg/--parallel_surf chain two schedulers, and both used to be refused on 3.2.
+
+    This is the other half of the job accounting: `--parallel <n>` runs one process_by_token, while
+    these run two, with the seg stage feeding the surf stage through the NEXT-SUBJECT token. Each
+    stage keeps its own limit, so both are asserted separately as well as the completion of both.
+    """
+    log = tmp_path / "log.txt"
+    listfile = tmp_path / "subjects.txt"
+    listfile.write_text(subjects)
+    result = _run_brun(
+        mode_stub, log, tmp_path, "--subject_list", str(listfile),
+        "--parallel_seg", "2", "--parallel_surf", "1",
+    )
+    expected = [f"{name}-{stage}" for name in ("subj1", "subj2", "subj3") for stage in ("seg", "surf")]
+    assert sorted(_started(log)) == sorted(expected), result.stdout + result.stderr
+    # each scheduler throttles independently, and the surf stage was given a limit of one
+    assert _peak_concurrency(log, "-seg") == 2, f"seg stage, log:\n{log.read_text()}"
+    assert _peak_concurrency(log, "-surf") == 1, f"surf stage, log:\n{log.read_text()}"
 
 
 @requires_bash3

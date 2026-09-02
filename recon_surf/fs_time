@@ -128,12 +128,12 @@ averages for the past 1, 5, and 15 minutes.
 """
 
 
-def arg1err(flag: str) -> "None":
+def arg1err(flag: str) -> None:
     print(f"ERROR: Flag {flag} requires one argument!")
     sys.exit(1)
 
 
-def shorten_command(cmd: list[str]) -> "tuple[str, int]":
+def shorten_command(cmd: list[str]) -> tuple[str, int]:
     """
     Return the name to report for `cmd`, and how many leading entries it consumed.
 
@@ -163,7 +163,7 @@ def format_load() -> str:
     return "L " + " ".join(f"{value:.2f}" for value in os.getloadavg())
 
 
-def make_line(key: str, command: str, nargs: int, extra: str = "", when: "datetime | None" = None) -> str:
+def make_line(key: str, command: str, nargs: int, extra: str = "", when: datetime | None = None) -> str:
     """One output line: `<key> <timestamp> <command> N <nargs>[ <extra>]`.
 
     `when` defaults to now, but the main line has to pass the time the command *started*: the help
@@ -176,7 +176,7 @@ def make_line(key: str, command: str, nargs: int, extra: str = "", when: "dateti
     return f"{key} {stamp} {command} N {nargs}{extra}"
 
 
-def field(name: str, value: "int | str") -> str:
+def field(name: str, value: int | str) -> str:
     """`name value`, or `name .` where this platform does not measure it."""
     return f"{name} {'.' if name in UNAVAILABLE else value}"
 
@@ -267,6 +267,16 @@ def main(argv: list[str]) -> int:
     # by SIGPIPE, so `cmd | head` inside a timed script would report a write failure instead of
     # finishing quietly. This is what subprocess's restore_signals does, and it restores the
     # behaviour the /usr/bin/time version had, since bash execs children with default dispositions.
+
+    # Do not abandon the command on Ctrl-C. A terminal sends SIGINT to the whole foreground process
+    # group, so the command has it too and is already exiting; python's default handler would raise
+    # KeyboardInterrupt out of the wait below, losing the record for the command that was
+    # interrupted and printing a traceback into the log instead. A handler that does nothing lets
+    # the wait restart until the command is reaped, so it is still reported and its 128+signal
+    # status is still forwarded. Unlike SIG_IGN a handler is reset on exec, so the command itself
+    # still dies on Ctrl-C.
+    signal.signal(signal.SIGINT, lambda _signum, _frame: None)
+
     onset = datetime.now()
     start = time.monotonic()
     try:
