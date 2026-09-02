@@ -6,6 +6,7 @@ Usage:
 """
 
 import os
+import re
 
 from setuptools import setup
 
@@ -19,13 +20,21 @@ DATA_FILES = []
 # packaged path, leaving nothing where the new one belongs.
 # FASTSURFER_VERSION is set by build_release_package.sh; the fallback keeps a bare
 # `python setup.py py2app` working.
-VERSION = os.environ.get("FASTSURFER_VERSION", "dev")
+VERSION = os.environ.get("FASTSURFER_VERSION", "0.0.0")
+# The version keys accept only one to three dot-separated integers, which a development version like
+# 2.6.0-dev0 is not. Such a version becomes 0.0.0 rather than being truncated to 2.6.0: that release
+# does not exist yet, and Get Info claiming it does is worse than an obvious placeholder. Nothing is
+# lost, the full version is still in the identifier below, the installer title, the install directory
+# name and BUILD.info. The identifier is under no such format constraint.
+SHORT_VERSION = VERSION if re.fullmatch(r"\d+(\.\d+){0,2}", VERSION) else "0.0.0"
 # No CFBundleName on purpose: py2app derives the output bundle's filename from it, which would
 # rename dist/FastSurfer.app and break the build step that stages the result.
 OPTIONS = {
     "plist": {
         "CFBundleIdentifier": f"org.deep-mi.FastSurfer.applet.{VERSION}",
-        "CFBundleShortVersionString": VERSION,
+        "CFBundleShortVersionString": SHORT_VERSION,
+        # py2app otherwise leaves this at 0.0.0
+        "CFBundleVersion": SHORT_VERSION,
     },
 }
 
