@@ -104,14 +104,17 @@ def _t1_paths(log: Path) -> dict[str, str]:
 
 
 def _peak_concurrency(log: Path) -> int:
-    events = []
-    for line in log.read_text().splitlines():
-        stamp, kind, _ = line.split(None, 2)
-        events.append((int(stamp), 1 if kind == "START" else -1))
-    events.sort()
+    """The largest number of stubs that were running at once.
+
+    In log order, not sorted by the timestamp. The stubs append to one file, so the file is already
+    in event order, whereas the timestamps have a one-second resolution and sorting ties puts every
+    END before every START in the same second. That systematically understates the peak, which is
+    the direction that would let broken job accounting pass: a real peak of three reads as two when
+    the third START shares a second with an earlier END.
+    """
     current = peak = 0
-    for _, delta in events:
-        current += delta
+    for line in log.read_text().splitlines():
+        current += 1 if " START " in line else -1
         peak = max(peak, current)
     return peak
 
