@@ -63,6 +63,10 @@ i. a list passed through stdin of the format (one subject per line)
 ii. a subject_list file using the same format (use Ctrl-D to end the input), or
 iii. a list of subjects directly passed (this does not support subject-specific parameters)
 
+A path or parameter that contains a space has to be quoted or escaped as it would be in the shell,
+i.e. '/data/my subject/t1.mgz', "/data/my subject/t1.mgz" or /data/my\ subject/t1.mgz. A literal
+backslash likewise has to be written \\\\.
+
 --batch "<i>/<n>": run the i-th of n batches (starting at 1) of the full list of subjects
   (default: 1/1, == run all). "slurm_task_id" is a valid option for "<i>".
   Note, brun_fastsurfer.sh will also automatically detect being run in a SLURM JOBARRAY and split
@@ -140,7 +144,11 @@ inputargs=("$@")
 POSITIONAL=()
 res_device="auto"
 res_viewagg_device="auto"
-SED_CLEANUP_SUBJECTS='s/\r$//;s/\s*\r\s*/\n/g;s/\s*$//;/^\s*$/d'
+# [[:space:]] rather than \s, and a backslash-escaped literal newline rather than \n: both are GNU
+# extensions. BSD/macOS sed read \s as the letter s, so it stripped a trailing "s" from every
+# subject line while leaving trailing whitespace and blank lines in place.
+SED_CLEANUP_SUBJECTS='s/\r$//;s/[[:space:]]*\r[[:space:]]*/\
+/g;s/[[:space:]]*$//;/^[[:space:]]*$/d'
 prev_ifs="$IFS"
 i=0
 while [[ $# -gt 0 ]]
@@ -161,9 +169,10 @@ case $key in
     fi
     # append the subjects in the listfile (cleanup first) to the subjects array.
     # read rather than mapfile, which is bash 4+ while macOS ships bash 3.2; appending mirrors what
-    # mapfile's -O ${#subjects[@]} did.
-    while IFS= read -r subject_line ; do subjects+=("$subject_line") ; done \
-      < <(sed "$SED_CLEANUP_SUBJECTS" "$1")
+    # mapfile's -O ${#subjects[@]} did. The `|| [[ -n ... ]]` keeps the last line of a file that has
+    # no final newline, which read alone would report as a failure and drop, unlike mapfile.
+    while IFS= read -r subject_line || [[ -n "$subject_line" ]]
+    do subjects+=("$subject_line") ; done < <(sed "$SED_CLEANUP_SUBJECTS" "$1")
     subjects_stdin="false"
     shift # past value
     ;;
@@ -289,8 +298,9 @@ then
   if [[ -t 0 ]] || [[ "$debug" == "true" ]]; then
     echo "Reading subjects from stdin, press Ctrl-D to end input (one subject per line)"
   fi
-  while IFS= read -r subject_line ; do subjects+=("$subject_line") ; done \
-    < <(sed "$SED_CLEANUP_SUBJECTS")
+  # as for --subject_list: keep a final line that the producer did not terminate with a newline
+  while IFS= read -r subject_line || [[ -n "$subject_line" ]]
+  do subjects+=("$subject_line") ; done < <(sed "$SED_CLEANUP_SUBJECTS")
 fi
 
 echo "$THIS_SCRIPT ${inputargs[*]}"
@@ -453,8 +463,11 @@ function run_single()
       echo "ERROR: Could not parse the line ${image_parameters:$position}, maybe incorrect quoting or escaping?"
       exit 1
     else
-      # arg parsed, position is an integer
-      if [[ "$position" == "0" ]]; then image_path=$arg ; else args+=("$arg") ; fi
+      # arg parsed, position is an integer.
+      # unquote for the value we pass on, but advance by the length of the source token: arg still
+      # holds the quotes and escapes, and $unquoted is usually shorter.
+      unquote "$arg"
+      if [[ "$position" == "0" ]]; then image_path="$unquoted" ; else args+=("$unquoted") ; fi
       position=$((position + ${#arg}))
     fi
     while [[ "${image_parameters:$position:1}" == " " ]] ; do position=$((position + 1)) ; done
@@ -521,6 +534,41 @@ function run_single()
   # print the #@#!NEXT-SUBJECT token for the processing loop to trigger the next subject's processing
   # also include subject_id and image_parameters for debugging and verbosity
   echo "#@#!NEXT-SUBJECT:$subject_id=$image_parameters"
+}
+
+function unquote()
+{
+  # remove one level of shell quoting from $1, result in $unquoted.
+  # The tokenizer in run_single matches the source text of a token, so the quotes and escapes are
+  # still in it: '/d/a b.mgz' arrived at --t1 with the quotes attached and no such file exists. This
+  # does what the shell would do, without eval, which would run substitutions from a subject list.
+  # A literal backslash in a filename consequently has to be written \\, as in any shell.
+  local rest="$1" out="" chunk sq="'"
+  while [[ -n "$rest" ]]
+  do
+    case "$rest" in
+      "\\"?*)
+        # backslash escape: take the next character as-is
+        out="$out${rest:1:1}" ; rest="${rest:2}" ;;
+      "'"*)
+        # single quotes: everything up to the next one is literal
+        rest="${rest:1}" ; chunk="${rest%%$sq*}" ; out="$out$chunk" ; rest="${rest:$((${#chunk} + 1))}" ;;
+      '"'*)
+        # double quotes: literal too, except that a backslash still escapes
+        rest="${rest:1}"
+        while [[ -n "$rest" ]] && [[ "${rest:0:1}" != '"' ]]
+        do
+          if [[ "${rest:0:1}" == "\\" ]] && [[ -n "${rest:1:1}" ]]
+          then out="$out${rest:1:1}" ; rest="${rest:2}"
+          else out="$out${rest:0:1}" ; rest="${rest:1}"
+          fi
+        done
+        rest="${rest:1}" ;;
+      *)
+        out="$out${rest:0:1}" ; rest="${rest:1}" ;;
+    esac
+  done
+  unquoted="$out"
 }
 
 # this function returns an integer, with 1 meaning "is not a numbered device" (to be used in if statements)
