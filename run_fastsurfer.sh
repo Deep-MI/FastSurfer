@@ -864,7 +864,10 @@ fi
 if [[ -n "$what_needs_license" ]]
 then
   auto_detect_fs_license "$what_needs_license" | tee -a "$tmpLF";
-  if [[ "${PIPESTATUS[0]}" != 0 ]] ; then exit "${PIPESTATUS[0]}" ; fi
+  # capture before testing: [[ ]] is a command and overwrites PIPESTATUS, so reading it again inside
+  # the branch yields the status of the test (0), and a missing license exited 0 instead of aborting
+  exit_code="${PIPESTATUS[0]}"
+  if [[ "$exit_code" != 0 ]] ; then exit "$exit_code" ; fi
 fi
 
 # checks and t1 setup for longitudinal pipeline
@@ -1181,7 +1184,11 @@ then
     then
       cmd=("$reconsurfdir/talairach-reg.sh" "$seg_log" --py "$python" --asegdkt_segfile "$asegdkt_segfile"
            --dir "$subject_dir/mri" --conformed_name "$conformed_name" --norm_name "$norm_name")
-      if [[ "$long" == "true" ]] ; then cmd+=(--long "$basedir") ; fi
+      # $sd/$baseid, not $basedir: this script only ever sets baseid (from --long), while basedir
+      # belongs to recon-surf.sh, so it expanded empty here and talairach-reg.sh got `--long ""`,
+      # which it rejects with "ERROR: Argument (--long) must be a dir". Built as recon-surf.sh:275
+      # does. Only reachable with --tal_reg and --long together, which is why it went unnoticed.
+      if [[ "$long" == "true" ]] ; then cmd+=(--long "$sd/$baseid") ; fi
       if [[ "$edits" == "true" ]] ; then cmd+=(--edits) ; fi
       if [[ "$atlas3T" == "true" ]] ; then cmd+=(--3T) ; fi
       {
@@ -1401,7 +1408,10 @@ then
         fi
       fi
     } 2>&1 | tee -a "$seg_log"
-    if [[ "${PIPESTATUS[0]}" != 0 ]]; then exit "${PIPESTATUS[0]}"; fi # forward subshell exit to main script
+    # forward the subshell exit to the main script. Capture first: the [[ ]] below overwrites
+    # PIPESTATUS, so re-reading it inside the branch exited 0 and the failure was reported as success
+    exit_code="${PIPESTATUS[0]}"
+    if [[ "$exit_code" != 0 ]]; then exit "$exit_code"; fi
 
     if [[ "$run_biasfield" == "true" ]]
     then
