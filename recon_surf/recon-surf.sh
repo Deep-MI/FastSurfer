@@ -794,8 +794,29 @@ for hemi in lh rh ; do
       echo "echo \"\""
     } | tee -a "$CMDF"
 
-    cmd="recon-all -subject $subject -hemi $hemi -fix -no-isrunning -umask $(umask) $hiresflag $fsthreads"
+    # Run the topology fix single-threaded, whatever --threads asked for, and note that no
+    # $fsthreads is passed below either.
+    # mris_fix_topology repairs defects in an order-dependent way, so with more than one thread the
+    # repair, and every surface derived from it, can differ between otherwise identical runs.
+    # Observed on one subject at --threads 4: lh.orig.premesh came out with 133836 vs 133966
+    # vertices, which propagated to white, pial and sphere and shifted lhCortex by 0.08% and
+    # Left-Hippocampus by 0.5%. The stage is ~9% of the surface pipeline's wall clock, so this
+    # costs a few minutes on linux and nothing on macOS, where the FreeSurfer binaries carry no
+    # OpenMP at all.
+    # This covers the whole -fix stage on purpose: it also runs mris_remesh, which is a second
+    # order-dependent candidate.
+    # It removes the source we have evidence for. Whether other steps vary with the thread count,
+    # at higher counts or on paths a normal run does not take, has not been tested.
+    {
+      echo "export OMP_NUM_THREADS=1"
+      echo "export ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS=1"
+    } >> "$CMDF"
+    cmd="recon-all -subject $subject -hemi $hemi -fix -no-isrunning -umask $(umask) $hiresflag"
     RunIt "$cmd" "$LF" "$CMDF"
+    {
+      echo "export OMP_NUM_THREADS=$threads_hemi"
+      echo "export ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS=$threads_hemi"
+    } >> "$CMDF"
 
     # fix the surfaces if they are corrupt
     cmd="$python ${binpath}rewrite_oriented_surface.py --file $sdir/$hemi.orig.premesh --backup $sdir/$hemi.orig.premesh.noorient"

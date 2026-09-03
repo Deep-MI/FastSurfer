@@ -55,6 +55,7 @@ Optional arguments
 
 ### Some other flags
 * `--threads`, `--threads_seg` and `--threads_surf`: Target number of threads for all modules, segmentation, and surface pipeline. The default (`1`) tells FastSurfer to only use one core. Note, that the default value may change in the future for better performance on multi-core architectures. If threads for surface reconstruction is greater than 1, both hemispheres are processed in parallel with half the threads allocated to each hemisphere.
+  Note that the topology correction step is always run single-threaded, whatever you request here, because its result depends on the processing order (see [Reproducibility](#reproducibility)). On macOS this costs nothing, and on Linux it adds a few minutes.
 * `--vox_size`: Forces processing at a specific voxel size. If a number between 0.7 and 1 is specified (below is experimental) the T1w image is conformed to that isotropic voxel size and processed.
   If "min" is specified (default), the voxel size is read from the size of the minimal voxel size (smallest per-direction voxel size) in the T1w image:
   If the minimal voxel size is bigger than 0.98mm, the image is conformed to 1mm isotropic.
@@ -63,6 +64,34 @@ Optional arguments
 * `--py`: Command for python, used in both pipelines. Default: python3
 * `--conformed_name`: Name of the file in which the conformed input image will be saved. Default location: \$SUBJECTS_DIR/\$sid/mri/orig.mgz
 * `-h`, `--help`: Prints help text
+
+Reproducibility
+---------------
+Re-running the same input with the same FastSurfer and FreeSurfer versions, on the same machine and
+with the same flags, is expected to give the same result. Some limits to be aware of:
+
+* **Do not assume results are identical across thread counts.** The FreeSurfer binaries parallelise
+  with OpenMP, and threaded floating-point reductions have no fixed summation order, so
+  `--threads 4` and `--threads 8` may differ. Constraining this in general would mean rebuilding
+  FreeSurfer, so we do not promise it. Use the same `--threads` value throughout a study if you
+  want to compare subjects processed at different times.
+* **Do not assume results are identical across machines or versions.** Different CPUs, BLAS builds
+  or FreeSurfer versions can change the last digits. For a study, process everything with one
+  container image; see [Singularity](../overview/SINGULARITY.md).
+
+One step is known to turn a thread-count difference into a large one rather than a small one: the
+topology correction (`mris_fix_topology` and the rest of the FreeSurfer `-fix` stage). It repairs
+defects in an order-dependent way, and a different repair changes the vertex count of every surface
+derived from it. In one observed case, two runs of the same subject at `--threads 4` produced
+`lh.orig.premesh` with 133836 versus 133966 vertices, which propagated into a 0.5% difference in a
+subcortical volume. FastSurfer therefore runs that stage single-threaded whatever `--threads` says,
+which removes that particular source. Note this addresses the step we know about; it is not a
+guarantee that nothing else in the pipeline varies with the thread count.
+
+On macOS this costs nothing: the FreeSurfer binaries distributed for macOS (checked for 7.4.1 and
+8.0.0) are built without OpenMP, so FreeSurfer steps run single-threaded there whatever `--threads`
+says. That also means `--threads` mainly speeds up the segmentation modules on macOS, not the
+surface pipeline.
 
 Full list of flags
 ------------------
