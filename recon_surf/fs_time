@@ -1,49 +1,68 @@
-#!/bin/bash
-# fs_time
+#!/usr/bin/env python3
 
-VERSION="\$Id: fs_time, v1.1 2024/11/13 15:04:00 kueglerd Exp \$"
-outfile=""
-key="@#@FSTIME "
-flags=()
-cmd=()
-verbose=0
-print_uptime=$FSTIME_LOAD
+# Copyright 2026 Image Analysis Lab, German Center for Neurodegenerative Diseases (DZNE), Bonn
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
-if [[ -z "$print_uptime" ]]
-then
-  # Turn on by default
-  print_uptime=1
-fi
+"""
+Run a command and report the resources it used.
 
-function usage()
-{
-  cat << EOF
-fs_time [options] command args
+This replaces a bash frontend to ``/usr/bin/time -f``. ``-f`` is a GNU extension, and macOS ships
+BSD time, so that version could not work there at all: ``functions.sh`` probes it, finds it broken
+and silently drops per-command timings for every macOS user. Here the numbers come from
+``os.wait4()``, i.e. from the kernel's own rusage for the child, so one implementation covers both
+platforms and there is no external dependency left to be missing.
+
+The output format is a contract. ``recon_surf/utils/extract_recon_surf_time_info.py`` parses it
+positionally: field 1 is the timestamp, field 2 the command name, field 5 must be the literal ``e``
+and field 6 the elapsed seconds. Keep those positions if you change anything here.
+"""
+
+import os
+import signal
+import sys
+import time
+from datetime import datetime
+
+VERSION = "$Id: fs_time, v2.0 2026/09/02 python Exp $"
+
+# Fields the kernel does not populate on this platform, reported as "." rather than a misleading 0.
+# macOS never counts block IO or swaps for a child; Linux does count block IO. ru_nswap is
+# unmaintained on both, but on Linux we keep printing its 0 so the output stays identical to what
+# /usr/bin/time produced there for years.
+UNAVAILABLE = ("I", "O", "W") if sys.platform == "darwin" else ()
+
+USAGE = """fs_time [options] command args
  options:
   -o outputfile : save resource info into outputfile instead
   -a : append to outputfile (see time)
   -k key : key to find timing info in output
-  -l|--load : report on load averages as from uptime (default: \$FSTIME_LOAD or on)
+  -l|--load : report on load averages as from uptime (default: $FSTIME_LOAD or on)
   --no-load : do not report on load averages
   --debug : make output more verbose
-EOF
-}
+"""
 
-function help()
-{
-  cat << EOF
-This is a frontend for the unix /usr/bin/time program to keep track of
-resources used by a process. The basic usage is like that of time, ie,
+HELP = """
+This keeps track of the resources used by a process. The basic usage is like that of time, ie,
 
 fs_time [options] command args
 
 It creates a formatted output that allows for easy processing. See below.
 
-If the env variable FSTIME_LOAD is set to 1 or not set at all, then
-uptime is run before and after each process to give the load on the
-system (see below for output)
+If the env variable FSTIME_LOAD is set to 1 or not set at all, then the load averages of the system
+are reported before and after each process (see below for output).
 
-Default fs_time Output (see also the manual page for /usr/bin/time):
+Default fs_time Output:
 1. Key (default is @#@FSTIME)
 2. Time stamp at the onset of execution
 3. Command name
@@ -54,7 +73,7 @@ Default fs_time Output (see also the manual page for /usr/bin/time):
 7. U Total number of CPU-seconds that the process spent in user mode.
 8. P Percentage of the CPU that this job got, computed as (U+S)/e.
 9. M Maximum resident set size of the process during its lifetime, in Kbytes.
-10. F Number  of major page faults that occurred while the process was running.
+10. F Number of major page faults that occurred while the process was running.
       These are faults where the page has to be read in from disk.
 11. R Number of minor, or recoverable, page faults.  These are faults for pages that
       are not valid but which have not yet been claimed by other virtual pages.  Thus
@@ -68,22 +87,19 @@ Default fs_time Output (see also the manual page for /usr/bin/time):
 16. O Number of file system outputs by the process.
 17. L L1 L5 L15 : load averages at 1, 5, and 15 min (with setenv FSTIME_LOAD 1)
 
+A field is reported as "." where the operating system does not measure it: macOS counts neither
+file system IO (I, O) nor swaps (W) for a child process.
+
 Example:
 
 fs_time mri_convert orig.mgz myfile.mgz
 mri_convert orig.mgz myfile.mgz
 reading from orig.mgz...
-TR=2730.00, TE=3.44, TI=1000.00, flip angle=7.00
-i_ras = (-1, 0, 0)
-j_ras = (2.38419e-07, 0, -1)
-k_ras = (-1.93715e-07, 1, 0)
 writing to myfile.mgz...
 @#@FSTIME 2016:01:21:18:27:08 mri_convert N 2 e 2.20 S 0.05 U 1.64 P 77% M 23628 F 0 R 5504 W 0 c 7 w 3 I 0 O 20408
 
-The above command runs the mri_convert command with two arguments and
-produces the information about resources. It also creates a file
-resource.dat with the resource information. In this case, the above is
-interpreted as:
+The above command runs the mri_convert command with two arguments and produces the information
+about resources. In this case, the above is interpreted as:
 
 @#@FSTIME : key for easy searching/grepping
 mri_convert : command that was run
@@ -91,7 +107,7 @@ mri_convert : command that was run
 N 2 : mri_convert was run with 2 arguments
 e 2.20 : total elapsed time in seconds from start to end
 S 0.05 : seconds spent in system mode
-U 1.64 : seconds specnt in user mode
+U 1.64 : seconds spent in user mode
 P 77%  : percent of cpu that process used (S+U)/e
 M 23628 : maximum memory size in Kbytes
 F 0 : no major page faults
@@ -104,135 +120,224 @@ O 20408 : Number of file system outputs by the process.
 
 If the env variable FSTIME_LOAD is set to 1, the output looks something like
 
-@#@FSLOADPOST 2016:01:23:15:11 mri_convert N 2 0.00 0.03 0.06
+@#@FSLOADPRE 2016:01:23:15:11:04 mri_convert N 2 L 0.00 0.03 0.06
+@#@FSLOADPOST 2016:01:23:15:11:06 mri_convert N 2 L 0.01 0.03 0.06
 
-The 3 numbers are the system load averages for the past 1, 5, and 15
-minutes as given by uptime.
-EOF
-}
+One sample before the command and one after it. The 3 numbers following the L are the system load
+averages for the past 1, 5, and 15 minutes.
+"""
 
-function   arg1err()
-{
-  # param 1 : flag
-  echo "ERROR: Flag $1 requires one argument!"
-  exit 1
-}
 
-# sourcing FreeSurfer should not be needed at this point,
-# source $FREESURFER_HOME/sources.sh
+def arg1err(flag: str) -> None:
+    print(f"ERROR: Flag {flag} requires one argument!")
+    sys.exit(1)
 
-while [[ $# != 0 ]]
-do
 
-  flag="$1"
-  shift
+def shorten_command(cmd: list[str]) -> tuple[str, int]:
+    """
+    Return the name to report for `cmd`, and how many leading entries it consumed.
 
-  case $flag in
-    -o|-k) if [[ "$#" -lt 1 ]] ; then arg1err "$flag"; fi ;;
-  esac
+    A python invocation is reported as the script it runs, not as "python3", and a path inside
+    $FASTSURFER_HOME is reported relative to it, so that the command name stays a short, stable key.
+    """
+    command = cmd[0]
+    npyargs = 0
+    basename = os.path.basename(command)
+    if basename in ("python", "python3") or (
+        basename.startswith("python3.") and basename[8:].isdigit()
+    ):
+        npyargs = 1
+        for entry in cmd[1:]:
+            if not entry.startswith("-"):
+                command = entry
+                break
+            npyargs += 1
+    fastsurfer_home = os.environ.get("FASTSURFER_HOME", "")
+    if fastsurfer_home and command.startswith(fastsurfer_home):
+        command = command[len(fastsurfer_home):].lstrip("/")
+    return command, npyargs
 
-  case "$flag" in
-    -help|--help) usage ; help ; exit 0 ;;
-    -version|--version) echo "$VERSION" ; exit 0 ;;
-    -o) outfile="$1" ; shift ;;
-    -k) key="$1" ; shift ;;
-    -a) flags+=("$flag") ;;
-    -l|-load|--load) print_uptime=1 ;;
-    -no-load|--no-load) print_uptime=0 ;;
-    -debug|--debug) verbose=1 ;;
-    # we must now be at the start of the command to run, so put all items back into the list
-    *) cmd=("$flag" "$@") ; break ;;
-  esac
-done
 
-if [[ "$verbose" == 1 ]]
-then
-  echo "Parameters to fs_time:"
-  if [[ -n "$outfile" ]] ; then echo "  -o $outfile" ; fi
-  if [[ "$key" != "@#@FSTIME " ]] ; then echo "  -k $key" ; fi
-  if [[ "${#flags[@]}" -gt 0 ]] ; then echo "  ${flags[*]}" ; fi
-  if [[ "$print_uptime" != "$FSTIME_LOAD" ]] && [[ -n "$FSTIME_LOAD" ]] ; then
-    if [[ "$print_uptime" == 1 ]] ; then echo "  --load" ; else echo "  --noload" ; fi
-  else
-    echo "  FSTIME_LOAD=$FSTIME_LOAD" ;
-  fi
-  echo "command:"
-  echo "  ${cmd[*]}"
-  echo ""
-fi
+def format_load() -> str:
+    """The 1, 5 and 15 minute load averages, in the same shape `uptime` reported them."""
+    return "L " + " ".join(f"{value:.2f}" for value in os.getloadavg())
 
-# CHECK PARAMS
-if [[ "${#cmd[@]}" == 0 ]]
-then
-  usage
-  echo "ERROR: No command passed to execute!"
-  exit 1
-fi
 
-if [[ ! -e /usr/bin/time ]]
-then
-  echo "ERROR: Cannot find /usr/bin/time!"
-  exit 1
-fi
+def make_line(key: str, command: str, nargs: int, extra: str = "", when: datetime | None = None) -> str:
+    """One output line: `<key> <timestamp> <command> N <nargs>[ <extra>]`.
 
-command="${cmd[0]}"
-npyargs=0
-# remove python from command
-if [[ "$command" =~ python(3(.[0-9]+)?)?$ ]]
-then
-  npyargs=1
-  for c in "${cmd[@]:1}" ; do
-    if [[ ! "$c" =~ ^- ]] ; then command="$c" ; break ; fi
-    npyargs=$((npyargs + 1))
-  done
-fi
-# remove $FASTSURFER_HOME path from command
-command_short="${command:0:${#FASTSURFER_HOME}}"
-if [[ -n "$FASTSURFER_HOME" ]] && [[ "$command_short" == "$FASTSURFER_HOME" ]]
-then
-  command="${command:${#command_short}}"
-  while [[ "${command:0:1}" == "/" ]] ; do command="${command:1}" ; done
-fi
+    `when` defaults to now, but the main line has to pass the time the command *started*: the help
+    calls field 2 the timestamp at the onset of execution, and extract_recon_surf_time_info.py adds
+    the elapsed seconds to it to get the end time.
+    """
+    if extra and not extra.startswith(" "):
+        extra = " " + extra
+    stamp = (when or datetime.now()).strftime("%Y:%m:%d:%H:%M:%S")
+    return f"{key} {stamp} {command} N {nargs}{extra}"
 
-nargs=$((${#cmd[@]} - 1 - npyargs))
 
-function make_uptime ()
-{
-  # shellcheck disable=SC2207
-  uptime_data_array=($(uptime | sed 's/,/ /g'))
-  echo "L ${uptime_data_array[-3]} ${uptime_data_array[-2]} ${uptime_data_array[-1]}"
-}
+def field(name: str, value: int | str) -> str:
+    """`name value`, or `name .` where this platform does not measure it."""
+    return f"{name} {'.' if name in UNAVAILABLE else value}"
 
-function make_fmt ()
-{
-  # param 1 : key
-  # param 2 : command
-  # param 3 : num args
-  # param 4 : additional data
-  add=$4
-  if [[ "${#add}" -gt 0 ]] && [[ "${add:0:1}" != " " ]] ; then add=" $add" ; fi
-  echo "$1 $(date '+%Y:%m:%d:%H:%M:%S') $2 N $3$add"
-}
 
-if [[ "$print_uptime" == 1 ]]
-then
-  uptime="$(make_uptime)"
-  make_fmt "@#@FSLOADPRE" "$command" "$nargs" "$uptime"
-else
-  uptime=""
-fi
+def main(argv: list[str]) -> int:
+    outfile = ""
+    key = "@#@FSTIME "
+    append = False
+    cmd: list[str] = []
+    verbose = False
+    # on unless FSTIME_LOAD says otherwise. Unset and empty both mean on, as in the bash version
+    # (which assigned the variable and then tested -z) and as the help describes.
+    fstime_load = os.environ.get("FSTIME_LOAD", "")
+    print_load = not fstime_load or fstime_load == "1"
 
-fmt="$(make_fmt "$key" "$command" "$nargs" "e %e S %S U %U P %P M %M F %F R %R W %W c %c w %w I %I O %O$uptime")"
+    index = 0
+    while index < len(argv):
+        flag = argv[index]
+        index += 1
+        if flag in ("-o", "-k") and index >= len(argv):
+            arg1err(flag)
+        if flag in ("-help", "--help"):
+            print(USAGE + HELP)
+            return 0
+        elif flag in ("-version", "--version"):
+            print(VERSION)
+            return 0
+        elif flag == "-o":
+            outfile = argv[index]
+            index += 1
+        elif flag == "-k":
+            key = argv[index]
+            index += 1
+        elif flag == "-a":
+            append = True
+        elif flag in ("-l", "-load", "--load"):
+            print_load = True
+        elif flag in ("-no-load", "--no-load"):
+            print_load = False
+        elif flag in ("-debug", "--debug"):
+            verbose = True
+        else:
+            # the command to run, and everything after it belongs to the command
+            cmd = argv[index - 1:]
+            break
 
-timecmd=("/usr/bin/time" "${flags[@]}")
-if [[ -n "$outfile" ]] ; then timecmd+=(-o "$outfile"); fi
-if [[ "$verbose" == 1 ]] ; then echo "${timecmd[@]}" -f "'$fmt'" "${cmd[@]}" ; fi
-"${timecmd[@]}" -f "$fmt" "${cmd[@]}"
-st=$?
+    if not cmd:
+        print(USAGE)
+        print("ERROR: No command passed to execute!")
+        return 1
 
-if [[ "$print_uptime" == 1 ]]
-then
-  make_fmt "@#@FSLOADPOST" "$command" "$nargs"
-fi
+    command, npyargs = shorten_command(cmd)
+    nargs = len(cmd) - 1 - npyargs
 
-exit $st
+    if verbose:
+        print("Parameters to fs_time:")
+        if outfile:
+            print(f"  -o {outfile}")
+        if key != "@#@FSTIME ":
+            print(f"  -k {key}")
+        if append:
+            print("  -a")
+        print(f"  {'--load' if print_load else '--no-load'}")
+        print("command:")
+        print(f"  {' '.join(cmd)}")
+        print("")
+
+    # open -o before running anything, as /usr/bin/time does: it exits 125 without touching the
+    # command when it cannot write its output. Opening afterwards would spend a whole command's
+    # runtime and then throw the result away.
+    handle = None
+    if outfile:
+        try:
+            handle = open(outfile, "a" if append else "w")
+        except OSError as e:
+            print(f"fs_time: {outfile}: {e.strerror}", file=sys.stderr)
+            return 125
+
+    if print_load:
+        print(make_line("@#@FSLOADPRE", command, nargs, format_load()))
+        sys.stdout.flush()
+
+    # posix_spawn rather than fork+exec: it reports a missing command in the parent, so there is no
+    # child to fail inside, and it leaves the child's minor-fault count reflecting the command
+    # rather than the cost of copying our own address space.
+    # setsigdef because python starts life with SIGPIPE and SIGXFSZ ignored and a spawned child
+    # inherits that. The command would then get EPIPE errors where every other caller gets killed
+    # by SIGPIPE, so `cmd | head` inside a timed script would report a write failure instead of
+    # finishing quietly. This is what subprocess's restore_signals does, and it restores the
+    # behaviour the /usr/bin/time version had, since bash execs children with default dispositions.
+
+    # Do not abandon the command on Ctrl-C. A terminal sends SIGINT to the whole foreground process
+    # group, so the command has it too and is already exiting; python's default handler would raise
+    # KeyboardInterrupt out of the wait below, losing the record for the command that was
+    # interrupted and printing a traceback into the log instead. A handler that does nothing lets
+    # the wait restart until the command is reaped, so it is still reported and its 128+signal
+    # status is still forwarded. Unlike SIG_IGN a handler is reset on exec, so the command itself
+    # still dies on Ctrl-C.
+    signal.signal(signal.SIGINT, lambda _signum, _frame: None)
+
+    onset = datetime.now()
+    start = time.monotonic()
+    try:
+        pid = os.posix_spawnp(cmd[0], cmd, os.environ, setsigdef=[signal.SIGPIPE, signal.SIGXFSZ])
+    except FileNotFoundError:
+        print(f"fs_time: {cmd[0]}: command not found", file=sys.stderr)
+        return 127
+    except PermissionError:
+        print(f"fs_time: {cmd[0]}: permission denied", file=sys.stderr)
+        return 126
+    except OSError as e:
+        print(f"fs_time: {cmd[0]}: {e}", file=sys.stderr)
+        return 126
+
+    _, status, usage = os.wait4(pid, 0)
+    elapsed = time.monotonic() - start
+
+    cpu = usage.ru_utime + usage.ru_stime
+    percent = round(cpu / elapsed * 100) if elapsed > 0 else 0
+    # ru_maxrss is bytes on macOS but kilobytes on Linux; report kilobytes on both, so the number
+    # means the same thing wherever the pipeline ran.
+    # Note Linux does not reset the peak on exec, so this cannot read below our own footprint of a
+    # few MB: measured against /usr/bin/time it is identical for a 500 MB command and too high for a
+    # trivial one. That only affects commands too small for the figure to be interesting.
+    maxrss = usage.ru_maxrss // 1024 if sys.platform == "darwin" else usage.ru_maxrss
+
+    measurements = " ".join((
+        f"e {elapsed:.2f}",
+        f"S {usage.ru_stime:.2f}",
+        f"U {usage.ru_utime:.2f}",
+        f"P {percent}%",
+        f"M {maxrss}",
+        field("F", usage.ru_majflt),
+        field("R", usage.ru_minflt),
+        field("W", usage.ru_nswap),
+        field("c", usage.ru_nivcsw),
+        field("w", usage.ru_nvcsw),
+        field("I", usage.ru_inblock),
+        field("O", usage.ru_oublock),
+    ))
+    if print_load:
+        measurements += " " + format_load()
+
+    line = make_line(key, command, nargs, measurements, when=onset)
+    if handle is not None:
+        with handle:
+            handle.write(line + "\n")
+    else:
+        # stderr, as /usr/bin/time does: run_it in functions.sh relies on `2>&1 | tee` to capture it
+        print(line, file=sys.stderr)
+
+    if print_load:
+        # with the load: the whole point of a post-run sample, and what the help documents. The
+        # bash version passed no load here, so the line carried nothing but a timestamp; the
+        # original tcsh fs_time did include it.
+        print(make_line("@#@FSLOADPOST", command, nargs, format_load()))
+
+    if os.WIFSIGNALED(status):
+        return 128 + os.WTERMSIG(status)
+    return os.WEXITSTATUS(status)
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))

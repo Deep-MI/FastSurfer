@@ -36,7 +36,11 @@ jobs:
     strategy:
       matrix:
         # image: image-processing unit tests. config: consistency of declared versions across
-        # pyproject.toml, the Dockerfile and the workflows (see test/config/test_python_version.py)
+        # pyproject.toml, the Dockerfile and the workflows (see test/config/test_python_version.py).
+        # test/shell is deliberately absent: its static half only reads files and runs in the much
+        # lighter code-style workflow, and its functional half needs a real bash 3.2, so it runs in
+        # the macos-shell-test job below. Adding it here would spin up a whole job, including the
+        # quicktest dependency install, to execute a text scan.
         tests: ["image", "config"]
         pytest-flags: [""]
 
@@ -91,3 +95,36 @@ jobs:
           # does not have the required permissions in PRs from forks.
           # See: https://github.com/mikepenz/action-junit-report?tab=readme-ov-file#pr-run-permissions
           annotate_only: 'true'
+
+  macos-shell-test:
+    name: 'Run the shell tests under the bash macOS ships'
+    # The only place /bin/bash is 3.2, which is what test/shell guards: every shipped script selects
+    # it through its own shebang, so a bash-4-only construct breaks macOS while passing on Linux.
+    runs-on: macos-15
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - name: Setup Python
+        uses: actions/setup-python@v7
+        # no `architecture`, unlike the job above: these runners are arm64
+        with:
+          python-version: '3.10'
+      - name: Install pytest
+        shell: bash
+        run: python -m pip install --progress-bar off --upgrade pip pytest
+      - name: Report the bash version, and fail if it is no longer 3.x
+        # A deliberate tripwire. If Apple ever ships bash 4+ as /bin/bash the functional tests would
+        # silently skip and this guard would rot unnoticed, which is how it drifted before.
+        run: |
+          /bin/bash -c 'echo "/bin/bash is ${BASH_VERSION}"'
+          /bin/bash -c 'test "${BASH_VERSINFO[0]}" -eq 3' || {
+            echo "::error::/bin/bash is no longer 3.x; revisit test/shell and the mapfile workarounds"
+            exit 1
+          }
+      - name: Run pytest
+        env:
+          FASTSURFER_HOME: ${{ github.workspace }}
+        shell: bash
+        # the bash 3.2 tests, which only run here, plus the fs_time ones for their macOS branches;
+        # the latter also run on ubuntu in the code-style workflow, for the linux branches
+        run: python -m pytest -v test/shell/test_brun_bash32.py test/shell/test_fs_time.py
