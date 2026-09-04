@@ -111,7 +111,7 @@ jobs:
       # a release. Skipped for releases, where the package is attached to the release itself below.
       - name: Upload the installer as a build artifact
         if: github.event_name != 'release'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: FastSurfer-macos-darwin_${{ matrix.arch }}-${{ github.sha }}
           path: tools/macos_build/installer/*.pkg
