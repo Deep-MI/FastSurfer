@@ -93,6 +93,32 @@ Contributing Code
    ```
 
 8. Edit the code and implement your changes/features 
+
+   Two things to observe while you do:
+
+   **Do not add inline author tags.** Leave out `@author`, `Author:`, `Created by`, `Created on`,
+   `Modified by` and the like, in new files as well as in files you change. Most files end up with
+   several authors, and git records who wrote each line, so `git log`, `git blame` and the GitHub
+   interface report it accurately; a tag in the file says nothing about the parts somebody else has
+   since rewritten, and nobody remembers to update it.
+
+   **Run the checks before you commit**, so a pull request does not fail on something you can fix in
+   a second. These are the checks CI runs:
+
+   ```bash
+   uv run --no-project --with ruff ruff check .
+   uv run --no-project --with pytest pytest test/shell/test_bash4_lint.py test/shell/test_fs_time.py
+   uv run --no-project --with codespell codespell --ignore-words .codespellignore \
+     --check-filenames --check-hidden .
+   ```
+
+   Ruff is the lint and style check. The shell tests scan the shipped scripts for constructs the
+   bash 3.2 that macOS provides does not have, which is easy to break from Linux; the test that
+   actually runs them under bash 3.2 needs a macOS machine and runs in CI. Codespell finds typos;
+   it reads untracked files too, so run it on a clean tree or expect noise from your own scratch
+   directories. CI installs these from the `style` extra of `pyproject.toml`, which you can use
+   instead with `uv run --extra style <tool>` if you prefer the pinned versions.
+
 9. Commit your changes: `git commit -am 'Add some feature'`
 10. Push to the branch to your GitHub: `git push origin my-new-feature`
 
