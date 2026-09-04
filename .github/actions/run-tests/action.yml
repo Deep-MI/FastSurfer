@@ -23,6 +23,10 @@ inputs:
     required: true
     type: string
     description: "The url to the reference file to download for comparison"
+  checkout-ref:
+    default: ""
+    type: string
+    description: "The ref to check the tests out from (default: the ref that triggered the run)"
   junit-file:
     default: /tmp/quicktest.junit.xml
     type: string
@@ -32,6 +36,10 @@ runs:
   using: "composite"
   steps:
     - uses: actions/checkout@v7
+      with:
+        # otherwise this overwrites the checkout the calling job made and the tests come from the
+        # default branch, which for docker-image=pr/<no> is not the code the image was built from
+        ref: ${{ inputs.checkout-ref }}
     - name: Setup uv and Python 3.10
       uses: astral-sh/setup-uv@v10.0.1
       with:
@@ -44,7 +52,13 @@ runs:
       run: |
         echo "::group::Prepare processed and reference data"
         mkdir -p $REF_DIR
-        curl -k "$CASE_HREF" -o "$REF_DIR/ref-download-data"
+        if [[ -z "$CASE_HREF" ]] ; then
+          echo "CASE_HREF is empty, so the reference data cannot be downloaded. If this is a"
+          echo "  pull_request run on a fork, it cannot have the secrets."
+          exit 1
+        fi
+        # --fail, so that an error page is not unpacked as if it were the reference archive
+        curl --fail -k "$CASE_HREF" -o "$REF_DIR/ref-download-data"
         tar xf "$REF_DIR/ref-download-data" -C "$REF_DIR"
         rm -f "$REF_DIR/ref-download-data"
         echo "::endgroup::"

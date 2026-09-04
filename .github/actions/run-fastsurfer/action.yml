@@ -45,6 +45,7 @@ runs:
       continue-on-error: false
       env:
         IMAGE_HREF: ${{ inputs.image-href }}
+        LICENSE: ${{ inputs.license }}
         EXTRA_ARGS: ${{ inputs.extra-args }}
       run: |
         # Preparation code
@@ -52,8 +53,20 @@ runs:
         DATA_DIR=$(dirname $(pwd))/data
         echo "DATA_DIR=$DATA_DIR" >> $GITHUB_ENV  # DATA_DIR is used in the next 2 steps as well
         mkdir -p $DATA_DIR
-        echo "${{ inputs.license }}" > $DATA_DIR/.fs_license
-        curl -L -k "$IMAGE_HREF" -o "$DATA_DIR/T1${{ inputs.file-extension }}"
+        # named explicitly, because GitHub withholds the secrets these come from when a
+        # pull_request run belongs to a fork, and an empty value is otherwise hard to recognise:
+        # curl without --fail would store the error page as the T1 and fail much later
+        for var in IMAGE_HREF LICENSE ; do
+          if [[ -z "${!var}" ]] ; then
+            echo "$var is empty. If this is a pull_request run on a fork, it cannot have the"
+            echo "  secrets; start the quicktest workflow by hand with docker-image=pr/<no> instead."
+            exit 1
+          fi
+        done
+        # via the environment, so that a license containing a quote or a backtick cannot end up
+        # being interpreted as part of this script
+        printf '%s\n' "$LICENSE" > $DATA_DIR/.fs_license
+        curl --fail -L -k "$IMAGE_HREF" -o "$DATA_DIR/T1${{ inputs.file-extension }}"
         if [[ "$EXTRA_ARGS" != "${EXTRA_ARGS/--threads/}" ]] || [[ "$EXTRA_ARGS" != "${EXTRA_ARGS/--parallel/}" ]] || [[ "$EXTRA_ARGS" != "${EXTRA_ARGS/--fs_license/}" ]] || [[ "$EXTRA_ARGS" != "${EXTRA_ARGS/--sd/}" ]] || [[ "$EXTRA_ARGS" != "${EXTRA_ARGS/--sid/}" ]] ; then
           echo "--threads, --parallel, --fs_license, --sid, --sd are not allowed in extra-args!"
           exit 1
