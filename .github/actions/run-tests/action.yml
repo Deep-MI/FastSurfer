@@ -1,10 +1,9 @@
-# This workflow file is a reusable workflow that will process a single T1 image with docker.
-# The docker image can be built by workflow build-docker or on dockerhub (input image).
-# The image will be downloaded
-# The build artifact includes the image in docker-image.tar and the name of the image in image_name.env
+# Compares one processed subject against reference data with the quicktest pytest suite.
+# The calling job has to have checked this repository out, and either processed the subject on the
+# same runner or produced the artifact that load-processed fetches.
 
-name: 'Run Fastsurfer'
-description: 'Runs FastSurfer'
+name: 'Run quicktest'
+description: 'Runs the quicktest suite against reference data'
 
 inputs:
   subject-id:
@@ -31,11 +30,6 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - uses: actions/checkout@v7
-      with:
-        # the commit, not the branch or the merge ref: this re-checks out on top of what the calling
-        # job already has, and both have to be the commit the image was built from
-        ref: ${{ github.sha }}
     - name: Setup uv and Python 3.10
       uses: astral-sh/setup-uv@v10.0.1
       with:

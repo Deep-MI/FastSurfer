@@ -53,9 +53,8 @@ runs:
         DATA_DIR=$(dirname $(pwd))/data
         echo "DATA_DIR=$DATA_DIR" >> $GITHUB_ENV  # DATA_DIR is used in the next 2 steps as well
         mkdir -p $DATA_DIR
-        # named explicitly, because GitHub withholds the secrets these come from when a
-        # pull_request run belongs to a fork, and an empty value is otherwise hard to recognise:
-        # curl without --fail would store the error page as the T1 and fail much later
+        # checked explicitly: GitHub withholds these secrets from a pull_request run on a fork, and
+        # an empty one has to be caught here rather than as a confusing failure much later
         for var in IMAGE_HREF LICENSE ; do
           if [[ -z "${!var}" ]] ; then
             echo "$var is empty. A pull_request run on a fork does not receive the secrets, by"
@@ -118,13 +117,6 @@ runs:
         if [[ "${{ contains( inputs.extra-args, '--surf_only' ) }}" == "0" ]] ; then docker container rm seg_container ; fi
         if [[ "${{ contains( inputs.extra-args, '--seg_only' ) }}" == "0" ]] ; then docker container rm surf_container ; fi
         echo "::endgroup::"
-        echo "::group::Save ${{ inputs.subject-id }} as an artifact"
-    - name: Create archive of Processed subject-data
-      shell: bash
-      if: ${{ always() && (steps.prep.outputs.IMAGE_LOADED != 0 || steps.load-docker.outcome == 'success') }}
-      run: |
-        # Archive data code
-        tar cfz "$DATA_DIR/${{ inputs.subject-id }}.tar.gz" -C "$DATA_DIR" "${{ inputs.subject-id }}"
     - name: Save processed data
       if: ${{ always() && (steps.prep.outputs.IMAGE_LOADED != 0 || steps.load-docker.outcome == 'success') }}
       uses: actions/upload-artifact@v7

@@ -18,11 +18,9 @@ name: quicktest
 #  - QUICKTEST_LICENSE: content of a FreeSurfer license file
 
 concurrency:
-  # one group per pull request and label, or per branch for a dispatch. The label matters because
-  # the group is evaluated when the run is created, before the condition on the job below: with
-  # every label of a pull request in one group, attaching an unrelated label would cancel a
-  # quicktest that is already running. github.event.ref was part of this and does not exist on the
-  # pull_request payload.
+  # one group per pull request and label, or per branch for a dispatch. The label is part of the key
+  # because the group is evaluated when the run is created, before the condition on the job below,
+  # so without it attaching an unrelated label cancels a quicktest that is already running.
   group: ${{ github.workflow }}-${{ github.event.number || github.ref }}-${{ github.event.label.name || 'dispatch' }}
   cancel-in-progress: true
 
@@ -157,14 +155,12 @@ jobs:
         if: steps.parse.outputs.CONTINUE == 'true' && steps.parse.outputs.DOCKER_IMAGE == 'build-cached'
         uses: actions/checkout@v7
         with:
-          # the commit rather than the branch or the merge ref, both of which move: the build job
-          # and the test jobs check out separately, twenty minutes apart, so a push in between would
-          # otherwise leave the tests running a different commit than the image was built from
+          # the commit rather than the branch or the merge ref, both of which move: this job and the
+          # test jobs check out separately, an hour or so apart, and have to agree on what was built
           ref: ${{ github.sha }}
       - name: Setup uv and Python (shipped default)
-        # the same condition as the build steps below: without it this step, and in particular the
-        # cache it saves in its post step, ran even when the workflow had decided to do nothing,
-        # which failed the job for every label dependabot attaches to a pull request
+        # uv is only used by the build below, and its post step saves a cache, which fails when
+        # nothing has used uv, so this carries the same condition as the build steps
         if: steps.parse.outputs.CONTINUE == 'true' && steps.parse.outputs.DOCKER_IMAGE == 'build-cached'
         uses: astral-sh/setup-uv@v7
         with:

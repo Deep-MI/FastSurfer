@@ -16,6 +16,7 @@ runs:
   using: "composite"
   steps:
     - name: Load cached subject directory
+      id: local
       shell: bash
       run: |
         mkdir -p ${{ inputs.subjects-dir }}
@@ -23,7 +24,19 @@ runs:
           echo "The expected subject directory ${{ inputs.subjects-dir }}/${{ inputs.subject-id }} already exists!"
           exit 1
         fi
+        # run-fastsurfer processes into DATA_DIR on this runner, so within one job the artifact it
+        # uploaded does not have to be fetched back again. Moving is safe because that upload runs
+        # before this; DATA_DIR is unset in a job that only tests, which is when the download below
+        # applies.
+        if [[ -n "$DATA_DIR" ]] && [[ -d "$DATA_DIR/${{ inputs.subject-id }}" ]] ; then
+          echo "Taking ${{ inputs.subject-id }} from $DATA_DIR, it was processed on this runner."
+          mv "$DATA_DIR/${{ inputs.subject-id }}" "${{ inputs.subjects-dir }}/${{ inputs.subject-id }}"
+          echo "ON_RUNNER=true" >> $GITHUB_OUTPUT
+        else
+          echo "ON_RUNNER=false" >> $GITHUB_OUTPUT
+        fi
     - name: Recover processed files
+      if: steps.local.outputs.ON_RUNNER == 'false'
       uses: actions/download-artifact@v8
       with:
         name: fastsurfer-${{ github.sha }}-${{ inputs.subject-id }}
