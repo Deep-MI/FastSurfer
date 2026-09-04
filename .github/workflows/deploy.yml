@@ -52,7 +52,7 @@ jobs:
           # into the package (see the BUNDLED PYTHON ENVIRONMENT section of the build script)
           brew list uv >/dev/null 2>&1 || brew install uv
       - name: Cache py2app venv
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: tools/macos_build/.venv-py2app
           # py2app itself isn't pinned (matching prior behavior), so this key is coarse; if a bad
@@ -77,7 +77,7 @@ jobs:
           # the bundled python version, so the uv cache is invalidated when it is bumped
           echo "python_version=$(python3 tools/read_toml.py --file pyproject.toml --key tool.python.version)" >> "$GITHUB_OUTPUT"
       - name: Cache pruned FreeSurfer
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ${{ steps.fs_cache.outputs.cache_dir }}
           # bumps on a FreeSurfer version/URL change (url_hash) or a change to what gets pruned
@@ -85,7 +85,7 @@ jobs:
           # both a future intel job and today's arm job (via Rosetta) would download
           key: fs-pruned-${{ hashFiles('tools/build/install_fs_pruned.sh') }}-${{ steps.fs_cache.outputs.url_hash }}
       - name: Cache uv downloads
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ${{ steps.fs_cache.outputs.uv_cache_dir }}
           # the standalone python distribution and the dependency wheels. Keyed on the python
@@ -95,7 +95,7 @@ jobs:
           restore-keys: |
             uv-${{ matrix.arch }}-py${{ steps.fs_cache.outputs.python_version }}-
       - name: Cache checkpoints
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ${{ steps.fs_cache.outputs.checkpoints_dir }}
           # the network weights, bundled into the package so a fresh install needs no download.
