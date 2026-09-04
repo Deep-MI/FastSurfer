@@ -59,9 +59,6 @@ hemisphere it will:
    FreeSurfer's mris_anatomical_stats via command line execution)
 Note, this script needs to be updated if FreeSurfer introduces changes into the -balabel 
 block of recon-all. Currently this is based on FreeSurfer 7.3.2.
-
-Original Author: Martin Reuter
-Date: Aug-31-2022
 """
 
 h_sid = "subject id (name of directory within the subject directory)"
@@ -171,7 +168,6 @@ def parse_version(fs_version_str):
         return tuple(map(int, version_parts))
     except ValueError:
         return fs_version
-
 
 
 if __name__ == "__main__":

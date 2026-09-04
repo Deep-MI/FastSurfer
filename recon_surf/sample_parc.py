@@ -45,11 +45,6 @@ Dependencies:
 
     Nibabel to read and write FreeSurfer surface meshes
     http://nipy.org/nibabel/
-
-
-Original Author: Martin Reuter
-Date: Dec-18-2023
-
 """
 
 h_inseg = "path to input segmentation image"

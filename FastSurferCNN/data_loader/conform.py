@@ -68,9 +68,6 @@ Dependencies:
     https://www.numpy.org
     Nibabel to read and write FreeSurfer data
     https://nipy.org/nibabel/
-Original Author: Martin Reuter
-Modified by: David Kügler
-Date: May-12-2025
 """
 
 LOGGER = logging.getLogger(__name__)

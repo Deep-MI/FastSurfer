@@ -64,10 +64,6 @@ Dependencies:
     
     skimage for erosion, dilation, connected component
     https://scikit-image.org/
-
-Original Author: Martin Reuter
-Date: Jul-24-2018
-
 """
 
 h_input = "path to input segmentation"

@@ -48,8 +48,6 @@ Dependencies:
     Pandas to read/write stats files etc.
     https://pandas.pydata.org/
 
-Original Author: David Kügler
-Date: Jan-04-2024
 
 Revision: {VERSION}
 """

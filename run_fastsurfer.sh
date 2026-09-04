@@ -14,8 +14,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-VERSION='$Id$'
-
 # Set default values for arguments
 if [[ -z "${BASH_SOURCE[0]}" ]]; then THIS_SCRIPT="$0"
 else THIS_SCRIPT="${BASH_SOURCE[0]}"

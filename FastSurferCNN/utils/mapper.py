@@ -12,11 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""
-Original Author: David Kuegler.
-
-Date: Aug-19-2022
-"""
 
 import json
 import os.path

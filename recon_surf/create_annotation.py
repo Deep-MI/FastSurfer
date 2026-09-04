@@ -64,10 +64,6 @@ will prevail).
 
 Also note, all filenames require full (or relative) path including hemi and filename, e.g.
 --outannot $SUBJECTS_DIR/subjectid/surf/lh.BA_exvivo.annot
-
-
-Original Author: Martin Reuter
-Date: Aug-24-2022
 """
 
 h_hemi = '"lh" or "rh" for reading labels'
@@ -145,7 +141,6 @@ def options_parse():
         )
 
     return options
-
 
 
 def map_multiple_labels(
@@ -271,7 +266,6 @@ def read_multiple_labels(
         all_labels.append(ll)
         all_values.append(vv)
     return all_labels, all_values
-
 
 
 def build_annot(all_labels: npt.ArrayLike, all_values: npt.ArrayLike,

@@ -60,12 +60,6 @@ Dependencies:
 
     Nibabel to read and write FreeSurfer surface meshes
     http://nipy.org/nibabel/
-
-
-Original Author: Martin Reuter
-Date: Jan-18-2016
-
-
 """
 
 h_input = "path to input surface"
@@ -125,7 +119,6 @@ def tria_spherical_project(
     -------
     triamesh
         Triangle Mesh spherically projected.
-
     """
     if not tria.is_closed():
         raise ValueError("Error: Can only project closed meshes!")
@@ -316,7 +309,6 @@ def spherically_project_surface(
         Path to output surface file.
     use_cholmod : bool, default=True
         Try to use the Cholesky decomposition from the cholmod.
-
     """
     surf = fs.read_geometry(insurf, read_metadata=True)
     projected = tria_spherical_project(TriaMesh(surf[0], surf[1]), flow_iter=3, use_cholmod=use_cholmod)

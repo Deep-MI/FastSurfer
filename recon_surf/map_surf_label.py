@@ -43,9 +43,6 @@ Description:
 Computes correspondence between source and target spheres and maps src-label to target.
 Target surf (usually the white) coordinates at label vertices and SID is only written
 to output label and not used for any computations. 
-
-Original Author: Martin Reuter
-Date: Aug-24-2022
 """
 
 

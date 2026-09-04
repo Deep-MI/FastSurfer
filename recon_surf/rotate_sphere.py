@@ -56,10 +56,6 @@ computed (and mapped back to the sphere of radius 100, FS format). The point pai
 are then aligned by finding the rotation that minimizes their SSD. The output file
 will contain the angles (alpha,beta,gama) as expected by mris_register for rotation
 initialization.
-
-
-Original Author: Martin Reuter
-Date: Jun-8-2022
 """
 
 # In the future, maybe add a way to specify what labels to align as a list or

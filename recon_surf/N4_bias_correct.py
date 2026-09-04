@@ -80,12 +80,6 @@ If a brain mask (--mask) is passed, the center is placed at the centroid of the
 brainmask. 
 
 One of --mask, --tal, --aseg must be passed to achieve rescaling.
-
-Original Author: Martin Reuter
-Date: Mar-18-2022
-
-Modified: David Kügler
-Date: Feb-27-2024
 """
 
 HELP_VERBOSITY = "Logging verbosity: 0 (none), 1 (normal), 2 (debug)"

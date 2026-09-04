@@ -48,9 +48,6 @@ brun_fastsurfer.sh [...] [--batch "<i>/<n>"] [--parallel <N>|max] [--parallel_se
     [--run_fastsurfer <script to run fastsurfer>] [--statusfile <filename>] [--debug] [--help]
     [<additional run_fastsurfer.sh options>]
 
-Author:   David Kügler, david.kuegler@dzne.de
-Date:     Nov 6, 2023
-Version:  1.0
 License:  Apache License, Version 2.0
 
 Documentation of Options:

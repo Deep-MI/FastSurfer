@@ -40,11 +40,6 @@ Dependencies:
 
     Nibabel to read and write FreeSurfer surface meshes
     http://nipy.org/nibabel/
-
-
-Original Author: Martin Reuter
-Date: Jul-24-2018
-
 """
 
 h_inaparc = "path to input aparc"
