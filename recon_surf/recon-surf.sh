@@ -28,7 +28,7 @@ fsaparc="false"       # if true: run FreeSurfer aparc (and cortical ribbon); if 
 fssurfreg="true"      # run FS surface registration to fsaverage, if false omit this step
 python="python3 -s"   # python version
 ParallelFlag="false"  # "true", if --parallel passed
-threads="1"           # number of threads to use for running FastSurfer
+threads="2"           # total thread budget; 2 runs the two hemispheres in parallel, 1 thread each
 edits="false"         # flag for inclusion/exclusion of edits
                       #   (also ability to run on top of existing recon-surf.sh output)
 atlas3T="false"       # flag to use/do not use the 3t atlas for talairach registration/etiv
@@ -105,8 +105,16 @@ FLAGS:
                             <hemi>.aparc.DKTatlas.mapped.stats
   --3T                    Use the 3T atlas for talairach registration (gives better
                             eTIV estimates for 3T MR images, default: 1.5T atlas).
-  --threads <int>         Set openMP and ITK threads to <int>, parallelize
-                            hemispheres, if threads >= 2.
+  --threads <int>         Total thread budget, default 2. With 2 or more the two
+                            hemispheres run at the same time and split it, so 2
+                            gives one thread each and 8 gives four each. Use 1 to
+                            keep every binary single threaded, which is what to
+                            use for reproducible results.
+  --parallel              Run the hemispheres at the same time with one thread
+                            each, even at --threads 1. That keeps every binary
+                            single threaded, and so reproducible, while still
+                            using two cores. No effect at --threads 2 or more,
+                            where the hemispheres already run at the same time.
   --py <python_cmd>       Command for python, default ${python}
   --fs_license <license>  Path to FreeSurfer license key file. Register at
                             https://surfer.nmr.mgh.harvard.edu/registration.html
@@ -190,7 +198,7 @@ case $key in
   --fsaparc) fsaparc="true" ;;
   --no_surfreg) fssurfreg="false" ;;
   --3t) atlas3T="true" ;;
-  --parallel) ParallelFlag="true" ; echo "WARNING: The --parallel flag is obsolete and will be removed in FastSurfer 3!" ;;
+  --parallel) ParallelFlag="true" ;;
   --threads) threads="$1" ; shift ;;
   --py) python="$1" ; shift ;;
   --fs_license)
@@ -316,9 +324,18 @@ then
   exit 1
 fi
 
-if [[ "$ParallelFlag" == "true" ]] ; then ParallelHemi="true" ; threads_hemi=$threads
-elif [[ "$threads" -gt 1 ]]; then ParallelHemi="true" ; threads_hemi=$((threads / 2))
-else ParallelHemi="false" ; threads_hemi="$threads"
+# --threads is a total budget: above one thread the two hemispheres run at the same time and split
+# it, so --threads 2 means two hemispheres with one thread each. --parallel only forces that split,
+# for --threads 1, where the budget would otherwise say to run them one after the other; it does not
+# change what --threads means. Keep this block identical in recon-surfreg.sh.
+if [[ "$threads" -gt 1 ]] || [[ "$ParallelFlag" == "true" ]]
+then
+  ParallelHemi="true"
+  threads_hemi=$((threads / 2))
+  if [[ "$threads_hemi" -lt 1 ]] ; then threads_hemi=1 ; fi
+else
+  ParallelHemi="false"
+  threads_hemi="$threads"
 fi
 
 # set threads for openMP and itk
