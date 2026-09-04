@@ -25,7 +25,7 @@ on:
   workflow_dispatch:
     inputs:
       docker-image:
-        description: 'Which docker image should be used to run this test (build-cached => build from git, also pr/<#no>)'
+        description: 'Which docker image should be used to run this test (build-cached => build from git, also pr/<#no> for a pull request of this repository, not of a fork)'
         default: build-cached
         type: string
       freesurfer-build-image:
@@ -104,8 +104,9 @@ jobs:
               # the FreeSurfer license would both arrive empty and the run would fail after building
               echo "Pull request ${{ github.event.number }} comes from the fork"
               echo "  '${{ github.event.pull_request.head.repo.full_name }}', which does not receive the"
-              echo "  secrets this workflow needs. Start the workflow by hand instead and pass"
-              echo "  docker-image=pr/${{ github.event.number }} to test this pull request."
+              echo "  secrets this workflow needs, and must not: its code runs in a job that holds the"
+              echo "  FreeSurfer license. Merge the branch into a branch of this repository and label"
+              echo "  a pull request from there instead."
             else
               continue_tests="true"
             fi
@@ -124,12 +125,22 @@ jobs:
               fi
               # the head commit rather than refs/pull/<no>/head, which moves: the build job and the
               # test jobs resolve the ref separately, so a push during the build would leave the
-              # tests running a different commit than the image was built from. WARNING: this builds
-              # and runs the code of that pull request, which for a fork is code from outside this
-              # repository, in a job that has the secrets. Only dispatch it for a diff you have read.
-              if ! checkout_ref="$(gh api "${gh_header[@]}" "/repos/${{ github.repository }}/pulls/$pr_number" --jq ".head.sha")"
+              # tests running a different commit than the image was built from
+              if ! pr_head="$(gh api "${gh_header[@]}" "/repos/${{ github.repository }}/pulls/$pr_number" \
+                              --jq '[.head.sha, (.head.repo.full_name // "")] | @tsv')"
               then
-                echo "Could not resolve the head commit of pull request $pr_number."
+                echo "Could not resolve pull request $pr_number."
+                exit 1
+              fi
+              IFS=$'\t' read -r checkout_ref pr_repo <<< "$pr_head"
+              # the code of the pull request is built and run in a job that holds the FreeSurfer
+              # license, so it has to come from this repository. There is no gate that would make a
+              # fork safe here: whoever approves it, the fork's code still runs with the license.
+              if [[ "$pr_repo" != "${{ github.repository }}" ]]
+              then
+                echo "Pull request $pr_number comes from '$pr_repo' rather than this repository, so"
+                echo "  running it would expose the FreeSurfer license to code we do not control."
+                echo "  Merge the branch into a branch of this repository and test that instead."
                 exit 1
               fi
               docker_image="build-cached"

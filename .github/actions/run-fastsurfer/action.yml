@@ -58,8 +58,8 @@ runs:
         # curl without --fail would store the error page as the T1 and fail much later
         for var in IMAGE_HREF LICENSE ; do
           if [[ -z "${!var}" ]] ; then
-            echo "$var is empty. If this is a pull_request run on a fork, it cannot have the"
-            echo "  secrets; start the quicktest workflow by hand with docker-image=pr/<no> instead."
+            echo "$var is empty. A pull_request run on a fork does not receive the secrets, by"
+            echo "  design; merge the branch into a branch of this repository and test that instead."
             exit 1
           fi
         done
