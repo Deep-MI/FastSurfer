@@ -3,8 +3,13 @@ name: quicktest
 # File: quicktest.yaml
 # Functionality: This workflow runs FastSurfer on MRI data and runs pytest to check if the results are acceptable. It
 #  also checks if the FastSurfer environment and output already exist, and if not, it creates them.
-# Usage: This workflow is triggered on a pull request to the dev and main branch. It can also be triggered manually
-#  with workflow-dispatch.
+# Usage: There are two ways to run this, both restricted to this repository. Attach the label
+#  "quicktest" to a pull request, which tests the merge of it into its base and reports on the pull
+#  request. Or run it from the Actions tab (workflow-dispatch) on any branch, which tests that
+#  branch as it stands and reports on the run; that is also how reference data is produced. A pull
+#  request from a fork is skipped: GitHub gives it no secrets, and must not, because the code under
+#  test runs in the same job as the FreeSurfer license. Merge such a branch into a branch of this
+#  repository and use either way above.
 # Expected Secrets:
 #  - QUICKTEST_IMAGE_HREF_08mm: URL to a sample 0.8mm image
 #  - QUICKTEST_IMAGE_HREF_1mm: URL to a sample 1mm image
@@ -56,10 +61,14 @@ jobs:
     name: 'Check and build the current docker image'
     runs-on: ubuntu-latest
     timeout-minutes: 180
-    # a labeled event fires for every label, because GitHub offers no way to filter by label name
-    # in the trigger. Deciding here rather than in a step keeps a runner from starting at all for
-    # the labels dependabot attaches to its own pull requests.
-    if: github.event_name != 'pull_request' || github.event.label.name == 'quicktest'
+    # the first clause admits a workflow-dispatch, the rest a pull request. A labeled event fires for
+    # every label, because GitHub cannot filter by label name in the trigger, so deciding here rather
+    # than in a step keeps a runner from starting for the labels dependabot attaches, and makes a run
+    # that does not apply, such as one on a fork, come out as skipped rather than passed or failed.
+    if: >-
+      github.event_name != 'pull_request'
+      || (github.event.label.name == 'quicktest'
+          && github.event.pull_request.head.repo.full_name == github.repository)
     outputs:
       continue: ${{ steps.parse.outputs.CONTINUE }}
       docker-image: ${{ steps.parse.outputs.DOCKER_IMAGE }}
@@ -91,20 +100,23 @@ jobs:
           gh_header=(-H "Accept: application/vnd.github+json"
                      -H "X-GitHub-Api-Version: 2022-11-28")
           # collected in variables and written once at the end, so that a later decision cannot
-          # leave two values of the same key in the output file
+          # leave two values of the same key in the output file. A refusal exits non-zero rather
+          # than falling through: reaching the end with the tests skipped would report this workflow
+          # as passed without it having tested anything.
           continue_tests="false"
           docker_image="build-cached"
           if [[ "${{ github.event_name }}" == "pull_request" ]]
           then
             if [[ "${{ github.event.pull_request.head.repo.full_name }}" != "${{ github.repository }}" ]]
             then
-              # GitHub withholds the secrets from a pull_request run on a fork, so the image url and
-              # the FreeSurfer license would both arrive empty and the run would fail after building
-              echo "Pull request ${{ github.event.number }} comes from the fork"
-              echo "  '${{ github.event.pull_request.head.repo.full_name }}', which does not receive the"
-              echo "  secrets this workflow needs, and must not: its code runs in a job that holds the"
-              echo "  FreeSurfer license. Merge the branch into a branch of this repository and label"
-              echo "  a pull request from there instead."
+              # not reachable: the condition on this job skips a fork, so that such a run reads as
+              # skipped. Kept as a guard, because the license is in the job this decides for, and a
+              # condition that stops holding should be loud rather than silent.
+              echo "Refusing to run: pull request ${{ github.event.number }} comes from"
+              echo "  '${{ github.event.pull_request.head.repo.full_name }}', so its code would run in a"
+              echo "  job that holds the FreeSurfer license. The condition on this job should have"
+              echo "  skipped the run, which means that condition no longer holds."
+              exit 1
             else
               continue_tests="true"
             fi
@@ -117,12 +129,15 @@ jobs:
             echo "This workflow is not defined for the event ${{ github.event_name }}!"
             exit 1
           fi
-          # quoted, because a bot login such as dependabot[bot] is a glob pattern unquoted
+          # a failure rather than a skip, unlike the cases the job condition covers: whether the
+          # sender is a collaborator takes an api call, which a job condition cannot make, so the job
+          # is already running by the time we know. Being refused is an error, not a run that does
+          # not apply. Quoted, because a bot login such as dependabot[bot] is a glob unquoted.
           if [[ "$continue_tests" == "true" ]] \
              && ! gh api "${gh_header[@]}" "/repos/${{ github.repository }}/collaborators/${{ github.event.sender.login }}"
           then
             echo "Only collaborators explicitly listed as collaborators can trigger this workflow!"
-            continue_tests="false"
+            exit 1
           fi
           {
             echo "CONTINUE=$continue_tests"
