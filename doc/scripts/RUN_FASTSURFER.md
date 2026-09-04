@@ -54,8 +54,9 @@ Optional arguments
 * `--no_surfreg`: Skip the surface registration (which creates `sphere.reg`) to safe time. Note, `sphere.reg` will be needed for any cross-subject statistical analysis of thickness maps, so do not use this option if you plan to perform cross-subject analysis.
 
 ### Some other flags
-* `--threads`, `--threads_seg` and `--threads_surf`: Target number of threads for all modules, segmentation, and surface pipeline. The default (`1`) tells FastSurfer to only use one core. Note, that the default value may change in the future for better performance on multi-core architectures. If threads for surface reconstruction is greater than 1, both hemispheres are processed in parallel with half the threads allocated to each hemisphere.
-  Note that the topology correction step is always run single-threaded, whatever you request here, because its result depends on the processing order (see [Reproducibility](#reproducibility)). On macOS this costs nothing, and on Linux it adds a few minutes.
+* `--threads`, `--threads_seg` and `--threads_surf`: Target number of threads for all modules, segmentation, and surface pipeline. Defaults: 1 for segmentation, 2 for surfaces.
+  For surfaces the value is a *total* budget: with 2 or more the two hemispheres run at the same time and split it, so the default of 2 gives one thread each and 8 gives four each. `--parallel` runs the hemispheres at the same time with one thread each even at `--threads 1`, which keeps every binary single threaded, and so reproducible, while still using two cores; above 1 it has no effect.
+  The topology correction always runs single-threaded regardless, because its result depends on the processing order (see [Reproducibility](#reproducibility)).
 * `--vox_size`: Forces processing at a specific voxel size. If a number between 0.7 and 1 is specified (below is experimental) the T1w image is conformed to that isotropic voxel size and processed.
   If "min" is specified (default), the voxel size is read from the size of the minimal voxel size (smallest per-direction voxel size) in the T1w image:
   If the minimal voxel size is bigger than 0.98mm, the image is conformed to 1mm isotropic.
@@ -70,12 +71,13 @@ Reproducibility
 Re-running the same input on the same machine, with the same flags and the same FastSurfer and
 FreeSurfer versions, is expected to give the same result.
 
-**If you need to be certain, use `--threads 1`.** Above one thread per process the order in which
-floating-point values are summed is not fixed, so we cannot promise that two runs match, even with
-the same `--threads` value. We have seen a case where two runs at the same setting produced
-different surfaces. FastSurfer already forces the topology correction, the step where such a
-difference stops being a rounding error, to run single-threaded, but that covers the step we know
-about rather than every step.
+**If you need to be certain, use `--threads 1`**, or `--threads 1 --parallel` to keep every binary
+single threaded while still processing the two hemispheres at the same time. Above one thread per
+process the order in which floating-point values are summed is not fixed, so we cannot promise that
+two runs match, even with the same `--threads` value. We have seen a case where two runs at the same
+setting produced different surfaces. FastSurfer already forces the topology correction, the step
+where such a difference stops being a rounding error, to run single-threaded, but that covers the
+step we know about rather than every step.
 
 Results are also not guaranteed to be identical across machines, CPUs or FreeSurfer versions. For a
 study, process everything with one container image, see
@@ -83,6 +85,15 @@ study, process everything with one container image, see
 
 On macOS the FreeSurfer binaries are built without OpenMP, so all FreeSurfer steps run
 single-threaded there whatever `--threads` says.
+
+To compare two runs, use `tools/compare_subjects.py`, which compares the voxels, surface vertices,
+statistics and labels rather than the raw bytes. `diff` and checksums are not useful here, because
+the file headers record timestamps, the command line and the FreeSurfer version, so two runs with
+identical measurements still differ byte for byte.
+
+```bash
+python tools/compare_subjects.py $SUBJECTS_DIR/subject_a $SUBJECTS_DIR/subject_b
+```
 
 Full list of flags
 ------------------
