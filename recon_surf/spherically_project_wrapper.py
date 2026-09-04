@@ -59,11 +59,14 @@ if __name__ == "__main__":
 
     # The spectral projection is sensitive to tiny threaded BLAS/eigensolver
     # differences, and those can be amplified by later topology correction.
+    # ITK is in the list for the fallback rather than for the projection: recon-surf.sh exports
+    # ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS per hemisphere, and the child would inherit that.
     for var in (
         "OMP_NUM_THREADS",
         "OPENBLAS_NUM_THREADS",
         "MKL_NUM_THREADS",
         "VECLIB_MAXIMUM_THREADS",
+        "ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS",
     ):
         environ[var] = "1"
 
