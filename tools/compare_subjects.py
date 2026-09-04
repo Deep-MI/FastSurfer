@@ -110,7 +110,10 @@ def compare_surfaces(a: Path, b: Path) -> str:
     geometry = _geometry_notes("volume", ga, gb)
     if geometry:
         notes.append(geometry)
-    if not np.array_equal(fa, fb):
+    if fa.shape != fb.shape:
+        # counted rather than compared elementwise, which numpy refuses across shapes
+        notes.append(f"FACE COUNT {fa.shape[0]} vs {fb.shape[0]}")
+    elif not np.array_equal(fa, fb):
         notes.append(f"{int((fa != fb).any(axis=1).sum())} faces differ")
     if not np.array_equal(va, vb):
         diff = np.abs(va - vb)
@@ -378,8 +381,8 @@ def main() -> int:
     for entry in only_one_side:
         print(f"  ONLY  {entry}")
     print(f"\n{compared} files compared, {len(differing)} differ, {len(only_one_side)} on one side only")
-    if compared == 0:
-        # not "identical": there was nothing to compare, so say so rather than exiting 0
+    if compared == 0 and not only_one_side:
+        # nothing was read at all, which is a bad pair of paths rather than a verdict on them
         print("ERROR: no comparable files found, are these subject directories?", file=sys.stderr)
         return 2
     return 1 if differing or only_one_side else 0
