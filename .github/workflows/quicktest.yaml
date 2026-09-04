@@ -13,10 +13,10 @@ name: quicktest
 #  - QUICKTEST_LICENSE: content of a FreeSurfer license file
 
 concurrency:
-  # maybe the group here should actually not depend on the ref (only number would mean there are
-  # not concurrent runs of the same pr) -- but then we should probably add the branch name (for
-  # manually triggered workflows)
-  group: ${{ github.workflow }}-${{ github.event.number }}-${{ github.event.ref }}
+  # the pull request number, or the dispatched branch when there is none. github.event.ref used to
+  # be part of this, but the pull_request payload has no ref, so every run of a pull request shared
+  # one group whether or not that was intended.
+  group: ${{ github.workflow }}-${{ github.event.number || github.ref }}
   cancel-in-progress: true
 
 on:
@@ -56,9 +56,14 @@ jobs:
     name: 'Check and build the current docker image'
     runs-on: ubuntu-latest
     timeout-minutes: 180
+    # a labeled event fires for every label, because GitHub offers no way to filter by label name
+    # in the trigger. Deciding here rather than in a step keeps a runner from starting at all for
+    # the labels dependabot attaches to its own pull requests.
+    if: github.event_name != 'pull_request' || github.event.label.name == 'quicktest'
     outputs:
       continue: ${{ steps.parse.outputs.CONTINUE }}
       docker-image: ${{ steps.parse.outputs.DOCKER_IMAGE }}
+      checkout-ref: ${{ steps.parse.outputs.CHECKOUT_REF }}
       extra-args: ${{ steps.parse.outputs.EXTRA_ARGS }}
       fs-build-image: ${{ steps.parse-version.outputs.FS_BUILD_IMAGE }}
       fs-version: ${{ steps.parse-version.outputs.FS_VERSION }}
@@ -86,40 +91,53 @@ jobs:
           
           gh_header=(-H "Accept: application/vnd.github+json"
                      -H "X-GitHub-Api-Version: 2022-11-28")
+          # collected in variables and written once at the end, so that a later decision cannot
+          # leave two values of the same key in the output file
+          continue_tests="false"
+          docker_image="build-cached"
+          checkout_ref=""
           if [[ "${{ github.event_name }}" == "pull_request" ]]
           then
-            if [[ "${{ github.event.action }}" != "labeled" ]] && [[ "${{ github.event.action }}" != "unlabeled" ]]
+            if [[ "${{ github.event.pull_request.head.repo.full_name }}" != "${{ github.repository }}" ]]
             then
-              # not a label-related action, should not be triggered
-              echo "The Workflow '${{ github.workflow }}' was triggered by 'pull_request' of type"
-              echo "  '${{ github.event.action }}' but should only be triggered by 'labeled' or 'unlabeled' actions."
-              echo "CONTINUE=false" > $GITHUB_OUTPUT
-            elif [[ "${{ github.event.label.name }}" == "quicktest" ]]
-            then
-              echo "CONTINUE=true" > $GITHUB_OUTPUT
+              # GitHub withholds the secrets from a pull_request run on a fork, so the image url and
+              # the FreeSurfer license would both arrive empty and the run would fail after building
+              echo "Pull request ${{ github.event.number }} comes from the fork"
+              echo "  '${{ github.event.pull_request.head.repo.full_name }}', which does not receive the"
+              echo "  secrets this workflow needs. Start the workflow by hand instead and pass"
+              echo "  docker-image=pr/${{ github.event.number }} to test this pull request."
             else
-              echo "This is a different label that was attached."
-              echo "CONTINUE=false" > $GITHUB_OUTPUT
+              continue_tests="true"
             fi
-            echo "DOCKER_IMAGE=build-cached" >> $GITHUB_OUTPUT
           elif [[ "${{ github.event_name }}" == "workflow_dispatch" ]]
           then
             # the inputs context is only useful/set in the workflow dispatch event case
-            if [[ "${{ inputs.docker-image }}" == "" ]] ; then
-              echo "DOCKER_IMAGE=build-cached" > $GITHUB_OUTPUT
-            else
-              echo "DOCKER_IMAGE=${{ inputs.docker-image }}" > $GITHUB_OUTPUT
+            continue_tests="true"
+            if [[ -n "${{ inputs.docker-image }}" ]] ; then docker_image="${{ inputs.docker-image }}" ; fi
+            if [[ "$docker_image" == pr/* ]]
+            then
+              # refs/pull/<no>/head exists in this repository even when the pull request comes from
+              # a fork, which is what makes this the way to test one. The image is then built from
+              # that ref here, so what the test job consumes is this build and not a registry tag.
+              checkout_ref="refs/pull/${docker_image#pr/}/head"
+              docker_image="build-cached"
             fi
-            echo "CONTINUE=true" >> $GITHUB_OUTPUT
           else #  this event has no specific rules (invalid)
             echo "This workflow is not defined for the event ${{ github.event_name }}!"
             exit 1
           fi
-          if ! gh api "${gh_header[@]}" /repos/${{ github.repository }}/collaborators/${{ github.event.sender.login }}
+          # quoted, because a bot login such as dependabot[bot] is a glob pattern unquoted
+          if [[ "$continue_tests" == "true" ]] \
+             && ! gh api "${gh_header[@]}" "/repos/${{ github.repository }}/collaborators/${{ github.event.sender.login }}"
           then
             echo "Only collaborators explicitly listed as collaborators can trigger this workflow!"
-            echo "CONTINUE=false" >> $GITHUB_OUTPUT
+            continue_tests="false"
           fi
+          {
+            echo "CONTINUE=$continue_tests"
+            echo "DOCKER_IMAGE=$docker_image"
+            echo "CHECKOUT_REF=$checkout_ref"
+          } >> "$GITHUB_OUTPUT"
           # later, we might want to extract additional run options from the pr text or issue comments
           # these should just be added here 
           # https://api.github.com/repos/${{ github.repository }}/issues/${{ github.number }}
@@ -127,16 +145,17 @@ jobs:
           # this may also need adaptations in the test script at the bottom
           echo "EXTRA_ARGS=" >> $GITHUB_OUTPUT
       - name: Checkout repository
-        # DOCKER_IMAGE is build-cached => we want to build, check this repository out to build the docker image
+        # DOCKER_IMAGE is build-cached => we want to build, check out what we build from. CHECKOUT_REF
+        # is empty except for docker-image=pr/<no>, and empty is checkout's own default.
         if: steps.parse.outputs.CONTINUE == 'true' && steps.parse.outputs.DOCKER_IMAGE == 'build-cached'
         uses: actions/checkout@v7
-      - name: Checkout repository
-        # DOCKER_IMAGE starts with pr/*** => we want to build, check the PR out to build the docker image
-        if: steps.parse.outputs.CONTINUE == 'true' && startsWith(steps.parse.outputs.DOCKER_IMAGE, 'pr/')
-        uses: actions/checkout@v7
         with:
-          ref: ${{ steps.parse.outputs.DOCKER_IMAGE }}
+          ref: ${{ steps.parse.outputs.CHECKOUT_REF }}
       - name: Setup uv and Python (shipped default)
+        # the same condition as the build steps below: without it this step, and in particular the
+        # cache it saves in its post step, ran even when the workflow had decided to do nothing,
+        # which failed the job for every label dependabot attaches to a pull request
+        if: steps.parse.outputs.CONTINUE == 'true' && steps.parse.outputs.DOCKER_IMAGE == 'build-cached'
         uses: astral-sh/setup-uv@v7
         with:
           # keep in sync with tool.python.version in pyproject.toml. It cannot be read from there:
@@ -147,7 +166,7 @@ jobs:
           python-version: '3.12'
       - name: Get the FreeSurfer version
         # we want to build the docker image, get what we want to do for freesurfer (read fslink from install_pruned.sh,
-        if: steps.parse.outputs.CONTINUE == 'true' && (steps.parse.outputs.DOCKER_IMAGE == 'build-cached' || startsWith(steps.parse.outputs.DOCKER_IMAGE, 'pr/'))
+        if: steps.parse.outputs.CONTINUE == 'true' && steps.parse.outputs.DOCKER_IMAGE == 'build-cached'
         shell: bash
         id: parse-version
         run: |
@@ -197,6 +216,10 @@ jobs:
     steps:
       - name: Check out the repository that is to be tested
         uses: actions/checkout@v7
+        with:
+          # the same ref the image was built from, so that the tests match the image. Empty except
+          # for docker-image=pr/<no>, where the default would be this workflow's branch instead.
+          ref: ${{ needs.build-docker.outputs.checkout-ref }}
       - name: Run FastSurfer for ${{ matrix.subject-id }} with the previously created docker container
         uses: Deep-MI/FastSurfer/.github/actions/run-fastsurfer@dev
         with:
@@ -214,6 +237,7 @@ jobs:
           subjects-dir: ${{ env.SUBJECTS_DIR }}
           reference-dir: ${{ env.REFERENCE_DIR }}
           case-href: ${{ secrets[matrix.case-key] }}
+          checkout-ref: ${{ needs.build-docker.outputs.checkout-ref }}
           junit-file: /tmp/fastsurfer-quicktest-${{ matrix.subject-id }}.junit.xml
   annotation:
     name: Annotate test results as checks
