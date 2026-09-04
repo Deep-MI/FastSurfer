@@ -75,8 +75,10 @@ TRANSFORM_TOLERANCE_MM = 1e-9
 
 def _geometry_notes(label: str, ga: dict, gb: dict) -> str:
     """Name the volume geometry fields that differ, or return an empty string."""
-    if not ga or not gb:
+    if not ga and not gb:
         return ""
+    if not ga or not gb:
+        return f"{label} geometry is recorded on one side only"
     differing = [
         field for field in GEOMETRY_FIELDS if not np.array_equal(np.asarray(ga.get(field)), np.asarray(gb.get(field)))
     ]
@@ -225,12 +227,18 @@ def compare_stats(a: Path, b: Path) -> str:
     notes = []
     if va.keys() != vb.keys():
         notes.append(f"{len(set(va) ^ set(vb))} entries only on one side")
-    worst, differing = 0.0, 0
+    worst, differing, ragged = 0.0, 0, 0
     for key in set(va) & set(vb):
-        for x, y in zip(va[key], vb[key], strict=False):
+        # a differing column count means one side gained or lost a value, which zip would drop
+        if len(va[key]) != len(vb[key]):
+            ragged += 1
+            continue
+        for x, y in zip(va[key], vb[key], strict=True):
             if x != y:
                 differing += 1
                 worst = max(worst, abs(x - y) / max(abs(x), 1e-12))
+    if ragged:
+        notes.append(f"{ragged} entries have a different number of values")
     if differing:
         notes.append(f"{differing} values differ, worst relative {worst * 100:.4f}%")
     return "; ".join(notes)
@@ -289,7 +297,12 @@ GROUPS = (
 
 def find_subject(root: Path, subject: "str | None") -> Path:
     """The subject directory inside root, or root itself if it is already one."""
+    if not root.is_dir():
+        sys.exit(f"ERROR: {root} is not a directory.")
     if subject:
+        # checked, so that a typo cannot end as "0 files compared" and an exit code of 0
+        if not (root / subject / "mri").is_dir():
+            sys.exit(f"ERROR: {root / subject} is not a subject directory, it has no mri.")
         return root / subject
     if (root / "mri").is_dir():
         return root
@@ -341,8 +354,7 @@ def main() -> int:
                 continue
             file_a, file_b = a_dir / group / name, b_dir / group / name
             if not file_b.exists():
-                only_one_side.append(f"{group}/{name} (only in A)")
-                continue
+                continue  # reported by the one-sided pass below
             try:
                 note = compare(file_a, file_b)
             except Exception as error:  # noqa: BLE001  report, do not abort
@@ -353,17 +365,23 @@ def main() -> int:
             elif args.all:
                 print(f"  same  {group}/{name}")
 
+    # every name present in one directory and not in the other, whether or not there is a
+    # comparison for its format: a missing output matters even where the content cannot be read
     for group, _, _ in GROUPS:
-        if not (b_dir / group).is_dir():
-            continue
-        extra = {p.name for p in (b_dir / group).glob("*")} - {p.name for p in (a_dir / group).glob("*")}
-        only_one_side.extend(f"{group}/{name} (only in B)" for name in sorted(extra))
+        in_a = {p.name for p in (a_dir / group).glob("*")} if (a_dir / group).is_dir() else set()
+        in_b = {p.name for p in (b_dir / group).glob("*")} if (b_dir / group).is_dir() else set()
+        only_one_side.extend(f"{group}/{name} (only in A)" for name in sorted(in_a - in_b))
+        only_one_side.extend(f"{group}/{name} (only in B)" for name in sorted(in_b - in_a))
 
     for entry in differing:
         print(f"  DIFF  {entry}")
     for entry in only_one_side:
         print(f"  ONLY  {entry}")
     print(f"\n{compared} files compared, {len(differing)} differ, {len(only_one_side)} on one side only")
+    if compared == 0:
+        # not "identical": there was nothing to compare, so say so rather than exiting 0
+        print("ERROR: no comparable files found, are these subject directories?", file=sys.stderr)
+        return 2
     return 1 if differing or only_one_side else 0
 
 
