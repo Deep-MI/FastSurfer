@@ -68,33 +68,23 @@ Optional arguments
 
 Reproducibility
 ---------------
-Re-running the same input on the same machine, with the same flags and the same FastSurfer and
-FreeSurfer versions, is expected to give the same result, but how firmly depends on the threads.
+Re-running the same input on the same machine, with the same flags, the same thread count and the
+same FastSurfer and FreeSurfer versions, is expected to give the same result: two runs at the
+default of two threads came out identical in every file we compare.
 
-**If you need to be certain, use `--threads 1`**, or `--threads 1 --parallel` to keep every binary
-single threaded while still processing the two hemispheres at the same time. Above one thread per
-process the order in which floating-point values are summed is not fixed, so we cannot promise that
-two runs match, even with the same `--threads` value: we have seen two runs at `--threads 4` on one
-machine produce different surfaces on one hemisphere. FastSurfer forces the topology correction, the
-step where such a difference stops being a rounding error, to run single-threaded, but that covers
-the step we know about rather than every step.
+The only source of deviation we know of is the topology correction, and that now always runs
+single-threaded. Other steps have not been tested at every thread count, so if you need certainty,
+use `--threads 1`, or `--threads 1 --parallel` to keep every binary single threaded while still
+processing the two hemispheres at the same time.
 
-The default of `--threads 2` already gives every binary in the hemisphere loop one thread, and the
-pair of runs we tested at that setting came out identical. The steps before and after that loop
-still get two threads, so `--threads 1 --parallel` stays the stricter choice.
+Results are not guaranteed to be identical across machines, CPUs or FreeSurfer versions, so for a
+study process everything with one container image, see [Singularity](../overview/SINGULARITY.md).
+On macOS the FreeSurfer binaries are built without OpenMP and run single-threaded regardless.
 
-Results are also not guaranteed to be identical across machines, CPUs or FreeSurfer versions. For a
-study, process everything with one container image, see
-[Singularity](../overview/SINGULARITY.md).
-
-On macOS the FreeSurfer binaries are built without OpenMP, so all FreeSurfer steps run
-single-threaded there whatever `--threads` says.
-
-To compare two runs, use `tools/compare_subjects.py`, which compares the voxels, surface vertices,
-transforms, statistics and labels rather than the raw bytes, and reports how large each difference
-is. `diff` and checksums are not useful here, because the file headers record timestamps, the
-command line and the FreeSurfer version, so two runs with identical measurements still differ byte
-for byte.
+To compare two runs, use `tools/compare_subjects.py`: it compares voxels, vertices, transforms,
+statistics and labels rather than raw bytes, and reports how large each difference is. `diff` and
+checksums are no use here, because the headers record timestamps and the command line, so identical
+runs still differ byte for byte.
 
 ```bash
 python tools/compare_subjects.py $SUBJECTS_DIR/subject_a $SUBJECTS_DIR/subject_b
