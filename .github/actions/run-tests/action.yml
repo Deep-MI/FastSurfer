@@ -23,10 +23,6 @@ inputs:
     required: true
     type: string
     description: "The url to the reference file to download for comparison"
-  checkout-ref:
-    default: ""
-    type: string
-    description: "The ref to check the tests out from (default: the ref that triggered the run)"
   junit-file:
     default: /tmp/quicktest.junit.xml
     type: string
@@ -37,9 +33,9 @@ runs:
   steps:
     - uses: actions/checkout@v7
       with:
-        # otherwise this overwrites the checkout the calling job made and the tests come from the
-        # default branch, which for docker-image=pr/<no> is not the code the image was built from
-        ref: ${{ inputs.checkout-ref }}
+        # the commit, not the branch or the merge ref: this re-checks out on top of what the calling
+        # job already has, and both have to be the commit the image was built from
+        ref: ${{ github.sha }}
     - name: Setup uv and Python 3.10
       uses: astral-sh/setup-uv@v10.0.1
       with:

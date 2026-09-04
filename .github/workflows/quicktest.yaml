@@ -25,7 +25,7 @@ on:
   workflow_dispatch:
     inputs:
       docker-image:
-        description: 'Which docker image should be used to run this test (build-cached => build from git, also pr/<#no> for a pull request of this repository, not of a fork)'
+        description: 'Which docker image should be used to run this test (build-cached => build from the branch this runs on, or the name of an image to pull)'
         default: build-cached
         type: string
       freesurfer-build-image:
@@ -63,7 +63,6 @@ jobs:
     outputs:
       continue: ${{ steps.parse.outputs.CONTINUE }}
       docker-image: ${{ steps.parse.outputs.DOCKER_IMAGE }}
-      checkout-ref: ${{ steps.parse.outputs.CHECKOUT_REF }}
       extra-args: ${{ steps.parse.outputs.EXTRA_ARGS }}
       fs-build-image: ${{ steps.parse-version.outputs.FS_BUILD_IMAGE }}
       fs-version: ${{ steps.parse-version.outputs.FS_VERSION }}
@@ -95,7 +94,6 @@ jobs:
           # leave two values of the same key in the output file
           continue_tests="false"
           docker_image="build-cached"
-          checkout_ref=""
           if [[ "${{ github.event_name }}" == "pull_request" ]]
           then
             if [[ "${{ github.event.pull_request.head.repo.full_name }}" != "${{ github.repository }}" ]]
@@ -115,36 +113,6 @@ jobs:
             # the inputs context is only useful/set in the workflow dispatch event case
             continue_tests="true"
             if [[ -n "${{ inputs.docker-image }}" ]] ; then docker_image="${{ inputs.docker-image }}" ; fi
-            if [[ "$docker_image" == pr/* ]]
-            then
-              pr_number="${docker_image#pr/}"
-              if [[ ! "$pr_number" =~ ^[0-9]+$ ]]
-              then
-                echo "docker-image has to be pr/<number>, but is '$docker_image'."
-                exit 1
-              fi
-              # the head commit rather than refs/pull/<no>/head, which moves: the build job and the
-              # test jobs resolve the ref separately, so a push during the build would leave the
-              # tests running a different commit than the image was built from
-              if ! pr_head="$(gh api "${gh_header[@]}" "/repos/${{ github.repository }}/pulls/$pr_number" \
-                              --jq '[.head.sha, (.head.repo.full_name // "")] | @tsv')"
-              then
-                echo "Could not resolve pull request $pr_number."
-                exit 1
-              fi
-              IFS=$'\t' read -r checkout_ref pr_repo <<< "$pr_head"
-              # the code of the pull request is built and run in a job that holds the FreeSurfer
-              # license, so it has to come from this repository. There is no gate that would make a
-              # fork safe here: whoever approves it, the fork's code still runs with the license.
-              if [[ "$pr_repo" != "${{ github.repository }}" ]]
-              then
-                echo "Pull request $pr_number comes from '$pr_repo' rather than this repository, so"
-                echo "  running it would expose the FreeSurfer license to code we do not control."
-                echo "  Merge the branch into a branch of this repository and test that instead."
-                exit 1
-              fi
-              docker_image="build-cached"
-            fi
           else #  this event has no specific rules (invalid)
             echo "This workflow is not defined for the event ${{ github.event_name }}!"
             exit 1
@@ -159,7 +127,6 @@ jobs:
           {
             echo "CONTINUE=$continue_tests"
             echo "DOCKER_IMAGE=$docker_image"
-            echo "CHECKOUT_REF=$checkout_ref"
           } >> "$GITHUB_OUTPUT"
           # later, we might want to extract additional run options from the pr text or issue comments
           # these should just be added here 
@@ -168,12 +135,15 @@ jobs:
           # this may also need adaptations in the test script at the bottom
           echo "EXTRA_ARGS=" >> $GITHUB_OUTPUT
       - name: Checkout repository
-        # DOCKER_IMAGE is build-cached => we want to build, check out what we build from. CHECKOUT_REF
-        # is empty except for docker-image=pr/<no>, and empty is checkout's own default.
+        # DOCKER_IMAGE is build-cached => we want to build, check this repository out to build the
+        # docker image
         if: steps.parse.outputs.CONTINUE == 'true' && steps.parse.outputs.DOCKER_IMAGE == 'build-cached'
         uses: actions/checkout@v7
         with:
-          ref: ${{ steps.parse.outputs.CHECKOUT_REF }}
+          # the commit rather than the branch or the merge ref, both of which move: the build job
+          # and the test jobs check out separately, twenty minutes apart, so a push in between would
+          # otherwise leave the tests running a different commit than the image was built from
+          ref: ${{ github.sha }}
       - name: Setup uv and Python (shipped default)
         # the same condition as the build steps below: without it this step, and in particular the
         # cache it saves in its post step, ran even when the workflow had decided to do nothing,
@@ -240,9 +210,8 @@ jobs:
       - name: Check out the repository that is to be tested
         uses: actions/checkout@v7
         with:
-          # the same ref the image was built from, so that the tests match the image. Empty except
-          # for docker-image=pr/<no>, where the default would be this workflow's branch instead.
-          ref: ${{ needs.build-docker.outputs.checkout-ref }}
+          # the same commit the image was built from, see the build job
+          ref: ${{ github.sha }}
       - name: Run FastSurfer for ${{ matrix.subject-id }} with the previously created docker container
         uses: Deep-MI/FastSurfer/.github/actions/run-fastsurfer@dev
         with:
@@ -260,7 +229,6 @@ jobs:
           subjects-dir: ${{ env.SUBJECTS_DIR }}
           reference-dir: ${{ env.REFERENCE_DIR }}
           case-href: ${{ secrets[matrix.case-key] }}
-          checkout-ref: ${{ needs.build-docker.outputs.checkout-ref }}
           junit-file: /tmp/fastsurfer-quicktest-${{ matrix.subject-id }}.junit.xml
   annotation:
     name: Annotate test results as checks
