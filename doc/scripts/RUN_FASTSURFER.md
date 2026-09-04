@@ -69,15 +69,19 @@ Optional arguments
 Reproducibility
 ---------------
 Re-running the same input on the same machine, with the same flags and the same FastSurfer and
-FreeSurfer versions, is expected to give the same result.
+FreeSurfer versions, is expected to give the same result, but how firmly depends on the threads.
 
 **If you need to be certain, use `--threads 1`**, or `--threads 1 --parallel` to keep every binary
 single threaded while still processing the two hemispheres at the same time. Above one thread per
 process the order in which floating-point values are summed is not fixed, so we cannot promise that
-two runs match, even with the same `--threads` value. We have seen a case where two runs at the same
-setting produced different surfaces. FastSurfer already forces the topology correction, the step
-where such a difference stops being a rounding error, to run single-threaded, but that covers the
-step we know about rather than every step.
+two runs match, even with the same `--threads` value: we have seen two runs at `--threads 4` on one
+machine produce different surfaces on one hemisphere. FastSurfer forces the topology correction, the
+step where such a difference stops being a rounding error, to run single-threaded, but that covers
+the step we know about rather than every step.
+
+The default of `--threads 2` already gives every binary in the hemisphere loop one thread, and the
+pair of runs we tested at that setting came out identical. The steps before and after that loop
+still get two threads, so `--threads 1 --parallel` stays the stricter choice.
 
 Results are also not guaranteed to be identical across machines, CPUs or FreeSurfer versions. For a
 study, process everything with one container image, see
