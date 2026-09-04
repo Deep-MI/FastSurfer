@@ -1,7 +1,7 @@
 quicktest tests
 ===============
 
-This suite compares two runs of fastsurfer and is used as a online check for function in the [github quicktest workflow](/.github/workflows/quicktest.yaml).
+This suite compares two runs of fastsurfer and is used as a online check for function in the [github quicktest workflow](../../.github/workflows/quicktest.yaml).
 
 The `quicktest` suite requires
 - A python environment as defined by `fastsurfer[quicktest]`
@@ -46,7 +46,7 @@ turns that drift into test failures, which then hide any real regression.
 The inputs and the references are downloaded from urls kept in repository secrets
 (`QUICKTEST_IMAGE_HREF_*` and `QUICKTEST_TARGET_HREF_*`), because the data is too large for the
 repository. To refresh one, process the input with the released version and the flags from the
-matrix in [quicktest.yaml](/.github/workflows/quicktest.yaml), archive the subject folder, and update
+matrix in [quicktest.yaml](../../.github/workflows/quicktest.yaml), archive the subject folder, and update
 the url. The archive is unpacked into `REF_DIR`, so the subject folder has to sit at its top level
 under the name the workflow uses for the case.
 
