@@ -132,7 +132,7 @@ FLAGS:
   --t1  <T1_input>        T1 full head input (not bias corrected). Requires an
                             ABSOLUTE Path!
   --lesion_mask <mask_input>
-                          Lesion mask input for experimental lesion inpainting.
+                          Lesion mask input for lesion inpainting.
                             Requires an ABSOLUTE Path!
   --asegdkt_segfile <filename>
                           Name of the segmentation file, which includes the
@@ -668,7 +668,7 @@ if [[ -z "$conformed_name" ]] ; then conformed_name="$subject_dir/mri/orig.mgz";
 if [[ -z "$conformed_name_t2" ]] ; then conformed_name_t2="$subject_dir/mri/T2orig.mgz" ; fi
 if [[ -z "$norm_name" ]] ; then norm_name="$subject_dir/mri/orig_nu.mgz" ; fi
 if [[ -z "$norm_name_t2" ]] ; then norm_name_t2="$subject_dir/mri/T2_nu.mgz" ;  fi
-# These files are created by neurolit>=0.6.1 in FastSurfer mode:
+# These files are created by neurolit>=0.7.0 in FastSurfer mode:
 # - lit_inpainting_result: inpainted T1w image from lit-inpainting --fastsurfer_dir.
 # - lit_mask_output: processed lesion mask from lit-inpainting --fastsurfer_dir.
 # - lit_original_mask_output: original input lesion mask copied by lit-inpainting --fastsurfer_dir.
