@@ -67,31 +67,22 @@ Optional arguments
 
 Reproducibility
 ---------------
-Re-running the same input with the same FastSurfer and FreeSurfer versions, on the same machine and
-with the same flags, is expected to give the same result. Some limits to be aware of:
+Re-running the same input on the same machine, with the same flags and the same FastSurfer and
+FreeSurfer versions, is expected to give the same result.
 
-* **Do not assume results are identical across thread counts.** The FreeSurfer binaries parallelise
-  with OpenMP, and threaded floating-point reductions have no fixed summation order, so
-  `--threads 4` and `--threads 8` may differ. Constraining this in general would mean rebuilding
-  FreeSurfer, so we do not promise it. Use the same `--threads` value throughout a study if you
-  want to compare subjects processed at different times.
-* **Do not assume results are identical across machines or versions.** Different CPUs, BLAS builds
-  or FreeSurfer versions can change the last digits. For a study, process everything with one
-  container image; see [Singularity](../overview/SINGULARITY.md).
+**If you need to be certain, use `--threads 1`.** Above one thread per process the order in which
+floating-point values are summed is not fixed, so we cannot promise that two runs match, even with
+the same `--threads` value. We have seen a case where two runs at the same setting produced
+different surfaces. FastSurfer already forces the topology correction, the step where such a
+difference stops being a rounding error, to run single-threaded, but that covers the step we know
+about rather than every step.
 
-One step is known to turn a thread-count difference into a large one rather than a small one: the
-topology correction (`mris_fix_topology` and the rest of the FreeSurfer `-fix` stage). It repairs
-defects in an order-dependent way, and a different repair changes the vertex count of every surface
-derived from it. In one observed case, two runs of the same subject at `--threads 4` produced
-`lh.orig.premesh` with 133836 versus 133966 vertices, which propagated into a 0.5% difference in a
-subcortical volume. FastSurfer therefore runs that stage single-threaded whatever `--threads` says,
-which removes that particular source. Note this addresses the step we know about; it is not a
-guarantee that nothing else in the pipeline varies with the thread count.
+Results are also not guaranteed to be identical across machines, CPUs or FreeSurfer versions. For a
+study, process everything with one container image, see
+[Singularity](../overview/SINGULARITY.md).
 
-On macOS this costs nothing: the FreeSurfer binaries distributed for macOS (checked for 7.4.1 and
-8.0.0) are built without OpenMP, so FreeSurfer steps run single-threaded there whatever `--threads`
-says. That also means `--threads` mainly speeds up the segmentation modules on macOS, not the
-surface pipeline.
+On macOS the FreeSurfer binaries are built without OpenMP, so all FreeSurfer steps run
+single-threaded there whatever `--threads` says.
 
 Full list of flags
 ------------------

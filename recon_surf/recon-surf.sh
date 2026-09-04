@@ -593,7 +593,7 @@ fi
   echo " "
   echo "============ Creating brainmask from aseg and nu or T1 ============"
   echo " "
-} | tee -a $LF
+} | tee -a "$LF"
 
 # the difference between nu and orig_nu is the fact that nu has the talairach-registration header
 # create norm by masking nu (supports manedit-ed mask)
