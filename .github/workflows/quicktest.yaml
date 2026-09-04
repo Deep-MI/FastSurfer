@@ -116,10 +116,22 @@ jobs:
             if [[ -n "${{ inputs.docker-image }}" ]] ; then docker_image="${{ inputs.docker-image }}" ; fi
             if [[ "$docker_image" == pr/* ]]
             then
-              # refs/pull/<no>/head exists in this repository even when the pull request comes from
-              # a fork, which is what makes this the way to test one. The image is then built from
-              # that ref here, so what the test job consumes is this build and not a registry tag.
-              checkout_ref="refs/pull/${docker_image#pr/}/head"
+              pr_number="${docker_image#pr/}"
+              if [[ ! "$pr_number" =~ ^[0-9]+$ ]]
+              then
+                echo "docker-image has to be pr/<number>, but is '$docker_image'."
+                exit 1
+              fi
+              # the head commit rather than refs/pull/<no>/head, which moves: the build job and the
+              # test jobs resolve the ref separately, so a push during the build would leave the
+              # tests running a different commit than the image was built from. WARNING: this builds
+              # and runs the code of that pull request, which for a fork is code from outside this
+              # repository, in a job that has the secrets. Only dispatch it for a diff you have read.
+              if ! checkout_ref="$(gh api "${gh_header[@]}" "/repos/${{ github.repository }}/pulls/$pr_number" --jq ".head.sha")"
+              then
+                echo "Could not resolve the head commit of pull request $pr_number."
+                exit 1
+              fi
               docker_image="build-cached"
             fi
           else #  this event has no specific rules (invalid)
