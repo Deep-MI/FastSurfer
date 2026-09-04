@@ -87,9 +87,10 @@ On macOS the FreeSurfer binaries are built without OpenMP, so all FreeSurfer ste
 single-threaded there whatever `--threads` says.
 
 To compare two runs, use `tools/compare_subjects.py`, which compares the voxels, surface vertices,
-statistics and labels rather than the raw bytes. `diff` and checksums are not useful here, because
-the file headers record timestamps, the command line and the FreeSurfer version, so two runs with
-identical measurements still differ byte for byte.
+transforms, statistics and labels rather than the raw bytes, and reports how large each difference
+is. `diff` and checksums are not useful here, because the file headers record timestamps, the
+command line and the FreeSurfer version, so two runs with identical measurements still differ byte
+for byte.
 
 ```bash
 python tools/compare_subjects.py $SUBJECTS_DIR/subject_a $SUBJECTS_DIR/subject_b
