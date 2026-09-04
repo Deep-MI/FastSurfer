@@ -18,10 +18,12 @@ name: quicktest
 #  - QUICKTEST_LICENSE: content of a FreeSurfer license file
 
 concurrency:
-  # the pull request number, or the dispatched branch when there is none. github.event.ref used to
-  # be part of this, but the pull_request payload has no ref, so every run of a pull request shared
-  # one group whether or not that was intended.
-  group: ${{ github.workflow }}-${{ github.event.number || github.ref }}
+  # one group per pull request and label, or per branch for a dispatch. The label matters because
+  # the group is evaluated when the run is created, before the condition on the job below: with
+  # every label of a pull request in one group, attaching an unrelated label would cancel a
+  # quicktest that is already running. github.event.ref was part of this and does not exist on the
+  # pull_request payload.
+  group: ${{ github.workflow }}-${{ github.event.number || github.ref }}-${{ github.event.label.name || 'dispatch' }}
   cancel-in-progress: true
 
 on:
