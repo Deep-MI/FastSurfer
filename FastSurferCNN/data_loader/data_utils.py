@@ -237,6 +237,36 @@ def load_maybe_conform(
     return dst_file, img, data
 
 
+def fits_dtype(array: np.ndarray, dtype: npt.DTypeLike) -> bool:
+    """
+    Whether every value of `array` survives being stored as `dtype`.
+
+    Only integer targets can lose data here: rounding a float into an integer always loses the
+    fraction, and a floating-point target holds any integer we write.
+
+    Parameters
+    ----------
+    array : np.ndarray
+        The data to store.
+    dtype : npt.DTypeLike
+        The type to store it as.
+
+    Returns
+    -------
+    bool
+        False if storing `array` as `dtype` would round or clip a value.
+    """
+    dtype = np.dtype(dtype)
+    if not np.issubdtype(dtype, np.integer):
+        return True
+    if not np.issubdtype(array.dtype, np.integer):
+        return False
+    if np.can_cast(array.dtype, dtype):
+        return True
+    limits = np.iinfo(dtype)
+    return array.size == 0 or bool(limits.min <= array.min() and array.max() <= limits.max)
+
+
 def as_mgh_image(
         data: np.ndarray,
         affine: AffineMatrix4x4,
@@ -252,8 +282,10 @@ def as_mgh_image(
     which is what FreeSurfer keeps, and deriving it from `data` also gets it right when the header
     is inherited from a volume of a different shape.
 
-    Floating-point data is never stored as an integer type, whatever the header says, since that
-    would round it away. Pass `dtype` to `save_image` where a narrower type really is wanted.
+    The type is only ever widened, never narrowed past what the data holds: floating-point data is
+    not stored as an integer type, and neither is a value the header's type cannot represent, since
+    both lose data silently. Callers that really want a narrower type, because they know the data
+    fits it, set it on the returned image, as `reduce_to_aseg` does for the uchar aseg files.
 
     Parameters
     ----------
@@ -276,11 +308,17 @@ def as_mgh_image(
     zooms = img.header.get_zooms()
     img.header["fov"] = max(d * z for d, z in zip(img.shape[:3], zooms[:3], strict=True))
 
-    data_dtype = array.dtype if header is None else header.get_data_dtype()
-    # an integer type would round floating-point data away, as it did to the CC soft labels, which
-    # are probabilities written with the header of the conformed image
+    data_dtype = np.dtype(array.dtype if header is None else header.get_data_dtype())
     if np.issubdtype(array.dtype, np.floating) and np.issubdtype(data_dtype, np.integer):
+        # an integer type would round floating-point data away, as it did to the CC soft labels,
+        # which are probabilities written with the header of the conformed image
         data_dtype = np.dtype(np.float32)
+    elif not fits_dtype(array, data_dtype):
+        # a header narrower than its data would clip it, silently
+        LOGGER.warning(
+            f"The data does not fit {data_dtype}, writing {array.dtype} instead to avoid clipping."
+        )
+        data_dtype = array.dtype
     try:
         img.set_data_dtype(data_dtype)
     except MGHError:
@@ -329,7 +367,15 @@ def save_image(
         raise ValueError(f"Invalid file extension of {save_as}, must be .mgz, .nii or .nii.gz!")
 
     if dtype is not None:
-        mgh_img.set_data_dtype(dtype)
+        # an explicit dtype is the caller's decision, so it is applied as given, but it falls back
+        # like the inferred one rather than aborting the run
+        try:
+            mgh_img.set_data_dtype(dtype)
+        except MGHError:
+            LOGGER.warning(
+                f"An MGH file cannot store {np.dtype(dtype)}, writing {mgh_img.get_data_dtype()} "
+                f"instead."
+            )
 
     if save_as.suffix in (".mgz", ".nii"):
         nib.save(mgh_img, save_as)

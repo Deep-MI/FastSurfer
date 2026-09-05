@@ -15,8 +15,13 @@ import nibabel as nib
 import numpy as np
 import pytest
 
-from FastSurferCNN.data_loader.data_utils import as_mgh_image, load_maybe_conform, save_image
-from FastSurferCNN.reduce_to_aseg import reduce_to_aseg_and_save
+from FastSurferCNN.data_loader.data_utils import (
+    as_mgh_image,
+    fits_dtype,
+    load_maybe_conform,
+    save_image,
+)
+from FastSurferCNN.reduce_to_aseg import create_mask_and_save, reduce_to_aseg_and_save
 
 AFFINE = np.eye(4)
 SHAPE = (8, 8, 8)
@@ -85,6 +90,40 @@ def test_float_data_is_never_stored_as_an_integer(container, header_dtype, tmp_p
     assert np.asarray(written.dataobj)[0, 0, 0] == pytest.approx(0.37)
 
 
+@pytest.mark.parametrize("container", ["nifti", "mgh"])
+def test_integer_data_wider_than_the_header_is_not_clipped(container, tmp_path):
+    """The mirror of the float case: a header narrower than its data must not silently clip it.
+
+    A uchar header with int16 data holding 500 wrote 255, losing the label. The NIfTI path used to
+    escape it only because the type was dropped entirely and everything became float32.
+    """
+    labels = np.zeros(SHAPE, dtype=np.int16)
+    labels[0, 0, 0] = 500
+    narrow = np.zeros(SHAPE, dtype=np.uint8)
+    header = {
+        "nifti": nib.Nifti1Image(narrow, AFFINE).header,
+        "mgh": nib.MGHImage(narrow, AFFINE).header,
+    }[container]
+
+    out_file = tmp_path / "labels.mgz"
+    nib.save(as_mgh_image(labels, AFFINE, header), out_file)
+
+    written = nib.load(out_file)
+    assert written.get_data_dtype() != np.dtype(np.uint8)
+    assert np.asarray(written.dataobj).max() == 500
+
+
+def test_fits_dtype():
+    """The shared rule the writers narrow by."""
+    assert fits_dtype(np.zeros(SHAPE, np.int16), np.uint8), "in range"
+    assert not fits_dtype(np.full(SHAPE, 500, np.int16), np.uint8), "above the range"
+    assert not fits_dtype(np.full(SHAPE, -1, np.int16), np.uint8), "below the range"
+    assert not fits_dtype(np.zeros(SHAPE, np.float32), np.uint8), "a float would be rounded"
+    assert fits_dtype(np.zeros(SHAPE, np.uint8), np.int16), "widening always fits"
+    assert fits_dtype(np.zeros(SHAPE, np.int16), np.float32), "a float target holds any integer"
+    assert fits_dtype(np.zeros((0,), np.int16), np.uint8), "an empty array has nothing to clip"
+
+
 def test_only_the_type_changes_not_the_rest_of_the_header(tmp_path):
     """Widening the type must not cost the header. Only the type is ours to override."""
     source = nib.MGHImage(np.zeros(SHAPE, dtype=np.uint8), AFFINE)
@@ -138,6 +177,18 @@ def test_aseg_is_written_as_uchar(tmp_path):
     assert set(np.unique(np.asarray(written.dataobj))) == {0, 3, 17, 42, 251}
 
 
+def test_mask_is_written_as_uchar(tmp_path):
+    """The mask carries the same uchar guarantee as the aseg, not the type it was derived from."""
+    seg = np.zeros((16, 16, 16), dtype=np.int16)
+    seg[4:12, 4:12, 4:12] = 17
+    header = nib.MGHImage(seg, AFFINE).header
+
+    out_file = tmp_path / "mask.mgz"
+    create_mask_and_save(seg, AFFINE, header, out_file)
+
+    assert nib.load(out_file).get_data_dtype() == np.dtype(np.uint8)
+
+
 def label_above_255():
     seg = dkt_segmentation()
     seg[4] = 500
@@ -151,9 +202,10 @@ def negative_label():
 
 
 def fractional_float():
+    # 17.5 is exact in float32, so the assertion tests the narrowing and not float promotion
     seg = dkt_segmentation().astype(np.float32)
-    seg[4] = 17.6
-    return seg, 17.6
+    seg[4] = 17.5
+    return seg, 17.5
 
 
 @pytest.mark.parametrize(

@@ -25,7 +25,7 @@ import scipy.ndimage
 from skimage.filters import gaussian
 from skimage.measure import label
 
-from FastSurferCNN.data_loader.data_utils import as_mgh_image
+from FastSurferCNN.data_loader.data_utils import as_mgh_image, fits_dtype
 from FastSurferCNN.utils import AffineMatrix4x4, ShapeType, logging, nibabelHeader, nibabelImage
 from FastSurferCNN.utils.brainvolstats import mask_in_array
 from FastSurferCNN.utils.logging import setup_logging
@@ -239,6 +239,9 @@ def create_mask_and_save(
     if filename is not None:
         LOGGER.info(f"Outputting mask: {filename}")
         mask = as_mgh_image(mask_data, seg_affine, seg_header)
+        # a mask is uchar, like the aseg, and not the type of the segmentation it was derived from
+        if fits_dtype(mask_data, np.uint8):
+            mask.set_data_dtype(np.uint8)
         mask.to_filename(filename)
     return mask_data
 
@@ -256,11 +259,8 @@ def reduce_to_aseg_and_save(
         LOGGER.info(f"Outputting aseg: {filename}")
         image = as_mgh_image(_data, seg_affine, seg_header)
         # FreeSurfer writes the aseg files as uchar, and an aseg has no label above 255. Without
-        # this, the int16 of the segmentation it is reduced from carries over. Only narrow labels
-        # that survive it: a float would be rounded and a negative value clipped, both silently.
-        uchar = np.iinfo(np.uint8)
-        fits = np.issubdtype(_data.dtype, np.integer) and uchar.min <= _data.min() <= _data.max() <= uchar.max
-        if fits:
+        # this, the int16 of the segmentation it is reduced from carries over.
+        if fits_dtype(_data, np.uint8):
             image.set_data_dtype(np.uint8)
         image.to_filename(filename)
     return _data
@@ -277,9 +277,6 @@ if __name__ == "__main__":
     inseg_data = np.asanyarray(inseg.dataobj)
     inseg_header = inseg.header
     inseg_affine = inseg.affine
-
-    # Change datatype to np.uint8
-    inseg_header.set_data_dtype(np.uint8)
 
     # get mask
     if options.output_mask:
@@ -307,6 +304,8 @@ if __name__ == "__main__":
 
     LOGGER.info(f"Outputting aseg: {options.output_seg}")
     aseg_fin = as_mgh_image(aseg, inseg_affine, inseg_header)
+    if fits_dtype(aseg, np.uint8):
+        aseg_fin.set_data_dtype(np.uint8)
     aseg_fin.to_filename(options.output_seg)
 
     sys.exit(0)
