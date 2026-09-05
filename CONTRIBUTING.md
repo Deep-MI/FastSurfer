@@ -109,15 +109,18 @@ Contributing Code
    uv run --no-project --with ruff ruff check .
    uv run --no-project --with pytest pytest test/shell/test_bash4_lint.py test/shell/test_fs_time.py
    uv run --no-project --with codespell codespell --ignore-words .codespellignore \
-     --check-filenames --check-hidden .
+     --check-filenames --check-hidden \
+     --skip './build,./doc/images,./Tutorial,./.git,./.mypy_cache,./.pytest_cache,./.venv' .
    ```
 
    Ruff is the lint and style check. The shell tests scan the shipped scripts for constructs the
    bash 3.2 that macOS provides does not have, which is easy to break from Linux; the test that
    actually runs them under bash 3.2 needs a macOS machine and runs in CI. Codespell finds typos;
-   it reads untracked files too, so run it on a clean tree or expect noise from your own scratch
-   directories. CI installs these from the `style` extra of `pyproject.toml`, which you can use
-   instead with `uv run --extra style <tool>` if you prefer the pinned versions.
+   the skip list is the one CI uses, and it reads untracked files too, so add any local virtualenv
+   or scratch directory of your own or expect noise from it. Ruff and codespell are also declared
+   in the `style` extra of `pyproject.toml`, so `uv run --extra style <tool>` works as well. CI
+   takes Ruff from that extra, installs pytest on its own, and runs codespell through its own
+   GitHub action.
 
 9. Commit your changes: `git commit -am 'Add some feature'`
 10. Push to the branch to your GitHub: `git push origin my-new-feature`
