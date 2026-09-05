@@ -518,7 +518,9 @@ Here, we have also added the <code class="docutils literal notranslate"><span cl
 <section id="some-other-flags">
 <h3>Some other flags<a class="headerlink" href="#some-other-flags" title="Link to this heading">¶</a></h3>
 <ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">--threads</span></code>, <code class="docutils literal notranslate"><span class="pre">--threads_seg</span></code> and <code class="docutils literal notranslate"><span class="pre">--threads_surf</span></code>: Target number of threads for all modules, segmentation, and surface pipeline. The default (<code class="docutils literal notranslate"><span class="pre">1</span></code>) tells FastSurfer to only use one core. Note, that the default value may change in the future for better performance on multi-core architectures. If threads for surface reconstruction is greater than 1, both hemispheres are processed in parallel with half the threads allocated to each hemisphere.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--threads</span></code>, <code class="docutils literal notranslate"><span class="pre">--threads_seg</span></code> and <code class="docutils literal notranslate"><span class="pre">--threads_surf</span></code>: Target number of threads for all modules, segmentation, and surface pipeline. Defaults: 1 for segmentation, 2 for surfaces.
+For surfaces the value is a <em>total</em> budget: with 2 or more the two hemispheres run at the same time and split it, so the default of 2 gives one thread each and 8 gives four each. <code class="docutils literal notranslate"><span class="pre">--parallel</span></code> runs the hemispheres at the same time with one thread each even at <code class="docutils literal notranslate"><span class="pre">--threads</span> <span class="pre">1</span></code>, which keeps every binary single threaded, and so reproducible, while still using two cores; above 1 it has no effect.
+The topology correction always runs single-threaded regardless, because its result depends on the processing order (see <a class="reference internal" href="#reproducibility"><span class="std std-ref">Reproducibility</span></a>).</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">--vox_size</span></code>: Forces processing at a specific voxel size. If a number between 0.7 and 1 is specified (below is experimental) the T1w image is conformed to that isotropic voxel size and processed.
 If “min” is specified (default), the voxel size is read from the size of the minimal voxel size (smallest per-direction voxel size) in the T1w image:
 If the minimal voxel size is bigger than 0.98mm, the image is conformed to 1mm isotropic.
@@ -529,6 +531,26 @@ The voxel size (whether set manually or derived) determines whether the surfaces
 <li><p><code class="docutils literal notranslate"><span class="pre">-h</span></code>, <code class="docutils literal notranslate"><span class="pre">--help</span></code>: Prints help text</p></li>
 </ul>
 </section>
+</section>
+<section id="reproducibility">
+<h2>Reproducibility<a class="headerlink" href="#reproducibility" title="Link to this heading">¶</a></h2>
+<p>Re-running the same input on the same machine, with the same flags, the same thread count and the
+same FastSurfer and FreeSurfer versions, is expected to give the same result: two runs at the
+default of two threads came out identical in every file we compare.</p>
+<p>The only source of deviation we know of is the topology correction, and that now always runs
+single-threaded. Other steps have not been tested at every thread count, so if you need certainty,
+use <code class="docutils literal notranslate"><span class="pre">--threads</span> <span class="pre">1</span></code>, or <code class="docutils literal notranslate"><span class="pre">--threads</span> <span class="pre">1</span> <span class="pre">--parallel</span></code> to keep every binary single threaded while still
+processing the two hemispheres at the same time.</p>
+<p>Results are not guaranteed to be identical across machines, CPUs or FreeSurfer versions, so for a
+study process everything with one container image, see <a class="reference internal" href="../overview/SINGULARITY.html"><span class="std std-doc">Singularity</span></a>.
+On macOS the FreeSurfer binaries are built without OpenMP and run single-threaded regardless.</p>
+<p>To compare two runs, use <code class="docutils literal notranslate"><span class="pre">tools/compare_subjects.py</span></code>: it compares voxels, vertices, transforms,
+statistics and labels rather than raw bytes, and reports how large each difference is. <code class="docutils literal notranslate"><span class="pre">diff</span></code> and
+checksums are no use here, because the headers record timestamps and the command line, so identical
+runs still differ byte for byte.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>tools/compare_subjects.py<span class="w"> </span><span class="nv">$SUBJECTS_DIR</span>/subject_a<span class="w"> </span><span class="nv">$SUBJECTS_DIR</span>/subject_b
+</pre></div>
+</div>
 </section>
 <section id="full-list-of-flags">
 <h2>Full list of flags<a class="headerlink" href="#full-list-of-flags" title="Link to this heading">¶</a></h2>
@@ -705,8 +727,18 @@ Resource Options:
                             device (no memory check will be done).
   --threads &lt;int&gt;         Set openMP and ITK threads to &lt;int&gt; or "max", also
   --threads_seg &lt;int&gt;       for definition of threads specific to segmentation
-  --threads_surf &lt;int&gt;      and surface reconstruction (parallel hemispheres if
-                            at number of threads for surfaces &gt;=2, default: 1).
+  --threads_surf &lt;int&gt;      and surface reconstruction. For surfaces this is a
+                            total budget: with 2 or more the two hemispheres run
+                            at the same time and split it, so the default of 2
+                            gives one thread each. Use 1 for a single-threaded
+                            run, the setting to use if you need results to be
+                            reproducible (default: seg 1, surf 2).
+  --parallel              Run the hemispheres at the same time with one thread
+                            each, even at --threads 1. That keeps every binary
+                            single threaded, and so reproducible, while still
+                            using two cores. No effect at 2 or more surface
+                            threads, where the hemispheres already run at the
+                            same time.
   --batch &lt;batch_size&gt;    Batch size for inference (default: 1).
   --py &lt;python_cmd&gt;       Command for python, used in both pipelines.
                             Default: "python3 -s"
@@ -864,6 +896,7 @@ Reuter M, Schmansky NJ, Rosas HD, Fischl B. Within-subject template estimation
 <li><a class="reference internal" href="#some-other-flags">Some other flags</a></li>
 </ul>
 </li>
+<li><a class="reference internal" href="#reproducibility">Reproducibility</a></li>
 <li><a class="reference internal" href="#full-list-of-flags">Full list of flags</a></li>
 </ul>
 </li>
