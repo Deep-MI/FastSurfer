@@ -40,11 +40,6 @@ Dependencies:
 
     Nibabel to read and write FreeSurfer surface meshes
     http://nipy.org/nibabel/
-
-
-Original Author: Martin Reuter
-Date: Jul-24-2018
-
 """
 
 h_inaparc = "path to input aparc"
@@ -63,7 +58,7 @@ def options_parse():
         Namespace object holding options.
     """
     parser = optparse.OptionParser(
-        version="$Id: smooth_aparc,v 1.0 2018/06/24 11:34:08 mreuter Exp $",
+        version="%prog, part of FastSurfer, see 'run_fastsurfer.sh --version'",
         usage=HELPTEXT,
     )
     parser.add_option("--insurf", dest="insurf", help=h_insurf)

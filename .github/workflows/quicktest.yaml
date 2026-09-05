@@ -1,9 +1,6 @@
 name: quicktest
 
 # File: quicktest.yaml
-# Author: David Kügler
-# Reworked on: 2024-12-01
-# Created on: 2023-07-10 by Taha Abdullah
 # Functionality: This workflow runs FastSurfer on MRI data and runs pytest to check if the results are acceptable. It
 #  also checks if the FastSurfer environment and output already exist, and if not, it creates them.
 # Usage: This workflow is triggered on a pull request to the dev and main branch. It can also be triggered manually

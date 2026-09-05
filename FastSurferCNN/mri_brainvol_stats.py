@@ -21,7 +21,7 @@ from os import environ as env
 from pathlib import Path
 
 from FastSurferCNN.mri_segstats import print_and_exit
-from FastSurferCNN.segstats import VERSION, HelpFormatter, main
+from FastSurferCNN.segstats import HelpFormatter, main
 
 DEFAULT_MEASURES_STRINGS = [
    (False, "BrainSeg"),
@@ -44,7 +44,7 @@ DEFAULT_MEASURES_STRINGS = [
 DEFAULT_MEASURES = list((False, m) for m in DEFAULT_MEASURES_STRINGS)
 
 USAGE = "python mri_brainvol_stats.py -s <subject>"
-HELPTEXT = f"""
+HELPTEXT = """
 Dependencies:
 
     Python 3.10
@@ -58,10 +58,6 @@ Dependencies:
     Pandas to read/write stats files etc.
     https://pandas.pydata.org/
 
-Original Author: David Kügler
-Date: Jan-23-2024
-
-Revision: {VERSION}
 """
 DESCRIPTION = """
 Translates mri_brainvol_stats options for segstats.py. Options not listed here have no 

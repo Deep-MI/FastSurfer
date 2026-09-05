@@ -5,7 +5,6 @@
 # This action requires an existing uv installation!
 
 name: 'Build a FastSurfer docker image'
-author: 'David Kuegler'
 description: 'Build a FastSurfer image'
 
 inputs:

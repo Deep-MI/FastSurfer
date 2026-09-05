@@ -64,10 +64,6 @@ Dependencies:
     
     skimage for erosion, dilation, connected component
     https://scikit-image.org/
-
-Original Author: Martin Reuter
-Date: Jul-24-2018
-
 """
 
 h_input = "path to input segmentation"
@@ -86,7 +82,7 @@ def options_parse():
         Object holding options.
     """
     parser = optparse.OptionParser(
-        version="$Id: reduce_to_aseg.py,v 1.0 2018/06/24 11:34:08 mreuter Exp $",
+        version="%prog, part of FastSurfer, see 'run_fastsurfer.sh --version'",
         usage=HELPTEXT,
     )
     parser.add_option("--input", "-i", dest="input_seg", help=h_input)

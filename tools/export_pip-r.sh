@@ -30,8 +30,6 @@ examples:
 export_pip-r.sh $FASTSURFER_HOME/requirements.txt fastsurfer:dev
 export_pip-r.sh $FASTSURFER_HOME/requirements.txt fastsurfer.sif
 
-Created 26-11-2023, David Kügler, Image Analysis Lab,
-German Center for Neurodegenerative Diseases (DZNE), Bonn
 EOF
 }
 

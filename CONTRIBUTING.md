@@ -93,6 +93,35 @@ Contributing Code
    ```
 
 8. Edit the code and implement your changes/features 
+
+   Two things to observe while you do:
+
+   **Do not add inline author tags.** Leave out `@author`, `Author:`, `Created by`, `Created on`,
+   `Modified by` and the like, in new files as well as in files you change. Most files end up with
+   several authors, and git records who wrote each line, so `git log`, `git blame` and the GitHub
+   interface report it accurately; a tag in the file says nothing about the parts somebody else has
+   since rewritten, and nobody remembers to update it.
+
+   **Run the checks before you commit**, so a pull request does not fail on something you can fix in
+   a second. These are the checks CI runs:
+
+   ```bash
+   uv run --no-project --with ruff ruff check .
+   uv run --no-project --with pytest pytest test/shell/test_bash4_lint.py test/shell/test_fs_time.py
+   uv run --no-project --with codespell codespell --ignore-words .codespellignore \
+     --check-filenames --check-hidden \
+     --skip './build,./doc/images,./Tutorial,./.git,./.mypy_cache,./.pytest_cache,./.venv' .
+   ```
+
+   Ruff is the lint and style check. The shell tests scan the shipped scripts for constructs the
+   bash 3.2 that macOS provides does not have, which is easy to break from Linux; the test that
+   actually runs them under bash 3.2 needs a macOS machine and runs in CI. Codespell finds typos;
+   the skip list is the one CI uses, and it reads untracked files too, so add any local virtualenv
+   or scratch directory of your own or expect noise from it. Ruff and codespell are also declared
+   in the `style` extra of `pyproject.toml`, so `uv run --extra style <tool>` works as well. CI
+   takes Ruff from that extra, installs pytest on its own, and runs codespell through its own
+   GitHub action.
+
 9. Commit your changes: `git commit -am 'Add some feature'`
 10. Push to the branch to your GitHub: `git push origin my-new-feature`
 

@@ -59,9 +59,6 @@ hemisphere it will:
    FreeSurfer's mris_anatomical_stats via command line execution)
 Note, this script needs to be updated if FreeSurfer introduces changes into the -balabel 
 block of recon-all. Currently this is based on FreeSurfer 7.3.2.
-
-Original Author: Martin Reuter
-Date: Aug-31-2022
 """
 
 h_sid = "subject id (name of directory within the subject directory)"
@@ -82,7 +79,7 @@ def options_parse():
         Namespace object holding options.
     """
     parser = optparse.OptionParser(
-        version="$Id:fs_balabels.py,v 1.0 2022/08/24 21:22:08 mreuter Exp $",
+        version="%prog, part of FastSurfer, see 'run_fastsurfer.sh --version'",
         usage=HELPTEXT,
     )
     parser.add_option("--sid", dest="sid", help=h_sid)
@@ -171,7 +168,6 @@ def parse_version(fs_version_str):
         return tuple(map(int, version_parts))
     except ValueError:
         return fs_version
-
 
 
 if __name__ == "__main__":

@@ -80,12 +80,6 @@ If a brain mask (--mask) is passed, the center is placed at the centroid of the
 brainmask. 
 
 One of --mask, --tal, --aseg must be passed to achieve rescaling.
-
-Original Author: Martin Reuter
-Date: Mar-18-2022
-
-Modified: David Kügler
-Date: Feb-27-2024
 """
 
 HELP_VERBOSITY = "Logging verbosity: 0 (none), 1 (normal), 2 (debug)"
@@ -228,7 +222,7 @@ def options_parse():
     parser.add_argument(
         "--version",
         action="version",
-        version="$Id: N4_bias_correct.py,v 2.1 2024/02/27 20:02:08 mreuter,dkuegler Exp $"
+        version="%(prog)s, part of FastSurfer, see 'run_fastsurfer.sh --version'"
     )
     return parser.parse_args()
 

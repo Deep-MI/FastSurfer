@@ -49,11 +49,6 @@ Dependencies:
 
     Nibabel to read and write FreeSurfer data
     http://nipy.org/nibabel/
-
-Original Author: Leonie Henschel
-Date: Jul-10-2020
-Modified by: Clemens Pollak, David Kügler
-Date: Dec-2025
 """
 
 

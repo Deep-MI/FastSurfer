@@ -23,7 +23,6 @@ from pathlib import Path
 from typing import Any, TypeVar
 
 from FastSurferCNN.segstats import (
-    VERSION,
     HelpFormatter,
     add_two_help_messages,
     empty,
@@ -34,7 +33,7 @@ _T = TypeVar("_T")
 
 
 USAGE = "python mri_segstats.py --seg segvol [optional arguments]"
-HELPTEXT = f"""
+HELPTEXT = """
 Dependencies:
 
     Python 3.10
@@ -48,10 +47,7 @@ Dependencies:
     Pandas to read/write stats files etc.
     https://pandas.pydata.org/
 
-Original Author: David Kügler
-Date: Jan-04-2024
 
-Revision: {VERSION}
 """
 DESCRIPTION = """
 Translates mri_segstats options for segstats.py. Options not listed here have no 
@@ -190,7 +186,7 @@ def make_arguments() -> argparse.ArgumentParser:
     parser.add_argument(
         "--version",
         action="version",
-        version=f"%(prog)s {VERSION}",
+        version="%(prog)s, part of FastSurfer, see 'run_fastsurfer.sh --version'",
         help="Print the version of the mri_segstats.py script",
     )
     parser.add_argument(

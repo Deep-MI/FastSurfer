@@ -23,7 +23,7 @@ from subprocess import CompletedProcess
 
 import nibabel as nib
 
-VERSION = "1.0 2025-08-18 by kueglerd @ DZNE"
+VERSION = "part of FastSurfer, see 'run_fastsurfer.sh --version'"
 
 
 class FastSurferCompatError(Exception):
@@ -177,7 +177,8 @@ def make_parser() -> argparse.ArgumentParser:
                         help="Set openMP and ITK threads to <int>.")
     parser.add_argument("--fs_license", dest="fs_license", type=validate_existing_file, default=Path("."),
                         help="Path to FreeSurfer license key file.")
-    parser.add_argument("--version", action="version", version=f"long_compat_segmentHA: {VERSION}")
+    parser.add_argument("--version", action="version",
+                        version="%(prog)s, part of FastSurfer, see 'run_fastsurfer.sh --version'")
 
     # Dev flags
     parser.add_argument("--ignore_fs_version", action="store_true",

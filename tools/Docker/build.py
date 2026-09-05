@@ -14,9 +14,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Author: David Kuegler
-# June 27th 2023
-# Modified February 2026
 
 import argparse
 import logging

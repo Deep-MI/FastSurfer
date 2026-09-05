@@ -34,7 +34,7 @@ import sys
 import time
 from datetime import datetime
 
-VERSION = "$Id: fs_time, v2.0 2026/09/02 python Exp $"
+VERSION = "fs_time, part of FastSurfer, see 'run_fastsurfer.sh --version'"
 
 # Fields the kernel does not populate on this platform, reported as "." rather than a misleading 0.
 # macOS never counts block IO or swaps for a child; Linux does count block IO. ru_nswap is

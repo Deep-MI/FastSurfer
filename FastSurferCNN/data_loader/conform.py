@@ -68,9 +68,6 @@ Dependencies:
     https://www.numpy.org
     Nibabel to read and write FreeSurfer data
     https://nipy.org/nibabel/
-Original Author: Martin Reuter
-Modified by: David Kügler
-Date: May-12-2025
 """
 
 LOGGER = logging.getLogger(__name__)
@@ -133,7 +130,7 @@ def make_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--version",
         action="version",
-        version="$Id: conform.py,v 1.0 2025/05/12 15:30:12 mreuter, kueglerd Exp $",
+        version="%(prog)s, part of FastSurfer, see 'run_fastsurfer.sh --version'",
     )
     parser.add_argument(
         "--input", "-i",

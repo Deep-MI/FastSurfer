@@ -73,9 +73,6 @@ srun_fastsurfer.sh [--data <directory to search images>]
     [--slurm_jobarray <jobarray specification>] [--skip_cleanup] [--email <email address>] [--debug] [--dry] [--help]
     [<additional fastsurfer options>]
 
-Author:   David Kügler, david.kuegler@dzne.de
-Date:     Nov 3, 2023
-Version:  1.0
 License:  Apache License, Version 2.0
 
 Documentation of Options:

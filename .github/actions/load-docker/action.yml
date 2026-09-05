@@ -1,5 +1,4 @@
 name: 'Load a docker image'
-author: 'David Kuegler'
 description: 'Load a docker image from an artifact'
 
 inputs:

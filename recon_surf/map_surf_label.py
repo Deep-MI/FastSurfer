@@ -43,9 +43,6 @@ Description:
 Computes correspondence between source and target spheres and maps src-label to target.
 Target surf (usually the white) coordinates at label vertices and SID is only written
 to output label and not used for any computations. 
-
-Original Author: Martin Reuter
-Date: Aug-24-2022
 """
 
 
@@ -67,7 +64,7 @@ def options_parse():
         Namespace object holding options.
     """
     parser = optparse.OptionParser(
-        version="$Id:map_surf_label.py,v 1.0 2022/08/24 21:22:08 mreuter Exp $",
+        version="%prog, part of FastSurfer, see 'run_fastsurfer.sh --version'",
         usage=HELPTEXT,
     )
     parser.add_option("--srclabel", dest="srclabel", help=h_srclabel)

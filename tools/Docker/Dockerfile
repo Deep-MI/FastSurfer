@@ -64,7 +64,7 @@
 #   - default: "Image Analysis Lab, DZNE https://deep-mi.org/"
 # - AUTHOR:
 #   The author string to include in image labels.
-#   - default: "David Kügler <david.kuegler@dzne.de>"
+#   - default: "FastSurfer Developers <https://github.com/Deep-MI/FastSurfer>"
 # - DEVICE:
 #   The device type to build the python environment for, this affects the installed torch packages.
 #   Supported values are what is supported by uv, e.g.: cu128, xpu, rocm6.2.4, etc.
@@ -100,7 +100,7 @@ ARG GIT_HASH=""
 ARG REPOSITORY_URL="<no repository set>"
 ARG DOC_URL="https://fastsurfer.org/fastsurfer/dev"
 ARG VENDOR="Image Analysis Lab, DZNE https://deep-mi.org/"
-ARG AUTHOR="David Kügler <david.kuegler@dzne.de>"
+ARG AUTHOR="FastSurfer Developers <https://github.com/Deep-MI/FastSurfer>"
 ARG BUILDKIT_SBOM_SCAN_CONTEXT="true"
 ARG DEVICE="cu128"
 ARG DEBUG="false"

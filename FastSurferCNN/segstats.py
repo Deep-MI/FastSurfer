@@ -42,8 +42,7 @@ from FastSurferCNN.utils.parser_defaults import add_arguments
 USAGE = ("python segstats.py (-norm|-pv) <input_norm> -i <input_seg> -o <output_seg_stats> [optional arguments] "
          "[{measures,mri_segstats} ...]")
 DESCRIPTION = "Script to calculate partial volumes and other segmentation statistics of a segmentation file."
-VERSION = "1.1"
-HELPTEXT = f"""
+HELPTEXT = """
 Dependencies:
 
     Python 3.10
@@ -57,11 +56,7 @@ Dependencies:
     Pandas to read/write stats files etc.
     https://pandas.pydata.org/
 
-Original Author: David Kügler
-Date: Dec-30-2022
-Modified: Dec-07-2023
 
-Revision: {VERSION}
 """
 FILTER_SIZES = (3, 15)
 COLUMNS = ["Index", "SegId", "NVoxels", "Volume_mm3", "StructName", "Mean", "StdDev", "Min", "Max", "Range"]
@@ -1602,7 +1597,6 @@ def pad_slicer(
         Tuple of slice-objects to go from image to padded patch.
     SlicingTuple
         Tuple of slice-objects to go from padded patch to patch.
-
     """
     # patch start/stop
     _patch = np.asarray([(s.start, s.stop) for s in slicer])
@@ -1646,7 +1640,6 @@ def uniform_filter(
     -------
     _ArrayType
         The filtered data.
-
     """
     _patch = (slice(None),) if slicer_patch is None else slicer_patch
     data = data.astype(float)
@@ -2050,7 +2043,6 @@ def global_stats(
         A tuple of number_of_voxels, number_of_within_robustness_thresholds,
         minimum_intensity, maximum_intensity, sum_of_intensities,
         sum_of_intensity_squares, and border with respect to the label.
-
     """
     def __compute_borders(out: np.ndarray | None) -> np.ndarray:
         # compute/update the border
@@ -2252,7 +2244,6 @@ def pv_calc_patch(
     -------
     dict[int, float]
         Dictionary of per-label PV-corrected volume of affected voxels in the patch.
-
     """
 
     # Variable conventions:
