@@ -86,7 +86,10 @@ run_cc_module="true"
 run_lit_module="false"
 lit_outputs_exist="false"
 threads_seg="1"
-threads_surf="1"
+# 2, so the surface pipeline runs the two hemispheres at the same time with one thread each by
+# default. recon-surf.sh is always called with --threads "$threads_surf", so its own default of 2
+# would never be reached otherwise.
+threads_surf="2"
 # python3 -s excludes user-directory package inclusion
 python="python3 -s"
 allow_root=()
@@ -283,8 +286,18 @@ Resource Options:
                             device (no memory check will be done).
   --threads <int>         Set openMP and ITK threads to <int> or "max", also
   --threads_seg <int>       for definition of threads specific to segmentation
-  --threads_surf <int>      and surface reconstruction (parallel hemispheres if
-                            at number of threads for surfaces >=2, default: 1).
+  --threads_surf <int>      and surface reconstruction. For surfaces this is a
+                            total budget: with 2 or more the two hemispheres run
+                            at the same time and split it, so the default of 2
+                            gives one thread each. Use 1 for a single-threaded
+                            run, the setting to use if you need results to be
+                            reproducible (default: seg 1, surf 2).
+  --parallel              Run the hemispheres at the same time with one thread
+                            each, even at --threads 1. That keeps every binary
+                            single threaded, and so reproducible, while still
+                            using two cores. No effect at 2 or more surface
+                            threads, where the hemispheres already run at the
+                            same time.
   --batch <batch_size>    Batch size for inference (default: 1).
   --py <python_cmd>       Command for python, used in both pipelines.
                             Default: "$python"
@@ -547,7 +560,10 @@ case $key in
   --seg_only) run_surf_pipeline="false" ;;
   # several flag options that are *just* passed through to recon-surf.sh
   --fstess|--fsqsphere|--fsaparc|--no_surfreg|--ignore_fs_version) surf_flags+=("$key") ;;
-  --parallel) legacy_parallel_hemi="true" ;;
+  # passed through, not translated into --threads 2: at --threads 1 the two are not equivalent,
+  # because --threads also sets the thread count for the sections outside the hemisphere loop,
+  # and --parallel is specifically the way to keep those single threaded
+  --parallel) legacy_parallel_hemi="true" ; surf_flags+=("$key") ;;
   --no_fs_t1) surf_flags+=("--no_fs_T1") ;;
 
   # temporary segstats development flag
@@ -614,23 +630,15 @@ tmpLF=$(mktemp)
 
 # CHECKS
 
-if [[ "$legacy_parallel_hemi" == "true" ]]
+# a string comparison, because threads_surf can still be "max" here
+if [[ "$legacy_parallel_hemi" == "true" ]] && [[ ! "$threads_surf" =~ ^[01]$ ]]
 then
   {
-    echo "WARNING: The --parallel flag is obsolete and will be removed in FastSurfer 3."
-    echo "  Hemispheres are now automatically processed in parallel, if threads for surface "
-    echo "  reconstruction are more than 1 (defined via --threads 2 or --threads_surf 2)!"
-    echo "IMPORTANT NOTE: The threads behavior has also changed, --threads used to define the"
-    echo "  number of threads per hemisphere, it now defines the number of threads in total!"
+    echo "NOTE: --parallel has no effect at $threads_surf surface threads. The surface thread count"
+    echo "  is a total budget, not a count per hemisphere, and from 2 upwards the hemispheres always"
+    echo "  run at the same time and split it. --parallel only changes anything at one thread, where"
+    echo "  it runs the two hemispheres at the same time with one thread each."
   } | tee -a "$tmpLF"
-  if [[ "$threads_surf" == 1 ]]
-  then
-    threads_surf=2
-    {
-      echo "INFO: We have changed the requested number of threads from 1 to 2, to activate parallel"
-      echo "  hemisphere processing (as requested by --parallel for backwards compatibility)."
-    } | tee -a "$tmpLF"
-  fi
 fi
 
 check_create_subjects_dir_properties "$sd"
@@ -864,7 +872,10 @@ fi
 if [[ -n "$what_needs_license" ]]
 then
   auto_detect_fs_license "$what_needs_license" | tee -a "$tmpLF";
-  if [[ "${PIPESTATUS[0]}" != 0 ]] ; then exit "${PIPESTATUS[0]}" ; fi
+  # capture before testing: [[ ]] is a command and overwrites PIPESTATUS, so reading it again inside
+  # the branch yields the status of the test (0), and a missing license exited 0 instead of aborting
+  exit_code="${PIPESTATUS[0]}"
+  if [[ "$exit_code" != 0 ]] ; then exit "$exit_code" ; fi
 fi
 
 # checks and t1 setup for longitudinal pipeline
@@ -1181,7 +1192,11 @@ then
     then
       cmd=("$reconsurfdir/talairach-reg.sh" "$seg_log" --py "$python" --asegdkt_segfile "$asegdkt_segfile"
            --dir "$subject_dir/mri" --conformed_name "$conformed_name" --norm_name "$norm_name")
-      if [[ "$long" == "true" ]] ; then cmd+=(--long "$basedir") ; fi
+      # $sd/$baseid, not $basedir: this script only ever sets baseid (from --long), while basedir
+      # belongs to recon-surf.sh, so it expanded empty here and talairach-reg.sh got `--long ""`,
+      # which it rejects with "ERROR: Argument (--long) must be a dir". Built as recon-surf.sh:275
+      # does. Only reachable with --tal_reg and --long together, which is why it went unnoticed.
+      if [[ "$long" == "true" ]] ; then cmd+=(--long "$sd/$baseid") ; fi
       if [[ "$edits" == "true" ]] ; then cmd+=(--edits) ; fi
       if [[ "$atlas3T" == "true" ]] ; then cmd+=(--3T) ; fi
       {
@@ -1401,7 +1416,10 @@ then
         fi
       fi
     } 2>&1 | tee -a "$seg_log"
-    if [[ "${PIPESTATUS[0]}" != 0 ]]; then exit "${PIPESTATUS[0]}"; fi # forward subshell exit to main script
+    # forward the subshell exit to the main script. Capture first: the [[ ]] below overwrites
+    # PIPESTATUS, so re-reading it inside the branch exited 0 and the failure was reported as success
+    exit_code="${PIPESTATUS[0]}"
+    if [[ "$exit_code" != 0 ]]; then exit "$exit_code"; fi
 
     if [[ "$run_biasfield" == "true" ]]
     then

@@ -40,7 +40,13 @@ def setup_options():
         required="SUBJECTS_DIR" not in environ,
     )
     parser.add_argument("--subject", type=str, help="Name (ID) of subject.", required=True)
-    parser.add_argument("--threads", type=int, help="Number of threads to use.", default=1)
+    parser.add_argument(
+        "--threads",
+        type=int,
+        default=1,
+        help="Accepted for interface compatibility, but ignored: both the projection and its "
+             "FreeSurfer fallback are pinned to one thread so the result is reproducible.",
+    )
 
     args = parser.parse_args()
     return args
@@ -53,11 +59,14 @@ if __name__ == "__main__":
 
     # The spectral projection is sensitive to tiny threaded BLAS/eigensolver
     # differences, and those can be amplified by later topology correction.
+    # ITK is in the list for the fallback rather than for the projection: recon-surf.sh exports
+    # ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS per hemisphere, and the child would inherit that.
     for var in (
         "OMP_NUM_THREADS",
         "OPENBLAS_NUM_THREADS",
         "MKL_NUM_THREADS",
         "VECLIB_MAXIMUM_THREADS",
+        "ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS",
     ):
         environ[var] = "1"
 
@@ -98,10 +107,24 @@ if __name__ == "__main__":
 
         # run the FreeSurfer fallback command
         recon_all = shutil.which("recon-all")
+        if recon_all is None:
+            # without this the tuple below starts with None and Popen raises TypeError, which would
+            # replace the projection error above with something unrelated
+            print(
+                "spherical_project.py failed, and recon-all is not on PATH, so the FreeSurfer "
+                "fallback cannot run either. Is FREESURFER_HOME set and sourced?",
+                file=sys.stderr,
+            )
+            sys.exit(1)
+
+        # -hemi, not " -hemi ": Popen takes a list, so nothing splits the argument. It happens to
+        # work today only because recon-all is tcsh and `switch ($flag)` word-splits the unquoted
+        # variable; any other callee would reject it.
+        # No -threads either: this process pinned the thread count to 1 above for reproducibility,
+        # and passing -threads would call omp_set_num_threads in the child and undo that. The
+        # pinned variables reach it through env below.
         static_args = ("-qsphere", "-no-isrunning", "-umask", f"{_umask:o}")
-        fallback = (recon_all, "-s", opts.subject, " -hemi ", opts.hemi) + static_args
-        if opts.threads > 1:
-            fallback += ("-threads", str(opts.threads), "-itkthreads", str(opts.threads))
+        fallback = (recon_all, "-s", opts.subject, "-hemi", opts.hemi) + static_args
 
         print(f"spherical_project.py failed.\nRunning fallback command: {' '.join(fallback)}")
         process = Popen(fallback, env=dict(environ, SUBJECTS_DIR=str(opts.sd)))

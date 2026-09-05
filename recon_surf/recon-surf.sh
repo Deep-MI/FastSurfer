@@ -14,7 +14,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-VERSION='$Id$'
 FS_VERSION_SUPPORT="7.4.1"
 
 # Regular flags default
@@ -28,7 +27,7 @@ fsaparc="false"       # if true: run FreeSurfer aparc (and cortical ribbon); if 
 fssurfreg="true"      # run FS surface registration to fsaverage, if false omit this step
 python="python3 -s"   # python version
 ParallelFlag="false"  # "true", if --parallel passed
-threads="1"           # number of threads to use for running FastSurfer
+threads="2"           # total thread budget; 2 runs the two hemispheres in parallel, 1 thread each
 edits="false"         # flag for inclusion/exclusion of edits
                       #   (also ability to run on top of existing recon-surf.sh output)
 atlas3T="false"       # flag to use/do not use the 3t atlas for talairach registration/etiv
@@ -105,8 +104,16 @@ FLAGS:
                             <hemi>.aparc.DKTatlas.mapped.stats
   --3T                    Use the 3T atlas for talairach registration (gives better
                             eTIV estimates for 3T MR images, default: 1.5T atlas).
-  --threads <int>         Set openMP and ITK threads to <int>, parallelize
-                            hemispheres, if threads >= 2.
+  --threads <int>         Total thread budget, default 2. With 2 or more the two
+                            hemispheres run at the same time and split it, so 2
+                            gives one thread each and 8 gives four each. Use 1 to
+                            keep every binary single threaded, which is what to
+                            use for reproducible results.
+  --parallel              Run the hemispheres at the same time with one thread
+                            each, even at --threads 1. That keeps every binary
+                            single threaded, and so reproducible, while still
+                            using two cores. No effect at --threads 2 or more,
+                            where the hemispheres already run at the same time.
   --py <python_cmd>       Command for python, default ${python}
   --fs_license <license>  Path to FreeSurfer license key file. Register at
                             https://surfer.nmr.mgh.harvard.edu/registration.html
@@ -190,7 +197,7 @@ case $key in
   --fsaparc) fsaparc="true" ;;
   --no_surfreg) fssurfreg="false" ;;
   --3t) atlas3T="true" ;;
-  --parallel) ParallelFlag="true" ; echo "WARNING: The --parallel flag is obsolete and will be removed in FastSurfer 3!" ;;
+  --parallel) ParallelFlag="true" ;;
   --threads) threads="$1" ; shift ;;
   --py) python="$1" ; shift ;;
   --fs_license)
@@ -316,9 +323,18 @@ then
   exit 1
 fi
 
-if [[ "$ParallelFlag" == "true" ]] ; then ParallelHemi="true" ; threads_hemi=$threads
-elif [[ "$threads" -gt 1 ]]; then ParallelHemi="true" ; threads_hemi=$((threads / 2))
-else ParallelHemi="false" ; threads_hemi="$threads"
+# --threads is a total budget: above one thread the two hemispheres run at the same time and split
+# it, so --threads 2 means two hemispheres with one thread each. --parallel only forces that split,
+# for --threads 1, where the budget would otherwise say to run them one after the other; it does not
+# change what --threads means. Keep this block identical in recon-surfreg.sh.
+if [[ "$threads" -gt 1 ]] || [[ "$ParallelFlag" == "true" ]]
+then
+  ParallelHemi="true"
+  threads_hemi=$((threads / 2))
+  if [[ "$threads_hemi" -lt 1 ]] ; then threads_hemi=1 ; fi
+else
+  ParallelHemi="false"
+  threads_hemi="$threads"
 fi
 
 # set threads for openMP and itk
@@ -387,6 +403,12 @@ ldir="$SUBJECTS_DIR/$subject/label"
 if [[ -z "$mask" ]] ; then mask="$mdir/mask.mgz"
 elif [[ "${mask:0:1}" != "/" ]] ; then mask="$SUBJECTS_DIR/$subject/$mask"
 fi
+
+# the FastSurfer version for the log and the done file, read from the project so that it cannot go
+# stale. PYTHONPATH is set here rather than relied on, so this works outside the container too.
+version_py="from FastSurferCNN.version import read_and_close_version; print(read_and_close_version())"
+VERSION="$(PYTHONPATH="$FASTSURFER_HOME${PYTHONPATH:+:$PYTHONPATH}" $python -c "$version_py" 2>/dev/null)"
+if [[ -z "$VERSION" ]] ; then VERSION="unknown" ; fi
 
 # Set up log file
 DoneFile="$SUBJECTS_DIR/$subject/scripts/recon-surf.done"
@@ -593,7 +615,7 @@ fi
   echo " "
   echo "============ Creating brainmask from aseg and nu or T1 ============"
   echo " "
-} | tee -a $LF
+} | tee -a "$LF"
 
 # the difference between nu and orig_nu is the fact that nu has the talairach-registration header
 # create norm by masking nu (supports manedit-ed mask)
@@ -794,8 +816,29 @@ for hemi in lh rh ; do
       echo "echo \"\""
     } | tee -a "$CMDF"
 
-    cmd="recon-all -subject $subject -hemi $hemi -fix -no-isrunning -umask $(umask) $hiresflag $fsthreads"
+    # Run the topology fix single-threaded, whatever --threads asked for, and note that no
+    # $fsthreads is passed below either.
+    # mris_fix_topology repairs defects in an order-dependent way, so with more than one thread the
+    # repair, and every surface derived from it, can differ between otherwise identical runs.
+    # Observed on one subject at --threads 4: lh.orig.premesh came out with 133836 vs 133966
+    # vertices, which propagated to white, pial and sphere and shifted lhCortex by 0.08% and
+    # Left-Hippocampus by 0.5%. The stage is ~9% of the surface pipeline's wall clock, so this
+    # costs a few minutes on linux and nothing on macOS, where the FreeSurfer binaries carry no
+    # OpenMP at all.
+    # This covers the whole -fix stage on purpose: it also runs mris_remesh, which is a second
+    # order-dependent candidate.
+    # It removes the source we have evidence for. Whether other steps vary with the thread count,
+    # at higher counts or on paths a normal run does not take, has not been tested.
+    {
+      echo "export OMP_NUM_THREADS=1"
+      echo "export ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS=1"
+    } >> "$CMDF"
+    cmd="recon-all -subject $subject -hemi $hemi -fix -no-isrunning -umask $(umask) $hiresflag"
     RunIt "$cmd" "$LF" "$CMDF"
+    {
+      echo "export OMP_NUM_THREADS=$threads_hemi"
+      echo "export ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS=$threads_hemi"
+    } >> "$CMDF"
 
     # fix the surfaces if they are corrupt
     cmd="$python ${binpath}rewrite_oriented_surface.py --file $sdir/$hemi.orig.premesh --backup $sdir/$hemi.orig.premesh.noorient"

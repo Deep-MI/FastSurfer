@@ -54,7 +54,9 @@ Optional arguments
 * `--no_surfreg`: Skip the surface registration (which creates `sphere.reg`) to safe time. Note, `sphere.reg` will be needed for any cross-subject statistical analysis of thickness maps, so do not use this option if you plan to perform cross-subject analysis.
 
 ### Some other flags
-* `--threads`, `--threads_seg` and `--threads_surf`: Target number of threads for all modules, segmentation, and surface pipeline. The default (`1`) tells FastSurfer to only use one core. Note, that the default value may change in the future for better performance on multi-core architectures. If threads for surface reconstruction is greater than 1, both hemispheres are processed in parallel with half the threads allocated to each hemisphere.
+* `--threads`, `--threads_seg` and `--threads_surf`: Target number of threads for all modules, segmentation, and surface pipeline. Defaults: 1 for segmentation, 2 for surfaces.
+  For surfaces the value is a *total* budget: with 2 or more the two hemispheres run at the same time and split it, so the default of 2 gives one thread each and 8 gives four each. `--parallel` runs the hemispheres at the same time with one thread each even at `--threads 1`, which keeps every binary single threaded, and so reproducible, while still using two cores; above 1 it has no effect.
+  The topology correction always runs single-threaded regardless, because its result depends on the processing order (see [Reproducibility](#reproducibility)).
 * `--vox_size`: Forces processing at a specific voxel size. If a number between 0.7 and 1 is specified (below is experimental) the T1w image is conformed to that isotropic voxel size and processed.
   If "min" is specified (default), the voxel size is read from the size of the minimal voxel size (smallest per-direction voxel size) in the T1w image:
   If the minimal voxel size is bigger than 0.98mm, the image is conformed to 1mm isotropic.
@@ -63,6 +65,30 @@ Optional arguments
 * `--py`: Command for python, used in both pipelines. Default: python3
 * `--conformed_name`: Name of the file in which the conformed input image will be saved. Default location: \$SUBJECTS_DIR/\$sid/mri/orig.mgz
 * `-h`, `--help`: Prints help text
+
+Reproducibility
+---------------
+Re-running the same input on the same machine, with the same flags, the same thread count and the
+same FastSurfer and FreeSurfer versions, is expected to give the same result: two runs at the
+default of two threads came out identical in every file we compare.
+
+The only source of deviation we know of is the topology correction, and that now always runs
+single-threaded. Other steps have not been tested at every thread count, so if you need certainty,
+use `--threads 1`, or `--threads 1 --parallel` to keep every binary single threaded while still
+processing the two hemispheres at the same time.
+
+Results are not guaranteed to be identical across machines, CPUs or FreeSurfer versions, so for a
+study process everything with one container image, see [Singularity](../overview/SINGULARITY.md).
+On macOS the FreeSurfer binaries are built without OpenMP and run single-threaded regardless.
+
+To compare two runs, use `tools/compare_subjects.py`: it compares voxels, vertices, transforms,
+statistics and labels rather than raw bytes, and reports how large each difference is. `diff` and
+checksums are no use here, because the headers record timestamps and the command line, so identical
+runs still differ byte for byte.
+
+```bash
+python tools/compare_subjects.py $SUBJECTS_DIR/subject_a $SUBJECTS_DIR/subject_b
+```
 
 Full list of flags
 ------------------

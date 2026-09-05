@@ -14,14 +14,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-VERSION='$Id$'
 FS_VERSION_SUPPORT="7.4.1"
 
 # Regular flags default
 subject=""; # Subject name
 python="python3 -s" # python version
-DoParallel=0 # if 1, run hemispheres in parallel
-threads="1" # number of threads to use for running FastSurfer
+ParallelFlag="false" # "true", if --parallel passed
+threads="2" # total thread budget; 2 runs the two hemispheres in parallel, 1 thread each
 
 # Dev flags default
 check_version=1.      # Check for supported FreeSurfer version (terminate if not detected)
@@ -34,12 +33,6 @@ else
 fi
 
 
-# check bash version > 4
-function version { echo "$@" | awk -F. '{ printf("%d%03d%03d%03d\n", $1,$2,$3,$4); }'; }
-if [ $(version ${BASH_VERSION}) -lt $(version "4.0.0") ]; then
-    echo "bash ${BASH_VERSION} is too old. Should be newer than 4.0, please upgrade!"
-    exit 1
-fi
 
 
 function usage()
@@ -54,8 +47,16 @@ subject directory, if this step was skipped in recon-surf.sh with --no_surfreg
 FLAGS:
   --sid <subjectID>       Subject ID to create directory inside \$SUBJECTS_DIR
   --sd  <subjects_dir>    Output directory \$SUBJECTS_DIR (or pass via env var)
-  --parallel              Run both hemispheres in parallel
-  --threads <int>         Set openMP and ITK threads to <int>
+  --threads <int>         Total thread budget, default 2. With 2 or more the two
+                            hemispheres run at the same time and split it, so 2
+                            gives one thread each and 8 gives four each. Use 1 to
+                            keep every binary single threaded, which is what to
+                            use for reproducible results.
+  --parallel              Run the hemispheres at the same time with one thread
+                            each, even at --threads 1. That keeps every binary
+                            single threaded, and so reproducible, while still
+                            using two cores. No effect at --threads 2 or more,
+                            where the hemispheres already run at the same time.
   --py <python_cmd>       Command for python, default $python
   --fs_license <license>  Path to FreeSurfer license key file. Register at
                             https://surfer.nmr.mgh.harvard.edu/registration.html
@@ -115,7 +116,7 @@ case $key in
     shift # past value
     ;;
     --parallel)
-    DoParallel=1
+    ParallelFlag="true"
     shift # past argument
     ;;
     --threads)
@@ -147,7 +148,7 @@ case $key in
     exit
     ;;
     *)    # unknown option
-    echo ERROR: Flag $key unrecognized.
+    echo ERROR: Flag "$key" unrecognized.
     exit 1
     ;;
 esac
@@ -186,9 +187,9 @@ export FREESURFER=$FREESURFER_HOME
 
 if [ "$check_version" == "1" ]
 then
-  if grep -q -v ${FS_VERSION_SUPPORT} $FREESURFER_HOME/build-stamp.txt
+  if grep -q -v ${FS_VERSION_SUPPORT} "$FREESURFER_HOME"/build-stamp.txt
   then
-    echo "ERROR: You are trying to run recon-surfreg with FreeSurfer version $(cat $FREESURFER_HOME/build-stamp.txt)."
+    echo "ERROR: You are trying to run recon-surfreg with FreeSurfer version $(cat "$FREESURFER_HOME"/build-stamp.txt)."
     echo "We are currently supporting only FreeSurfer $FS_VERSION_SUPPORT "
     echo "Therefore, make sure to export and source the correct FreeSurfer version before running recon-surfreg.sh: "
     echo "export FREESURFER_HOME=/path/to/your/local/fs$FS_VERSION_SUPPORT"
@@ -212,15 +213,29 @@ fi
 # set threads for openMP and itk
 # if OMP_NUM_THREADS is not set and available resources are too vast, mc will fail with segmentation fault!
 # Therefore we set it to 1 as default above, if nothing is specified.
-fsthreads=""
-export OMP_NUM_THREADS=$threads
-export ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS=$threads
-if [ "$threads" -gt "1" ]
+# --threads is a total budget: above one thread the two hemispheres run at the same time and split
+# it, so --threads 2 means two hemispheres with one thread each. --parallel only forces that split,
+# for --threads 1, where the budget would otherwise say to run them one after the other; it does not
+# change what --threads means. Keep this block identical in recon-surf.sh.
+if [[ "$threads" -gt 1 ]] || [[ "$ParallelFlag" == "true" ]]
 then
-  fsthreads="-threads $threads -itkthreads $threads"
+  ParallelHemi="true"
+  threads_hemi=$((threads / 2))
+  if [[ "$threads_hemi" -lt 1 ]] ; then threads_hemi=1 ; fi
+else
+  ParallelHemi="false"
+  threads_hemi="$threads"
 fi
 
-if [ $(echo -n "${SUBJECTS_DIR}/${subject}" | wc -m) -gt 185 ]
+fsthreads=""
+export OMP_NUM_THREADS=$threads_hemi
+export ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS=$threads_hemi
+if [ "$threads_hemi" -gt "1" ]
+then
+  fsthreads="-threads $threads_hemi -itkthreads $threads_hemi"
+fi
+
+if [ "$(echo -n "${SUBJECTS_DIR}/${subject}" | wc -m)" -gt 185 ]
 then
   echo "ERROR: subject directory path is very long."
   echo "This is known to cause errors due to some commands run by freesurfer versions built for Ubuntu."
@@ -253,34 +268,40 @@ sdir=$SUBJECTS_DIR/$subject/surf
 ldir=$SUBJECTS_DIR/$subject/label
 
 
+# the FastSurfer version for the log and the done file, read from the project so that it cannot go
+# stale. PYTHONPATH is set here rather than relied on, so this works outside the container too.
+version_py="from FastSurferCNN.version import read_and_close_version; print(read_and_close_version())"
+VERSION="$(PYTHONPATH="$FASTSURFER_HOME${PYTHONPATH:+:$PYTHONPATH}" $python -c "$version_py" 2>/dev/null)"
+if [[ -z "$VERSION" ]] ; then VERSION="unknown" ; fi
+
 # Set up log file
 DoneFile=$SUBJECTS_DIR/$subject/scripts/recon-surfreg.done
-if [ $DoneFile != /dev/null ] ; then  rm -f $DoneFile ; fi
+if [ "$DoneFile" != /dev/null ] ; then  rm -f "$DoneFile" ; fi
 LF=$SUBJECTS_DIR/$subject/scripts/recon-surfreg.log
-if [ $LF != /dev/null ] ; then  rm -f $LF ; fi
-echo "Log file for recon-surfreg.sh" >> $LF
-date  2>&1 | tee -a $LF
-echo "" | tee -a $LF
-echo "export SUBJECTS_DIR=$SUBJECTS_DIR" | tee -a $LF
-echo "cd `pwd`"  | tee -a $LF
-echo $0 ${inputargs[*]} | tee -a $LF
-echo "" | tee -a $LF
-cat $FREESURFER_HOME/build-stamp.txt 2>&1 | tee -a $LF
-echo $VERSION | tee -a $LF
-uname -a  2>&1 | tee -a $LF
+if [ "$LF" != /dev/null ] ; then  rm -f "$LF" ; fi
+echo "Log file for recon-surfreg.sh" >> "$LF"
+date  2>&1 | tee -a "$LF"
+echo "" | tee -a "$LF"
+echo "export SUBJECTS_DIR=$SUBJECTS_DIR" | tee -a "$LF"
+echo "cd `pwd`"  | tee -a "$LF"
+echo "$0" "${inputargs[*]}" | tee -a "$LF"
+echo "" | tee -a "$LF"
+cat "$FREESURFER_HOME"/build-stamp.txt 2>&1 | tee -a "$LF"
+echo $VERSION | tee -a "$LF"
+uname -a  2>&1 | tee -a "$LF"
 
 
 # Print parallelization parameters
-echo " " | tee -a $LF
-if [ "$DoParallel" == "1" ]
+echo " " | tee -a "$LF"
+if [ "$ParallelHemi" == "true" ]
 then
-  echo " RUNNING both hemis in PARALLEL " | tee -a $LF
+  echo " RUNNING both hemis in PARALLEL " | tee -a "$LF"
 else
-  echo " RUNNING both hemis SEQUENTIALLY " | tee -a $LF
+  echo " RUNNING both hemis SEQUENTIALLY " | tee -a "$LF"
 fi
-echo " RUNNING $OMP_NUM_THREADS number of OMP THREADS " | tee -a $LF
-echo " RUNNING $ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS number of ITK THREADS " | tee -a $LF
-echo " " | tee -a $LF
+echo " RUNNING $OMP_NUM_THREADS number of OMP THREADS " | tee -a "$LF"
+echo " RUNNING $ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS number of ITK THREADS " | tee -a "$LF"
+echo " " | tee -a "$LF"
 
 
 #if false; then
@@ -291,21 +312,23 @@ echo " " | tee -a $LF
 # ================================================== SURFACES ==========================================================
 
 
-CMDFS=""
+# an array, not a space-joined string: the string form had to be expanded unquoted to split into
+# arguments, which broke as soon as a path contained a space
+CMDFS=()
 
 for hemi in lh rh; do
 
   CMDF="$SUBJECTS_DIR/$subject/scripts/$hemi.processing.cmdf"
-  CMDFS="$CMDFS $CMDF"
-  rm -rf $CMDF
+  CMDFS+=("$CMDF")
+  rm -rf "$CMDF"
 
-  echo "echo \" \"" | tee -a $CMDF
-  echo "echo \"============ Creating surfaces $hemi - FS sphere, surfreg ===============\"" | tee -a $CMDF
-  echo "echo \" \"" | tee -a $CMDF
+  echo "echo \" \"" | tee -a "$CMDF"
+  echo "echo \"============ Creating surfaces $hemi - FS sphere, surfreg ===============\"" | tee -a "$CMDF"
+  echo "echo \" \"" | tee -a "$CMDF"
 
   # Surface registration for cross-subject correspondence (registration to fsaverage)
   cmd="recon-all -subject $subject -hemi $hemi -sphere -no-isrunning -umask $(umask) $fsthreads"
-  RunIt "$cmd" $LF "$CMDF"
+  RunIt "$cmd" "$LF" "$CMDF"
 
   # (mr) FIX: sometimes FreeSurfer Sphere Reg. fails and moves pre and post central
   # one gyrus too far posterior, FastSurferCNN's image-based segmentation does not
@@ -320,13 +343,13 @@ for hemi in lh rh; do
        --trgsphere $FREESURFER_HOME/subjects/fsaverage/surf/${hemi}.sphere \
        --trgaparc $FREESURFER_HOME/subjects/fsaverage/label/${hemi}.aparc.annot \
        --out $sdir/${hemi}.angles.txt"
-  RunIt "$cmd" $LF "$CMDF"
+  RunIt "$cmd" "$LF" "$CMDF"
   # 2. use global rotation as initialization to non-linear registration:
   cmd="mris_register -curv -norot -rotate \`cat $sdir/${hemi}.angles.txt\` \
        $sdir/${hemi}.sphere \
        $FREESURFER_HOME/average/${hemi}.folding.atlas.acfb40.noaparc.i12.2016-08-02.tif \
        $sdir/${hemi}.sphere.reg"
-  RunIt "$cmd" $LF "$CMDF"
+  RunIt "$cmd" "$LF" "$CMDF"
   # command to generate new aparc to check if registration was OK
   # run only for debugging
   #cmd="mris_ca_label -l $SUBJECTS_DIR/$subject/label/${hemi}.cortex.label \
@@ -334,56 +357,56 @@ for hemi in lh rh; do
   #     -seed 1234 $subject $hemi $SUBJECTS_DIR/$subject/surf/${hemi}.sphere.reg \
   #     $SUBJECTS_DIR/$subject/label/${hemi}.aparc.DKTatlas-guided.annot"
 
-  if [ "$DoParallel" == "0" ] ; then
-      echo " " | tee -a $LF
-      echo " RUNNING $hemi sequentially ... " | tee -a $LF
-      echo " " | tee -a $LF
-    chmod u+x $CMDF
-    RunIt "$CMDF" $LF
+  if [ "$ParallelHemi" == "false" ] ; then
+      echo " " | tee -a "$LF"
+      echo " RUNNING $hemi sequentially ... " | tee -a "$LF"
+      echo " " | tee -a "$LF"
+    chmod u+x "$CMDF"
+    RunIt "$CMDF" "$LF"
   fi
 
 done  # hemi loop ----------------------------------
 
 
 
-if [ "$DoParallel" == 1 ] ; then
-    echo " " | tee -a $LF
-    echo " RUNNING HEMIs in PARALLEL !!! " | tee -a $LF
-    echo " " | tee -a $LF
-    RunBatchJobs $LF $CMDFS
+if [ "$ParallelHemi" == "true" ] ; then
+    echo " " | tee -a "$LF"
+    echo " RUNNING HEMIs in PARALLEL !!! " | tee -a "$LF"
+    echo " " | tee -a "$LF"
+    RunBatchJobs "$LF" "${CMDFS[@]}"
 fi
 
 
-echo " " | tee -a $LF
-echo "================= DONE =========================================================" | tee -a $LF
-echo " " | tee -a $LF
+echo " " | tee -a "$LF"
+echo "================= DONE =========================================================" | tee -a "$LF"
+echo " " | tee -a "$LF"
 
 # Collect info
 EndTime=`date`
 tSecEnd=`date '+%s'`
-tRunHours=`echo \($tSecEnd - $tSecStart\)/3600|bc -l`
-tRunHours=`printf %6.3f $tRunHours`
+tRunHours=`echo \("$tSecEnd" - "$tSecStart"\)/3600|bc -l`
+tRunHours=`printf %6.3f "$tRunHours"`
 
-echo "Started at $StartTime " | tee -a $LF
-echo "Ended   at $EndTime" | tee -a $LF
-echo "#@#%# recon-surfreg-run-time-hours $tRunHours" | tee -a $LF
+echo "Started at $StartTime " | tee -a "$LF"
+echo "Ended   at $EndTime" | tee -a "$LF"
+echo "#@#%# recon-surfreg-run-time-hours $tRunHours" | tee -a "$LF"
 
 # Create the Done File
-echo "------------------------------" > $DoneFile
-echo "SUBJECT $subject"           >> $DoneFile
-echo "START_TIME $StartTime"      >> $DoneFile
-echo "END_TIME $EndTime"          >> $DoneFile
-echo "RUNTIME_HOURS $tRunHours"   >> $DoneFile
-echo "USER `id -un`"              >> $DoneFile 2> /dev/null
-echo "HOST `hostname`"            >> $DoneFile
-echo "PROCESSOR `uname -m`"       >> $DoneFile
-echo "OS `uname -s`"              >> $DoneFile
-echo "UNAME `uname -a`"           >> $DoneFile
-echo "VERSION $VERSION"           >> $DoneFile
-echo "CMDPATH $0"                 >> $DoneFile
-echo "CMDARGS ${inputargs[*]}"    >> $DoneFile
+echo "------------------------------" > "$DoneFile"
+echo "SUBJECT $subject"           >> "$DoneFile"
+echo "START_TIME $StartTime"      >> "$DoneFile"
+echo "END_TIME $EndTime"          >> "$DoneFile"
+echo "RUNTIME_HOURS $tRunHours"   >> "$DoneFile"
+echo "USER `id -un`"              >> "$DoneFile" 2> /dev/null
+echo "HOST `hostname`"            >> "$DoneFile"
+echo "PROCESSOR `uname -m`"       >> "$DoneFile"
+echo "OS `uname -s`"              >> "$DoneFile"
+echo "UNAME `uname -a`"           >> "$DoneFile"
+echo "VERSION $VERSION"           >> "$DoneFile"
+echo "CMDPATH $0"                 >> "$DoneFile"
+echo "CMDARGS ${inputargs[*]}"    >> "$DoneFile"
 
-echo "recon-surfreg.sh $subject finished without error at `date`"  | tee -a $LF
+echo "recon-surfreg.sh $subject finished without error at `date`"  | tee -a "$LF"
 
 cmd="$python ${binpath}utils/extract_recon_surf_time_info.py -i $LF -o $SUBJECTS_DIR/$subject/scripts/recon-surfreg_times.yaml"
 RunIt "$cmd" "/dev/null"
