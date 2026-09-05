@@ -45,10 +45,19 @@ turns that drift into test failures, which then hide any real regression.
 
 The inputs and the references are downloaded from urls kept in repository secrets
 (`QUICKTEST_IMAGE_HREF_*` and `QUICKTEST_TARGET_HREF_*`), because the data is too large for the
-repository. To refresh one, process the input with the released version and the flags from the
-matrix in [quicktest.yaml](../../.github/workflows/quicktest.yaml), archive the subject folder, and update
-the url. The archive is unpacked into `REF_DIR`, so the subject folder has to sit at its top level
-under the name the workflow uses for the case.
+repository. To refresh one, process the input with the **released container image** and the flags
+from the matrix in [quicktest.yaml](../../.github/workflows/quicktest.yaml), archive the subject
+folder, and update the url. The archive is unpacked into `REF_DIR`, so the subject folder has to sit
+at its top level under the name the workflow uses for the case.
+
+Use the released image rather than a fresh build of the release tag. The image ships pinned
+dependencies, while a build from source can resolve them again and pick up newer ones, so the two
+do not always produce the same output. The reference has to be what users actually get.
+
+Take the image variant that matches how the workflow runs it, and give the same thread count and
+device. The runner has no GPU, so that is the CPU image rather than `latest`, which is a CUDA build,
+and the thread count is the runner's core count. Both change the output, so a reference produced
+with a GPU or with more threads cannot be reproduced by the workflow.
 
 Tolerances are separate and do live here, one file per output under [data](data). Widen one only for
 a small difference that keeps recurring; a large disagreement means the reference is out of date or
