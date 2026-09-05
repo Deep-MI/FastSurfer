@@ -20,13 +20,12 @@ import sys
 from functools import partial
 from pathlib import Path
 
-import nibabel as nib
 import numpy as np
 from scipy import ndimage
 
 from CorpusCallosum.data.constants import FORNIX_LABEL, SUBSEGMENT_LABELS
 from FastSurferCNN.data_loader.conform import Reorientation, is_conform
-from FastSurferCNN.data_loader.data_utils import load_image
+from FastSurferCNN.data_loader.data_utils import as_mgh_image, load_image
 from FastSurferCNN.reduce_to_aseg import reduce_to_aseg_and_save
 from FastSurferCNN.utils import Mask2d, Mask3d, Shape3d, logging
 from FastSurferCNN.utils.arg_types import path_or_none
@@ -507,7 +506,7 @@ if __name__ == "__main__":
     )
 
     logger.info(f"Writing segmentation with corpus callosum to: {options.output}")
-    pred_with_cc_fin = nib.MGHImage(pred_corrected, aseg_image.affine, aseg_image.header)
+    pred_with_cc_fin = as_mgh_image(pred_corrected, aseg_image.affine, aseg_image.header)
     io_fut = thread_executor().submit(pred_with_cc_fin.to_filename, options.output)
 
     if options.aseg is not None:

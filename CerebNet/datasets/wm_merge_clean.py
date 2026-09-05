@@ -25,6 +25,8 @@ from scipy import ndimage
 from skimage.measure import label, regionprops
 from skimage.morphology import dilation
 
+from FastSurferCNN.data_loader.data_utils import as_mgh_image
+
 NT = TypeVar("NT", bound=Number)
 
 
@@ -287,7 +289,7 @@ def save_mgh_image(img_data, save_path, header, affine):
     """
     Save data as mgh image.
     """
-    mgh_out = nib.MGHImage(img_data, header=header, affine=affine)
+    mgh_out = as_mgh_image(img_data, affine, header)
     print(f"Saving {save_path}")
     nib.save(mgh_out, save_path)
 

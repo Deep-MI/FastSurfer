@@ -25,6 +25,7 @@ import scipy.ndimage
 from skimage.filters import gaussian
 from skimage.measure import label
 
+from FastSurferCNN.data_loader.data_utils import as_mgh_image
 from FastSurferCNN.utils import AffineMatrix4x4, ShapeType, logging, nibabelHeader, nibabelImage
 from FastSurferCNN.utils.brainvolstats import mask_in_array
 from FastSurferCNN.utils.logging import setup_logging
@@ -237,7 +238,7 @@ def create_mask_and_save(
     mask_data = create_mask(seg, 5, 4)
     if filename is not None:
         LOGGER.info(f"Outputting mask: {filename}")
-        mask = nib.MGHImage(mask_data, seg_affine, seg_header)
+        mask = as_mgh_image(mask_data, seg_affine, seg_header)
         mask.to_filename(filename)
     return mask_data
 
@@ -253,7 +254,7 @@ def reduce_to_aseg_and_save(
 
     if filename is not None:
         LOGGER.info(f"Outputting aseg: {filename}")
-        mask = nib.MGHImage(_data, seg_affine, seg_header)
+        mask = as_mgh_image(_data, seg_affine, seg_header)
         mask.to_filename(filename)
     return _data
 
@@ -298,7 +299,7 @@ if __name__ == "__main__":
         aseg = flip_wm_islands(aseg)
 
     LOGGER.info(f"Outputting aseg: {options.output_seg}")
-    aseg_fin = nib.MGHImage(aseg, inseg_affine, inseg_header)
+    aseg_fin = as_mgh_image(aseg, inseg_affine, inseg_header)
     aseg_fin.to_filename(options.output_seg)
 
     sys.exit(0)

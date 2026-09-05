@@ -69,6 +69,9 @@ def mgh_from_sitk(
         dims = np.hstack((dims, [1]))
     h1["dims"] = dims
     h1["Pxyz_c"] = affine.dot(np.hstack((dims[:3] / 2.0, [1])))[:3]
+    # FreeSurfer keeps the largest of the three extents in fov; MGHHeader defaults it to 0 and a
+    # header converted from a NIfTI has none to inherit
+    h1["fov"] = float(np.max(dims[:3] * h1["delta"]))
     # swap axes as data is stored differently between sITK and Nibabel
     data = np.swapaxes(sitk.GetArrayFromImage(sitk_img), 0, 2)
     # assemble MGHImage from header, image data and affine
