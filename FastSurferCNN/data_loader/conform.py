@@ -130,7 +130,7 @@ def make_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--version",
         action="version",
-        version="$Id: conform.py,v 1.0 2025/05/12 15:30:12 mreuter, kueglerd Exp $",
+        version="%(prog)s, part of FastSurfer, see 'run_fastsurfer.sh --version'",
     )
     parser.add_argument(
         "--input", "-i",

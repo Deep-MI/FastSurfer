@@ -94,7 +94,7 @@ def options_parse():
         Object holding options.
     """
     parser = optparse.OptionParser(
-        version="$Id:create_annotation.py,v 1.0 2022/08/24 21:22:08 mreuter Exp $",
+        version="%prog, part of FastSurfer, see 'run_fastsurfer.sh --version'",
         usage=HELPTEXT,
     )
     parser.add_option("--hemi", dest="hemi", help=h_hemi)

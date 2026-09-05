@@ -79,7 +79,7 @@ def options_parse():
         Namespace object holding options.
     """
     parser = optparse.OptionParser(
-        version="$Id:fs_balabels.py,v 1.0 2022/08/24 21:22:08 mreuter Exp $",
+        version="%prog, part of FastSurfer, see 'run_fastsurfer.sh --version'",
         usage=HELPTEXT,
     )
     parser.add_option("--sid", dest="sid", help=h_sid)

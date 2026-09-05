@@ -75,7 +75,7 @@ def options_parse():
         Object holding options.
     """
     parser = optparse.OptionParser(
-        version="$Id: spherically_project,v 1.1 2017/01/30 20:42:08 ltirrell Exp $",
+        version="%prog, part of FastSurfer, see 'run_fastsurfer.sh --version'",
         usage=HELPTEXT,
     )
     parser.add_option("--input", "-i", dest="input_surf", help=h_input)

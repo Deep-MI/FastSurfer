@@ -222,7 +222,7 @@ def options_parse():
     parser.add_argument(
         "--version",
         action="version",
-        version="$Id: N4_bias_correct.py,v 2.1 2024/02/27 20:02:08 mreuter,dkuegler Exp $"
+        version="%(prog)s, part of FastSurfer, see 'run_fastsurfer.sh --version'"
     )
     return parser.parse_args()
 

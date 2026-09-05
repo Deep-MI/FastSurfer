@@ -31,7 +31,7 @@ def options_parse():
         Namespace object holding options.
     """
     parser = optparse.OptionParser(
-        version="$Id: rewrite_mc_surface,v 1.1 2020/06/23 15:42:08 henschell $",
+        version="%prog, part of FastSurfer, see 'run_fastsurfer.sh --version'",
         usage="Function to load and resafe surface under a given name",
     )
     parser.add_option("--input", "-i", dest="input_surf", help="path to input surface")

@@ -11,16 +11,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+# IMPORTS
 import argparse
 import shutil
-
-# IMPORTS
 import sys
 from pathlib import Path
 
 import lapy
-
-__version__ = "1.0"
 
 
 def make_parser() -> argparse.ArgumentParser:
@@ -54,7 +51,7 @@ def make_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--version",
         action="version",
-        version=f"{__version__} 2024/08/08 12:20:10 kueglerd",
+        version="%(prog)s, part of FastSurfer, see 'run_fastsurfer.sh --version'",
     )
     return parser
 

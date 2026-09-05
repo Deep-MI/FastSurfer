@@ -42,8 +42,7 @@ from FastSurferCNN.utils.parser_defaults import add_arguments
 USAGE = ("python segstats.py (-norm|-pv) <input_norm> -i <input_seg> -o <output_seg_stats> [optional arguments] "
          "[{measures,mri_segstats} ...]")
 DESCRIPTION = "Script to calculate partial volumes and other segmentation statistics of a segmentation file."
-VERSION = "1.1"
-HELPTEXT = f"""
+HELPTEXT = """
 Dependencies:
 
     Python 3.10
@@ -58,7 +57,6 @@ Dependencies:
     https://pandas.pydata.org/
 
 
-Revision: {VERSION}
 """
 FILTER_SIZES = (3, 15)
 COLUMNS = ["Index", "SegId", "NVoxels", "Volume_mm3", "StructName", "Mean", "StdDev", "Min", "Max", "Range"]
