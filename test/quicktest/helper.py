@@ -7,7 +7,19 @@ import pytest
 logger = logging.getLogger(__name__)
 
 
-def assert_same_headers(test_header, reference_header):
+def equal_within_tolerance(reference, test, rtol: float, atol: float) -> bool:
+    """Whether two header values are equal as floats, so only their representation differs.
+
+    Anything that is not a float field of the same shape, such as dims or the data type, is left to
+    the exact comparison.
+    """
+    reference, test = np.asanyarray(reference), np.asanyarray(test)
+    if reference.dtype.kind != "f" or test.dtype.kind != "f" or reference.shape != test.shape:
+        return False
+    return bool(np.allclose(reference, test, rtol=rtol, atol=atol, equal_nan=True))
+
+
+def assert_same_headers(test_header, reference_header, rtol: float = 1e-6, atol: float = 1e-6):
     __tracebackhide__ = True
 
     from nibabel.cmdline.diff import get_headers_diff
@@ -15,10 +27,18 @@ def assert_same_headers(test_header, reference_header):
     # the order given here is the order of the two values reported per field, so it is named in the
     # failure message: working it out from the code costs more than saying it
     header_diff = get_headers_diff([reference_header, test_header])
-    if len(header_diff.keys()) != 0:
+    # get_headers_diff compares exactly. Below 1mm the direction cosines are computed rather than
+    # snapped, so every Mdc carries float dust that no rerun reproduces bit for bit.
+    header_diff = {
+        field: values
+        for field, values in header_diff.items()
+        if not equal_within_tolerance(*values, rtol=rtol, atol=atol)
+    }
+    if header_diff:
         differences = "\n".join(f"  '{k}': {v}" for k, v in header_diff.items())
         pytest.fail(
-            f"The headers differ in the following fields, as [reference, test]:\n{differences}"
+            f"The headers differ in the following fields, as [reference, test], with floats "
+            f"compared at rtol={rtol}, atol={atol}:\n{differences}"
         )
 
 
