@@ -7,17 +7,20 @@ import pytest
 logger = logging.getLogger(__name__)
 
 
-def assert_same_headers(expected_header, actual_header):
+def assert_same_headers(test_header, reference_header):
     __tracebackhide__ = True
-    # Get the image headers
 
     from nibabel.cmdline.diff import get_headers_diff
 
-    # Check the image headers
-    header_diff = get_headers_diff([actual_header, expected_header])
+    # the order given here is the order of the two values reported per field, so it is named in the
+    # failure message: working it out from the code costs more than saying it
+    header_diff = get_headers_diff([reference_header, test_header])
     if len(header_diff.keys()) != 0:
         differences = "\n".join(f"  '{k}': {v}" for k, v in header_diff.items())
-        pytest.fail(f"The headers differ in the following header fields:\n{differences}")
+        pytest.fail(
+            f"The headers differ in the following fields, as [reference, test]:\n{differences}"
+        )
+
 
 class Approx:
 
