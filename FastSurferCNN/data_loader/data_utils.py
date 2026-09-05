@@ -25,6 +25,7 @@ import pandas as pd
 import scipy.ndimage.morphology as morphology
 import torch
 from nibabel.filebasedimages import FileBasedHeader as _Header
+from nibabel.freesurfer.mghformat import MGHError
 from numpy import typing as npt
 from scipy.ndimage import (
     binary_closing,
@@ -242,12 +243,14 @@ def as_mgh_image(
         header: _Header | None = None,
 ) -> nib.MGHImage:
     """
-    Build an MGHImage from data, affine and header, and fill in its field of view.
+    Build an MGHImage from data, affine and header, keeping what the conversion would drop.
 
-    `MGHHeader` defaults `fov` to 0 and a NIfTI header has no `fov` at all, so writing an .mgz whose
-    header came from a .nii input leaves the field empty. FreeSurfer keeps the largest of the three
-    extents there, which deriving it from `data` also gets right when the header is inherited from a
-    volume of a different shape.
+    `MGHHeader.from_header` carries neither the field of view nor the data type over from a non-MGH
+    header, so an .mgz written with a header that came from a .nii ended up with `fov=0` and stored
+    as float32, whatever the data or the caller asked for. Both are restored here, so the file does
+    not depend on the container its header came from. The fov is the largest of the three extents,
+    which is what FreeSurfer keeps, and deriving it from `data` also gets it right when the header
+    is inherited from a volume of a different shape.
 
     Parameters
     ----------
@@ -261,11 +264,21 @@ def as_mgh_image(
     Returns
     -------
     nib.MGHImage
-        The image, with `fov` set from the data shape and the voxel sizes.
+        The image, with `fov` and the data type set.
     """
     img = nib.MGHImage(data, affine, header)
     zooms = img.header.get_zooms()
     img.header["fov"] = max(d * z for d, z in zip(img.shape[:3], zooms[:3], strict=True))
+
+    if header is not None:
+        data_dtype = header.get_data_dtype()
+        try:
+            img.set_data_dtype(data_dtype)
+        except MGHError:
+            # MGH stores uint8, uint16, int16, int32 and float32 only
+            LOGGER.warning(
+                f"An MGH file cannot store {data_dtype}, writing {img.get_data_dtype()} instead."
+            )
     return img
 
 
