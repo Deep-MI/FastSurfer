@@ -70,9 +70,13 @@ qc = [
 lit = [
     'neurolit>=0.6.1',
 ]
+bids = [
+    'pybids>=0.16',
+]
 container = [
     'fastsurfer[qc]',
     'fastsurfer[lit]',
+    'fastsurfer[bids]',
 ]
 doc = [
     'fastsurfer[qc]',
@@ -111,6 +115,7 @@ all = [
     'fastsurfer[style]',
     'fastsurfer[qc]',
     'fastsurfer[lit]',
+    'fastsurfer[bids]',
     'fastsurfer[quicktest]',
 ]
 full = [
