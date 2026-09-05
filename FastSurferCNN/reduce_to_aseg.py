@@ -238,7 +238,8 @@ def create_mask_and_save(
     mask_data = create_mask(seg, 5, 4)
     if filename is not None:
         LOGGER.info(f"Outputting mask: {filename}")
-        mask = as_mgh_image(mask_data, seg_affine, seg_header)
+        # a mask is uchar, like the aseg, and not the type of the segmentation it was derived from
+        mask = as_mgh_image(mask_data, seg_affine, seg_header, prefer_dtype=np.uint8)
         mask.to_filename(filename)
     return mask_data
 
@@ -254,8 +255,10 @@ def reduce_to_aseg_and_save(
 
     if filename is not None:
         LOGGER.info(f"Outputting aseg: {filename}")
-        mask = as_mgh_image(_data, seg_affine, seg_header)
-        mask.to_filename(filename)
+        # FreeSurfer writes the aseg files as uchar, and an aseg has no label above 255. Without
+        # this, the int16 of the segmentation it is reduced from carries over.
+        image = as_mgh_image(_data, seg_affine, seg_header, prefer_dtype=np.uint8)
+        image.to_filename(filename)
     return _data
 
 
@@ -268,11 +271,9 @@ if __name__ == "__main__":
     LOGGER.info(f"Reading in aparc+aseg: {options.input_seg} ...")
     inseg = cast(nibabelImage, nib.load(options.input_seg))
     inseg_data = np.asanyarray(inseg.dataobj)
-    inseg_header = inseg.header
+    # a copy, since it outlives the load and is handed to a thread below
+    inseg_header = inseg.header.copy()
     inseg_affine = inseg.affine
-
-    # Change datatype to np.uint8
-    inseg_header.set_data_dtype(np.uint8)
 
     # get mask
     if options.output_mask:
@@ -299,7 +300,7 @@ if __name__ == "__main__":
         aseg = flip_wm_islands(aseg)
 
     LOGGER.info(f"Outputting aseg: {options.output_seg}")
-    aseg_fin = as_mgh_image(aseg, inseg_affine, inseg_header)
+    aseg_fin = as_mgh_image(aseg, inseg_affine, inseg_header, prefer_dtype=np.uint8)
     aseg_fin.to_filename(options.output_seg)
 
     sys.exit(0)
