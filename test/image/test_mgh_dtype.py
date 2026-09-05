@@ -42,15 +42,42 @@ def test_dtype_does_not_depend_on_the_source_container(dtype, source):
     assert img.get_data_dtype().newbyteorder("=") == np.dtype(dtype)
 
 
-def test_unstorable_dtype_falls_back_instead_of_raising(caplog):
-    """MGH has no float64. That must degrade to float32 with a warning, not abort a run."""
+@pytest.mark.parametrize("with_header", [True, False], ids=["from a header", "headerless"])
+def test_unstorable_dtype_falls_back_instead_of_raising(with_header, caplog):
+    """MGH has no float64. That must degrade to float32 with a warning, not abort a run.
+
+    The headerless case is the one that bites: nibabel raises while constructing the image, before
+    any fallback of ours could run.
+    """
     data = np.zeros(SHAPE, dtype=np.float64)
-    header = nib.Nifti1Image(data, AFFINE).header
+    data[0, 0, 0] = 0.37
+    header = nib.Nifti1Image(data, AFFINE).header if with_header else None
 
     img = as_mgh_image(data, AFFINE, header)
 
     assert img.get_data_dtype() == np.dtype(">f4")
     assert "cannot store" in caplog.text
+
+
+@pytest.mark.parametrize(
+    "header_dtype", [np.uint8, np.int16], ids=["uint8 header", "int16 header"],
+)
+def test_an_integer_header_does_not_truncate_float_data(header_dtype, tmp_path):
+    """Carrying the type across must never round data away.
+
+    The CC module writes its soft labels, which are probabilities, with the header of the conformed
+    image. Where that header is an integer type, taking it would store 0.37 as 0.
+    """
+    soft_labels = np.zeros(SHAPE, dtype=np.float32)
+    soft_labels[0, 0, 0] = 0.37
+    header = nib.Nifti1Image(np.zeros(SHAPE, dtype=header_dtype), AFFINE).header
+
+    out_file = tmp_path / "soft.mgz"
+    nib.save(as_mgh_image(soft_labels, AFFINE, header), out_file)
+
+    written = nib.load(out_file)
+    assert written.get_data_dtype() == np.dtype(">f4")
+    assert np.asarray(written.dataobj)[0, 0, 0] == pytest.approx(0.37)
 
 
 def test_explicit_dtype_still_wins(tmp_path):

@@ -25,7 +25,7 @@ import pandas as pd
 import scipy.ndimage.morphology as morphology
 import torch
 from nibabel.filebasedimages import FileBasedHeader as _Header
-from nibabel.freesurfer.mghformat import MGHError
+from nibabel.freesurfer.mghformat import MGHError, MGHHeader
 from numpy import typing as npt
 from scipy.ndimage import (
     binary_closing,
@@ -266,12 +266,18 @@ def as_mgh_image(
     nib.MGHImage
         The image, with `fov` and the data type set.
     """
-    img = nib.MGHImage(data, affine, header)
+    array = np.asanyarray(data)
+    # without a header, nibabel raises while constructing an image whose type MGH cannot store, so
+    # give it a default one and settle the type below, where the fallback is
+    img = nib.MGHImage(array, affine, MGHHeader() if header is None else header)
     zooms = img.header.get_zooms()
     img.header["fov"] = max(d * z for d, z in zip(img.shape[:3], zooms[:3], strict=True))
 
-    if header is not None:
-        data_dtype = header.get_data_dtype()
+    data_dtype = array.dtype if header is None else header.get_data_dtype()
+    # an integer header would truncate floating-point data, such as the soft labels the CC module
+    # writes with the header of the conformed image, so leave those to nibabel
+    truncates = np.issubdtype(array.dtype, np.floating) and np.issubdtype(data_dtype, np.integer)
+    if not truncates:
         try:
             img.set_data_dtype(data_dtype)
         except MGHError:
