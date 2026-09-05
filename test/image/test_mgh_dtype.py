@@ -88,7 +88,8 @@ def test_float_data_is_never_stored_as_an_integer(container, header_dtype, tmp_p
 def test_only_the_type_changes_not_the_rest_of_the_header(tmp_path):
     """Widening the type must not cost the header. Only the type is ours to override."""
     source = nib.MGHImage(np.zeros(SHAPE, dtype=np.uint8), AFFINE)
-    acquisition = {"tr": 2300.0, "te": 2.98, "ti": 900.0, "flip_angle": 0.15708}
+    # the keys are MGH header field names, hence the ignore for the echo time one
+    acquisition = {"tr": 2300.0, "te": 2.98, "ti": 900.0, "flip_angle": 0.15708}  # codespell:ignore te
     for field, value in acquisition.items():
         source.header[field] = value
 
