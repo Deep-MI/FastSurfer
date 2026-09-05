@@ -254,8 +254,15 @@ def reduce_to_aseg_and_save(
 
     if filename is not None:
         LOGGER.info(f"Outputting aseg: {filename}")
-        mask = as_mgh_image(_data, seg_affine, seg_header)
-        mask.to_filename(filename)
+        image = as_mgh_image(_data, seg_affine, seg_header)
+        # FreeSurfer writes the aseg files as uchar, and an aseg has no label above 255. Without
+        # this, the int16 of the segmentation it is reduced from carries over. Only narrow labels
+        # that survive it: a float would be rounded and a negative value clipped, both silently.
+        uchar = np.iinfo(np.uint8)
+        fits = np.issubdtype(_data.dtype, np.integer) and uchar.min <= _data.min() <= _data.max() <= uchar.max
+        if fits:
+            image.set_data_dtype(np.uint8)
+        image.to_filename(filename)
     return _data
 
 

@@ -6,6 +6,9 @@ as float32, which is how the 1mm copy CerebNet conforms for a high-res subject b
 four times the size of the uint8 one it asked for, holding nothing but integers.
 
 The rule pinned here is that the written type must not depend on the container the header came from.
+
+The aseg files are the second half of the same problem: they inherit the header of the int16
+segmentation they are reduced from, where FreeSurfer, and FastSurfer up to v2.3.3, write uchar.
 """
 
 import nibabel as nib
@@ -13,6 +16,7 @@ import numpy as np
 import pytest
 
 from FastSurferCNN.data_loader.data_utils import as_mgh_image, load_maybe_conform, save_image
+from FastSurferCNN.reduce_to_aseg import reduce_to_aseg_and_save
 
 AFFINE = np.eye(4)
 SHAPE = (8, 8, 8)
@@ -58,6 +62,66 @@ def test_explicit_dtype_still_wins(tmp_path):
     save_image(header, AFFINE, data, out_file, dtype=np.uint8)
 
     assert nib.load(out_file).get_data_dtype() == np.dtype(np.uint8)
+
+
+def dkt_segmentation():
+    """A DKT segmentation as FastSurfer writes it: int16, with cortical labels in the 1000s."""
+    seg = np.zeros((16, 16, 16), dtype=np.int16)
+    seg[0], seg[1], seg[2], seg[3] = 1035, 2035, 251, 17
+    return seg
+
+
+def test_aseg_is_written_as_uchar(tmp_path):
+    """FreeSurfer writes aseg.auto.mgz as uchar, and so did FastSurfer before the int16 carried over."""
+    seg = dkt_segmentation()
+    header = nib.MGHImage(seg, AFFINE).header
+    assert header.get_data_dtype() == np.dtype(">i2"), "the input really is int16"
+
+    out_file = tmp_path / "aseg.auto.mgz"
+    reduce_to_aseg_and_save(seg, AFFINE, header, out_file)
+
+    written = nib.load(out_file)
+    assert written.get_data_dtype() == np.dtype(np.uint8)
+    # the labels survive the narrowing: cortex became 3 and 42, the rest is unchanged
+    assert set(np.unique(np.asarray(written.dataobj))) == {0, 3, 17, 42, 251}
+
+
+def label_above_255():
+    seg = dkt_segmentation()
+    seg[4] = 500
+    return seg, 500.0
+
+
+def negative_label():
+    seg = dkt_segmentation()
+    seg[4] = -1
+    return seg, -1.0
+
+
+def fractional_float():
+    seg = dkt_segmentation().astype(np.float32)
+    seg[4] = 17.6
+    return seg, 17.6
+
+
+@pytest.mark.parametrize(
+    "case", [label_above_255, negative_label, fractional_float],
+    ids=["above 255", "negative", "fractional float"],
+)
+def test_data_that_uchar_would_damage_is_not_narrowed(case, tmp_path):
+    """Narrowing must never round or clip. Only integer labels within 0 to 255 are eligible.
+
+    Without the range and dtype check, uchar turned 17.6 into 18 and -1 into 0, silently.
+    """
+    seg, sentinel = case()
+    header = nib.MGHImage(seg, AFFINE).header
+
+    out_file = tmp_path / "wide.mgz"
+    reduce_to_aseg_and_save(seg, AFFINE, header, out_file)
+
+    written = nib.load(out_file)
+    assert written.get_data_dtype() != np.dtype(np.uint8)
+    assert sentinel in np.asarray(written.dataobj)
 
 
 def test_conformed_copy_of_a_float_input_is_not_float(tmp_path):
