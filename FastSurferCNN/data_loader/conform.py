@@ -1103,6 +1103,11 @@ def conform(
     target_header.set_zooms(np.concatenate([target_vox_size, img.header.get_zooms()[3:]], axis=0))
     target_header.set_data_shape(np.concatenate([reorient.target_shape, img.shape[3:]], axis=0))
 
+    if isinstance(target_header, nib.freesurfer.mghformat.MGHHeader):
+        # FreeSurfer keeps the largest of the three extents in fov. MGHHeader defaults it to 0, and
+        # a header converted from a NIfTI, which has no fov, would keep that 0.
+        target_header["fov"] = np.max(np.asarray(reorient.target_shape) * target_vox_size)
+
     if LOGGER.getEffectiveLevel() <= logging.DEBUG:
         with np.printoptions(precision=2, suppress=True):
             from re import sub

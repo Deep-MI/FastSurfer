@@ -232,8 +232,41 @@ def load_maybe_conform(
 
         # after conforming, save the conformed file
         save_image(header, affine, data, dst_file)
-        img = nib.MGHImage(data, affine, header)
+        img = as_mgh_image(data, affine, header)
     return dst_file, img, data
+
+
+def as_mgh_image(
+        data: np.ndarray,
+        affine: AffineMatrix4x4,
+        header: _Header | None = None,
+) -> nib.MGHImage:
+    """
+    Build an MGHImage from data, affine and header, and fill in its field of view.
+
+    `MGHHeader` defaults `fov` to 0 and a NIfTI header has no `fov` at all, so writing an .mgz whose
+    header came from a .nii input leaves the field empty. FreeSurfer keeps the largest of the three
+    extents there, which deriving it from `data` also gets right when the header is inherited from a
+    volume of a different shape.
+
+    Parameters
+    ----------
+    data : np.ndarray
+        An array containing image data.
+    affine : AffineMatrix4x4
+        Image affine information.
+    header : _Header, optional
+        Image header information; a non-MGH header is converted.
+
+    Returns
+    -------
+    nib.MGHImage
+        The image, with `fov` set from the data shape and the voxel sizes.
+    """
+    img = nib.MGHImage(data, affine, header)
+    zooms = img.header.get_zooms()
+    img.header["fov"] = max(d * z for d, z in zip(img.shape[:3], zooms[:3], strict=True))
+    return img
 
 
 # Save image routine
@@ -267,7 +300,7 @@ def save_image(
     assert valid_ext, f"Output filename does not contain a supported file format {SUPPORTED_OUTPUT_FILE_FORMATS}!"
 
     if save_as.suffix == ".mgz":
-        mgh_img = nib.MGHImage(img_array, affine_info, header_info)
+        mgh_img = as_mgh_image(img_array, affine_info, header_info)
     elif save_as.suffix == ".nii" or save_as.suffixes[-2:] == [".nii", ".gz"]:
         mgh_img = nib.nifti1.Nifti1Pair(img_array, affine_info, header_info)
     else:

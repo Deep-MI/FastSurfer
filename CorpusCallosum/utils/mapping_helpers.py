@@ -8,6 +8,7 @@ from scipy.ndimage import affine_transform
 
 from CorpusCallosum.data.constants import CC_LABEL, FORNIX_LABEL, SUBSEGMENT_LABELS
 from CorpusCallosum.utils.types import Polygon3dType
+from FastSurferCNN.data_loader.data_utils import as_mgh_image
 from FastSurferCNN.utils import (
     AffineMatrix3x3,
     AffineMatrix4x4,
@@ -267,7 +268,7 @@ def apply_transform_to_volume(
         logger.info(f"Saving transformed volume to {output_path}")
         Path(output_path).parent.mkdir(parents=True, exist_ok=True)
         resampled_typecast = resampled.astype((header if header else orig_image).get_data_dtype())
-        nib.save(nib.MGHImage(resampled_typecast, save_vox2ras, header), output_path)
+        nib.save(as_mgh_image(resampled_typecast, save_vox2ras, header), output_path)
     return resampled
 
 
@@ -392,7 +393,7 @@ def map_softlabels_to_orig(
     if orig_space_segmentation_path is not None:
         logger.info(f"Saving segmentation in original space to {orig_space_segmentation_path}")
         nib.save(
-            nib.MGHImage(seg_orig_space, orig.affine, orig.header),
+            as_mgh_image(seg_orig_space, orig.affine, orig.header),
             orig_space_segmentation_path,
         )
     return seg_orig_space
@@ -456,7 +457,7 @@ def map_hard_segmentation_to_orig(
     output_path.parent.mkdir(exist_ok=True, parents=True)
     logger.info(f"Saving edited segmentation in original space to {output_path}")
     nib.save(
-        nib.MGHImage(output, reference_image.affine, reference_image.header),
+        as_mgh_image(output, reference_image.affine, reference_image.header),
         output_path,
     )
     return output

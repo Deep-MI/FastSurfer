@@ -58,6 +58,7 @@ from CorpusCallosum.utils.mapping_helpers import (
 )
 from CorpusCallosum.utils.types import SliceSelection, SubdivisionMethod
 from FastSurferCNN.data_loader.conform import conform, is_conform
+from FastSurferCNN.data_loader.data_utils import as_mgh_image
 from FastSurferCNN.segstats import HelpFormatter
 from FastSurferCNN.utils import (
     AffineMatrix4x4,
@@ -904,7 +905,7 @@ def main(
                 futures.append(
                     thread_executor().submit(
                         nib.save,
-                        nib.MGHImage(cc_fn_softlabels[..., i], fsaverage_midslab_vox2ras, orig.header),
+                        as_mgh_image(cc_fn_softlabels[..., i], fsaverage_midslab_vox2ras, orig.header),
                         sd.filename_by_attribute(f"cc_softlabels_{attr}"),
                     )
                 )
@@ -916,7 +917,7 @@ def main(
             futures.append(
                 thread_executor().submit(
                     nib.save,
-                    nib.MGHImage(cc_fn_seg_labels, fsaverage_midslab_vox2ras, orig.header),
+                    as_mgh_image(cc_fn_seg_labels, fsaverage_midslab_vox2ras, orig.header),
                     _cc_seg_path,
                 )
             )
