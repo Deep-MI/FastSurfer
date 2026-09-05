@@ -23,7 +23,7 @@ import numpy as np
 from numpy import typing as npt
 from scipy import ndimage
 from skimage.measure import label, regionprops
-from skimage.morphology import binary_dilation
+from skimage.morphology import dilation
 
 NT = TypeVar("NT", bound=Number)
 
@@ -35,9 +35,8 @@ def locating_unknowns(gm_binary, wm_mask):
     selem = ndimage.generate_binary_structure(3, 3)
     wm_binary = np.array(wm_mask, dtype=np.bool)
     # gm_binary = (segmap != 0) ^ wm_binary
-    wm_boundary = binary_dilation(wm_binary, selem) ^ wm_binary
-    # wm_boundary = (binary_dilation(wm_boundary, selem))
-    gm_boundary = binary_dilation(gm_binary, selem) ^ gm_binary
+    wm_boundary = dilation(wm_binary, selem) ^ wm_binary
+    gm_boundary = dilation(gm_binary, selem) ^ gm_binary
     boundary_holes = np.logical_and(wm_boundary, gm_boundary)
     return boundary_holes
 
