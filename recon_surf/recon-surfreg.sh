@@ -14,7 +14,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-VERSION='$Id$'
 FS_VERSION_SUPPORT="7.4.1"
 
 # Regular flags default
@@ -268,6 +267,12 @@ min=`date +%M`
 sdir=$SUBJECTS_DIR/$subject/surf
 ldir=$SUBJECTS_DIR/$subject/label
 
+
+# the FastSurfer version for the log and the done file, read from the project so that it cannot go
+# stale. PYTHONPATH is set here rather than relied on, so this works outside the container too.
+version_py="from FastSurferCNN.version import read_and_close_version; print(read_and_close_version())"
+VERSION="$(PYTHONPATH="$FASTSURFER_HOME${PYTHONPATH:+:$PYTHONPATH}" $python -c "$version_py" 2>/dev/null)"
+if [[ -z "$VERSION" ]] ; then VERSION="unknown" ; fi
 
 # Set up log file
 DoneFile=$SUBJECTS_DIR/$subject/scripts/recon-surfreg.done
