@@ -43,6 +43,8 @@ from FastSurferCNN.utils import AffineMatrix4x4, Shape1d, logging, nibabelImage
 # Global Vars
 ##
 SUPPORTED_OUTPUT_FILE_FORMATS = ("mgz", "nii", "nii.gz")
+# the integer types an MGH file can store, narrowest first, so the first that fits is the choice
+MGH_INT_DTYPES = (np.uint8, np.uint16, np.int16, np.int32)
 LOGGER = logging.getLogger(__name__)
 
 ##
@@ -241,8 +243,10 @@ def fits_dtype(array: np.ndarray, dtype: npt.DTypeLike) -> bool:
     """
     Whether every value of `array` survives being stored as `dtype`.
 
-    Only integer targets can lose data here: rounding a float into an integer always loses the
-    fraction, and a floating-point target holds any integer we write.
+    Only integer targets are checked, since that is where this pipeline loses data: a float rounded
+    into an integer loses its fraction, and a label outside the range is clipped. A floating-point
+    target is reported as fitting, which ignores the precision a very large integer or a float64
+    would lose, because MGH offers nothing wider than float32 to move it to.
 
     Parameters
     ----------
@@ -271,6 +275,7 @@ def as_mgh_image(
         data: np.ndarray,
         affine: AffineMatrix4x4,
         header: _Header | None = None,
+        prefer_dtype: npt.DTypeLike | None = None,
 ) -> nib.MGHImage:
     """
     Build an MGHImage from data, affine and header, keeping what the conversion would drop.
@@ -282,10 +287,9 @@ def as_mgh_image(
     which is what FreeSurfer keeps, and deriving it from `data` also gets it right when the header
     is inherited from a volume of a different shape.
 
-    The type is only ever widened, never narrowed past what the data holds: floating-point data is
-    not stored as an integer type, and neither is a value the header's type cannot represent, since
-    both lose data silently. Callers that really want a narrower type, because they know the data
-    fits it, set it on the returned image, as `reduce_to_aseg` does for the uchar aseg files.
+    The type is never narrowed past what the data holds: floating-point data is not stored as an
+    integer type, and neither is a value the header's type cannot represent, since both lose data
+    silently. Where the header does not fit, the narrowest type MGH can store that does is used.
 
     Parameters
     ----------
@@ -295,6 +299,10 @@ def as_mgh_image(
         Image affine information.
     header : _Header, optional
         Image header information; a non-MGH header is converted.
+    prefer_dtype : npt.DTypeLike, optional
+        A narrower type to use if the data fits it, for callers who know what their output should
+        be, such as the uchar aseg files. Ignored when it would round or clip a value, so it cannot
+        be used to force a lossy type; `save_image` takes a `dtype` for that.
 
     Returns
     -------
@@ -309,16 +317,20 @@ def as_mgh_image(
     img.header["fov"] = max(d * z for d, z in zip(img.shape[:3], zooms[:3], strict=True))
 
     data_dtype = np.dtype(array.dtype if header is None else header.get_data_dtype())
-    if np.issubdtype(array.dtype, np.floating) and np.issubdtype(data_dtype, np.integer):
+    if prefer_dtype is not None and fits_dtype(array, prefer_dtype):
+        data_dtype = np.dtype(prefer_dtype)
+    elif np.issubdtype(array.dtype, np.floating) and np.issubdtype(data_dtype, np.integer):
         # an integer type would round floating-point data away, as it did to the CC soft labels,
         # which are probabilities written with the header of the conformed image
         data_dtype = np.dtype(np.float32)
     elif not fits_dtype(array, data_dtype):
-        # a header narrower than its data would clip it, silently
-        LOGGER.warning(
-            f"The data does not fit {data_dtype}, writing {array.dtype} instead to avoid clipping."
+        # a header narrower than its data would clip it, silently. Widening to the array's own type
+        # is not enough: MGH cannot store int64, and falling back would clip after all.
+        wider = next(
+            (np.dtype(t) for t in MGH_INT_DTYPES if fits_dtype(array, t)), np.dtype(np.float32)
         )
-        data_dtype = array.dtype
+        LOGGER.warning(f"The data does not fit {data_dtype}, writing {wider} instead to avoid clipping.")
+        data_dtype = wider
     try:
         img.set_data_dtype(data_dtype)
     except MGHError:
@@ -367,8 +379,10 @@ def save_image(
         raise ValueError(f"Invalid file extension of {save_as}, must be .mgz, .nii or .nii.gz!")
 
     if dtype is not None:
-        # an explicit dtype is the caller's decision, so it is applied as given, but it falls back
-        # like the inferred one rather than aborting the run
+        # an explicit dtype is the caller's decision, so it is applied as given even where it loses
+        # data, but it says so, and it falls back like the inferred one rather than aborting the run
+        if not fits_dtype(np.asanyarray(img_array), dtype):
+            LOGGER.warning(f"The data does not fit the requested {np.dtype(dtype)}, values will clip.")
         try:
             mgh_img.set_data_dtype(dtype)
         except MGHError:

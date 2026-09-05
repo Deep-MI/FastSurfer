@@ -113,6 +113,63 @@ def test_integer_data_wider_than_the_header_is_not_clipped(container, tmp_path):
     assert np.asarray(written.dataobj).max() == 500
 
 
+@pytest.mark.parametrize(
+    ("values", "expected"),
+    [
+        ([0, 500], np.dtype(">u2")),
+        ([-1, 500], np.dtype(">i2")),
+        ([0, 2 ** 20], np.dtype(">i4")),
+    ],
+    ids=["fits uint16", "needs a sign", "needs int32"],
+)
+def test_widening_picks_a_type_mgh_can_store(values, expected, tmp_path):
+    """int64 is the default integer width here, and MGH cannot store it.
+
+    Widening to the array's own type therefore hit the MGHError fallback, which handed the type back
+    to the narrow header and clipped after all: 500 was written as 255, with two log lines saying
+    first that clipping had been avoided and then that it had not.
+    """
+    labels = np.zeros(SHAPE, dtype=np.int64)
+    labels[0, 0, 0], labels[0, 0, 1] = values
+    header = nib.MGHImage(np.zeros(SHAPE, dtype=np.uint8), AFFINE).header
+
+    out_file = tmp_path / "labels.mgz"
+    nib.save(as_mgh_image(labels, AFFINE, header), out_file)
+
+    written = nib.load(out_file)
+    assert written.get_data_dtype() == expected
+    assert set(np.asarray(written.dataobj).flatten().tolist()) == {0, *values}
+
+
+def test_prefer_dtype_is_ignored_when_it_would_lose_data(tmp_path):
+    """The narrowing knob is a preference, not a force, so it cannot be used to clip."""
+    labels = np.zeros(SHAPE, dtype=np.int16)
+    labels[0, 0, 0] = 500
+    header = nib.MGHImage(labels, AFFINE).header
+
+    fitting = as_mgh_image(np.zeros(SHAPE, dtype=np.int16), AFFINE, header, prefer_dtype=np.uint8)
+    assert fitting.get_data_dtype() == np.dtype(np.uint8), "honoured where the data fits"
+
+    out_file = tmp_path / "labels.mgz"
+    nib.save(as_mgh_image(labels, AFFINE, header, prefer_dtype=np.uint8), out_file)
+    written = nib.load(out_file)
+    assert written.get_data_dtype() != np.dtype(np.uint8)
+    assert np.asarray(written.dataobj).max() == 500
+
+
+def test_explicit_dtype_says_when_it_clips(tmp_path, caplog):
+    """save_image still forces the type, since run_prediction narrows with it, but no longer silently."""
+    labels = np.zeros(SHAPE, dtype=np.int16)
+    labels[0, 0, 0] = 500
+    header = nib.MGHImage(labels, AFFINE).header
+
+    out_file = tmp_path / "forced.mgz"
+    save_image(header, AFFINE, labels, out_file, dtype=np.uint8)
+
+    assert nib.load(out_file).get_data_dtype() == np.dtype(np.uint8), "the caller's decision stands"
+    assert "does not fit" in caplog.text
+
+
 def test_fits_dtype():
     """The shared rule the writers narrow by."""
     assert fits_dtype(np.zeros(SHAPE, np.int16), np.uint8), "in range"

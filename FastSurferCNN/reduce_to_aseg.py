@@ -25,7 +25,7 @@ import scipy.ndimage
 from skimage.filters import gaussian
 from skimage.measure import label
 
-from FastSurferCNN.data_loader.data_utils import as_mgh_image, fits_dtype
+from FastSurferCNN.data_loader.data_utils import as_mgh_image
 from FastSurferCNN.utils import AffineMatrix4x4, ShapeType, logging, nibabelHeader, nibabelImage
 from FastSurferCNN.utils.brainvolstats import mask_in_array
 from FastSurferCNN.utils.logging import setup_logging
@@ -238,10 +238,8 @@ def create_mask_and_save(
     mask_data = create_mask(seg, 5, 4)
     if filename is not None:
         LOGGER.info(f"Outputting mask: {filename}")
-        mask = as_mgh_image(mask_data, seg_affine, seg_header)
         # a mask is uchar, like the aseg, and not the type of the segmentation it was derived from
-        if fits_dtype(mask_data, np.uint8):
-            mask.set_data_dtype(np.uint8)
+        mask = as_mgh_image(mask_data, seg_affine, seg_header, prefer_dtype=np.uint8)
         mask.to_filename(filename)
     return mask_data
 
@@ -257,11 +255,9 @@ def reduce_to_aseg_and_save(
 
     if filename is not None:
         LOGGER.info(f"Outputting aseg: {filename}")
-        image = as_mgh_image(_data, seg_affine, seg_header)
         # FreeSurfer writes the aseg files as uchar, and an aseg has no label above 255. Without
         # this, the int16 of the segmentation it is reduced from carries over.
-        if fits_dtype(_data, np.uint8):
-            image.set_data_dtype(np.uint8)
+        image = as_mgh_image(_data, seg_affine, seg_header, prefer_dtype=np.uint8)
         image.to_filename(filename)
     return _data
 
@@ -275,7 +271,8 @@ if __name__ == "__main__":
     LOGGER.info(f"Reading in aparc+aseg: {options.input_seg} ...")
     inseg = cast(nibabelImage, nib.load(options.input_seg))
     inseg_data = np.asanyarray(inseg.dataobj)
-    inseg_header = inseg.header
+    # a copy, since it outlives the load and is handed to a thread below
+    inseg_header = inseg.header.copy()
     inseg_affine = inseg.affine
 
     # get mask
@@ -303,9 +300,7 @@ if __name__ == "__main__":
         aseg = flip_wm_islands(aseg)
 
     LOGGER.info(f"Outputting aseg: {options.output_seg}")
-    aseg_fin = as_mgh_image(aseg, inseg_affine, inseg_header)
-    if fits_dtype(aseg, np.uint8):
-        aseg_fin.set_data_dtype(np.uint8)
+    aseg_fin = as_mgh_image(aseg, inseg_affine, inseg_header, prefer_dtype=np.uint8)
     aseg_fin.to_filename(options.output_seg)
 
     sys.exit(0)
