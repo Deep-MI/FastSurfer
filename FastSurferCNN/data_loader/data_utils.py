@@ -252,6 +252,9 @@ def as_mgh_image(
     which is what FreeSurfer keeps, and deriving it from `data` also gets it right when the header
     is inherited from a volume of a different shape.
 
+    Floating-point data is never stored as an integer type, whatever the header says, since that
+    would round it away. Pass `dtype` to `save_image` where a narrower type really is wanted.
+
     Parameters
     ----------
     data : np.ndarray
@@ -274,17 +277,17 @@ def as_mgh_image(
     img.header["fov"] = max(d * z for d, z in zip(img.shape[:3], zooms[:3], strict=True))
 
     data_dtype = array.dtype if header is None else header.get_data_dtype()
-    # an integer header would truncate floating-point data, such as the soft labels the CC module
-    # writes with the header of the conformed image, so leave those to nibabel
-    truncates = np.issubdtype(array.dtype, np.floating) and np.issubdtype(data_dtype, np.integer)
-    if not truncates:
-        try:
-            img.set_data_dtype(data_dtype)
-        except MGHError:
-            # MGH stores uint8, uint16, int16, int32 and float32 only
-            LOGGER.warning(
-                f"An MGH file cannot store {data_dtype}, writing {img.get_data_dtype()} instead."
-            )
+    # an integer type would round floating-point data away, as it did to the CC soft labels, which
+    # are probabilities written with the header of the conformed image
+    if np.issubdtype(array.dtype, np.floating) and np.issubdtype(data_dtype, np.integer):
+        data_dtype = np.dtype(np.float32)
+    try:
+        img.set_data_dtype(data_dtype)
+    except MGHError:
+        # MGH stores uint8, uint16, int16, int32 and float32 only
+        LOGGER.warning(
+            f"An MGH file cannot store {data_dtype}, writing {img.get_data_dtype()} instead."
+        )
     return img
 
 

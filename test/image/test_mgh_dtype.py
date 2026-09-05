@@ -59,25 +59,49 @@ def test_unstorable_dtype_falls_back_instead_of_raising(with_header, caplog):
     assert "cannot store" in caplog.text
 
 
-@pytest.mark.parametrize(
-    "header_dtype", [np.uint8, np.int16], ids=["uint8 header", "int16 header"],
-)
-def test_an_integer_header_does_not_truncate_float_data(header_dtype, tmp_path):
-    """Carrying the type across must never round data away.
+@pytest.mark.parametrize("header_dtype", [np.uint8, np.int16], ids=["uint8", "int16"])
+@pytest.mark.parametrize("container", ["nifti", "mgh", "none"])
+def test_float_data_is_never_stored_as_an_integer(container, header_dtype, tmp_path):
+    """Probabilities must survive, whatever integer type the header carries.
 
-    The CC module writes its soft labels, which are probabilities, with the header of the conformed
-    image. Where that header is an integer type, taking it would store 0.37 as 0.
+    The CC module writes its soft labels with the header of the conformed image, which is uchar, so
+    0.37 was stored as 0 and the probability map came back as a binary mask. An MGH header is the
+    case that matters: nibabel applies its type while constructing the image, not only afterwards.
     """
     soft_labels = np.zeros(SHAPE, dtype=np.float32)
     soft_labels[0, 0, 0] = 0.37
-    header = nib.Nifti1Image(np.zeros(SHAPE, dtype=header_dtype), AFFINE).header
+    integers = np.zeros(SHAPE, dtype=header_dtype)
+    headers = {
+        "nifti": nib.Nifti1Image(integers, AFFINE).header,
+        "mgh": nib.MGHImage(integers, AFFINE).header,
+        "none": None,
+    }
 
     out_file = tmp_path / "soft.mgz"
-    nib.save(as_mgh_image(soft_labels, AFFINE, header), out_file)
+    nib.save(as_mgh_image(soft_labels, AFFINE, headers[container]), out_file)
 
     written = nib.load(out_file)
     assert written.get_data_dtype() == np.dtype(">f4")
     assert np.asarray(written.dataobj)[0, 0, 0] == pytest.approx(0.37)
+
+
+def test_only_the_type_changes_not_the_rest_of_the_header(tmp_path):
+    """Widening the type must not cost the header. Only the type is ours to override."""
+    source = nib.MGHImage(np.zeros(SHAPE, dtype=np.uint8), AFFINE)
+    acquisition = {"tr": 2300.0, "te": 2.98, "ti": 900.0, "flip_angle": 0.15708}
+    for field, value in acquisition.items():
+        source.header[field] = value
+
+    soft_labels = np.zeros(SHAPE, dtype=np.float32)
+    soft_labels[0, 0, 0] = 0.37
+    out_file = tmp_path / "soft.mgz"
+    nib.save(as_mgh_image(soft_labels, AFFINE, source.header), out_file)
+
+    written = nib.load(out_file)
+    assert written.get_data_dtype() == np.dtype(">f4"), "the type is widened"
+    for field, value in acquisition.items():
+        assert float(written.header[field]) == pytest.approx(value), f"{field} survives"
+    assert np.allclose(written.affine, AFFINE)
 
 
 def test_explicit_dtype_still_wins(tmp_path):
