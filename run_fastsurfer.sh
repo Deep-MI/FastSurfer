@@ -1329,7 +1329,7 @@ then
     # generate file names of for the analysis
     asegdkt_withcc_segfile="$(add_file_suffix "$asegdkt_segfile" "withCC")"
     asegdkt_withcc_vinn_statsfile="$(add_file_suffix "$asegdkt_vinn_statsfile" "withCC")"
-    aseg_auto_statsfile="$(dirname "$aseg_vinn_statsfile")/aseg.auto.mgz"
+    aseg_auto_statsfile="$(add_file_suffix "$aseg_vinn_statsfile" "withCC")"
     callosum_upright_seg="$subject_dir/mri/callosum.CC.upright.mgz"
     callosum_upright_seg_manedit="$(add_file_suffix "$callosum_upright_seg" "manedit")"
     callosum_seg_manedit="$(add_file_suffix "$callosum_seg" "manedit")"
