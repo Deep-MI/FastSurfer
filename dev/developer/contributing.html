@@ -561,14 +561,22 @@ git<span class="w"> </span>checkout<span class="w"> </span>-b<span class="w"> </
 </div>
 </li>
 <li><p>Edit the code and implement your changes/features</p>
-<p>Two things to observe while you do:</p>
+<p>Four things to observe while you do:</p>
 <p><strong>Do not add inline author tags.</strong> Leave out <code class="docutils literal notranslate"><span class="pre">&#64;author</span></code>, <code class="docutils literal notranslate"><span class="pre">Author:</span></code>, <code class="docutils literal notranslate"><span class="pre">Created</span> <span class="pre">by</span></code>, <code class="docutils literal notranslate"><span class="pre">Created</span> <span class="pre">on</span></code>,
-<code class="docutils literal notranslate"><span class="pre">Modified</span> <span class="pre">by</span></code> and the like, in new files as well as in files you change. Most files end up with
-several authors, and git records who wrote each line, so <code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">log</span></code>, <code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">blame</span></code> and the GitHub
-interface report it accurately; a tag in the file says nothing about the parts somebody else has
-since rewritten, and nobody remembers to update it.</p>
-<p><strong>Run the checks before you commit</strong>, so a pull request does not fail on something you can fix in
-a second. These are the checks CI runs:</p>
+<code class="docutils literal notranslate"><span class="pre">Modified</span> <span class="pre">by</span></code> and the like, in new files as well as in files you change. Most files end up with several authors, and
+git records who wrote each line, so <code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">log</span></code>, <code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">blame</span></code> and the GitHub interface report it accurately; a tag in
+the file says nothing about the parts somebody else has since rewritten, and nobody remembers to update it.</p>
+<p><strong>Comments describe what the code does now.</strong> Do not write how something used to behave or which bug a line fixes, as
+in “this used to be stored as float32” or “without this the int16 carries over”. State the rule the code follows
+instead: “probabilities are float, so ask for float”. A present fact about a dependency is worth keeping, for example
+that <code class="docutils literal notranslate"><span class="pre">MGHHeader.from_header</span></code> drops the data type, because it explains why the code exists; the before-and-after is
+not, because it says nothing about today and grows stale once the bug is out of living memory. That belongs in the
+commit message, the pull request and the release notes, where it is dated. This applies to docstrings and test
+docstrings as much as to inline comments.</p>
+<p><strong>No double hyphens or em dashes in prose.</strong> Not in comments, docstrings, documentation, commit messages or pull
+request descriptions. Use a comma, a colon or a second sentence.</p>
+<p><strong>Run the checks before you commit</strong>, so a pull request does not fail on something you can fix in a second. These are
+the checks CI runs:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>uv<span class="w"> </span>run<span class="w"> </span>--no-project<span class="w"> </span>--with<span class="w"> </span>ruff<span class="w"> </span>ruff<span class="w"> </span>check<span class="w"> </span>.
 uv<span class="w"> </span>run<span class="w"> </span>--no-project<span class="w"> </span>--with<span class="w"> </span>pytest<span class="w"> </span>pytest<span class="w"> </span>test/shell/test_bash4_lint.py<span class="w"> </span>test/shell/test_fs_time.py
 uv<span class="w"> </span>run<span class="w"> </span>--no-project<span class="w"> </span>--with<span class="w"> </span>codespell<span class="w"> </span>codespell<span class="w"> </span>--ignore-words<span class="w"> </span>.codespellignore<span class="w"> </span><span class="se">\</span>
@@ -576,23 +584,20 @@ uv<span class="w"> </span>run<span class="w"> </span>--no-project<span class="w"
 <span class="w">  </span>--skip<span class="w"> </span><span class="s1">'./build,./doc/images,./Tutorial,./.git,./.mypy_cache,./.pytest_cache,./.venv'</span><span class="w"> </span>.
 </pre></div>
 </div>
-<p>Ruff is the lint and style check. The shell tests scan the shipped scripts for constructs the
-bash 3.2 that macOS provides does not have, which is easy to break from Linux; the test that
-actually runs them under bash 3.2 needs a macOS machine and runs in CI. Codespell finds typos;
-the skip list is the one CI uses, and it reads untracked files too, so add any local virtualenv
-or scratch directory of your own or expect noise from it. Ruff and codespell are also declared
-in the <code class="docutils literal notranslate"><span class="pre">style</span></code> extra of <code class="docutils literal notranslate"><span class="pre">pyproject.toml</span></code>, so <code class="docutils literal notranslate"><span class="pre">uv</span> <span class="pre">run</span> <span class="pre">--extra</span> <span class="pre">style</span> <span class="pre">&lt;tool&gt;</span></code> works as well. CI
-takes Ruff from that extra, installs pytest on its own, and runs codespell through its own
-GitHub action.</p>
+<p>Ruff is the lint and style check. The shell tests scan the shipped scripts for constructs the bash 3.2 that macOS
+provides does not have, which is easy to break from Linux; the test that actually runs them under bash 3.2 needs a
+macOS machine and runs in CI. Codespell finds typos; the skip list is the one CI uses, and it reads untracked files
+too, so add any local virtualenv or scratch directory of your own or expect noise from it. Ruff and codespell are
+also declared in the <code class="docutils literal notranslate"><span class="pre">style</span></code> extra of <code class="docutils literal notranslate"><span class="pre">pyproject.toml</span></code>, so <code class="docutils literal notranslate"><span class="pre">uv</span> <span class="pre">run</span> <span class="pre">--extra</span> <span class="pre">style</span> <span class="pre">&lt;tool&gt;</span></code> works as well. CI takes Ruff
+from that extra, installs pytest on its own, and runs codespell through its own GitHub action.</p>
 </li>
 <li><p>Commit your changes: <code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">commit</span> <span class="pre">-am</span> <span class="pre">'Add</span> <span class="pre">some</span> <span class="pre">feature'</span></code></p></li>
-<li><p>Push to the branch to your GitHub: <code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">push</span> <span class="pre">origin</span> <span class="pre">my-new-feature</span></code></p></li>
-</ol>
+<li><p>Push to the branch to your GitHub: <code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">push</span> <span class="pre">origin</span> <span class="pre">my-new-feature</span></code></p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>git<span class="w"> </span>commit<span class="w"> </span>-am<span class="w"> </span><span class="s1">'Add some feature'</span>
 git<span class="w"> </span>push<span class="w"> </span>origin<span class="w"> </span>my-new-feature
 </pre></div>
 </div>
-<ol class="arabic simple" start="11">
+</li>
 <li><p><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/compare">Create a new pull request on the GitHub web interface</a> from your
 branch into Deep-NI <strong>dev branch</strong> (not into stable): Select “Compare across forks” and then your fork on the right,
 finally, select your <code class="docutils literal notranslate"><span class="pre">my-new-feature</span></code> branch to compare to.</p></li>
@@ -621,8 +626,8 @@ git<span class="w"> </span>push<span class="w"> </span>-f<span class="w"> </span
 </section>
 <section id="option-2-merging">
 <h3>Option 2: Merging<a class="headerlink" href="#option-2-merging" title="Link to this heading">¶</a></h3>
-<p>If other people co-develop in the <code class="docutils literal notranslate"><span class="pre">my-new-feature</span></code> branch, rewriting history with a rebase is not possible.
-Instead, you need to merge <code class="docutils literal notranslate"><span class="pre">upstream/dev</span></code> into your branch:</p>
+<p>If other people co-develop in the <code class="docutils literal notranslate"><span class="pre">my-new-feature</span></code> branch, rewriting history with a rebase is not possible. Instead, you
+need to merge <code class="docutils literal notranslate"><span class="pre">upstream/dev</span></code> into your branch:</p>
 <ol class="arabic" start="12">
 <li><p>Switch into dev branch: <code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">checkout</span> <span class="pre">dev</span></code></p></li>
 <li><p>Update your dev branch: <code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">pull</span> <span class="pre">upstream</span> <span class="pre">dev</span></code></p></li>
@@ -638,8 +643,8 @@ git<span class="w"> </span>push<span class="w"> </span>origin<span class="w"> </
 </div>
 </li>
 </ol>
-<p>Either method updates the pull request and resolves conflicts, so that we can merge it once it is complete.
-Once the pull request is merged by us you can delete the feature branch locally and on your fork:</p>
+<p>Either method updates the pull request and resolves conflicts, so that we can merge it once it is complete. Once the
+pull request is merged by us you can delete the feature branch locally and on your fork:</p>
 <ol class="arabic simple" start="17">
 <li><p>Switch into dev branch: <code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">checkout</span> <span class="pre">dev</span></code></p></li>
 <li><p>Delete feature branch: <code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">branch</span> <span class="pre">-D</span> <span class="pre">my-new-feature</span></code></p></li>
@@ -654,9 +659,9 @@ not really necessary.</p>
 <li><p>Make sure it is identical to upstream: <code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">pull</span> <span class="pre">upstream</span> <span class="pre">dev</span></code></p></li>
 <li><p>Check out a new feature branch and continue from 7. above.</p></li>
 </ul>
-<p>Another good command, if – for any reason – your <code class="docutils literal notranslate"><span class="pre">dev</span></code> branch diverged, which should never happen as you never
-commit to it, you can reset it by <code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">reset</span> <span class="pre">--hard</span> <span class="pre">upstream/dev</span></code>. Make absolutely sure you are in your <code class="docutils literal notranslate"><span class="pre">dev</span></code> branch
-(not the feature branch) and be aware that this will delete any local changes!</p>
+<p>Another good command, if your <code class="docutils literal notranslate"><span class="pre">dev</span></code> branch diverged for any reason, which should never happen as you never commit
+to it, you can reset it by <code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">reset</span> <span class="pre">--hard</span> <span class="pre">upstream/dev</span></code>. Make absolutely sure you are in your <code class="docutils literal notranslate"><span class="pre">dev</span></code> branch (not the
+feature branch) and be aware that this will delete any local changes!</p>
 </section>
 </section>
 <section id="attribution">
