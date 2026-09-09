@@ -11,7 +11,8 @@ The segmentation module outputs the files shown in the table below. The two prim
 | mri       | mask.mgz                     | asegdkt | brainmask                                                          |
 | mri       | orig.mgz                     | asegdkt | conformed image                                                    |
 | mri       | orig_nu.mgz                  | asegdkt | biasfield-corrected image                                          |
-| mri/orig  | 001.mgz                      | asegdkt | original image                                                     |
+| mri       | rawavg.mgz                   | input   | input image in MGH format, read by the surface pipeline            |
+| mri/orig  | 001.\<ext\>                  | input   | verbatim copy of the input, in the format it was passed            |
 | scripts   | deep-seg.log                 | asegdkt | logfile                                                            |
 | stats     | aseg+DKT.stats               | asegdkt | table of cortical and subcortical segmentation statistics          |
 

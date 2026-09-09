@@ -528,18 +528,25 @@ are inherited from FreeSurfer.</p>
 <span class="c1"># Run FastSurfer</span>
 <span class="nv">$FASTSURFER_HOME</span>/run_fastsurfer.sh<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--sd<span class="w"> </span><span class="nv">$SUBJECTS_DIR</span><span class="w"> </span>--sid<span class="w"> </span>case_with_edits<span class="w"> </span><span class="se">\</span>
-<span class="w">    </span>--t1<span class="w"> </span><span class="nv">$SUBJECTS_DIR</span>/case_with_edits/mri/orig/001.mgz<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--t1<span class="w"> </span>/path/to/the/original/T1.mgz<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--fs_license<span class="w"> </span><span class="nv">$FREESURFER_HOME</span>/.license<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--edits<span class="w"> </span><span class="c1"># more flags as needed, e.g. --3T --threads 4</span>
 </pre></div>
 </div>
+<p>Pass the same <code class="docutils literal notranslate"><span class="pre">--t1</span></code> as the first run. Editing refines results for one image, so the subject
+directory belongs to that image, and FastSurfer stops with an error rather than mixing two inputs
+into one directory. The surest way to pass the same file is to pass the copy FastSurfer kept,
+<code class="docutils literal notranslate"><span class="pre">&lt;subject_dir&gt;/mri/orig/001.&lt;ext&gt;</span></code>, which is byte for byte the image you originally gave it, under
+whatever extension you gave it in, <code class="docutils literal notranslate"><span class="pre">001.mgz</span></code> for an MGH input and <code class="docutils literal notranslate"><span class="pre">001.nii.gz</span></code> for a NIfTI one.
+Processing a genuinely different image, a bias field corrected version for instance, is a new run
+into a new <code class="docutils literal notranslate"><span class="pre">--sid</span></code>.</p>
 <p>Note, a re-run of the segmentation pipeline, as in the command above, should not be harmful, but is only required if the <a class="reference internal" href="#asegdkt-segfile"><span class="std std-ref">asegdkt_segfile</span></a> was edited. Therefore, in most cases, we can skip the segmentation step with</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Setup FASTSURFER and FREESURFER ... (see above)</span>
 
 <span class="c1"># Run FastSurfer</span>
 <span class="nv">$FASTSURFER_HOME</span>/run_fastsurfer.sh<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--sd<span class="w"> </span><span class="nv">$SUBJECTS_DIR</span><span class="w"> </span>--sid<span class="w"> </span>case_with_edits<span class="w"> </span><span class="se">\</span>
-<span class="w">    </span>--t1<span class="w"> </span><span class="nv">$SUBJECTS_DIR</span>/case_with_edits/mri/orig/001.mgz<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--t1<span class="w"> </span>/path/to/the/original/T1.mgz<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--fs_license<span class="w"> </span><span class="nv">$FREESURFER_HOME</span>/.license<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--edits<span class="w"> </span>--surf_only<span class="w"> </span><span class="c1"># more flags as needed, e.g. --3T --threads 4</span>
 </pre></div>

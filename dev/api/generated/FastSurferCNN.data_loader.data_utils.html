@@ -1160,13 +1160,13 @@ available at all: MGH has no float64 and no int64, NIfTI has both.</p>
 <dt class="sig sig-object py" id="FastSurferCNN.data_loader.data_utils.storable_dtype">
 <span class="sig-prename descclassname"><span class="pre">FastSurferCNN.data_loader.data_utils.</span></span><span class="sig-name descname"><span class="pre">storable_dtype</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">array</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">candidates=(&lt;class</span> <span class="pre">'numpy.uint8'&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">&lt;class</span> <span class="pre">'numpy.uint16'&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">&lt;class</span> <span class="pre">'numpy.int16'&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">&lt;class</span> <span class="pre">'numpy.int32'&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">&lt;class</span> <span class="pre">'numpy.float32'&gt;)</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//FastSurferCNN/data_loader/data_utils.py#L352-L398"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.data_loader.data_utils.storable_dtype" title="Link to this definition">¶</a></dt>
 <dd><p>The array’s own type if the output format can store it, else the closest one that holds it.</p>
-<p>For an output whose type is not ours to choose: <code class="xref py py-obj docutils literal notranslate"><span class="pre">mri/orig/001.mgz</span></code>, the archival copy of
-whatever the scanner or the conversion tool produced. Every other output has a type that belongs
-to the output rather than to the input, so its caller names it and <a class="reference internal" href="#FastSurferCNN.data_loader.data_utils.choose_dtype" title="FastSurferCNN.data_loader.data_utils.choose_dtype"><code class="xref py py-obj docutils literal notranslate"><span class="pre">choose_dtype</span></code></a> refuses
-anything that does not fit.</p>
+<p>For an output whose type is not ours to choose: <code class="xref py py-obj docutils literal notranslate"><span class="pre">mri/rawavg.mgz</span></code>, the MGH copy of whatever the
+scanner or the conversion tool produced. Every other output has a type that belongs to the
+output rather than to the input, so its caller names it and <a class="reference internal" href="#FastSurferCNN.data_loader.data_utils.choose_dtype" title="FastSurferCNN.data_loader.data_utils.choose_dtype"><code class="xref py py-obj docutils literal notranslate"><span class="pre">choose_dtype</span></code></a> refuses anything that
+does not fit.</p>
 <p>Closest means the same kind first, so a float is never answered with an integer and signed data
 stays signed, and within the kind the narrowest that holds every value. An MGH file has no
-float64, so a float64 input is archived as float32.</p>
+float64, so a float64 input is written as float32.</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><dl>
