@@ -213,6 +213,10 @@ def main(
     """
     if threads is not None and threads > 1:
         set_num_threads(threads)
+    # here on the main thread, not in Inference, because the T2 registration below is submitted to
+    # a worker before Inference exists and neuroreg does no thread handling of its own. Without
+    # this it would run on torch's own default, ignoring --threads.
+    torch.set_num_threads(get_num_threads())
 
     from concurrent.futures import Future
 
