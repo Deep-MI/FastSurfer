@@ -162,7 +162,10 @@ else
 
     prealigned_name=$mdir/segreg_prealigned.mgz
     target_geom="$FREESURFER_HOME/average/mni305.cor.mgz" # only used for its conformed 1mm header; does not imply registration to this template
-    cmd=($python -m neuroreg.cli.vol2vol --in "$norm_name" --transform "$prealigned_lta" --ref "$target_geom" --interp linear --out "$prealigned_name")
+    # --keep-dtype: norm.mgz is uchar and talairach_avi below converts this to Analyze, so the
+    # float32 default would change the intensities mpr2mni305 sees, and with them talairach.xfm
+    cmd=($python -m neuroreg.cli.vol2vol --in "$norm_name" --transform "$prealigned_lta"
+         --ref "$target_geom" --interp linear --keep-dtype --out "$prealigned_name")
     run_it "$LF" "${cmd[@]}"
 
     # talairach.xfm: compute talairach full head (25sec)

@@ -228,8 +228,6 @@ fi
 # check that SUBJECTS_DIR exists
 check_create_subjects_dir_properties "$SUBJECTS_DIR"
 
-auto_detect_fs_license "the longitudinal template preparation" || exit $?
-
 ################################## SETUP and LOGFILE ##############################
 
 
@@ -422,15 +420,16 @@ then
 
   # 2. create the base brainmask by mapping the norm into the base pose. The transform is
   #    RAS-to-RAS, so the target geometry is taken from the input itself (--ref), keeping
-  #    the base in the time point geometry.
+  #    the base in the time point geometry. --keep-dtype because the inputs are conformed
+  #    uchar and the default is float32, which the base run would not accept as conformed.
   cmd="$python -m neuroreg.cli.vol2vol --in ${normInVols[0]} --transform ${ltaXforms[0]}"
-  cmd="$cmd --ref ${normInVols[0]} --interp cubic"
+  cmd="$cmd --ref ${normInVols[0]} --interp cubic --keep-dtype"
   cmd="$cmd --out ${SUBJECTS_DIR}/$tid/mri/base_brainmask${extension}"
   RunIt "$cmd" "$LF"
 
   # 3. create the base orig volume the same way
   cmd="$python -m neuroreg.cli.vol2vol --in ${subjInVols[0]} --transform ${ltaXforms[0]}"
-  cmd="$cmd --ref ${subjInVols[0]} --interp cubic"
+  cmd="$cmd --ref ${subjInVols[0]} --interp cubic --keep-dtype"
   cmd="$cmd --out ${SUBJECTS_DIR}/$tid/mri/orig.mgz"
   RunIt "$cmd" "$LF"
 
@@ -446,16 +445,17 @@ else #more than 1 time point:
   cmd="$cmd --lta ${ltaXforms[*]}"
   cmd="$cmd --template ${SUBJECTS_DIR}/$tid/mri/base_brainmask${extension}"
   cmd="$cmd --average ${robust_template_avg_arg}"
-  cmd="$cmd --sat 4.685 $device_opt"
+  cmd="$cmd --sat 4.685 --keep-dtype $device_opt"
   RunIt "$cmd" "$LF"
 
   # create the 'mean/median' input (orig) volume by reusing the transforms above (no
   # registration, --noit); the per-tp LTAs carry the base geometry so orig.mgz lands on
-  # the same grid as base_brainmask:
+  # the same grid as base_brainmask. --keep-dtype because the time points are conformed
+  # uchar and the base run checks orig.mgz against exactly that:
   cmd="$python -m neuroreg.cli.multireg --mov ${subjInVols[*]}"
   cmd="$cmd --average ${robust_template_avg_arg}"
   cmd="$cmd --ixforms ${ltaXforms[*]}"
-  cmd="$cmd --noit"
+  cmd="$cmd --noit --keep-dtype"
   t1=${SUBJECTS_DIR}/$tid/mri/orig.mgz
   cmd="$cmd --template $t1 $device_opt"
   RunIt "$cmd" "$LF"
