@@ -61,13 +61,16 @@ def t1_to_t2_registration(
 
     Raises
     ------
-    RuntimeError
-        If the requested neuroreg registration backend fails.
+    ValueError
+        If `registration_type` names a mode this function does not implement.
     """
     from neuroreg import coreg
 
     if registration_type == "coreg":
         LOGGER.info("Running neuroreg.coreg for T2-to-T1 registration.")
+        # on the CPU, coreg's default. Whether a GPU would be faster here has not been measured.
+        # The thread count is the process-wide torch one, set in run_prediction before this is
+        # submitted, since neuroreg does no thread handling of its own.
         coreg(
             str(t2_path),
             str(t1_path),
