@@ -473,6 +473,8 @@ srun_fastsurfer.sh [--data &lt;directory to search images&gt;]
     [--num_cases_per_task &lt;number&gt;] [--cpu_only] [--num_cpus_per_task &lt;number of cpus to allocate for seg&gt;]
     [--time_seg &lt;timelimit&gt;] [--time_surf &lt;timelimit&gt;] [--mem_seg &lt;number (GB)&gt;] [--mem_surf &lt;number (GB)&gt;]
     [--partition &lt;slurm partition&gt;] [--partition_seg &lt;slurm partition&gt;] [--partition_surf &lt;slurm partition&gt;]
+    [--extra_slurm_options &lt;sbatch options&gt;] [--extra_slurm_options_seg &lt;sbatch options&gt;]
+    [--extra_slurm_options_surf &lt;sbatch options&gt;]
     [--slurm_jobarray &lt;jobarray specification&gt;] [--skip_cleanup] [--email &lt;email address&gt;] [--debug] [--dry] [--help]
     [&lt;additional fastsurfer options&gt;]
 
@@ -554,6 +556,11 @@ SLURM-related options:
 --partition_seg &lt;comma-separated-list-of-partitions&gt;, and
 --partition_surf &lt;...list&gt;: partition(s) to schedule all or only segmentation or surface reconstruction, respectively:
   It is recommended to select nodes/partitions with GPUs for segmentation. default: slurm default partition
+--extra_slurm_options &lt;sbatch options&gt;,
+--extra_slurm_options_seg &lt;sbatch options&gt;, and
+--extra_slurm_options_surf &lt;sbatch options&gt;: Extra options passed to the sbatch call; value needs to be double-quoted
+  for multiple arguments, e.g. --extra_slurm_options_seg "--reservation=my_res --qos=high". These options do not support
+  nested quotes and are split on whitespace to separate parameters. Does not affect cleanup and copy jobs.
 --time_seg &lt;timelimit&gt;, and
 --time_surf &lt;timelimit&gt;: a per-image time limit for individual the segmentation and surface reconstruction steps,
   respectively. &lt;timelimit&gt; must be a number in minutes, default seg: 15min, surf: 240min.
