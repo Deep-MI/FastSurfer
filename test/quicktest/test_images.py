@@ -30,7 +30,7 @@ def read_image_intensity_thresholds() -> dict:
 
 def compute_dice_score(test_data, reference_data, labels: dict[int, str]) -> tuple[float, dict[int, float]]:
     """
-    Compute the dice score for each class (0 = no difference).
+    Compute the dice score for each class (1 = no difference).
 
     Parameters
     ----------
@@ -110,7 +110,7 @@ def test_segmentation_image(
     Raises
     ------
     AssertionError
-        If the dice score is not 0 for all classes
+        If the dice score is not 1 for all classes
     """
     test_file, test_img = test_subject.load_image(segmentation_image)
     assert np.issubdtype(test_img.get_data_dtype(), np.integer), f"The image {segmentation_image} is not integer!"
@@ -123,19 +123,30 @@ def test_segmentation_image(
     labels_lnames = {k: v for k, (v, _) in labels_lnames_tols.items()}
 
     def is_low_dice(label: int, score: float) -> bool:
-        return not np.isclose(score, 0, atol=labels_lnames_tols[label][1])
+        # the tolerance is the distance from a perfect overlap that is still accepted
+        return not np.isclose(score, 1, atol=labels_lnames_tols[label][1])
 
     # Compute the dice score
-    mean_dice, dice_scores = compute_dice_score(test_data, reference_data, labels_lnames)
+    _, dice_scores = compute_dice_score(test_data, reference_data, labels_lnames)
 
     delta_dir: Path = pytestconfig.getoption("--collect_csv")
     if delta_dir:
         delta_dir.mkdir(parents=True, exist_ok=True)
         write_table_file(delta_dir / "dice.csv", test_subject.name, segmentation_image, dice_scores)
 
-    failed_labels = ((i, labels_lnames_tols[i]) for i, dice in dice_scores.items() if is_low_dice(i, dice))
-    dice_exceeding_threshold = [f"{lname}: {1-dice_scores[lbl]} (abs>{tol:.2e})" for lbl, (lname, tol) in failed_labels]
-    assert dice_exceeding_threshold == [], f"Dice scores in {segmentation_image} are not within range!"
+    # report the limit as the lowest overlap that still passes, so it can be read against the value
+    failed_labels = [(i, labels_lnames_tols[i]) for i, dice in dice_scores.items() if is_low_dice(i, dice)]
+    dice_exceeding_threshold = [
+        f"{lname}: Dice {dice_scores[lbl]:.4f} (min {1 - tol:.4f})" for lbl, (lname, tol) in failed_labels
+    ]
+    summary = ""
+    if failed_labels:
+        worst_lbl, (worst_lname, worst_tol) = min(failed_labels, key=lambda item: dice_scores[item[0]])
+        summary = (
+            f" {len(failed_labels)} of {len(dice_scores)} labels below their minimum, worst {worst_lname} at "
+            f"Dice {dice_scores[worst_lbl]:.4f} (min {1 - worst_tol:.4f})."
+        )
+    assert dice_exceeding_threshold == [], f"Dice scores in {segmentation_image} are not within range!{summary}"
     logger.debug("Dice scores are within range for all classes")
 
 

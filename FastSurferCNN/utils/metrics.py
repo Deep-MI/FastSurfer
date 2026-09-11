@@ -247,7 +247,7 @@ class DiceScore:
 
 def dice_score(pred, gt, validate=True):
     """
-    Calculates the Dice Dissimilarity between pred and gt (best 0).
+    Calculates the Dice overlap between pred and gt (best 1).
 
     Parameters
     ----------
@@ -256,16 +256,17 @@ def dice_score(pred, gt, validate=True):
     gt : np.ndarray
         Ground truth image.
     validate : bool
-        If True, use the scipy implementation of the Dice Similarity. If False, use the numpy implementation.
+        If True, use the scipy implementation. If False, use the numpy implementation.
 
     Returns
     -------
     float
-        Dice Similarity between pred and gt.
+        Dice overlap between pred and gt, 1 for identical images and 0 for no overlap.
     """
     if validate:
+        # scipy's dice is a distance, best 0
         from scipy.spatial.distance import dice
-        return dice(pred.flat, gt.flat)
+        return 1.0 - dice(pred.flat, gt.flat)
 
     else:
         assert pred.dtype == gt.dtype == bool, "Input images must be boolean"
@@ -273,7 +274,7 @@ def dice_score(pred, gt, validate=True):
         ntt = (pred & gt).sum()
         nft = (~pred & gt).sum()
         ntf = (pred & ~gt).sum()
-        return float((ntf + nft) / np.array(2.0 * ntt + ntf + nft))
+        return float(2.0 * ntt / np.array(2.0 * ntt + ntf + nft))
 
 
 def volume_similarity(pred, gt):

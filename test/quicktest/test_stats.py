@@ -211,12 +211,33 @@ def test_measure_thresholds(
         delta_dir.mkdir(parents=True, exist_ok=True)
         values = [(m, expected_annots[m][2], actual_annots[m][2]) for m in expected_measures if has_measure(m)]
         scores: dict[str, float] = {m: abs(a - b) for m, a, b in values}
-        scores.update({m + "_rel": abs(a - b)/max((abs(a), abs(b))) for m, a, b in values})
+        scores.update({m + "_rel": abs(a - b)/max((abs(a), abs(b), 1e-8)) for m, a, b in values})
         write_table_file(delta_dir / "stats-measure.csv", test_subject.name, stats_file, scores)
 
-    failed_measures = (m for m in expected_measures if not check_measure(m))
-    measures_outside_spec = [f"Measure {m}: {expected_annots[m][2]} <> {actual_annots[m][2]}" for m in failed_measures]
-    assert measures_outside_spec == [], f"Some Measures are outside of the threshold in {test_subject}: {stats_file}!"
+    missing_measures = [m for m in expected_measures if not has_measure(m)]
+    failed_measures = [m for m in expected_measures if has_measure(m) and not check_measure(m)]
+    measures_outside_spec = [f"Measure {m}: missing" for m in missing_measures]
+    measures_outside_spec += [
+        f"Measure {m}: {expected_annots[m][2]} <> {actual_annots[m][2]}" for m in failed_measures
+    ]
+
+    def relative_deviation(measure: str) -> float:
+        """The deviation in the same terms the threshold is applied, so it is comparable to it."""
+        expected, actual = expected_annots[measure][2], actual_annots[measure][2]
+        return abs(expected - actual) / max(abs(actual), 1e-8)
+
+    summary = ""
+    if missing_measures:
+        summary += f" {len(missing_measures)} of {len(expected_measures)} measures are missing: {missing_measures}."
+    if failed_measures:
+        worst = max(failed_measures, key=relative_deviation)
+        summary += (
+            f" {len(failed_measures)} of {len(expected_measures)} measures exceed their limit, worst {worst} at "
+            f"{relative_deviation(worst):.2%} (limit {measure_tolerances.threshold(worst):.2%})."
+        )
+    assert measures_outside_spec == [], (
+        f"Some Measures are outside of the threshold in {test_subject}: {stats_file}!{summary}"
+    )
 
 
 def test_table_structs(
@@ -330,7 +351,28 @@ def test_stats_table(
             scores.update({f"{seg_id}:rel-{field}": relative(a, b, field) for seg_id, a, b in table_data})
             write_table_file(delta_dir / "stats-table.csv", test_subject.name, stats_file, scores)
 
-    assert actual_conflicts == expected_conflicts, f"The differences for some structures in {stats_file} exceed limits!"
+    def struct_names(rows: list[PVStats]) -> str:
+        names = [str(row.get("StructName", row["SegId"])) for row in rows]
+        return ", ".join(names[:5]) + (", ..." if len(names) > 5 else "")
+
+    # a structure the test subject does not have at all is a different, larger failure than one whose
+    # values drifted, so the message keeps them apart
+    missing_structs = [row for row in expected_conflicts if row["SegId"] not in actual_segids]
+    drifted_structs = [row for row in expected_conflicts if row["SegId"] in actual_segids]
+    summary = ""
+    if missing_structs:
+        summary += (
+            f" {len(missing_structs)} of {len(expected_table)} structures are missing from the test "
+            f"subject: {struct_names(missing_structs)}."
+        )
+    if drifted_structs:
+        summary += (
+            f" {len(drifted_structs)} of {len(expected_table)} structures exceed their limit: "
+            f"{struct_names(drifted_structs)}."
+        )
+    assert actual_conflicts == expected_conflicts, (
+        f"The differences for some structures in {stats_file} exceed limits!{summary}"
+    )
 
 
 def pytest_generate_tests(metafunc: pytest.Metafunc):

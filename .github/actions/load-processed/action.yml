@@ -6,6 +6,10 @@ inputs:
     type: string
     description: "The name of the case folder"
     required: true
+  artifact-id:
+    type: string
+    description: "Name the artifact was uploaded under, defaulting to subject-id. Must match run-fastsurfer."
+    default: ""
   subjects-dir:
     type: string
     description: "Path to the subjects-dir"
@@ -35,9 +39,18 @@ runs:
         else
           echo "ON_RUNNER=false" >> $GITHUB_OUTPUT
         fi
+    - name: Resolve the artifact name
+      if: steps.local.outputs.ON_RUNNER == 'false'
+      shell: bash
+      env:
+        ARTIFACT_ID: ${{ inputs.artifact-id }}
+        SUBJECT_ID: ${{ inputs.subject-id }}
+      run: |
+        # must match the name run-fastsurfer uploads under
+        echo "FS_ARTIFACT=fastsurfer-${GITHUB_SHA::8}-${ARTIFACT_ID:-$SUBJECT_ID}" >> "$GITHUB_ENV"
     - name: Recover processed files
       if: steps.local.outputs.ON_RUNNER == 'false'
       uses: actions/download-artifact@v8
       with:
-        name: fastsurfer-${{ github.sha }}-${{ inputs.subject-id }}
+        name: ${{ env.FS_ARTIFACT }}
         path: ${{ inputs.subjects-dir }}/${{ inputs.subject-id }}

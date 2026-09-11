@@ -19,6 +19,31 @@ def equal_within_tolerance(reference, test, rtol: float, atol: float) -> bool:
     return bool(np.allclose(reference, test, rtol=rtol, atol=atol, equal_nan=True))
 
 
+# The NIfTI qform is stored as a quaternion plus an offset, and these are the fields that encode it.
+# A rotation has two quaternion representations, q and -q, so the signs here carry no geometry.
+_QFORM_FIELDS = ("quatern_b", "quatern_c", "quatern_d", "qoffset_x", "qoffset_y", "qoffset_z")
+
+
+def same_qform(reference_header, test_header, rtol: float, atol: float) -> bool:
+    """Whether both headers describe the same qform, whatever quaternion they wrote it as.
+
+    True also when neither header uses the qform: with qform_code 0 the fields are leftovers that
+    describe no transform at all, and NIfTI readers take the geometry from the sform instead.
+
+    Returns False for headers without a qform, such as MGH, so their fields stay exactly compared.
+    """
+    from nibabel.spatialimages import HeaderDataError
+
+    try:
+        if int(reference_header["qform_code"]) == 0 and int(test_header["qform_code"]) == 0:
+            return True
+        return bool(np.allclose(
+            reference_header.get_qform(), test_header.get_qform(), rtol=rtol, atol=atol, equal_nan=True,
+        ))
+    except (AttributeError, KeyError, ValueError, HeaderDataError):
+        return False
+
+
 def assert_same_headers(test_header, reference_header, rtol: float = 1e-6, atol: float = 1e-6):
     __tracebackhide__ = True
 
@@ -34,6 +59,10 @@ def assert_same_headers(test_header, reference_header, rtol: float = 1e-6, atol:
         for field, values in header_diff.items()
         if not equal_within_tolerance(*values, rtol=rtol, atol=atol)
     }
+    # compare the qform as a transform rather than field by field, so an equivalent quaternion does
+    # not read as a difference
+    if same_qform(reference_header, test_header, rtol=rtol, atol=atol):
+        header_diff = {field: values for field, values in header_diff.items() if field not in _QFORM_FIELDS}
     if header_diff:
         differences = "\n".join(f"  '{k}': {v}" for k, v in header_diff.items())
         pytest.fail(

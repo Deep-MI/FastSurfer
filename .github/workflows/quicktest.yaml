@@ -209,12 +209,19 @@ jobs:
       matrix:
         subject-id: [0.8mm, 1.0mm]
         include:
+          # artifact-id is the subject in micrometres, zero padded, so the name carries no dot and the
+          # artifacts sort by resolution. GitHub serves an artifact as <name>.zip and Safari on macOS
+          # reads ".8mm.zip" as the extension, so a "0.8mm" artifact arrives unpacked as "0".
+          # subject-id itself cannot change: it is also the subject directory name and has to match
+          # the reference tarball.
           - subject-id: 1.0mm
+            artifact-id: 1000um
             file-extension: ".mgz"
             image-key: QUICKTEST_IMAGE_HREF_1mm
             case-key: QUICKTEST_TARGET_HREF_1mm
             extra-args: ""
           - subject-id: 0.8mm
+            artifact-id: 0800um
             file-extension: ".nii.gz"
             image-key: QUICKTEST_IMAGE_HREF_08mm
             case-key: QUICKTEST_TARGET_HREF_08mm
@@ -229,6 +236,7 @@ jobs:
         uses: Deep-MI/FastSurfer/.github/actions/run-fastsurfer@dev
         with:
           subject-id: ${{ matrix.subject-id }}
+          artifact-id: ${{ matrix.artifact-id }}
           file-extension: ${{ matrix.file-extension }}
           image-href: ${{ secrets[matrix.image-key] }}
           license: ${{ secrets.QUICKTEST_LICENSE }}
@@ -239,10 +247,10 @@ jobs:
         uses: Deep-MI/FastSurfer/.github/actions/run-tests@dev
         with:
           subject-id: ${{ matrix.subject-id }}
+          artifact-id: ${{ matrix.artifact-id }}
           subjects-dir: ${{ env.SUBJECTS_DIR }}
           reference-dir: ${{ env.REFERENCE_DIR }}
           case-href: ${{ secrets[matrix.case-key] }}
-          junit-file: /tmp/fastsurfer-quicktest-${{ matrix.subject-id }}.junit.xml
   annotation:
     name: Annotate test results as checks
     runs-on: ubuntu-latest
@@ -252,13 +260,14 @@ jobs:
       - name: Retrieve test JUnit files
         uses: actions/download-artifact@v8
         with:
-          pattern: fastsurfer-${{ github.sha }}-junit-*
+          # the sha is shortened in the artifact name, and artifacts are scoped to this run anyway
+          pattern: fastsurfer-*-junit-*
           merge-multiple: 'true'
           path: /tmp
       - name: Write the results into the check
         uses: mikepenz/action-junit-report@v6
         with:
-          report_paths: /tmp/fastsurfer-quicktest-*.junit.xml
+          report_paths: /tmp/fastsurfer-*-junit-*.xml
           check_name: Annotate the test results as checks
           fail_on_failure: 'true'
           fail_on_parse_error: 'true'
