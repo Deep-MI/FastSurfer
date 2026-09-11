@@ -45,7 +45,7 @@ Modules (all run by default):
 - requires outputs of the `asegdkt` and the `cc` modules as a prerequisite (can be included in the same run).
 
 ### Extensions
-- [FastSurfer-LIT](doc/overview/modules/LIT.md) wraps the FastSurfer segmentation and surface pipelines with lesion inpainting when a lesion mask is provided via `--lesion_mask <path>`. This feature is experimental; review LIT-modified outputs before using them for downstream analyses.
+- [FastSurfer-LIT](doc/overview/modules/LIT.md) wraps the FastSurfer segmentation and surface pipelines with lesion inpainting when a lesion mask is provided via `--lesion_mask <path>`. Review LIT-modified outputs before using them for downstream analyses.
 
 <!-- start of image requirements -->
 ### Requirements to input images
