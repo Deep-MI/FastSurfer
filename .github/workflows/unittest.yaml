@@ -61,6 +61,17 @@ jobs:
           python -m pip install --progress-bar off --upgrade pip setuptools wheel
           python -m pip install --progress-bar off .[quicktest]
           echo "::endgroup::"
+      - name: Resolve the artifact and JUnit file names
+        shell: bash
+        env:
+          TESTS: ${{ matrix.tests }}
+        run: |
+          # Short sha: the full 40 characters make the downloaded name unreadable and carry no more
+          # information. The file is named after its artifact, so that files downloaded from several
+          # runs sit next to each other.
+          artifact="fastsurfer-${GITHUB_SHA::8}-junit-$TESTS"
+          echo "FS_JUNIT_ARTIFACT=$artifact" >> "$GITHUB_ENV"
+          echo "FS_JUNIT_FILE=/tmp/$artifact.xml" >> "$GITHUB_ENV"
       # run pytest checks for data consistency/quality
       - name: Run pytest
         env:
@@ -70,7 +81,7 @@ jobs:
         continue-on-error: true  # pytest only exits with code 0, if all tests pass
         run: |
           echo "::group::Run tests"
-          flags=("--junit-xml=/tmp/fastsurfer-unittest-${{ matrix.tests }}.junit.xml")
+          flags=("--junit-xml=$FS_JUNIT_FILE")
           if [[ "$ACTION_RUNNER_DEBUG" == "true" ]]
           then 
             flags+=(-vv --log_cli_level=DEBUG)
@@ -80,12 +91,12 @@ jobs:
       - name: Upload the JUnit XML file as an artifact
         uses: actions/upload-artifact@v7
         with:
-          name: fastsurfer-${{ github.sha }}-${{ matrix.tests }}-junit
-          path: /tmp/fastsurfer-unittest-${{ matrix.tests }}.junit.xml
+          name: ${{ env.FS_JUNIT_ARTIFACT }}
+          path: ${{ env.FS_JUNIT_FILE }}
       - name: Annotate the results into the check
         uses: mikepenz/action-junit-report@v6
         with:
-          report_paths: /tmp/fastsurfer-unittest-${{ matrix.tests }}.junit.xml
+          report_paths: ${{ env.FS_JUNIT_FILE }}
           check_name: Annotate the test results as checks
           fail_on_failure: 'true'
           fail_on_parse_error: 'true'
