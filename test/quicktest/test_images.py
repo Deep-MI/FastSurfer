@@ -133,9 +133,20 @@ def test_segmentation_image(
         delta_dir.mkdir(parents=True, exist_ok=True)
         write_table_file(delta_dir / "dice.csv", test_subject.name, segmentation_image, dice_scores)
 
-    failed_labels = ((i, labels_lnames_tols[i]) for i, dice in dice_scores.items() if is_low_dice(i, dice))
-    dice_exceeding_threshold = [f"{lname}: {1-dice_scores[lbl]} (abs>{tol:.2e})" for lbl, (lname, tol) in failed_labels]
-    assert dice_exceeding_threshold == [], f"Dice scores in {segmentation_image} are not within range!"
+    # dice_score returns the dissimilarity, best 0, and the tolerances are on that. Report both the
+    # value and the tolerance as the usual Dice overlap, best 1, so they can be read against each other.
+    failed_labels = [(i, labels_lnames_tols[i]) for i, dice in dice_scores.items() if is_low_dice(i, dice)]
+    dice_exceeding_threshold = [
+        f"{lname}: Dice {1 - dice_scores[lbl]:.4f} (min {1 - tol:.4f})" for lbl, (lname, tol) in failed_labels
+    ]
+    summary = ""
+    if failed_labels:
+        worst_lbl, (worst_lname, worst_tol) = max(failed_labels, key=lambda item: dice_scores[item[0]])
+        summary = (
+            f" {len(failed_labels)} of {len(dice_scores)} labels below their minimum, worst {worst_lname} at "
+            f"Dice {1 - dice_scores[worst_lbl]:.4f} (min {1 - worst_tol:.4f})."
+        )
+    assert dice_exceeding_threshold == [], f"Dice scores in {segmentation_image} are not within range!{summary}"
     logger.debug("Dice scores are within range for all classes")
 
 

@@ -256,12 +256,13 @@ def dice_score(pred, gt, validate=True):
     gt : np.ndarray
         Ground truth image.
     validate : bool
-        If True, use the scipy implementation of the Dice Similarity. If False, use the numpy implementation.
+        If True, use the scipy implementation of the Dice Dissimilarity. If False, use the numpy implementation.
 
     Returns
     -------
     float
-        Dice Similarity between pred and gt.
+        Dice Dissimilarity between pred and gt, 0 for identical images and 1 for no overlap.
+        Subtract from 1 to get the Dice overlap.
     """
     if validate:
         from scipy.spatial.distance import dice

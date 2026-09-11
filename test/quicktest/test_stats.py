@@ -214,9 +214,23 @@ def test_measure_thresholds(
         scores.update({m + "_rel": abs(a - b)/max((abs(a), abs(b))) for m, a, b in values})
         write_table_file(delta_dir / "stats-measure.csv", test_subject.name, stats_file, scores)
 
-    failed_measures = (m for m in expected_measures if not check_measure(m))
+    failed_measures = [m for m in expected_measures if not check_measure(m)]
     measures_outside_spec = [f"Measure {m}: {expected_annots[m][2]} <> {actual_annots[m][2]}" for m in failed_measures]
-    assert measures_outside_spec == [], f"Some Measures are outside of the threshold in {test_subject}: {stats_file}!"
+
+    def relative_deviation(measure: str) -> float:
+        expected, actual = expected_annots[measure][2], actual_annots[measure][2]
+        return abs(expected - actual) / max(abs(expected), abs(actual), 1e-8)
+
+    summary = ""
+    if failed_measures:
+        worst = max(failed_measures, key=relative_deviation)
+        summary = (
+            f" {len(failed_measures)} of {len(expected_measures)} measures exceed their limit, worst {worst} at "
+            f"{relative_deviation(worst):.2%} (limit {measure_tolerances.threshold(worst):.2%})."
+        )
+    assert measures_outside_spec == [], (
+        f"Some Measures are outside of the threshold in {test_subject}: {stats_file}!{summary}"
+    )
 
 
 def test_table_structs(
@@ -330,7 +344,14 @@ def test_stats_table(
             scores.update({f"{seg_id}:rel-{field}": relative(a, b, field) for seg_id, a, b in table_data})
             write_table_file(delta_dir / "stats-table.csv", test_subject.name, stats_file, scores)
 
-    assert actual_conflicts == expected_conflicts, f"The differences for some structures in {stats_file} exceed limits!"
+    summary = ""
+    if expected_conflicts:
+        names = [str(row.get("StructName", row.get("SegId", "?"))) for row in expected_conflicts]
+        shown = ", ".join(names[:5]) + (", ..." if len(names) > 5 else "")
+        summary = f" {len(expected_conflicts)} of {len(expected_table)} structures exceed their limit: {shown}."
+    assert actual_conflicts == expected_conflicts, (
+        f"The differences for some structures in {stats_file} exceed limits!{summary}"
+    )
 
 
 def pytest_generate_tests(metafunc: pytest.Metafunc):
