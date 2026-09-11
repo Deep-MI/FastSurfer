@@ -32,13 +32,15 @@ def same_qform(reference_header, test_header, rtol: float, atol: float) -> bool:
 
     Returns False for headers without a qform, such as MGH, so their fields stay exactly compared.
     """
+    from nibabel.spatialimages import HeaderDataError
+
     try:
         if int(reference_header["qform_code"]) == 0 and int(test_header["qform_code"]) == 0:
             return True
         return bool(np.allclose(
             reference_header.get_qform(), test_header.get_qform(), rtol=rtol, atol=atol, equal_nan=True,
         ))
-    except (AttributeError, KeyError, ValueError):
+    except (AttributeError, KeyError, ValueError, HeaderDataError):
         return False
 
 
