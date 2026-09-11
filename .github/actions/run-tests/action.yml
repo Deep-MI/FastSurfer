@@ -10,6 +10,10 @@ inputs:
     type: string
     description: "The name of the case folder"
     required: true
+  artifact-id:
+    type: string
+    description: "Name for the uploaded JUnit artifact, defaulting to subject-id. Should carry no \".\"."
+    default: ""
   subjects-dir:
     type: string
     description: "Path to the subjects-dir"
@@ -74,8 +78,16 @@ runs:
         fi
         uv run --extra quicktest python -m pytest "${flags[@]}" test/quicktest
         echo "::endgroup::"
+    - name: Resolve the artifact name
+      if: ${{ always() }}
+      shell: bash
+      env:
+        ARTIFACT_ID: ${{ inputs.artifact-id }}
+        SUBJECT_ID: ${{ inputs.subject-id }}
+      run: |
+        echo "FS_JUNIT_ARTIFACT=fastsurfer-${GITHUB_SHA::8}-junit-${ARTIFACT_ID:-$SUBJECT_ID}" >> "$GITHUB_ENV"
     - name: Upload the the JUnit XML file as an artifact
       uses: actions/upload-artifact@v7
       with:
-        name: fastsurfer-${{ github.sha }}-junit-${{ inputs.subject-id }}
+        name: ${{ env.FS_JUNIT_ARTIFACT }}
         path: ${{ inputs.junit-file }}

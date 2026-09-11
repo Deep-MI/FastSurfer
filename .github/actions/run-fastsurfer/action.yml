@@ -15,6 +15,13 @@ inputs:
     type: string
     description: "The name of the case folder"
     required: true
+  artifact-id:
+    type: string
+    description: >
+      Name for the uploaded artifact, defaulting to subject-id. Give one without a "." when the
+      subject-id has one: GitHub serves artifacts as <name>.zip, and Safari on macOS reads
+      "0.8mm.zip" as the extension, so a "0.8mm" artifact unpacks as "0".
+    default: ""
   file-extension:
     type: string
     description: "The file extension of the image file to use (default: .nii.gz)."
@@ -117,9 +124,19 @@ runs:
         if [[ "${{ contains( inputs.extra-args, '--surf_only' ) }}" == "0" ]] ; then docker container rm seg_container ; fi
         if [[ "${{ contains( inputs.extra-args, '--seg_only' ) }}" == "0" ]] ; then docker container rm surf_container ; fi
         echo "::endgroup::"
+    - name: Resolve the artifact name
+      if: ${{ always() }}
+      shell: bash
+      env:
+        ARTIFACT_ID: ${{ inputs.artifact-id }}
+        SUBJECT_ID: ${{ inputs.subject-id }}
+      run: |
+        # Short sha: the full 40 characters make the downloaded name unreadable and carry no more
+        # information. Must match load-processed, which downloads this artifact by name.
+        echo "FS_ARTIFACT=fastsurfer-${GITHUB_SHA::8}-${ARTIFACT_ID:-$SUBJECT_ID}" >> "$GITHUB_ENV"
     - name: Save processed data
       if: ${{ always() && (steps.prep.outputs.IMAGE_LOADED != 0 || steps.load-docker.outcome == 'success') }}
       uses: actions/upload-artifact@v7
       with:
-        name: fastsurfer-${{ github.sha }}-${{ inputs.subject-id }}
+        name: ${{ env.FS_ARTIFACT }}
         path: ${{ env.DATA_DIR }}/${{ inputs.subject-id }}
