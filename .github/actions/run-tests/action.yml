@@ -12,7 +12,8 @@ inputs:
     required: true
   artifact-id:
     type: string
-    description: "Name for the uploaded JUnit artifact, defaulting to subject-id. Should carry no \".\"."
+    description: >
+      Name for the uploaded JUnit artifact and its file, defaulting to subject-id. Should carry no dot.
     default: ""
   subjects-dir:
     type: string
@@ -26,14 +27,29 @@ inputs:
     required: true
     type: string
     description: "The url to the reference file to download for comparison"
-  junit-file:
-    default: /tmp/quicktest.junit.xml
+  junit-dir:
+    default: /tmp
     type: string
-    description: "The path where the JUnit-XML file should be saved"
+    description: >
+      Directory the JUnit-XML file is written to. It is named after its artifact, so that files
+      downloaded from several runs sit next to each other.
 
 runs:
   using: "composite"
   steps:
+    - name: Resolve the artifact and JUnit file names
+      shell: bash
+      env:
+        ARTIFACT_ID: ${{ inputs.artifact-id }}
+        SUBJECT_ID: ${{ inputs.subject-id }}
+        JUNIT_DIR: ${{ inputs.junit-dir }}
+      run: |
+        # Short sha: the full 40 characters make the downloaded name unreadable and carry no more
+        # information. Same scheme as the processed-data artifact in run-fastsurfer.
+        artifact="fastsurfer-${GITHUB_SHA::8}-junit-${ARTIFACT_ID:-$SUBJECT_ID}"
+        mkdir -p "$JUNIT_DIR"
+        echo "FS_JUNIT_ARTIFACT=$artifact" >> "$GITHUB_ENV"
+        echo "FS_JUNIT_FILE=$JUNIT_DIR/$artifact.xml" >> "$GITHUB_ENV"
     - name: Setup uv and Python 3.10
       uses: astral-sh/setup-uv@v10.0.1
       with:
@@ -71,23 +87,15 @@ runs:
       continue-on-error: true  # pytest only exits with code 0, if all tests pass
       run: |
         echo "::group::Run tests"
-        flags=("--junit-xml=${{ inputs.junit-file }}")
+        flags=("--junit-xml=$FS_JUNIT_FILE")
         if [[ "$ACTION_RUNNER_DEBUG" == "true" ]]
         then 
           flags+=(-vv --log_cli_level=DEBUG)
         fi
         uv run --extra quicktest python -m pytest "${flags[@]}" test/quicktest
         echo "::endgroup::"
-    - name: Resolve the artifact name
-      if: ${{ always() }}
-      shell: bash
-      env:
-        ARTIFACT_ID: ${{ inputs.artifact-id }}
-        SUBJECT_ID: ${{ inputs.subject-id }}
-      run: |
-        echo "FS_JUNIT_ARTIFACT=fastsurfer-${GITHUB_SHA::8}-junit-${ARTIFACT_ID:-$SUBJECT_ID}" >> "$GITHUB_ENV"
     - name: Upload the the JUnit XML file as an artifact
       uses: actions/upload-artifact@v7
       with:
         name: ${{ env.FS_JUNIT_ARTIFACT }}
-        path: ${{ inputs.junit-file }}
+        path: ${{ env.FS_JUNIT_FILE }}

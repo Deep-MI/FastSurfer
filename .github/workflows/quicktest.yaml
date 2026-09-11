@@ -251,7 +251,6 @@ jobs:
           subjects-dir: ${{ env.SUBJECTS_DIR }}
           reference-dir: ${{ env.REFERENCE_DIR }}
           case-href: ${{ secrets[matrix.case-key] }}
-          junit-file: /tmp/fastsurfer-quicktest-${{ matrix.subject-id }}.junit.xml
   annotation:
     name: Annotate test results as checks
     runs-on: ubuntu-latest
@@ -268,7 +267,7 @@ jobs:
       - name: Write the results into the check
         uses: mikepenz/action-junit-report@v6
         with:
-          report_paths: /tmp/fastsurfer-quicktest-*.junit.xml
+          report_paths: /tmp/fastsurfer-*-junit-*.xml
           check_name: Annotate the test results as checks
           fail_on_failure: 'true'
           fail_on_parse_error: 'true'
