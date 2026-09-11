@@ -153,7 +153,11 @@
 
 <a class="skip-to-content muted-link" href="#furo-main-content">Skip to content</a>
 
-
+<div class="announcement">
+  <aside class="announcement-content">
+     You are reading the documentation of the development version. It may describe features and options that are not part of a release yet. See the <a href="../stable/" data-doc-tree="stable">stable documentation</a> for the latest release. 
+  </aside>
+</div>
 
 <div class="page">
   <header class="mobile-header">
@@ -458,7 +462,7 @@
 <span id="corpuscallosum-shape-curvature"></span><h1>CorpusCallosum.shape.curvature<a class="headerlink" href="#module-CorpusCallosum.shape.curvature" title="Link to this heading">¶</a></h1>
 <dl class="py function">
 <dt class="sig sig-object py" id="CorpusCallosum.shape.curvature.calculate_curvature_metrics">
-<span class="sig-prename descclassname"><span class="pre">CorpusCallosum.shape.curvature.</span></span><span class="sig-name descname"><span class="pre">calculate_curvature_metrics</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">midline</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">split_points</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//CorpusCallosum/shape/curvature.py#L62-L114"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CorpusCallosum.shape.curvature.calculate_curvature_metrics" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">CorpusCallosum.shape.curvature.</span></span><span class="sig-name descname"><span class="pre">calculate_curvature_metrics</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">midline</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">split_points</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/52e7dfa/CorpusCallosum/shape/curvature.py#L62-L114"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CorpusCallosum.shape.curvature.calculate_curvature_metrics" title="Link to this definition">¶</a></dt>
 <dd><p>Calculate curvature metrics for the CC midline, including overall mean,
 body (central 65%), and subsegment curvatures.</p>
 <dl class="field-list">
@@ -485,7 +489,7 @@ body (central 65%), and subsegment curvatures.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="CorpusCallosum.shape.curvature.compute_curvature">
-<span class="sig-prename descclassname"><span class="pre">CorpusCallosum.shape.curvature.</span></span><span class="sig-name descname"><span class="pre">compute_curvature</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//CorpusCallosum/shape/curvature.py#L20-L40"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CorpusCallosum.shape.curvature.compute_curvature" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">CorpusCallosum.shape.curvature.</span></span><span class="sig-name descname"><span class="pre">compute_curvature</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/52e7dfa/CorpusCallosum/shape/curvature.py#L20-L40"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CorpusCallosum.shape.curvature.compute_curvature" title="Link to this definition">¶</a></dt>
 <dd><p>Compute curvature by computing edge angles.</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -505,7 +509,7 @@ body (central 65%), and subsegment curvatures.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="CorpusCallosum.shape.curvature.compute_mean_curvature">
-<span class="sig-prename descclassname"><span class="pre">CorpusCallosum.shape.curvature.</span></span><span class="sig-name descname"><span class="pre">compute_mean_curvature</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//CorpusCallosum/shape/curvature.py#L43-L59"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CorpusCallosum.shape.curvature.compute_mean_curvature" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">CorpusCallosum.shape.curvature.</span></span><span class="sig-name descname"><span class="pre">compute_mean_curvature</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/52e7dfa/CorpusCallosum/shape/curvature.py#L43-L59"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CorpusCallosum.shape.curvature.compute_mean_curvature" title="Link to this definition">¶</a></dt>
 <dd><p>Compute mean absolute curvature of a path in degrees.</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -608,5 +612,6 @@ body (central 65%), and subsegment curvatures.</p>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
     <script src="../../_static/copybutton.js?v=f281be69"></script>
     <script src="../../_static/design-tabs.js?v=f930bc37"></script>
+    <script src="../../_static/doc-version-link.js?v=e710a016"></script>
     </body>
 </html>

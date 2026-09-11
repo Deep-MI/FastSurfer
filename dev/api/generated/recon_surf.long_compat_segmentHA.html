@@ -153,7 +153,11 @@
 
 <a class="skip-to-content muted-link" href="#furo-main-content">Skip to content</a>
 
-
+<div class="announcement">
+  <aside class="announcement-content">
+     You are reading the documentation of the development version. It may describe features and options that are not part of a release yet. See the <a href="../stable/" data-doc-tree="stable">stable documentation</a> for the latest release. 
+  </aside>
+</div>
 
 <div class="page">
   <header class="mobile-header">
@@ -458,31 +462,31 @@
 <span id="recon-surf-long-compat-segmentha"></span><h1>recon_surf.long_compat_segmentHA<a class="headerlink" href="#module-recon_surf.long_compat_segmentHA" title="Link to this heading">¶</a></h1>
 <dl class="py exception">
 <dt class="sig sig-object py" id="recon_surf.long_compat_segmentHA.FastSurferCompatError">
-<em class="property"><span class="pre">exception</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">recon_surf.long_compat_segmentHA.</span></span><span class="sig-name descname"><span class="pre">FastSurferCompatError</span></span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//recon_surf/long_compat_segmentHA.py#L29-L31"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#recon_surf.long_compat_segmentHA.FastSurferCompatError" title="Link to this definition">¶</a></dt>
+<em class="property"><span class="pre">exception</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">recon_surf.long_compat_segmentHA.</span></span><span class="sig-name descname"><span class="pre">FastSurferCompatError</span></span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/52e7dfa/recon_surf/long_compat_segmentHA.py#L29-L31"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#recon_surf.long_compat_segmentHA.FastSurferCompatError" title="Link to this definition">¶</a></dt>
 <dd><p>Custom exception for FastSurfer compatibility issues</p>
 </dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="recon_surf.long_compat_segmentHA.check_freesurfer">
-<span class="sig-prename descclassname"><span class="pre">recon_surf.long_compat_segmentHA.</span></span><span class="sig-name descname"><span class="pre">check_freesurfer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">check_version</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//recon_surf/long_compat_segmentHA.py#L53-L80"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#recon_surf.long_compat_segmentHA.check_freesurfer" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">recon_surf.long_compat_segmentHA.</span></span><span class="sig-name descname"><span class="pre">check_freesurfer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">check_version</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/52e7dfa/recon_surf/long_compat_segmentHA.py#L53-L80"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#recon_surf.long_compat_segmentHA.check_freesurfer" title="Link to this definition">¶</a></dt>
 <dd><p>Check if FreeSurfer is properly installed and version is supported</p>
 </dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="recon_surf.long_compat_segmentHA.get_supported_freesurfer_version">
-<span class="sig-prename descclassname"><span class="pre">recon_surf.long_compat_segmentHA.</span></span><span class="sig-name descname"><span class="pre">get_supported_freesurfer_version</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//recon_surf/long_compat_segmentHA.py#L110-L118"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#recon_surf.long_compat_segmentHA.get_supported_freesurfer_version" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">recon_surf.long_compat_segmentHA.</span></span><span class="sig-name descname"><span class="pre">get_supported_freesurfer_version</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/52e7dfa/recon_surf/long_compat_segmentHA.py#L110-L118"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#recon_surf.long_compat_segmentHA.get_supported_freesurfer_version" title="Link to this definition">¶</a></dt>
 <dd><p>Get FreeSurfer version from FreeSurfer from recon-surf.sh.</p>
 </dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="recon_surf.long_compat_segmentHA.get_voxel_size">
-<span class="sig-prename descclassname"><span class="pre">recon_surf.long_compat_segmentHA.</span></span><span class="sig-name descname"><span class="pre">get_voxel_size</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">image_file</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//recon_surf/long_compat_segmentHA.py#L101-L107"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#recon_surf.long_compat_segmentHA.get_voxel_size" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">recon_surf.long_compat_segmentHA.</span></span><span class="sig-name descname"><span class="pre">get_voxel_size</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">image_file</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/52e7dfa/recon_surf/long_compat_segmentHA.py#L101-L107"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#recon_surf.long_compat_segmentHA.get_voxel_size" title="Link to this definition">¶</a></dt>
 <dd><p>Get voxel size from aseg file using nibabel.</p>
 </dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="recon_surf.long_compat_segmentHA.main">
-<span class="sig-prename descclassname"><span class="pre">recon_surf.long_compat_segmentHA.</span></span><span class="sig-name descname"><span class="pre">main</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">subjects_dir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">subject</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fs_license</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">threads</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ignore_fs_version</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//recon_surf/long_compat_segmentHA.py#L219-L364"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#recon_surf.long_compat_segmentHA.main" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">recon_surf.long_compat_segmentHA.</span></span><span class="sig-name descname"><span class="pre">main</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">subjects_dir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">subject</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fs_license</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">threads</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ignore_fs_version</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/52e7dfa/recon_surf/long_compat_segmentHA.py#L219-L364"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#recon_surf.long_compat_segmentHA.main" title="Link to this definition">¶</a></dt>
 <dd><p>Takes a longitudinally processed subject and creates files missing for other longitudinal processing like the
 hippocampal subfields stream of FreeSurfer.</p>
 <dl class="field-list">
@@ -505,37 +509,37 @@ hippocampal subfields stream of FreeSurfer.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="recon_surf.long_compat_segmentHA.make_parser">
-<span class="sig-prename descclassname"><span class="pre">recon_surf.long_compat_segmentHA.</span></span><span class="sig-name descname"><span class="pre">make_parser</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//recon_surf/long_compat_segmentHA.py#L139-L188"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#recon_surf.long_compat_segmentHA.make_parser" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">recon_surf.long_compat_segmentHA.</span></span><span class="sig-name descname"><span class="pre">make_parser</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/52e7dfa/recon_surf/long_compat_segmentHA.py#L139-L188"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#recon_surf.long_compat_segmentHA.make_parser" title="Link to this definition">¶</a></dt>
 <dd><p>Parse command line arguments</p>
 </dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="recon_surf.long_compat_segmentHA.run">
-<span class="sig-prename descclassname"><span class="pre">recon_surf.long_compat_segmentHA.</span></span><span class="sig-name descname"><span class="pre">run</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">command</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//recon_surf/long_compat_segmentHA.py#L121-L136"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#recon_surf.long_compat_segmentHA.run" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">recon_surf.long_compat_segmentHA.</span></span><span class="sig-name descname"><span class="pre">run</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">command</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/52e7dfa/recon_surf/long_compat_segmentHA.py#L121-L136"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#recon_surf.long_compat_segmentHA.run" title="Link to this definition">¶</a></dt>
 <dd><p>Run the FreeSurfer command <code class="xref py py-obj docutils literal notranslate"><span class="pre">command</span></code>.</p>
 </dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="recon_surf.long_compat_segmentHA.softlink_or_copy">
-<span class="sig-prename descclassname"><span class="pre">recon_surf.long_compat_segmentHA.</span></span><span class="sig-name descname"><span class="pre">softlink_or_copy</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">source</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//recon_surf/long_compat_segmentHA.py#L82-L98"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#recon_surf.long_compat_segmentHA.softlink_or_copy" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">recon_surf.long_compat_segmentHA.</span></span><span class="sig-name descname"><span class="pre">softlink_or_copy</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">source</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/52e7dfa/recon_surf/long_compat_segmentHA.py#L82-L98"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#recon_surf.long_compat_segmentHA.softlink_or_copy" title="Link to this definition">¶</a></dt>
 <dd><p>Create soft link or copy file if linking fails</p>
 </dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="recon_surf.long_compat_segmentHA.validate_existing_file">
-<span class="sig-prename descclassname"><span class="pre">recon_surf.long_compat_segmentHA.</span></span><span class="sig-name descname"><span class="pre">validate_existing_file</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//recon_surf/long_compat_segmentHA.py#L34-L41"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#recon_surf.long_compat_segmentHA.validate_existing_file" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">recon_surf.long_compat_segmentHA.</span></span><span class="sig-name descname"><span class="pre">validate_existing_file</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/52e7dfa/recon_surf/long_compat_segmentHA.py#L34-L41"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#recon_surf.long_compat_segmentHA.validate_existing_file" title="Link to this definition">¶</a></dt>
 <dd><p>Validate that the input is an existing file path</p>
 </dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="recon_surf.long_compat_segmentHA.validate_existing_subjects_dir">
-<span class="sig-prename descclassname"><span class="pre">recon_surf.long_compat_segmentHA.</span></span><span class="sig-name descname"><span class="pre">validate_existing_subjects_dir</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//recon_surf/long_compat_segmentHA.py#L44-L51"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#recon_surf.long_compat_segmentHA.validate_existing_subjects_dir" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">recon_surf.long_compat_segmentHA.</span></span><span class="sig-name descname"><span class="pre">validate_existing_subjects_dir</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/52e7dfa/recon_surf/long_compat_segmentHA.py#L44-L51"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#recon_surf.long_compat_segmentHA.validate_existing_subjects_dir" title="Link to this definition">¶</a></dt>
 <dd><p>Validate that the input is an existing directory path</p>
 </dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="recon_surf.long_compat_segmentHA.validate_inputs">
-<span class="sig-prename descclassname"><span class="pre">recon_surf.long_compat_segmentHA.</span></span><span class="sig-name descname"><span class="pre">validate_inputs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">subject_dir</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//recon_surf/long_compat_segmentHA.py#L191-L216"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#recon_surf.long_compat_segmentHA.validate_inputs" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">recon_surf.long_compat_segmentHA.</span></span><span class="sig-name descname"><span class="pre">validate_inputs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">subject_dir</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/52e7dfa/recon_surf/long_compat_segmentHA.py#L191-L216"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#recon_surf.long_compat_segmentHA.validate_inputs" title="Link to this definition">¶</a></dt>
 <dd><p>Validate all input arguments and environment</p>
 </dd></dl>
 
@@ -632,5 +636,6 @@ hippocampal subfields stream of FreeSurfer.</p>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
     <script src="../../_static/copybutton.js?v=f281be69"></script>
     <script src="../../_static/design-tabs.js?v=f930bc37"></script>
+    <script src="../../_static/doc-version-link.js?v=e710a016"></script>
     </body>
 </html>

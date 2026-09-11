@@ -153,7 +153,11 @@
 
 <a class="skip-to-content muted-link" href="#furo-main-content">Skip to content</a>
 
-
+<div class="announcement">
+  <aside class="announcement-content">
+     You are reading the documentation of the development version. It may describe features and options that are not part of a release yet. See the <a href="../stable/" data-doc-tree="stable">stable documentation</a> for the latest release. 
+  </aside>
+</div>
 
 <div class="page">
   <header class="mobile-header">
@@ -458,13 +462,13 @@
 <span id="cerebnet-utils-misc"></span><h1>CerebNet.utils.misc<a class="headerlink" href="#module-CerebNet.utils.misc" title="Link to this heading">¶</a></h1>
 <dl class="py function">
 <dt class="sig sig-object py" id="CerebNet.utils.misc.load_classwise_weights">
-<span class="sig-prename descclassname"><span class="pre">CerebNet.utils.misc.</span></span><span class="sig-name descname"><span class="pre">load_classwise_weights</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cfg</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//CerebNet/utils/misc.py#L215-L226"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CerebNet.utils.misc.load_classwise_weights" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">CerebNet.utils.misc.</span></span><span class="sig-name descname"><span class="pre">load_classwise_weights</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cfg</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/52e7dfa/CerebNet/utils/misc.py#L215-L226"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CerebNet.utils.misc.load_classwise_weights" title="Link to this definition">¶</a></dt>
 <dd><p>Loading class-wise median frequency weights.</p>
 </dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="CerebNet.utils.misc.plot_confusion_matrix">
-<span class="sig-prename descclassname"><span class="pre">CerebNet.utils.misc.</span></span><span class="sig-name descname"><span class="pre">plot_confusion_matrix</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cm</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">classes</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">title='Confusion</span> <span class="pre">matrix'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cmap=&lt;matplotlib.colors.LinearSegmentedColormap</span> <span class="pre">object&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">figsize=(20</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">20)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">file_save_name=None</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//CerebNet/utils/misc.py#L74-L144"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CerebNet.utils.misc.plot_confusion_matrix" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">CerebNet.utils.misc.</span></span><span class="sig-name descname"><span class="pre">plot_confusion_matrix</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cm</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">classes</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">title='Confusion</span> <span class="pre">matrix'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cmap=&lt;matplotlib.colors.LinearSegmentedColormap</span> <span class="pre">object&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">figsize=(20</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">20)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">file_save_name=None</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/52e7dfa/CerebNet/utils/misc.py#L74-L144"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CerebNet.utils.misc.plot_confusion_matrix" title="Link to this definition">¶</a></dt>
 <dd><p>This function prints and plots the confusion matrix.</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -494,7 +498,7 @@
 
 <dl class="py function">
 <dt class="sig sig-object py" id="CerebNet.utils.misc.plot_predictions">
-<span class="sig-prename descclassname"><span class="pre">CerebNet.utils.misc.</span></span><span class="sig-name descname"><span class="pre">plot_predictions</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">images_batch</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">labels_batch</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batch_output</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">plt_title</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//CerebNet/utils/misc.py#L34-L71"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CerebNet.utils.misc.plot_predictions" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">CerebNet.utils.misc.</span></span><span class="sig-name descname"><span class="pre">plot_predictions</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">images_batch</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">labels_batch</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batch_output</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">plt_title</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/52e7dfa/CerebNet/utils/misc.py#L34-L71"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CerebNet.utils.misc.plot_predictions" title="Link to this definition">¶</a></dt>
 <dd><p>Function to plot predictions from validation set.
 :param images_batch:
 :param labels_batch:
@@ -506,7 +510,7 @@
 
 <dl class="py function">
 <dt class="sig sig-object py" id="CerebNet.utils.misc.set_summary_path">
-<span class="sig-prename descclassname"><span class="pre">CerebNet.utils.misc.</span></span><span class="sig-name descname"><span class="pre">set_summary_path</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cfg</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//CerebNet/utils/misc.py#L199-L212"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CerebNet.utils.misc.set_summary_path" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">CerebNet.utils.misc.</span></span><span class="sig-name descname"><span class="pre">set_summary_path</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cfg</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/52e7dfa/CerebNet/utils/misc.py#L199-L212"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CerebNet.utils.misc.set_summary_path" title="Link to this definition">¶</a></dt>
 <dd><p>Set last experiment number(EXPR_NUM) and updates the summary path accordingly.</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -520,7 +524,7 @@
 
 <dl class="py function">
 <dt class="sig sig-object py" id="CerebNet.utils.misc.update_results_dir">
-<span class="sig-prename descclassname"><span class="pre">CerebNet.utils.misc.</span></span><span class="sig-name descname"><span class="pre">update_results_dir</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cfg</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//CerebNet/utils/misc.py#L229-L241"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CerebNet.utils.misc.update_results_dir" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">CerebNet.utils.misc.</span></span><span class="sig-name descname"><span class="pre">update_results_dir</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cfg</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/52e7dfa/CerebNet/utils/misc.py#L229-L241"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CerebNet.utils.misc.update_results_dir" title="Link to this definition">¶</a></dt>
 <dd><p>It will update the results path by finding the last experiment number.</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -534,7 +538,7 @@
 
 <dl class="py function">
 <dt class="sig sig-object py" id="CerebNet.utils.misc.update_split_path">
-<span class="sig-prename descclassname"><span class="pre">CerebNet.utils.misc.</span></span><span class="sig-name descname"><span class="pre">update_split_path</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cfg</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//CerebNet/utils/misc.py#L244-L267"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CerebNet.utils.misc.update_split_path" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">CerebNet.utils.misc.</span></span><span class="sig-name descname"><span class="pre">update_split_path</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cfg</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/52e7dfa/CerebNet/utils/misc.py#L244-L267"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CerebNet.utils.misc.update_split_path" title="Link to this definition">¶</a></dt>
 <dd><p>Updating path with respect to the split number</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -548,7 +552,7 @@
 
 <dl class="py function">
 <dt class="sig sig-object py" id="CerebNet.utils.misc.visualize_batch">
-<span class="sig-prename descclassname"><span class="pre">CerebNet.utils.misc.</span></span><span class="sig-name descname"><span class="pre">visualize_batch</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">img</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">label</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">idx</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//CerebNet/utils/misc.py#L270-L280"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CerebNet.utils.misc.visualize_batch" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">CerebNet.utils.misc.</span></span><span class="sig-name descname"><span class="pre">visualize_batch</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">img</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">label</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">idx</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/52e7dfa/CerebNet/utils/misc.py#L270-L280"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CerebNet.utils.misc.visualize_batch" title="Link to this definition">¶</a></dt>
 <dd><p>For deubg
 :param batch_dict:
 :return:</p>
@@ -643,5 +647,6 @@
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
     <script src="../../_static/copybutton.js?v=f281be69"></script>
     <script src="../../_static/design-tabs.js?v=f930bc37"></script>
+    <script src="../../_static/doc-version-link.js?v=e710a016"></script>
     </body>
 </html>

@@ -153,7 +153,11 @@
 
 <a class="skip-to-content muted-link" href="#furo-main-content">Skip to content</a>
 
-
+<div class="announcement">
+  <aside class="announcement-content">
+     You are reading the documentation of the development version. It may describe features and options that are not part of a release yet. See the <a href="../stable/" data-doc-tree="stable">stable documentation</a> for the latest release. 
+  </aside>
+</div>
 
 <div class="page">
   <header class="mobile-header">
@@ -458,7 +462,7 @@
 <span id="fastsurfercnn-utils-arg-types"></span><h1>FastSurferCNN.utils.arg_types<a class="headerlink" href="#module-FastSurferCNN.utils.arg_types" title="Link to this heading">¶</a></h1>
 <dl class="py function">
 <dt class="sig sig-object py" id="FastSurferCNN.utils.arg_types.float_gt_zero_and_le_one">
-<span class="sig-prename descclassname"><span class="pre">FastSurferCNN.utils.arg_types.</span></span><span class="sig-name descname"><span class="pre">float_gt_zero_and_le_one</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">a</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//FastSurferCNN/utils/arg_types.py#L151-L177"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.utils.arg_types.float_gt_zero_and_le_one" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">FastSurferCNN.utils.arg_types.</span></span><span class="sig-name descname"><span class="pre">float_gt_zero_and_le_one</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">a</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/52e7dfa/FastSurferCNN/utils/arg_types.py#L151-L177"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.utils.arg_types.float_gt_zero_and_le_one" title="Link to this definition">¶</a></dt>
 <dd><p>Check whether a parameters are a float between 0 and one.</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -485,7 +489,7 @@ If <code class="xref py py-obj docutils literal notranslate"><span class="pre">a
 
 <dl class="py function">
 <dt class="sig sig-object py" id="FastSurferCNN.utils.arg_types.img_size">
-<span class="sig-prename descclassname"><span class="pre">FastSurferCNN.utils.arg_types.</span></span><span class="sig-name descname"><span class="pre">img_size</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">a</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//FastSurferCNN/utils/arg_types.py#L120-L148"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.utils.arg_types.img_size" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">FastSurferCNN.utils.arg_types.</span></span><span class="sig-name descname"><span class="pre">img_size</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">a</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/52e7dfa/FastSurferCNN/utils/arg_types.py#L120-L148"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.utils.arg_types.img_size" title="Link to this definition">¶</a></dt>
 <dd><p>Convert the img_size argument to ‘fov’, ‘auto’ or int as a valid image size.</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -513,7 +517,7 @@ If ‘any’ or ‘keep’, it returns None.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="FastSurferCNN.utils.arg_types.int_ge_zero">
-<span class="sig-prename descclassname"><span class="pre">FastSurferCNN.utils.arg_types.</span></span><span class="sig-name descname"><span class="pre">int_ge_zero</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//FastSurferCNN/utils/arg_types.py#L246-L268"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.utils.arg_types.int_ge_zero" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">FastSurferCNN.utils.arg_types.</span></span><span class="sig-name descname"><span class="pre">int_ge_zero</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/52e7dfa/FastSurferCNN/utils/arg_types.py#L246-L268"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.utils.arg_types.int_ge_zero" title="Link to this definition">¶</a></dt>
 <dd><p>Convert to integers greater 0.</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -539,7 +543,7 @@ If ‘any’ or ‘keep’, it returns None.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="FastSurferCNN.utils.arg_types.int_gt_zero">
-<span class="sig-prename descclassname"><span class="pre">FastSurferCNN.utils.arg_types.</span></span><span class="sig-name descname"><span class="pre">int_gt_zero</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//FastSurferCNN/utils/arg_types.py#L221-L243"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.utils.arg_types.int_gt_zero" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">FastSurferCNN.utils.arg_types.</span></span><span class="sig-name descname"><span class="pre">int_gt_zero</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/52e7dfa/FastSurferCNN/utils/arg_types.py#L221-L243"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.utils.arg_types.int_gt_zero" title="Link to this definition">¶</a></dt>
 <dd><p>Convert to positive integers.</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -565,7 +569,7 @@ If ‘any’ or ‘keep’, it returns None.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="FastSurferCNN.utils.arg_types.orientation">
-<span class="sig-prename descclassname"><span class="pre">FastSurferCNN.utils.arg_types.</span></span><span class="sig-name descname"><span class="pre">orientation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">a</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//FastSurferCNN/utils/arg_types.py#L39-L63"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.utils.arg_types.orientation" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">FastSurferCNN.utils.arg_types.</span></span><span class="sig-name descname"><span class="pre">orientation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">a</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/52e7dfa/FastSurferCNN/utils/arg_types.py#L39-L63"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.utils.arg_types.orientation" title="Link to this definition">¶</a></dt>
 <dd><p>Convert the orientation argument to a valid orientation from ‘native’, ‘soft[-_ ]&lt;orientation/i&gt;’, and
 ‘&lt;orientation/i&gt;’, where &lt;orientation/i&gt; is any valid orientation (case-insensitive).</p>
 <dl class="field-list">
@@ -592,7 +596,7 @@ If ‘any’ or ‘keep’, it returns None.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="FastSurferCNN.utils.arg_types.path_or_none">
-<span class="sig-prename descclassname"><span class="pre">FastSurferCNN.utils.arg_types.</span></span><span class="sig-name descname"><span class="pre">path_or_none</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">a</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//FastSurferCNN/utils/arg_types.py#L291-L307"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.utils.arg_types.path_or_none" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">FastSurferCNN.utils.arg_types.</span></span><span class="sig-name descname"><span class="pre">path_or_none</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">a</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/52e7dfa/FastSurferCNN/utils/arg_types.py#L291-L307"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.utils.arg_types.path_or_none" title="Link to this definition">¶</a></dt>
 <dd><p>Convert a string into None, if it reads “none” or is empty, else convert to a Path.</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -612,7 +616,7 @@ If ‘any’ or ‘keep’, it returns None.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="FastSurferCNN.utils.arg_types.string_to_bool">
-<span class="sig-prename descclassname"><span class="pre">FastSurferCNN.utils.arg_types.</span></span><span class="sig-name descname"><span class="pre">string_to_bool</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">a</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//FastSurferCNN/utils/arg_types.py#L66-L82"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.utils.arg_types.string_to_bool" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">FastSurferCNN.utils.arg_types.</span></span><span class="sig-name descname"><span class="pre">string_to_bool</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">a</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/52e7dfa/FastSurferCNN/utils/arg_types.py#L66-L82"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.utils.arg_types.string_to_bool" title="Link to this definition">¶</a></dt>
 <dd><p>Convert a string to a boolean value.</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -632,7 +636,7 @@ If ‘any’ or ‘keep’, it returns None.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="FastSurferCNN.utils.arg_types.target_dtype">
-<span class="sig-prename descclassname"><span class="pre">FastSurferCNN.utils.arg_types.</span></span><span class="sig-name descname"><span class="pre">target_dtype</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">a</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//FastSurferCNN/utils/arg_types.py#L180-L218"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.utils.arg_types.target_dtype" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">FastSurferCNN.utils.arg_types.</span></span><span class="sig-name descname"><span class="pre">target_dtype</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">a</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/52e7dfa/FastSurferCNN/utils/arg_types.py#L180-L218"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.utils.arg_types.target_dtype" title="Link to this definition">¶</a></dt>
 <dd><p>Check for valid dtypes.</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -665,7 +669,7 @@ If ‘any’ or ‘keep’, it returns None.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="FastSurferCNN.utils.arg_types.unquote_str">
-<span class="sig-prename descclassname"><span class="pre">FastSurferCNN.utils.arg_types.</span></span><span class="sig-name descname"><span class="pre">unquote_str</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//FastSurferCNN/utils/arg_types.py#L271-L288"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.utils.arg_types.unquote_str" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">FastSurferCNN.utils.arg_types.</span></span><span class="sig-name descname"><span class="pre">unquote_str</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/52e7dfa/FastSurferCNN/utils/arg_types.py#L271-L288"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.utils.arg_types.unquote_str" title="Link to this definition">¶</a></dt>
 <dd><p>Unquote a (single quoted) string, i.e. remove one level of single-quotes.</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -685,7 +689,7 @@ If ‘any’ or ‘keep’, it returns None.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="FastSurferCNN.utils.arg_types.vox_size">
-<span class="sig-prename descclassname"><span class="pre">FastSurferCNN.utils.arg_types.</span></span><span class="sig-name descname"><span class="pre">vox_size</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">a</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//FastSurferCNN/utils/arg_types.py#L84-L118"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.utils.arg_types.vox_size" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">FastSurferCNN.utils.arg_types.</span></span><span class="sig-name descname"><span class="pre">vox_size</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">a</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/52e7dfa/FastSurferCNN/utils/arg_types.py#L84-L118"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.utils.arg_types.vox_size" title="Link to this definition">¶</a></dt>
 <dd><p>Convert the vox_size argument to ‘min’ or a valid voxel size.</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -803,5 +807,6 @@ If ‘any’, ‘keep’, ‘none’ or ‘infinity’, it returns None.</p>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
     <script src="../../_static/copybutton.js?v=f281be69"></script>
     <script src="../../_static/design-tabs.js?v=f930bc37"></script>
+    <script src="../../_static/doc-version-link.js?v=e710a016"></script>
     </body>
 </html>

@@ -153,7 +153,11 @@
 
 <a class="skip-to-content muted-link" href="#furo-main-content">Skip to content</a>
 
-
+<div class="announcement">
+  <aside class="announcement-content">
+     You are reading the documentation of the development version. It may describe features and options that are not part of a release yet. See the <a href="../stable/" data-doc-tree="stable">stable documentation</a> for the latest release. 
+  </aside>
+</div>
 
 <div class="page">
   <header class="mobile-header">
@@ -458,7 +462,7 @@
 <span id="cerebnet-data-loader-augmentation"></span><h1>CerebNet.data_loader.augmentation<a class="headerlink" href="#module-CerebNet.data_loader.augmentation" title="Link to this heading">¶</a></h1>
 <dl class="py class">
 <dt class="sig sig-object py" id="CerebNet.data_loader.augmentation.RandomAffine">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">CerebNet.data_loader.augmentation.</span></span><span class="sig-name descname"><span class="pre">RandomAffine</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cfg</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//CerebNet/data_loader/augmentation.py#L67-L157"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CerebNet.data_loader.augmentation.RandomAffine" title="Link to this definition">¶</a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">CerebNet.data_loader.augmentation.</span></span><span class="sig-name descname"><span class="pre">RandomAffine</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cfg</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/52e7dfa/CerebNet/data_loader/augmentation.py#L67-L157"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CerebNet.data_loader.augmentation.RandomAffine" title="Link to this definition">¶</a></dt>
 <dd><p>Apply a random affine transformation to
 images, label and weight
 the transformation includes translation, rotation and scaling.</p>
@@ -476,7 +480,7 @@ the transformation includes translation, rotation and scaling.</p>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="CerebNet.data_loader.augmentation.RandomBiasField">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">CerebNet.data_loader.augmentation.</span></span><span class="sig-name descname"><span class="pre">RandomBiasField</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cfg</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//CerebNet/data_loader/augmentation.py#L183-L289"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CerebNet.data_loader.augmentation.RandomBiasField" title="Link to this definition">¶</a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">CerebNet.data_loader.augmentation.</span></span><span class="sig-name descname"><span class="pre">RandomBiasField</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cfg</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/52e7dfa/CerebNet/data_loader/augmentation.py#L183-L289"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CerebNet.data_loader.augmentation.RandomBiasField" title="Link to this definition">¶</a></dt>
 <dd><p>Add random MRI bias field artifact.</p>
 <p>Based on <a class="reference external" href="https://github.com/fepegar/torchio">https://github.com/fepegar/torchio</a></p>
 <p class="rubric">Methods</p>
@@ -518,7 +522,7 @@ the transformation includes translation, rotation and scaling.</p>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="CerebNet.data_loader.augmentation.RandomFlip">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">CerebNet.data_loader.augmentation.</span></span><span class="sig-name descname"><span class="pre">RandomFlip</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cfg</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//CerebNet/data_loader/augmentation.py#L160-L180"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CerebNet.data_loader.augmentation.RandomFlip" title="Link to this definition">¶</a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">CerebNet.data_loader.augmentation.</span></span><span class="sig-name descname"><span class="pre">RandomFlip</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cfg</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/52e7dfa/CerebNet/data_loader/augmentation.py#L160-L180"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CerebNet.data_loader.augmentation.RandomFlip" title="Link to this definition">¶</a></dt>
 <dd><p>Random horizontal flipping.</p>
 <p class="rubric">Methods</p>
 <div class="table-wrapper autosummary longtable docutils container">
@@ -534,7 +538,7 @@ the transformation includes translation, rotation and scaling.</p>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="CerebNet.data_loader.augmentation.RandomLabelsToImage">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">CerebNet.data_loader.augmentation.</span></span><span class="sig-name descname"><span class="pre">RandomLabelsToImage</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mean</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">std</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cfg</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">blur_factor</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.3</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//CerebNet/data_loader/augmentation.py#L292-L324"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CerebNet.data_loader.augmentation.RandomLabelsToImage" title="Link to this definition">¶</a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">CerebNet.data_loader.augmentation.</span></span><span class="sig-name descname"><span class="pre">RandomLabelsToImage</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mean</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">std</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cfg</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">blur_factor</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.3</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/52e7dfa/CerebNet/data_loader/augmentation.py#L292-L324"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CerebNet.data_loader.augmentation.RandomLabelsToImage" title="Link to this definition">¶</a></dt>
 <dd><p>Generate image from segmentation
 using the dataset intensity priors.
 based on  Billot et al.:
@@ -554,7 +558,7 @@ and Partial Volume Segmentation of Brain MRI Scans of any Resolution and Contras
 
 <dl class="py class">
 <dt class="sig sig-object py" id="CerebNet.data_loader.augmentation.ToTensor">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">CerebNet.data_loader.augmentation.</span></span><span class="sig-name descname"><span class="pre">ToTensor</span></span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//CerebNet/data_loader/augmentation.py#L31-L58"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CerebNet.data_loader.augmentation.ToTensor" title="Link to this definition">¶</a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">CerebNet.data_loader.augmentation.</span></span><span class="sig-name descname"><span class="pre">ToTensor</span></span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/52e7dfa/CerebNet/data_loader/augmentation.py#L31-L58"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CerebNet.data_loader.augmentation.ToTensor" title="Link to this definition">¶</a></dt>
 <dd><p>Convert ndarrays in sample to Tensors.</p>
 <p class="rubric">Methods</p>
 <div class="table-wrapper autosummary longtable docutils container">
@@ -570,7 +574,7 @@ and Partial Volume Segmentation of Brain MRI Scans of any Resolution and Contras
 
 <dl class="py class">
 <dt class="sig sig-object py" id="CerebNet.data_loader.augmentation.ToTensorTest">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">CerebNet.data_loader.augmentation.</span></span><span class="sig-name descname"><span class="pre">ToTensorTest</span></span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//CerebNet/data_loader/augmentation.py#L61-L64"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CerebNet.data_loader.augmentation.ToTensorTest" title="Link to this definition">¶</a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">CerebNet.data_loader.augmentation.</span></span><span class="sig-name descname"><span class="pre">ToTensorTest</span></span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/52e7dfa/CerebNet/data_loader/augmentation.py#L61-L64"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CerebNet.data_loader.augmentation.ToTensorTest" title="Link to this definition">¶</a></dt>
 <dd><p class="rubric">Methods</p>
 <div class="table-wrapper autosummary longtable docutils container">
 <table class="autosummary longtable docutils align-default">
@@ -585,7 +589,7 @@ and Partial Volume Segmentation of Brain MRI Scans of any Resolution and Contras
 
 <dl class="py function">
 <dt class="sig sig-object py" id="CerebNet.data_loader.augmentation.sample_intensity_stats_from_image">
-<span class="sig-prename descclassname"><span class="pre">CerebNet.data_loader.augmentation.</span></span><span class="sig-name descname"><span class="pre">sample_intensity_stats_from_image</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">image</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">segmentation</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">labels_list</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">classes_list</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">keep_strictly_positive</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//CerebNet/data_loader/augmentation.py#L327-L399"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CerebNet.data_loader.augmentation.sample_intensity_stats_from_image" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">CerebNet.data_loader.augmentation.</span></span><span class="sig-name descname"><span class="pre">sample_intensity_stats_from_image</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">image</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">segmentation</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">labels_list</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">classes_list</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">keep_strictly_positive</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/52e7dfa/CerebNet/data_loader/augmentation.py#L327-L399"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CerebNet.data_loader.augmentation.sample_intensity_stats_from_image" title="Link to this definition">¶</a></dt>
 <dd><p>This function takes an image and corresponding segmentation as inputs.</p>
 <p>It estimates the mean and std intensity for all specified label values.
 Labels can share the same statistics by being regrouped into K classes.</p>
@@ -711,5 +715,6 @@ and the second being the median absolute deviation (robust estimation of std).</
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
     <script src="../../_static/copybutton.js?v=f281be69"></script>
     <script src="../../_static/design-tabs.js?v=f930bc37"></script>
+    <script src="../../_static/doc-version-link.js?v=e710a016"></script>
     </body>
 </html>

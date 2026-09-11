@@ -153,7 +153,11 @@
 
 <a class="skip-to-content muted-link" href="#furo-main-content">Skip to content</a>
 
-
+<div class="announcement">
+  <aside class="announcement-content">
+     You are reading the documentation of the development version. It may describe features and options that are not part of a release yet. See the <a href="../stable/" data-doc-tree="stable">stable documentation</a> for the latest release. 
+  </aside>
+</div>
 
 <div class="page">
   <header class="mobile-header">
@@ -458,7 +462,7 @@
 <span id="corpuscallosum-shape-endpoint-heuristic"></span><h1>CorpusCallosum.shape.endpoint_heuristic<a class="headerlink" href="#module-CorpusCallosum.shape.endpoint_heuristic" title="Link to this heading">¶</a></h1>
 <dl class="py function">
 <dt class="sig sig-object py" id="CorpusCallosum.shape.endpoint_heuristic.connect_diagonally_connected_components">
-<span class="sig-prename descclassname"><span class="pre">CorpusCallosum.shape.endpoint_heuristic.</span></span><span class="sig-name descname"><span class="pre">connect_diagonally_connected_components</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cc_mask</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//CorpusCallosum/shape/endpoint_heuristic.py#L65-L127"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CorpusCallosum.shape.endpoint_heuristic.connect_diagonally_connected_components" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">CorpusCallosum.shape.endpoint_heuristic.</span></span><span class="sig-name descname"><span class="pre">connect_diagonally_connected_components</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cc_mask</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/52e7dfa/CorpusCallosum/shape/endpoint_heuristic.py#L65-L127"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CorpusCallosum.shape.endpoint_heuristic.connect_diagonally_connected_components" title="Link to this definition">¶</a></dt>
 <dd><p>Connect diagonally connected components in the CC mask.</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -474,7 +478,7 @@
 
 <dl class="py function">
 <dt class="sig sig-object py" id="CorpusCallosum.shape.endpoint_heuristic.extract_cc_contour">
-<span class="sig-prename descclassname"><span class="pre">CorpusCallosum.shape.endpoint_heuristic.</span></span><span class="sig-name descname"><span class="pre">extract_cc_contour</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cc_mask</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">contour_smoothing</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//CorpusCallosum/shape/endpoint_heuristic.py#L130-L150"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CorpusCallosum.shape.endpoint_heuristic.extract_cc_contour" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">CorpusCallosum.shape.endpoint_heuristic.</span></span><span class="sig-name descname"><span class="pre">extract_cc_contour</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cc_mask</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">contour_smoothing</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/52e7dfa/CorpusCallosum/shape/endpoint_heuristic.py#L130-L150"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CorpusCallosum.shape.endpoint_heuristic.extract_cc_contour" title="Link to this definition">¶</a></dt>
 <dd><p>Extract the contour of the CC from the mask using a marching squares approach.</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -496,7 +500,7 @@
 
 <dl class="py function">
 <dt class="sig sig-object py" id="CorpusCallosum.shape.endpoint_heuristic.find_cc_endpoints">
-<span class="sig-prename descclassname"><span class="pre">CorpusCallosum.shape.endpoint_heuristic.</span></span><span class="sig-name descname"><span class="pre">find_cc_endpoints</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">contour</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ac_2d</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pc_2d</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">plot</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//CorpusCallosum/shape/endpoint_heuristic.py#L153-L228"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CorpusCallosum.shape.endpoint_heuristic.find_cc_endpoints" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">CorpusCallosum.shape.endpoint_heuristic.</span></span><span class="sig-name descname"><span class="pre">find_cc_endpoints</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">contour</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ac_2d</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pc_2d</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">plot</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/52e7dfa/CorpusCallosum/shape/endpoint_heuristic.py#L153-L228"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CorpusCallosum.shape.endpoint_heuristic.find_cc_endpoints" title="Link to this definition">¶</a></dt>
 <dd><p>Extracts the contour of the CC, rotates to AC-PC alignment, and determines closest points of CC to AC and PC.</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -522,7 +526,7 @@
 
 <dl class="py function">
 <dt class="sig sig-object py" id="CorpusCallosum.shape.endpoint_heuristic.smooth_contour">
-<span class="sig-prename descclassname"><span class="pre">CorpusCallosum.shape.endpoint_heuristic.</span></span><span class="sig-name descname"><span class="pre">smooth_contour</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">window_size</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//CorpusCallosum/shape/endpoint_heuristic.py#L23-L62"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CorpusCallosum.shape.endpoint_heuristic.smooth_contour" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">CorpusCallosum.shape.endpoint_heuristic.</span></span><span class="sig-name descname"><span class="pre">smooth_contour</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">window_size</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/52e7dfa/CorpusCallosum/shape/endpoint_heuristic.py#L23-L62"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CorpusCallosum.shape.endpoint_heuristic.smooth_contour" title="Link to this definition">¶</a></dt>
 <dd><p>Smooth a contour using a moving average filter.</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -630,5 +634,6 @@
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
     <script src="../../_static/copybutton.js?v=f281be69"></script>
     <script src="../../_static/design-tabs.js?v=f930bc37"></script>
+    <script src="../../_static/doc-version-link.js?v=e710a016"></script>
     </body>
 </html>

@@ -153,7 +153,11 @@
 
 <a class="skip-to-content muted-link" href="#furo-main-content">Skip to content</a>
 
-
+<div class="announcement">
+  <aside class="announcement-content">
+     You are reading the documentation of the development version. It may describe features and options that are not part of a release yet. See the <a href="../stable/" data-doc-tree="stable">stable documentation</a> for the latest release. 
+  </aside>
+</div>
 
 <div class="page">
   <header class="mobile-header">
@@ -458,7 +462,7 @@
 <span id="corpuscallosum-shape-metrics"></span><h1>CorpusCallosum.shape.metrics<a class="headerlink" href="#module-CorpusCallosum.shape.metrics" title="Link to this heading">¶</a></h1>
 <dl class="py function">
 <dt class="sig sig-object py" id="CorpusCallosum.shape.metrics.calculate_cc_index">
-<span class="sig-prename descclassname"><span class="pre">CorpusCallosum.shape.metrics.</span></span><span class="sig-name descname"><span class="pre">calculate_cc_index</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cc_contour</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">plot</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//CorpusCallosum/shape/metrics.py#L144-L236"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CorpusCallosum.shape.metrics.calculate_cc_index" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">CorpusCallosum.shape.metrics.</span></span><span class="sig-name descname"><span class="pre">calculate_cc_index</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cc_contour</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">plot</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/52e7dfa/CorpusCallosum/shape/metrics.py#L144-L236"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CorpusCallosum.shape.metrics.calculate_cc_index" title="Link to this definition">¶</a></dt>
 <dd><p>Calculate the dimensionless corpus callosum index (CCI).</p>
 <p>The AP line intersects the contour 4 times. The measurements are:
 - Anterior thickness: distance between intersection points 1 and 2
@@ -487,7 +491,7 @@ anterior-posterior length.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="CorpusCallosum.shape.metrics.get_intersections">
-<span class="sig-prename descclassname"><span class="pre">CorpusCallosum.shape.metrics.</span></span><span class="sig-name descname"><span class="pre">get_intersections</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">contour</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">start_point</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">direction</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//CorpusCallosum/shape/metrics.py#L78-L141"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CorpusCallosum.shape.metrics.get_intersections" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">CorpusCallosum.shape.metrics.</span></span><span class="sig-name descname"><span class="pre">get_intersections</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">contour</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">start_point</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">direction</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/52e7dfa/CorpusCallosum/shape/metrics.py#L78-L141"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CorpusCallosum.shape.metrics.get_intersections" title="Link to this definition">¶</a></dt>
 <dd><p>Find intersection points between an infinite line and a closed contour.</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -511,7 +515,7 @@ anterior-posterior length.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="CorpusCallosum.shape.metrics.plot_cc_index_calculation">
-<span class="sig-prename descclassname"><span class="pre">CorpusCallosum.shape.metrics.</span></span><span class="sig-name descname"><span class="pre">plot_cc_index_calculation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ax</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cc_contour</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">anterior_idx</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">posterior_idx</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ap_intersections</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">middle_intersections</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">midpoint</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//CorpusCallosum/shape/metrics.py#L239-L333"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CorpusCallosum.shape.metrics.plot_cc_index_calculation" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">CorpusCallosum.shape.metrics.</span></span><span class="sig-name descname"><span class="pre">plot_cc_index_calculation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ax</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cc_contour</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">anterior_idx</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">posterior_idx</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ap_intersections</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">middle_intersections</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">midpoint</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/52e7dfa/CorpusCallosum/shape/metrics.py#L239-L333"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CorpusCallosum.shape.metrics.plot_cc_index_calculation" title="Link to this definition">¶</a></dt>
 <dd><p>Plot the CC index measurements.</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -620,5 +624,6 @@ anterior-posterior length.</p>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
     <script src="../../_static/copybutton.js?v=f281be69"></script>
     <script src="../../_static/design-tabs.js?v=f930bc37"></script>
+    <script src="../../_static/doc-version-link.js?v=e710a016"></script>
     </body>
 </html>

@@ -153,7 +153,11 @@
 
 <a class="skip-to-content muted-link" href="#furo-main-content">Skip to content</a>
 
-
+<div class="announcement">
+  <aside class="announcement-content">
+     You are reading the documentation of the development version. It may describe features and options that are not part of a release yet. See the <a href="../stable/" data-doc-tree="stable">stable documentation</a> for the latest release. 
+  </aside>
+</div>
 
 <div class="page">
   <header class="mobile-header">
@@ -458,7 +462,7 @@
 <span id="recon-surf-sample-parc"></span><h1>recon_surf.sample_parc<a class="headerlink" href="#module-recon_surf.sample_parc" title="Link to this heading">¶</a></h1>
 <dl class="py function">
 <dt class="sig sig-object py" id="recon_surf.sample_parc.construct_adj_cluster">
-<span class="sig-prename descclassname"><span class="pre">recon_surf.sample_parc.</span></span><span class="sig-name descname"><span class="pre">construct_adj_cluster</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tria</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">annot</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//recon_surf/sample_parc.py#L97-L127"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#recon_surf.sample_parc.construct_adj_cluster" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">recon_surf.sample_parc.</span></span><span class="sig-name descname"><span class="pre">construct_adj_cluster</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tria</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">annot</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/52e7dfa/recon_surf/sample_parc.py#L97-L127"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#recon_surf.sample_parc.construct_adj_cluster" title="Link to this definition">¶</a></dt>
 <dd><p>Compute adjacency matrix of edges from same annotation label only.</p>
 <p>Operates only on triangles and removes edges that cross annotation
 label boundaries.</p>
@@ -480,7 +484,7 @@ adj.data = np.ones(adj.data.shape).</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="recon_surf.sample_parc.find_all_islands">
-<span class="sig-prename descclassname"><span class="pre">recon_surf.sample_parc.</span></span><span class="sig-name descname"><span class="pre">find_all_islands</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">surf</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">annot</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//recon_surf/sample_parc.py#L129-L165"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#recon_surf.sample_parc.find_all_islands" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">recon_surf.sample_parc.</span></span><span class="sig-name descname"><span class="pre">find_all_islands</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">surf</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">annot</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/52e7dfa/recon_surf/sample_parc.py#L129-L165"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#recon_surf.sample_parc.find_all_islands" title="Link to this definition">¶</a></dt>
 <dd><p>Find vertices in disconnected islands for all labels in surface annotation.</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -507,7 +511,7 @@ nibabel fs.read_annot.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="recon_surf.sample_parc.options_parse">
-<span class="sig-prename descclassname"><span class="pre">recon_surf.sample_parc.</span></span><span class="sig-name descname"><span class="pre">options_parse</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//recon_surf/sample_parc.py#L60-L95"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#recon_surf.sample_parc.options_parse" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">recon_surf.sample_parc.</span></span><span class="sig-name descname"><span class="pre">options_parse</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/52e7dfa/recon_surf/sample_parc.py#L60-L95"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#recon_surf.sample_parc.options_parse" title="Link to this definition">¶</a></dt>
 <dd><p>Create a command line interface and return command line options.</p>
 <dl class="field-list">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
@@ -521,7 +525,7 @@ nibabel fs.read_annot.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="recon_surf.sample_parc.replace_labels">
-<span class="sig-prename descclassname"><span class="pre">recon_surf.sample_parc.</span></span><span class="sig-name descname"><span class="pre">replace_labels</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">img_labels</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">img_lut</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">surf_lut</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//recon_surf/sample_parc.py#L332-L365"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#recon_surf.sample_parc.replace_labels" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">recon_surf.sample_parc.</span></span><span class="sig-name descname"><span class="pre">replace_labels</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">img_labels</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">img_lut</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">surf_lut</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/52e7dfa/recon_surf/sample_parc.py#L332-L365"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#recon_surf.sample_parc.replace_labels" title="Link to this definition">¶</a></dt>
 <dd><p>Replace image labels with corresponding surface labels or unknown.</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -549,7 +553,7 @@ nibabel fs.read_annot.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="recon_surf.sample_parc.sample_img">
-<span class="sig-prename descclassname"><span class="pre">recon_surf.sample_parc.</span></span><span class="sig-name descname"><span class="pre">sample_img</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">surf</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">img</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cortex</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">projmm</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">radius</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//recon_surf/sample_parc.py#L247-L329"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#recon_surf.sample_parc.sample_img" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">recon_surf.sample_parc.</span></span><span class="sig-name descname"><span class="pre">sample_img</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">surf</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">img</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cortex</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">projmm</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">radius</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/52e7dfa/recon_surf/sample_parc.py#L247-L329"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#recon_surf.sample_parc.sample_img" title="Link to this definition">¶</a></dt>
 <dd><p>Sample volume at a distance from the surface.</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -582,7 +586,7 @@ all voxels inside this radius to find a non-zero value.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="recon_surf.sample_parc.sample_nearest_nonzero">
-<span class="sig-prename descclassname"><span class="pre">recon_surf.sample_parc.</span></span><span class="sig-name descname"><span class="pre">sample_nearest_nonzero</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">img</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vox_coords</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">radius</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">3.0</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//recon_surf/sample_parc.py#L167-L244"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#recon_surf.sample_parc.sample_nearest_nonzero" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">recon_surf.sample_parc.</span></span><span class="sig-name descname"><span class="pre">sample_nearest_nonzero</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">img</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vox_coords</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">radius</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">3.0</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/52e7dfa/recon_surf/sample_parc.py#L167-L244"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#recon_surf.sample_parc.sample_nearest_nonzero" title="Link to this definition">¶</a></dt>
 <dd><p>Sample closest non-zero value in a ball of radius around vox_coords.</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -606,7 +610,7 @@ all voxels inside this radius to find a non-zero value.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="recon_surf.sample_parc.sample_parc">
-<span class="sig-prename descclassname"><span class="pre">recon_surf.sample_parc.</span></span><span class="sig-name descname"><span class="pre">sample_parc</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">surf</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seg</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">imglut</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">surflut</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">outaparc</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cortex</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">projmm</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">radius</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//recon_surf/sample_parc.py#L368-L416"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#recon_surf.sample_parc.sample_parc" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">recon_surf.sample_parc.</span></span><span class="sig-name descname"><span class="pre">sample_parc</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">surf</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seg</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">imglut</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">surflut</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">outaparc</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cortex</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">projmm</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">radius</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/52e7dfa/recon_surf/sample_parc.py#L368-L416"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#recon_surf.sample_parc.sample_parc" title="Link to this definition">¶</a></dt>
 <dd><p>Sample cortical GM labels from image to surface and smooth.</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -726,5 +730,6 @@ all voxels inside this radius to find a non-zero value.</p>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
     <script src="../../_static/copybutton.js?v=f281be69"></script>
     <script src="../../_static/design-tabs.js?v=f930bc37"></script>
+    <script src="../../_static/doc-version-link.js?v=e710a016"></script>
     </body>
 </html>
