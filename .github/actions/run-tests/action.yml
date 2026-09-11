@@ -76,6 +76,8 @@ runs:
       uses: Deep-MI/FastSurfer/.github/actions/load-processed@dev
       with:
         subject-id: ${{ inputs.subject-id }}
+        # without this the download asks for the subject-id name, which run-fastsurfer did not use
+        artifact-id: ${{ inputs.artifact-id }}
         subjects-dir: ${{ inputs.subjects-dir }}
     # run pytest checks for data consistency/quality
     - name: Run pytest
