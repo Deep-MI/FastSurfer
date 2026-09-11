@@ -462,7 +462,7 @@
 <span id="fastsurfercnn-train"></span><h1>FastSurferCNN.train<a class="headerlink" href="#module-FastSurferCNN.train" title="Link to this heading">¶</a></h1>
 <dl class="py class">
 <dt class="sig sig-object py" id="FastSurferCNN.train.Trainer">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">FastSurferCNN.train.</span></span><span class="sig-name descname"><span class="pre">Trainer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cfg</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/52e7dfa/FastSurferCNN/train.py#L44-L411"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.train.Trainer" title="Link to this definition">¶</a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">FastSurferCNN.train.</span></span><span class="sig-name descname"><span class="pre">Trainer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cfg</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/b688279/FastSurferCNN/train.py#L44-L411"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.train.Trainer" title="Link to this definition">¶</a></dt>
 <dd><p>Trainer for the networks.</p>
 <p class="rubric">Methods</p>
 <div class="table-wrapper autosummary longtable docutils container">
@@ -485,7 +485,7 @@
 </div>
 <dl class="py method">
 <dt class="sig sig-object py" id="FastSurferCNN.train.Trainer.eval">
-<span class="sig-name descname"><span class="pre">eval</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">val_loader</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">val_meter</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">epoch</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/52e7dfa/FastSurferCNN/train.py#L178-L291"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.train.Trainer.eval" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">eval</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">val_loader</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">val_meter</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">epoch</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/b688279/FastSurferCNN/train.py#L178-L291"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.train.Trainer.eval" title="Link to this definition">¶</a></dt>
 <dd><p>Evaluate model and calculates stats.</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -509,13 +509,13 @@
 
 <dl class="py method">
 <dt class="sig sig-object py" id="FastSurferCNN.train.Trainer.run">
-<span class="sig-name descname"><span class="pre">run</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/52e7dfa/FastSurferCNN/train.py#L293-L411"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.train.Trainer.run" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">run</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/b688279/FastSurferCNN/train.py#L293-L411"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.train.Trainer.run" title="Link to this definition">¶</a></dt>
 <dd><p>Transfer the model to devices, create a tensor board summary writer and then perform the training loop.</p>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="FastSurferCNN.train.Trainer.train">
-<span class="sig-name descname"><span class="pre">train</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">train_loader</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">optimizer</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scheduler</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">train_meter</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">epoch</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/52e7dfa/FastSurferCNN/train.py#L94-L176"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.train.Trainer.train" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">train</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">train_loader</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">optimizer</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scheduler</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">train_meter</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">epoch</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/b688279/FastSurferCNN/train.py#L94-L176"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.train.Trainer.train" title="Link to this definition">¶</a></dt>
 <dd><p>Train the network to the given training data.</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
