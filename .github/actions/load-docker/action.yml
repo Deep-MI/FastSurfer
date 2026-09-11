@@ -17,11 +17,19 @@ outputs:
 runs:
   using: "composite"
   steps:
+    - name: Resolve the artifact name
+      if: inputs.docker-image == 'build-cached'
+      shell: bash
+      env:
+        TARGET: ${{ inputs.target }}
+      run: |
+        # must match the name build-docker uploads under
+        echo "FS_DOCKER_ARTIFACT=fastsurfer-${GITHUB_SHA::8}-$TARGET" >> "$GITHUB_ENV"
     - name: Restore docker image from an artifact
       if: inputs.docker-image == 'build-cached'
       uses: actions/download-artifact@v8
       with:
-        name: fastsurfer-${{ github.sha }}-${{ inputs.target }}
+        name: ${{ env.FS_DOCKER_ARTIFACT }}
         path: /tmp
     - name: Load cached docker image and save IMAGE_NAME in environment
       id: load
