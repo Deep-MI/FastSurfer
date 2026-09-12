@@ -422,18 +422,33 @@ then
   RunIt "$cmd" "$LF"
 
   # 2. create the base brainmask by mapping the norm into the base pose. The transform is
-  #    RAS-to-RAS, so the target geometry is taken from the input itself (--ref), keeping
-  #    the base in the time point geometry. --keep-dtype because the inputs are conformed
-  #    uchar and the default is float32, which the base run would not accept as conformed.
+  #    RAS-to-RAS, so the target geometry is taken from the input itself (--ref), keeping the
+  #    base at the time point's resolution and dimensions. --ref-cras 0,0,0 recentres that grid
+  #    on the world origin, which is where the uprighting puts the brain; without it the head is
+  #    rotated towards the edge of its own field of view and can be clipped. --keep-dtype because
+  #    the inputs are conformed uchar and the default is float32, which the base run would not
+  #    accept as conformed.
   cmd="$python -m neuroreg.cli.vol2vol --in ${normInVols[0]} --transform ${ltaXforms[0]}"
-  cmd="$cmd --ref ${normInVols[0]} --interp cubic --keep-dtype"
+  cmd="$cmd --ref ${normInVols[0]} --ref-cras 0,0,0 --interp cubic --keep-dtype"
   cmd="$cmd --out ${SUBJECTS_DIR}/$tid/mri/base_brainmask${extension}"
   RunIt "$cmd" "$LF"
 
-  # 3. create the base orig volume the same way
+  # 3. create the base orig volume the same way, so that it lands on the same grid
   cmd="$python -m neuroreg.cli.vol2vol --in ${subjInVols[0]} --transform ${ltaXforms[0]}"
-  cmd="$cmd --ref ${subjInVols[0]} --interp cubic --keep-dtype"
+  cmd="$cmd --ref ${subjInVols[0]} --ref-cras 0,0,0 --interp cubic --keep-dtype"
   cmd="$cmd --out ${SUBJECTS_DIR}/$tid/mri/orig.mgz"
+  RunIt "$cmd" "$LF"
+
+  # 4. record the base geometry in the transform. segreg registers to a centroid set rather than
+  #    to an image, so it leaves the destination geometry empty, while multireg fills it in for
+  #    more than one time point. Consumers such as mri_fuse_segmentations read it, so both paths
+  #    should describe the base the same way.
+  #    Written to a side file and moved into place, so a failure here cannot leave a transform
+  #    behind that is half rewritten. --out-format because the temp name has no .lta suffix.
+  cmd="$python -m neuroreg.cli.lta convert ${ltaXforms[0]} ${ltaXforms[0]}.geom --out-format lta"
+  cmd="$cmd --dst-img ${SUBJECTS_DIR}/$tid/mri/base_brainmask${extension}"
+  RunIt "$cmd" "$LF"
+  cmd="mv -f ${ltaXforms[0]}.geom ${ltaXforms[0]}"
   RunIt "$cmd" "$LF"
 
 else #more than 1 time point:
