@@ -406,13 +406,17 @@ done
 reference_centroids="mni_icbm152_t1_tal_nlin_asym_09c"
 
 # The base grid, built from the conformed standard rather than copied from a time point: a 256 mm
-# field of view, axis aligned, centred on the world origin, at the finest voxel size any time point
-# has. Taking the minimum keeps the grid independent of the order the time points were given, and
-# avoids coarsening the base when one acquisition is finer than another. Stating the orientation
-# rather than inheriting it also drops the float dust a conformed header can carry.
+# field of view, axis aligned, centred on the world origin. The voxel size is the largest across
+# time points of each one's smallest side, which is the rule multireg's create_template_geometry
+# applies when it derives a grid itself, and mri_robust_template before it. Passing the grid is
+# only needed to keep it axis aligned, since the pre-posed volumes below are oblique, so it should
+# not quietly decide the resolution differently. It also does not depend on the order the time
+# points were given. Stating the orientation rather than inheriting it drops the float dust a
+# conformed header can carry.
 base_vox=$(for v in "${normInVols[@]}" ; do
              $python -m neuroreg.cli.mri info --res "$v"
-           done | awk '{for(j=1;j<=NF;j++) if(m==""||$j<m) m=$j} END{printf "%.10g\n", m}')
+           done | awk '{s=$1; for(j=2;j<=NF;j++) if($j<s) s=$j
+                        if(g=="" || s>g) g=s} END{printf "%.10g\n", g}')
 echo "base grid: 256 mm field of view at ${base_vox}mm" | tee -a "$LF"
 base_geom="${SUBJECTS_DIR}/$tid/mri/base_geom${extension}"
 cmd="$python -m neuroreg.cli.mri geom --fov 256 --vox-size $base_vox"
