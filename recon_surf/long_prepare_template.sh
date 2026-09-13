@@ -405,6 +405,20 @@ done
 
 reference_centroids="mni_icbm152_t1_tal_nlin_asym_09c"
 
+# The base grid, built from the conformed standard rather than copied from a time point: a 256 mm
+# field of view, axis aligned, centred on the world origin, at the finest voxel size any time point
+# has. Taking the minimum keeps the grid independent of the order the time points were given, and
+# avoids coarsening the base when one acquisition is finer than another. Stating the orientation
+# rather than inheriting it also drops the float dust a conformed header can carry.
+base_vox=$(for v in "${normInVols[@]}" ; do
+             $python -m neuroreg.cli.mri info --res "$v"
+           done | awk '{for(j=1;j<=NF;j++) if(m==""||$j<m) m=$j} END{printf "%.10g\n", m}')
+echo "base grid: 256 mm field of view at ${base_vox}mm" | tee -a "$LF"
+base_geom="${SUBJECTS_DIR}/$tid/mri/base_geom${extension}"
+cmd="$python -m neuroreg.cli.mri geom --fov 256 --vox-size $base_vox"
+cmd="$cmd --orientation LIA --cras 0,0,0 --o $base_geom"
+RunIt "$cmd" "$LF"
+
 if [ ${#tpids[@]} == 1 ]
 then
   # If only a single time point, we still create a 'base' so that single-tp subjects are
@@ -422,21 +436,19 @@ then
   cmd="$cmd --dof 6 --lta ${ltaXforms[0]}"
   RunIt "$cmd" "$LF"
 
-  # 2. create the base brainmask by mapping the norm into the base pose. The transform is
-  #    RAS-to-RAS, so the target geometry is taken from the input itself (--ref), keeping the
-  #    base at the time point's resolution and dimensions. --ref-cras 0,0,0 recentres that grid
-  #    on the world origin, which is where the uprighting puts the brain; without it the head is
-  #    rotated towards the edge of its own field of view and can be clipped. --keep-dtype because
-  #    the inputs are conformed uchar and the default is float32, which the base run would not
-  #    accept as conformed.
+  # 2. create the base brainmask by mapping the norm into the base pose. The base grid is the one
+  #    built above, centred on the world origin, which is where the uprighting puts the brain;
+  #    keeping the time point's own centre instead would rotate the head towards the edge of its
+  #    field of view and could clip it. --keep-dtype because the inputs are conformed uchar and the
+  #    default is float32, which the base run would not accept as conformed.
   cmd="$python -m neuroreg.cli.vol2vol --in ${normInVols[0]} --transform ${ltaXforms[0]}"
-  cmd="$cmd --ref ${normInVols[0]} --ref-cras 0,0,0 --interp cubic --keep-dtype"
+  cmd="$cmd --ref $base_geom --interp cubic --keep-dtype"
   cmd="$cmd --out ${SUBJECTS_DIR}/$tid/mri/base_brainmask${extension}"
   RunIt "$cmd" "$LF"
 
   # 3. create the base orig volume the same way, so that it lands on the same grid
   cmd="$python -m neuroreg.cli.vol2vol --in ${subjInVols[0]} --transform ${ltaXforms[0]}"
-  cmd="$cmd --ref ${subjInVols[0]} --ref-cras 0,0,0 --interp cubic --keep-dtype"
+  cmd="$cmd --ref $base_geom --interp cubic --keep-dtype"
   cmd="$cmd --out ${SUBJECTS_DIR}/$tid/mri/orig.mgz"
   RunIt "$cmd" "$LF"
 
@@ -489,24 +501,11 @@ else #more than 1 time point:
     RunIt "$cmd" "$LF"
   done
 
-  # The base grid, built from the conformed standard rather than copied from a time point: a
-  # 256 mm field of view, axis aligned, centred on the world origin, at the finest voxel size any
-  # time point has. Taking the minimum keeps the grid independent of the order the time points
-  # were given, and avoids coarsening the base when one acquisition is finer than another. The
-  # grid has to be passed explicitly because the pre-posed volumes are oblique, and the one
-  # multireg would derive by averaging their direction cosines would be oblique too, which the
-  # base run would reject as unconformed.
-  base_vox=$(for v in "${normInVols[@]}" ; do
-               $python -m neuroreg.cli.mri info --res "$v"
-             done | awk '{for(j=1;j<=NF;j++) if(m==""||$j<m) m=$j} END{printf "%.10g\n", m}')
-  echo "base grid: 256 mm field of view at ${base_vox}mm" | tee -a "$LF"
-  base_geom="${SUBJECTS_DIR}/$tid/mri/base_geom${extension}"
-  cmd="$python -m neuroreg.cli.mri geom --fov 256 --vox-size $base_vox"
-  cmd="$cmd --orientation LIA --cras 0,0,0 --o $base_geom"
-  RunIt "$cmd" "$LF"
-
   # robust co-registration of all time points into an unbiased mid-space, creating the
-  # 'mean/median' norm (brainmask) volume and the forward transforms (tp -> base):
+  # 'mean/median' norm (brainmask) volume and the forward transforms (tp -> base). The base grid
+  # has to be passed explicitly because the pre-posed volumes are oblique, and the one multireg
+  # would derive by averaging their direction cosines would be oblique too, which the base run
+  # would reject as unconformed:
   cmd="$python -m neuroreg.cli.multireg --mov ${hdrInVols[*]}"
   cmd="$cmd --lta ${mrgXforms[*]}"
   cmd="$cmd --template ${SUBJECTS_DIR}/$tid/mri/base_brainmask${extension}"
