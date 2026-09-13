@@ -295,6 +295,7 @@ def main(subjects_dir: Path, subject: str, fs_license: Path, threads: int = 1, i
         cmd = [
             sys.executable, str(Path(__file__).parent / "volmask.py"),
             "--sd", str(subjects_dir), "--sid", subject, "--aseg_name", "aseg.presurf",
+            "--threads", str(threads),
         ]
         completed = run(cmd, env=env)
         if completed.returncode != 0:
