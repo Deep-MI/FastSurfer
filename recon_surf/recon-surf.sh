@@ -1169,11 +1169,13 @@ then
     echo "============================ Creating surfaces - ribbon ==========================="
     echo ""
   } | tee -a "$LF"
-  # -cortribbon 4 minutes, ribbon is used in mris_anatomical stats to remove voxels from surface based volumes that should not be cortex
+  # ribbon is used in mris_anatomical stats to remove voxels from surface based volumes that should not be cortex
   # anatomical stats can run without ribbon, but will omit some surface based measures then
   # wmparc needs ribbon, probably other stuff (aparc to aseg etc).
   # So lets run it to have these measures below.
-  cmd="recon-all -subject $subject -cortribbon -umask $(umask) $hiresflag $fsthreads"
+  # This replaces recon-all -cortribbon, whose mris_volmask spends minutes on a point in surface
+  # test that a winding number does in seconds; the labels and defaults match what it passed.
+  cmd="$python ${binpath}volmask.py --sd $SUBJECTS_DIR --sid $subject --aseg_name aseg.presurf"
   RunIt "$cmd" "$LF"
 
 fi # skip in base

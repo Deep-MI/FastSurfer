@@ -288,24 +288,32 @@ def main(subjects_dir: Path, subject: str, fs_license: Path, threads: int = 1, i
         print(f"The voxel size {vox_size} is {'' if hires else 'not '}less than {hires_voxsize_threshold}, so we are "
               f"proceeding with {'hires' if hires else 'standard'} options.")
 
-        # CREATE cortical ribbon (approx 5mins)
+        # CREATE cortical ribbon, the same way recon-surf.sh does rather than via
+        # recon-all -cortribbon
+        print("Creating cortical ribbon...")
+        os.umask(_umask := os.umask(0o22))
+        cmd = [
+            sys.executable, str(Path(__file__).parent / "volmask.py"),
+            "--sd", str(subjects_dir), "--sid", subject, "--aseg_name", "aseg.presurf",
+        ]
+        completed = run(cmd, env=env)
+        if completed.returncode != 0:
+            raise FastSurferCompatError("Creating cortical ribbon failed!")
+
         # CREATE ASEG
         # 25 sec hyporelabel run whatever else can be done without sphere, cortical ribbon and segmentations
         # -hyporelabel creates aseg.presurf.hypos.mgz from aseg.presurf.mgz
         # -apas2aseg creates aseg.mgz by editing aseg.presurf.hypos.mgz with surfaces
-        print("Creating cortical ribbon...")
-        os.umask(_umask := os.umask(0o22))
-        cmd = ["recon-all", "-subject", subject, "-cortribbon", "-hyporelabel", "-apas2aseg", "-umask", f"{_umask:o}"]
+        print("Creating aseg...")
+        cmd = ["recon-all", "-subject", subject, "-hyporelabel", "-apas2aseg", "-umask", f"{_umask:o}"]
         if hires:
             cmd.append("-hires")
         if threads > 1:
             cmd.extend(["-threads", str(threads), "-itkthreads", str(threads)])
 
-        print("Running: cortical ribbon creation")
-
         completed = run(cmd, env=env)
         if completed.returncode != 0:
-            raise FastSurferCompatError("Creating cortical ribbon failed!")
+            raise FastSurferCompatError("Creating aseg failed!")
 
         # mapped aparcDKT to vol (1:30 min)
         segfile = mdir / "aparc.DKTatlas+aseg.mapped.mgz"
