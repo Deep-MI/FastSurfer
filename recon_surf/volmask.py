@@ -30,6 +30,11 @@ solid angle integral evaluated per point rather than a fill. Coincident sheets,
 self-intersections and small holes therefore change its value smoothly instead
 of letting a region escape, which matters because white and pial coincide
 exactly along the medial wall.
+
+A few hundred voxels near the medial wall fall inside both hemispheres. Rather
+than hand all of them to the left as mris_volmask does, which biases left cortex
+in the same direction in every subject, each goes to the hemisphere whose pial
+surface it lies deeper inside.
 """
 
 # query points per call to libigl, chosen so the coordinates stay around 100 MB whatever the
@@ -176,6 +181,40 @@ def inside_surface(
     return mask
 
 
+def surface_distance(
+    surf_file: Path,
+    ref: nib.freesurfer.mghformat.MGHImage,
+    points: np.ndarray,
+) -> np.ndarray:
+    """
+    Distance from each point to the nearest point on a surface, in voxels.
+
+    For a point known to be inside the surface this is how deep inside it lies.
+
+    Parameters
+    ----------
+    surf_file : Path
+        FreeSurfer surface to measure against.
+    ref : nibabel.freesurfer.mghformat.MGHImage
+        Volume whose grid the points are given in.
+    points : numpy.ndarray
+        Voxel coordinates, shape (n, 3).
+
+    Returns
+    -------
+    numpy.ndarray
+        Distance per point, shape (n,).
+    """
+    import igl
+
+    vertices, faces = fsio.read_geometry(surf_file)
+    to_vox = np.linalg.inv(ref.header.get_vox2ras_tkr())
+    verts = np.ascontiguousarray(nib.affines.apply_affine(to_vox, vertices), dtype=np.float64)
+    tris = np.ascontiguousarray(faces, dtype=np.int64)
+    squared, _, _ = igl.point_mesh_squared_distance(np.ascontiguousarray(points), verts, tris)
+    return np.sqrt(np.asarray(squared))
+
+
 def main(args: argparse.Namespace) -> int | str:
     """
     Write the ribbon volumes for one subject.
@@ -240,12 +279,11 @@ def main(args: argparse.Namespace) -> int | str:
         nib.save(image, path)
         print(f"wrote {path}")
 
-    # rh first, so that a voxel both hemispheres claim ends up left, as mris_volmask does.
     # One hemisphere at a time, so only its two masks are held rather than all four; at 0.4 mm
     # a single mask over a 640^3 grid is already 260 MB.
     ribbon = np.zeros(ref.shape[:3], dtype=np.uint8)
     hemi_ribbons: dict[str, np.ndarray] = {}
-    overlap = None
+    previous = None
     for hemi in [h for h in ("rh", "lh") if h in hemis]:
         masks = {}
         for surf in (args.surf_white, args.surf_pial):
@@ -256,19 +294,35 @@ def main(args: argparse.Namespace) -> int | str:
             print(f"{surf_files[(hemi, surf)].name}: {int(masks[surf].sum())} voxels inside")
         white, pial = masks[args.surf_white], masks[args.surf_pial]
 
-        # whatever is already labelled belongs to the hemisphere done before this one
-        if hemi_ribbons:
-            overlap = int(np.count_nonzero((white | pial) & (ribbon != 0)))
-
-        wm_label, gm_label = labels[hemi]
-        ribbon[white | pial] = 0
-        ribbon[pial & ~white] = gm_label
-        ribbon[white] = wm_label
-        # the per-hemisphere ribbon is taken before that tie-break, again as mris_volmask does
+        # The per-hemisphere ribbon records this hemisphere's own claim, before any of the
+        # arbitration below, which is what mris_volmask writes too.
         hemi_ribbons[hemi] = (pial & ~white).astype(np.uint8)
 
-    if overlap is not None:
-        print(f"hemi masks overlap voxels = {overlap}")
+        claim = white | pial
+        if previous is not None:
+            # Whatever is already labelled belongs to the hemisphere done before this one, so
+            # anything claimed twice has to be arbitrated. mris_volmask hands all of it to the
+            # left, which inflates left cortex by a small amount in every subject. Give each
+            # voxel to the hemisphere whose pial surface it lies deeper inside instead, which
+            # is symmetric and needs nothing beyond the surfaces already at hand.
+            contested = claim & (ribbon != 0)
+            count = int(contested.sum())
+            if count:
+                points = np.argwhere(contested).astype(np.float64)
+                mine = surface_distance(surf_files[(hemi, args.surf_pial)], ref, points)
+                theirs = surface_distance(surf_files[(previous, args.surf_pial)], ref, points)
+                lost = points[mine <= theirs].astype(int)
+                claim[lost[:, 0], lost[:, 1], lost[:, 2]] = False
+                print(
+                    f"hemi masks overlap voxels = {count}, {count - len(lost)} to {hemi} and "
+                    f"{len(lost)} to {previous} by depth inside the pial surface"
+                )
+
+        wm_label, gm_label = labels[hemi]
+        ribbon[claim] = 0
+        ribbon[claim & pial & ~white] = gm_label
+        ribbon[claim & white] = wm_label
+        previous = hemi
 
     if ribbon[0, 0, 0] != 0:
         return "Voxel (0, 0, 0) is labelled, the surfaces do not match the reference volume."
