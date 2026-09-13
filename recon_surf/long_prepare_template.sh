@@ -400,6 +400,8 @@ do
 done
 
 
+reference_centroids="mni_icbm152_t1_tal_nlin_asym_09c"
+
 if [ ${#tpids[@]} == 1 ]
 then
   # If only a single time point, we still create a 'base' so that single-tp subjects are
@@ -411,7 +413,6 @@ then
   # lives in the time point's own (conformed) geometry.
 
   seg0="$SUBJECTS_DIR/$tid/long-inputs/${tpids[0]}/cross_aparc+aseg.orig${extension}"
-  reference_centroids="mni_icbm152_t1_tal_nlin_asym_09c"
 
   # 1. rigid segmentation-to-template registration: tp -> base pose (RAS-to-RAS transform)
   cmd="$python -m neuroreg.cli.segreg --seg $seg0 --centroids $reference_centroids"
@@ -441,11 +442,12 @@ then
   #    more than one time point. Consumers such as mri_fuse_segmentations read it, so both paths
   #    should describe the base the same way.
   #    Written to a side file and moved into place, so a failure here cannot leave a transform
-  #    behind that is half rewritten. --out-format because the temp name has no .lta suffix.
-  cmd="$python -m neuroreg.cli.lta convert ${ltaXforms[0]} ${ltaXforms[0]}.geom --out-format lta"
+  #    behind that is half rewritten.
+  tmplta="${SUBJECTS_DIR}/$tid/mri/transforms/${tpids[0]}_withgeom.lta"
+  cmd="$python -m neuroreg.cli.lta convert ${ltaXforms[0]} $tmplta"
   cmd="$cmd --dst-img ${SUBJECTS_DIR}/$tid/mri/base_brainmask${extension}"
   RunIt "$cmd" "$LF"
-  cmd="mv -f ${ltaXforms[0]}.geom ${ltaXforms[0]}"
+  cmd="mv -f $tmplta ${ltaXforms[0]}"
   RunIt "$cmd" "$LF"
 
 else #more than 1 time point:
@@ -454,14 +456,72 @@ else #more than 1 time point:
   device_opt=""
   if [[ -n "$device" ]] && [[ "$device" != "auto" ]] ; then device_opt="--device $device" ; fi
 
+  # Put every time point into the reference centroid pose before co-registering them. Otherwise
+  # multireg opens by registering everything to one pseudo-randomly chosen time point, and the
+  # base inherits that time point's pose, so the same subject lands differently depending on
+  # which one was drawn. Pre-posing them removes that and makes the base upright, the same pose
+  # the single time point branch above produces.
+  #
+  # The pose is applied to the header only, so no interpolation happens here and multireg still
+  # does all of its own registering, including the opening round. The transforms are composed
+  # back onto the original time point geometry afterwards.
+  hdrInVols=()
+  preXforms=()
+  mrgXforms=()
+  for ((i=0;i<${#tpids[@]};++i))
+  do
+    mdir="$SUBJECTS_DIR/$tid/long-inputs/${tpids[i]}"
+    pre="${SUBJECTS_DIR}/$tid/mri/transforms/${tpids[i]}_prereg.lta"
+    preXforms+=("$pre")
+    mrgXforms+=("${SUBJECTS_DIR}/$tid/mri/transforms/${tpids[i]}_prereg_to_${tid}.lta")
+    hdr="$mdir/cross_brainmask_prereg${extension}"
+    hdrInVols+=("$hdr")
+
+    cmd="$python -m neuroreg.cli.segreg --seg $mdir/cross_aparc+aseg.orig${extension}"
+    cmd="$cmd --centroids $reference_centroids --dof 6 --lta $pre"
+    RunIt "$cmd" "$LF"
+
+    cmd="$python -m neuroreg.cli.vol2vol --in ${normInVols[i]} --transform $pre"
+    cmd="$cmd --header-only --out $hdr"
+    RunIt "$cmd" "$LF"
+  done
+
+  # The base grid, built from the conformed standard rather than copied from a time point: a
+  # 256 mm field of view, axis aligned, centred on the world origin, at the finest voxel size any
+  # time point has. Taking the minimum keeps the grid independent of the order the time points
+  # were given, and avoids coarsening the base when one acquisition is finer than another. The
+  # grid has to be passed explicitly because the pre-posed volumes are oblique, and the one
+  # multireg would derive by averaging their direction cosines would be oblique too, which the
+  # base run would reject as unconformed.
+  base_vox=$(for v in "${normInVols[@]}" ; do
+               $python -m neuroreg.cli.mri info --res "$v"
+             done | awk '{for(j=1;j<=NF;j++) if(m==""||$j<m) m=$j} END{printf "%.10g\n", m}')
+  echo "base grid: 256 mm field of view at ${base_vox}mm" | tee -a "$LF"
+  base_geom="${SUBJECTS_DIR}/$tid/mri/base_geom${extension}"
+  cmd="$python -m neuroreg.cli.mri geom --fov 256 --vox-size $base_vox"
+  cmd="$cmd --orientation LIA --cras 0,0,0 --o $base_geom"
+  RunIt "$cmd" "$LF"
+
   # robust co-registration of all time points into an unbiased mid-space, creating the
   # 'mean/median' norm (brainmask) volume and the forward transforms (tp -> base):
-  cmd="$python -m neuroreg.cli.multireg --mov ${normInVols[*]}"
-  cmd="$cmd --lta ${ltaXforms[*]}"
+  cmd="$python -m neuroreg.cli.multireg --mov ${hdrInVols[*]}"
+  cmd="$cmd --lta ${mrgXforms[*]}"
   cmd="$cmd --template ${SUBJECTS_DIR}/$tid/mri/base_brainmask${extension}"
+  cmd="$cmd --template-geom $base_geom"
   cmd="$cmd --average ${robust_template_avg_arg}"
   cmd="$cmd --sat 4.685 --keep-dtype $device_opt"
   RunIt "$cmd" "$LF"
+
+  # compose the pre-pose back in, so the transforms map the original time point and not the
+  # pre-posed copy. 'lta concat A B' applies A first, and carries the geometry of A's source and
+  # B's destination. The pre-posed volumes have served their purpose once this is done.
+  for ((i=0;i<${#tpids[@]};++i))
+  do
+    cmd="$python -m neuroreg.cli.lta concat ${preXforms[i]} ${mrgXforms[i]} ${ltaXforms[i]}"
+    RunIt "$cmd" "$LF"
+    cmd="rm -f ${mrgXforms[i]} ${hdrInVols[i]}"
+    RunIt "$cmd" "$LF"
+  done
 
   # create the 'mean/median' input (orig) volume by reusing the transforms above (no
   # registration, --noit); the per-tp LTAs carry the base geometry so orig.mgz lands on
