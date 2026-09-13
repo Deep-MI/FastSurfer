@@ -32,6 +32,10 @@ of letting a region escape, which matters because white and pial coincide
 exactly along the medial wall.
 """
 
+# query points per call to libigl, chosen so the coordinates stay around 100 MB whatever the
+# voxel size; the per-call cost of rebuilding the mesh BVH is small against a slab this size
+QUERY_CHUNK = 4_000_000
+
 
 def make_parser() -> argparse.ArgumentParser:
     """
@@ -78,7 +82,7 @@ def make_parser() -> argparse.ArgumentParser:
         "--threads",
         type=int,
         default=1,
-        help="number of threads, 0 for one per core (default: 1)",
+        help="number of threads, 0 to leave the thread count to the environment (default: 1)",
     )
     parser.add_argument(
         "--version",
@@ -115,28 +119,60 @@ def inside_surface(
     """
     import igl
 
-    vertices, faces = fsio.read_geometry(surf_file)
+    vertices, faces, meta = fsio.read_geometry(surf_file, read_metadata=True)
+    # A surface records the volume it was built against. get_vox2ras_tkr derives the transform
+    # below from the dimensions and voxel sizes alone, so those are what have to agree: reading
+    # surfaces against a volume on another grid would place every vertex wrongly and produce a
+    # ribbon that looks plausible and is not.
+    surf_dims = tuple(int(v) for v in meta["volume"])
+    ref_dims = tuple(int(v) for v in ref.shape[:3])
+    if surf_dims != ref_dims or not np.allclose(meta["voxelsize"], ref.header.get_zooms()[:3], atol=1e-4):
+        raise ValueError(
+            f"{surf_file.name} was built against a {list(surf_dims)} grid at "
+            f"{np.round(np.asarray(meta['voxelsize']), 4).tolist()} mm, but the reference volume is "
+            f"{list(ref_dims)} at {np.round(np.asarray(ref.header.get_zooms()[:3]), 4).tolist()} mm"
+        )
+
     # surfaces are in tkrRAS, the grid is in voxels
     to_vox = np.linalg.inv(ref.header.get_vox2ras_tkr())
     verts = np.ascontiguousarray(nib.affines.apply_affine(to_vox, vertices), dtype=np.float64)
-    tris = np.ascontiguousarray(faces, dtype=np.int32)
+    tris = np.ascontiguousarray(faces, dtype=np.int64)
+
+    # FreeSurfer writes faces in either order depending on the sign of the surface's
+    # embedded vox2ras determinant, so take the orientation from the mesh itself.
+    corners = verts[tris]
+    inward = np.einsum("ij,ij->i", corners[:, 0], np.cross(corners[:, 1], corners[:, 2])).sum() < 0
+    del corners
 
     shape = np.array(ref.shape[:3])
     voxel_margin = margin / float(np.mean(ref.header.get_zooms()[:3]))
     low = np.maximum(np.floor(verts.min(axis=0) - voxel_margin).astype(int), 0)
     high = np.minimum(np.ceil(verts.max(axis=0) + voxel_margin).astype(int), shape - 1)
-    grid = np.meshgrid(*[np.arange(a, b + 1) for a, b in zip(low, high, strict=True)], indexing="ij")
-    points = np.ascontiguousarray(np.stack([g.ravel() for g in grid], axis=1), dtype=np.float64)
-
-    winding = np.asarray(igl.fast_winding_number(verts, tris, points))
-    # FreeSurfer writes faces in either order depending on the sign of the surface's
-    # embedded vox2ras determinant, so take the orientation from the mesh itself.
-    corners = verts[tris]
-    if np.einsum("ij,ij->i", corners[:, 0], np.cross(corners[:, 1], corners[:, 2])).sum() < 0:
-        winding = -winding
 
     mask = np.zeros(ref.shape[:3], dtype=bool)
-    mask[low[0] : high[0] + 1, low[1] : high[1] + 1, low[2] : high[2] + 1] = (winding > 0.5).reshape(grid[0].shape)
+    ys = np.arange(low[1], high[1] + 1, dtype=np.float64)
+    zs = np.arange(low[2], high[2] + 1, dtype=np.float64)
+    plane = ys.size * zs.size
+    if plane == 0 or high[0] < low[0]:
+        return mask
+
+    # Evaluate in slabs rather than building the whole query grid at once: the points cost
+    # 24 bytes each, so at 0.4 mm a single array would be hundreds of MB per surface. Each call
+    # rebuilds the mesh BVH, about 50 ms, which against a slab of this size is around 1%.
+    rows = max(1, int(QUERY_CHUNK // plane))
+    for start in range(low[0], high[0] + 1, rows):
+        xs = np.arange(start, min(start + rows, high[0] + 1), dtype=np.float64)
+        block = np.empty((xs.size, ys.size, zs.size, 3), dtype=np.float64)
+        block[..., 0] = xs[:, None, None]
+        block[..., 1] = ys[None, :, None]
+        block[..., 2] = zs[None, None, :]
+        # C-contiguous, so this reshape is a view and igl gets the layout it wants
+        winding = np.asarray(igl.fast_winding_number(verts, tris, block.reshape(-1, 3)))
+        if inward:
+            winding = -winding
+        mask[start : start + xs.size, low[1] : high[1] + 1, low[2] : high[2] + 1] = (winding > 0.5).reshape(
+            xs.size, ys.size, zs.size
+        )
     return mask
 
 
@@ -169,6 +205,8 @@ def main(args: argparse.Namespace) -> int | str:
 
     if args.lh_only and args.rh_only:
         return "Pass at most one of --lh-only and --rh-only."
+    if args.surf_white == args.surf_pial:
+        return "--surf_white and --surf_pial name the same surface, the ribbon would be empty."
 
     mri_dir = args.sd / args.sid / "mri"
     surf_dir = args.sd / args.sid / "surf"
@@ -183,14 +221,13 @@ def main(args: argparse.Namespace) -> int | str:
     elif args.rh_only:
         hemis = ["rh"]
 
-    inside: dict[tuple[str, str], np.ndarray] = {}
+    # check every surface before doing any work, so a missing file fails immediately
+    surf_files = {}
     for hemi in hemis:
         for surf in (args.surf_white, args.surf_pial):
-            surf_file = surf_dir / f"{hemi}.{surf}"
-            if not surf_file.is_file():
-                return f"Could not find the surface {surf_file}."
-            inside[(hemi, surf)] = inside_surface(surf_file, ref, args.margin)
-            print(f"{surf_file.name}: {int(inside[(hemi, surf)].sum())} voxels inside")
+            surf_files[(hemi, surf)] = surf_dir / f"{hemi}.{surf}"
+            if not surf_files[(hemi, surf)].is_file():
+                return f"Could not find the surface {surf_files[(hemi, surf)]}."
 
     labels = {
         "lh": (args.label_left_white, args.label_left_ribbon),
@@ -203,29 +240,43 @@ def main(args: argparse.Namespace) -> int | str:
         nib.save(image, path)
         print(f"wrote {path}")
 
-    # rh first, so that a voxel both hemispheres claim ends up left, as mris_volmask does
+    # rh first, so that a voxel both hemispheres claim ends up left, as mris_volmask does.
+    # One hemisphere at a time, so only its two masks are held rather than all four; at 0.4 mm
+    # a single mask over a 640^3 grid is already 260 MB.
     ribbon = np.zeros(ref.shape[:3], dtype=np.uint8)
+    hemi_ribbons: dict[str, np.ndarray] = {}
+    overlap = None
     for hemi in [h for h in ("rh", "lh") if h in hemis]:
-        white, pial = inside[(hemi, args.surf_white)], inside[(hemi, args.surf_pial)]
+        masks = {}
+        for surf in (args.surf_white, args.surf_pial):
+            try:
+                masks[surf] = inside_surface(surf_files[(hemi, surf)], ref, args.margin)
+            except ValueError as error:
+                return str(error)
+            print(f"{surf_files[(hemi, surf)].name}: {int(masks[surf].sum())} voxels inside")
+        white, pial = masks[args.surf_white], masks[args.surf_pial]
+
+        # whatever is already labelled belongs to the hemisphere done before this one
+        if hemi_ribbons:
+            overlap = int(np.count_nonzero((white | pial) & (ribbon != 0)))
+
         wm_label, gm_label = labels[hemi]
         ribbon[white | pial] = 0
         ribbon[pial & ~white] = gm_label
         ribbon[white] = wm_label
-        # the per-hemisphere ribbon is written before that tie-break, again as mris_volmask does
-        write((pial & ~white).astype(np.uint8), mri_dir / f"{hemi}.{args.out_root}.mgz")
+        # the per-hemisphere ribbon is taken before that tie-break, again as mris_volmask does
+        hemi_ribbons[hemi] = (pial & ~white).astype(np.uint8)
 
-    if len(hemis) == 2:
-        overlap = int(
-            (
-                (inside[("lh", args.surf_white)] | inside[("lh", args.surf_pial)])
-                & (inside[("rh", args.surf_white)] | inside[("rh", args.surf_pial)])
-            ).sum()
-        )
+    if overlap is not None:
         print(f"hemi masks overlap voxels = {overlap}")
 
     if ribbon[0, 0, 0] != 0:
         return "Voxel (0, 0, 0) is labelled, the surfaces do not match the reference volume."
 
+    # everything is checked before anything is written, so a failure cannot leave a subject
+    # directory holding some of the ribbon files and not the rest
+    for hemi, data in hemi_ribbons.items():
+        write(data, mri_dir / f"{hemi}.{args.out_root}.mgz")
     write(ribbon, mri_dir / f"{args.out_root}.mgz")
     return 0
 
