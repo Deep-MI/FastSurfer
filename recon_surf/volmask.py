@@ -13,6 +13,7 @@
 # limitations under the License.
 # IMPORTS
 import argparse
+import os
 import sys
 from pathlib import Path
 
@@ -72,6 +73,12 @@ def make_parser() -> argparse.ArgumentParser:
         type=float,
         default=2.0,
         help="margin in mm added around each surface's bounding box (default: 2.0)",
+    )
+    parser.add_argument(
+        "--threads",
+        type=int,
+        default=1,
+        help="number of threads, 0 for one per core (default: 1)",
     )
     parser.add_argument(
         "--version",
@@ -147,6 +154,14 @@ def main(args: argparse.Namespace) -> int | str:
     int or str
         0 on success, an error message otherwise.
     """
+    # Left to itself libigl takes one thread per core, ignoring the budget the pipeline hands
+    # out. The published wheels parallelise with std::thread and read IGL_NUM_THREADS, while a
+    # build from source can use OpenMP instead, so set both. Either way the value is read when
+    # the library is first used, which is why this has to happen before igl is imported.
+    if args.threads > 0:
+        os.environ["IGL_NUM_THREADS"] = str(args.threads)
+        os.environ["OMP_NUM_THREADS"] = str(args.threads)
+
     try:
         import igl  # noqa: F401
     except ImportError:
