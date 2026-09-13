@@ -389,7 +389,6 @@ copy_files=(
   "bin/mris_smooth"
   "bin/mris_sphere"
   "bin/mris_topo_fixer"
-  "bin/mris_volmask"
   "bin/mrisp_paint"
   "bin/pctsurfcon"
   "bin/rca-config"
