@@ -1148,8 +1148,9 @@ then
   # So lets run it to have these measures below.
   # This replaces recon-all -cortribbon, whose mris_volmask spends minutes on a point in surface
   # test that a winding number does in seconds; the labels and defaults match what it passed.
-  cmd="$python ${binpath}volmask.py --sd $SUBJECTS_DIR --sid $subject --aseg_name aseg.presurf --threads $threads"
-  RunIt "$cmd" "$LF"
+  cmda=("${binpath}volmask.py" --sd "$SUBJECTS_DIR" --sid "$subject" --aseg_name aseg.presurf
+        --threads "$threads")
+  run_it "$LF" $python "${cmda[@]}"
 
 fi # skip in base
 

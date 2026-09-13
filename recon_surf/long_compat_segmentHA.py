@@ -292,8 +292,9 @@ def main(subjects_dir: Path, subject: str, fs_license: Path, threads: int = 1, i
         # recon-all -cortribbon
         print("Creating cortical ribbon...")
         os.umask(_umask := os.umask(0o22))
+        # -s as recon-surf.sh uses it, so the user site directory stays out of the way here too
         cmd = [
-            sys.executable, str(Path(__file__).parent / "volmask.py"),
+            sys.executable, "-s", str(Path(__file__).parent / "volmask.py"),
             "--sd", str(subjects_dir), "--sid", subject, "--aseg_name", "aseg.presurf",
             "--threads", str(threads),
         ]
