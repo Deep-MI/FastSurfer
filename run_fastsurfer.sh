@@ -1385,14 +1385,12 @@ then
         exit 1
       fi
     fi
-    # generate callosum segmentation, mesh, shape and downstream measure files.
-    # --verbose because this module defaults to WARNING, which would drop the device and
-    # host lines the other networks write
-    cmd=($python "$CorpusCallosumDir/fastsurfer_cc.py" --sd "$sd" --sid "$subject" --verbose
+    # generate callosum segmentation, mesh, shape and downstream measure files
+    cmd=($python "$CorpusCallosumDir/fastsurfer_cc.py" --sd "$sd" --sid "$subject" --seg_log "$seg_log"
          "--threads" "$threads_seg" "--conformed_name" "$conformed_name" "--aseg_name" "$aseg_segfile"
          "--segmentation_in_orig" "$callosum_seg" "${cc_flags[@]}")
     echo_quoted "${cmd[@]}" | tee -a "$seg_log"
-    "${wrap[@]}" "${cmd[@]}" 2>&1 | tee -a "$seg_log"
+    "${wrap[@]}" "${cmd[@]}"  # no tee, directly logging to $seg_log
     exit_code=${PIPESTATUS[0]}
     if [[ "$exit_code" != 0 ]] ; then
       echo "ERROR: FastSurferCC corpus callosum analysis failed!" | tee -a "$seg_log"

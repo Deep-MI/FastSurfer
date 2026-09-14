@@ -140,7 +140,7 @@ def make_parser() -> argparse.ArgumentParser:
         "--verbose",
         action="count",
         default=_do_not_print(0),
-        help="Enable verbose (pass twice for debug-output).",
+        help="Pass twice for debug output.",
     )
     # Specify subject directory + subject ID, OR specify individual MRI and segmentation files + output paths
     add_arguments(parser, ["sd", "sid", "conformed_name", "aseg_name", "device"])
@@ -201,7 +201,7 @@ def make_parser() -> argparse.ArgumentParser:
         description="Custom output paths, useful if no standard case directory is used. Relative paths are always "
         "relative to the subject_dir defined via --sd and --sid!",
     )
-    add_arguments(advanced, ["threads"])
+    add_arguments(advanced, ["threads", "seg_log"])
     advanced.add_argument(
         "--segmentation",
         "--seg",
@@ -1290,8 +1290,8 @@ if __name__ == "__main__":
 
     options = options_parse()
 
-    # Set up logging if verbose mode is enabled
-    logging.setup_logging(None, options.verbose)  # Log to stdout only
+    # INFO by default, as in the other segmentation modules, and to --seg_log if given
+    logging.setup_logging(options.log_name or None, options.verbose if options.verbose > 1 else None)
 
     sys.exit(
         main(
