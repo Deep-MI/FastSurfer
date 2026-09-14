@@ -426,6 +426,9 @@ echo "Log file for recon-surf.sh" >> "$LF"
   cat "$FREESURFER_HOME/build-stamp.txt" 2>&1
   echo "$VERSION"
   uname -a 2>&1
+  # --torch because neuroreg imports it, so the registration steps below run torch kernels
+  PYTHONPATH="$FASTSURFER_HOME${PYTHONPATH:+:$PYTHONPATH}" \
+    $python -m FastSurferCNN.utils.host_info --torch 2>&1
   if [[ "$on_existing_run" == "true" ]]
   then
     echo "Running on top of an existing subject directory with edits=$edits!"

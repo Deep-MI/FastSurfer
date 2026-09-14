@@ -32,6 +32,7 @@ from FastSurferCNN.data_loader.conform import crop_transform
 from FastSurferCNN.utils import PLANES, Plane, logging, nibabelImage
 from FastSurferCNN.utils.arg_types import ImageSizeOption, OrientationType
 from FastSurferCNN.utils.common import SubjectDirectory, SubjectList, find_device
+from FastSurferCNN.utils.host_info import torch_info
 from FastSurferCNN.utils.mapper import JsonColorLookupTable, Mapper, TSVLookupTable
 from FastSurferCNN.utils.parallel import SerialExecutor, get_num_threads
 
@@ -118,6 +119,9 @@ class Inference:
                 min_memory=2 * (2**30),
                 default_cuda_device=_device,
             )
+
+        for line in torch_info():
+            logger.info(line)
 
         self.batch_size = cfg.TEST.BATCH_SIZE
         _models = self._load_model(cfg)

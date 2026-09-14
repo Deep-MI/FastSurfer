@@ -1000,6 +1000,10 @@ if [[ -f "$seg_log" ]]; then log_existed="true" ; else log_existed="false" ; fi
   echo ""
   echo "Log file for FastSurfer pipeline, run_fastsurfer.sh and segmentation(s)"
   echo "Invocation: $invocation_command"
+  echo ""
+  # the torch line is logged by each network itself, once its threads and device are final
+  PYTHONPATH="$FASTSURFER_HOME${PYTHONPATH:+:$PYTHONPATH}" \
+    $python -m FastSurferCNN.utils.host_info 2>&1
 } | tee -a "$seg_log"
 
 ### IF tmpLF exists, it has been created with a warning or similar, copy that warning to seg_log now
@@ -1381,8 +1385,10 @@ then
         exit 1
       fi
     fi
-    # generate callosum segmentation, mesh, shape and downstream measure files
-    cmd=($python "$CorpusCallosumDir/fastsurfer_cc.py" --sd "$sd" --sid "$subject"
+    # generate callosum segmentation, mesh, shape and downstream measure files.
+    # --verbose because this module defaults to WARNING, which would drop the device and
+    # host lines the other networks write
+    cmd=($python "$CorpusCallosumDir/fastsurfer_cc.py" --sd "$sd" --sid "$subject" --verbose
          "--threads" "$threads_seg" "--conformed_name" "$conformed_name" "--aseg_name" "$aseg_segfile"
          "--segmentation_in_orig" "$callosum_seg" "${cc_flags[@]}")
     echo_quoted "${cmd[@]}" | tee -a "$seg_log"
