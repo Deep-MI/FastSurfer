@@ -26,6 +26,10 @@ from skimage.measure import label, regionprops
 from skimage.morphology import dilation
 
 from FastSurferCNN.data_loader.data_utils import as_mgh_image
+from FastSurferCNN.utils import logging
+
+logger = logging.get_logger(__name__)
+
 
 NT = TypeVar("NT", bound=Number)
 
@@ -133,9 +137,9 @@ def add_cereb_wm(cereb_subseg, aseg, manual_cereb):
     gm_mask = gm_fs != 0
     if manual_cereb:
         gm_mask = cereb_subseg != 0
-        print("1.Intersection of manual labels and WM from fs")
+        logger.info("1.Intersection of manual labels and WM from fs")
     else:
-        print("1.Intersection of SUIT and WM from FS")
+        logger.info("1.Intersection of SUIT and WM from FS")
 
     intersect_seg = np.zeros_like(cereb_subseg)
     intersect_seg[gm_mask] = cereb_subseg[gm_mask]
@@ -156,7 +160,7 @@ def add_cereb_wm(cereb_subseg, aseg, manual_cereb):
     # wm_holes_mask = np.logical_or(wm_holes_mask, intersect_seg == 36)
     # intersect_seg = filling_unknown_labels(intersect_seg, wm_holes_mask, candidate_lbls=np.array([34, 35]))
 
-    print("2.Locating unknown labels touching the wm")
+    logger.info("2.Locating unknown labels touching the wm")
     boundary_holes = locating_unknowns(gm_mask, wm_mask)
     holes_mask = np.logical_or(boundary_holes, intersect_seg == 9)
     holes_mask = np.logical_or(holes_mask, intersect_seg == 36)
@@ -199,7 +203,7 @@ def add_cereb_wm(cereb_subseg, aseg, manual_cereb):
             ]
         )
 
-    print("3.Filling holes touching WM")
+    logger.info("3.Filling holes touching WM")
     filled_seg = filling_unknown_labels(intersect_seg, holes_mask, candidate_lbls)
 
     classes = np.unique(filled_seg)
@@ -243,7 +247,7 @@ def add_cereb_wm(cereb_subseg, aseg, manual_cereb):
         ]
     )
 
-    print("4.Filling any remaining holes")
+    logger.info("4.Filling any remaining holes")
     #filled_bin_mask = ndimage.binary_fill_holes(dropped_comp_img != 0, structure=struc)
     remaining_holes_mask = (
         dropped_comp_img != 0
@@ -275,11 +279,11 @@ def correct_cereb_brainstem(cereb_subseg, brainstem, manual_cereb):
     other (select which to correct by manual_cereb).
     """
     if manual_cereb:
-        print("Correcting brainstem according to cerebellum dzne_manual subseg.")
+        logger.info("Correcting brainstem according to cerebellum dzne_manual subseg.")
         # mapping the overlapping part to dzne_manual labels
         brainstem[cereb_subseg != 0] = 0
     else:
-        print("Correcting cereb subseg according to brainstem.")
+        logger.info("Correcting cereb subseg according to brainstem.")
         cereb_subseg[brainstem != 0] = 0
 
     return cereb_subseg, brainstem
@@ -290,7 +294,7 @@ def save_mgh_image(img_data, save_path, header, affine):
     Save data as mgh image.
     """
     mgh_out = as_mgh_image(img_data, affine, header)
-    print(f"Saving {save_path}")
+    logger.info(f"Saving {save_path}")
     nib.save(mgh_out, save_path)
 
 
@@ -335,7 +339,7 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
     if args.manual_cereb:
-        print("Processing dzne_manual labels.")
+        logger.info("Processing dzne_manual labels.")
 
     aseg_file = nib.load(join(args.subject_path, args.aseg_filename))
     cereb_subseg_file = nib.load(join(args.subject_path, args.cereb_filename))
@@ -344,7 +348,7 @@ if __name__ == "__main__":
 
     cereb_subseg = np.array(cereb_subseg_file.get_fdata(), dtype=np.int16)
 
-    print("**Adding cerebellum white matter to cereb subseg and fill gaps.")
+    logger.info("**Adding cerebellum white matter to cereb subseg and fill gaps.")
     cereb_subseg, aseg = add_cereb_wm(cereb_subseg, aseg, args.manual_cereb)
 
     # # relabeling left/right CM (34, 35) to 37, 38

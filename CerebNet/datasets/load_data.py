@@ -21,6 +21,9 @@ import numpy as np
 
 from CerebNet.data_loader.data_utils import get_plane_transform
 from CerebNet.datasets import utils
+from FastSurferCNN.utils import logging
+
+logger = logging.get_logger(__name__)
 
 
 class SubjectLoader:
@@ -91,9 +94,9 @@ class SubjectLoader:
 
         img_meta_data = {}
         orig, _ = utils.load_reorient_rescale_image(orig_path)
-        print(f"Orig image {orig_path}")
+        logger.info(f"Orig image {orig_path}")
 
-        print(f"Loading from {subseg_path}")
+        logger.info(f"Loading from {subseg_path}")
         subseg_file = utils.load_reorient(subseg_path)
         cereb_subseg = np.asarray(subseg_file.get_fdata(), dtype=np.int16)
         img_meta_data["affine"] = subseg_file.affine

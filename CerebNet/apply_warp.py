@@ -24,6 +24,9 @@ import numpy as np
 from numpy import typing as npt
 
 from CerebNet.datasets import utils
+from FastSurferCNN.utils import logging
+
+logger = logging.get_logger(__name__)
 
 
 def save_nii_image(
@@ -49,7 +52,7 @@ def save_nii_image(
     if not isinstance(header, nib.Nifti1Header):
         header = nib.Nifti1Header.from_header(header)
     img_out = nib.Nifti1Image(img_data, header=header, affine=affine)
-    print(f"Saving {save_path}")
+    logger.info(f"Saving {save_path}")
     nib.save(img_out, save_path)
 
 
