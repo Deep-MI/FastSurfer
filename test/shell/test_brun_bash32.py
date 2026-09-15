@@ -3,7 +3,7 @@ Check that brun_fastsurfer actually works under the bash macOS ships.
 
 These three paths used to abort with "requires at minimum bash version 4", because they built arrays
 with ``mapfile``. They are only meaningful where ``/bin/bash`` really is 3.x, i.e. on macOS, so they
-skip elsewhere; the static counterpart in test_bash4_lint.py runs everywhere.
+skip elsewhere; the static counterpart in test/lint/test_bash4_lint.py runs everywhere.
 
 They substitute a stub for run_fastsurfer.sh via ``--run_fastsurfer``, so no image is processed.
 """

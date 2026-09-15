@@ -122,7 +122,7 @@ Contributing Code
 
    ```bash
    uv run --no-project --with ruff ruff check .
-   uv run --no-project --with pytest pytest test/shell/test_bash4_lint.py test/shell/test_fs_time.py
+   uv run --no-project --with pytest pytest test/lint
    uv run --no-project --with codespell codespell --ignore-words .codespellignore \
      --check-filenames --check-hidden \
      --skip './build,./doc/images,./Tutorial,./.git,./.mypy_cache,./.pytest_cache,./.venv' .
