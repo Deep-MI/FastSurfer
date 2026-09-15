@@ -44,6 +44,7 @@ link_files=(
   "bin/mris_surface_stats"
   "bin/mris_thickness"
   "bin/mris_thickness_diff"
+  "bin/mris_volmask"
   "bin/nu_correct"
   "bin/tkregister2_cmdl")
 
