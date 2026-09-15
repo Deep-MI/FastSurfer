@@ -45,6 +45,7 @@ __all__ = [
     "cpu_quota",
     "host_info",
     "log_torch_info",
+    "numerical_fingerprint",
     "torch_info",
 ]
 
@@ -142,7 +143,49 @@ def cpu_count() -> str:
     return " ".join(parts)
 
 
-def torch_info(with_threads: bool = True) -> list[str]:
+def numerical_fingerprint() -> str:
+    """
+    Hash the result of a convolution and a softmax, to identify what this host computes.
+
+    The CPU model does not predict the arithmetic: the same model appears with and
+    without AVX512 depending on what the hypervisor exposes, and two hosts reporting the
+    same capability can still differ. This measures the answer instead of describing the
+    machine, so two logs can be compared by one line.
+
+    Convolution and softmax because those are what the networks use. Matmul is left out:
+    it is vendor dependent through BLAS, but no model here calls it.
+
+    Returns
+    -------
+    str
+        `conv=<hash> soft=<hash>`, or a note if torch is missing.
+    """
+    import hashlib
+    import struct
+
+    try:
+        import torch
+    except ImportError as e:
+        return f"not available ({type(e).__name__})"
+
+    def digest(t: "torch.Tensor") -> str:
+        # via int32 rather than numpy, so a missing numpy cannot break the log line
+        values = t.detach().contiguous().flatten().view(torch.int32).tolist()
+        return hashlib.md5(struct.pack(f"<{len(values)}i", *values)).hexdigest()[:12]
+
+    # Integer arithmetic then an inexact divide. Elementwise division is correctly
+    # rounded, so the inputs are identical on every host, while the values are not
+    # exactly representable, which is what lets a reordered reduction show.
+    n = 1 * 16 * 64 * 64
+    x = (((torch.arange(n, dtype=torch.float32) % 257) - 128) / 3.0).reshape(1, 16, 64, 64)
+    w = (((torch.arange(32 * 16 * 3 * 3, dtype=torch.float32) % 97) - 48) / 7.0).reshape(32, 16, 3, 3)
+    with torch.no_grad():
+        conv = torch.nn.functional.conv2d(x, w, padding=1)
+        soft = torch.softmax(x.reshape(-1), 0)
+    return f"conv={digest(conv)} soft={digest(soft)}"
+
+
+def torch_info(with_threads: bool = True, with_fingerprint: bool = False) -> list[str]:
     """
     Describe what torch will dispatch to on this host.
 
@@ -155,6 +198,9 @@ def torch_info(with_threads: bool = True) -> list[str]:
         Whether to report the thread counts. Pass False from a process that does no
         torch work itself, such as a shell log header, where the counts would be torch's
         defaults rather than anything the run will use.
+    with_fingerprint : bool, default=False
+        Whether to add `numerical_fingerprint`. Costs a few milliseconds, so it is off
+        for callers that only want the build facts.
 
     Returns
     -------
@@ -175,10 +221,12 @@ def torch_info(with_threads: bool = True) -> list[str]:
     if torch.cuda.is_available():
         devices = ", ".join(torch.cuda.get_device_name(i) for i in range(torch.cuda.device_count()))
         lines.append(f"CUDA {torch.version.cuda}, devices: {devices}")
+    if with_fingerprint:
+        lines.append(f"Numerical fingerprint: {numerical_fingerprint()}")
     return lines
 
 
-def log_torch_info(logger: "Logger") -> None:
+def log_torch_info(logger: "Logger", with_fingerprint: bool = True) -> None:
     """
     Log what torch dispatched to, one record per line.
 
@@ -189,13 +237,16 @@ def log_torch_info(logger: "Logger") -> None:
     ----------
     logger : logging.Logger
         The logger to write to.
+    with_fingerprint : bool, default=True
+        Whether to include `numerical_fingerprint`. On by default: this is the record
+        that lets two runs be compared later, and it costs a few milliseconds once.
     """
-    for line in torch_info():
+    for line in torch_info(with_fingerprint=with_fingerprint):
         # attribute the record to the caller, so the log says which network emitted it
         logger.info(line, stacklevel=2)
 
 
-def host_info(with_torch: bool = False) -> list[str]:
+def host_info(with_torch: bool = False, with_fingerprint: bool = False) -> list[str]:
     """
     Describe the machine this process is running on.
 
@@ -207,6 +258,8 @@ def host_info(with_torch: bool = False) -> list[str]:
         work, so only the build facts would be true; the thread counts are left out for
         the same reason. A step that runs torch itself should call `log_torch_info` once
         its thread count and device are final.
+    with_fingerprint : bool, default=False
+        Whether to add `numerical_fingerprint`. Implies `with_torch`.
 
     Returns
     -------
@@ -218,8 +271,8 @@ def host_info(with_torch: bool = False) -> list[str]:
         f"CPU: {cpu_model()}",
         f"CPU cores: {cpu_count()}",
     ]
-    if with_torch:
-        lines += torch_info(with_threads=False)
+    if with_torch or with_fingerprint:
+        lines += torch_info(with_threads=False, with_fingerprint=with_fingerprint)
     limits = [f"{var}={os.environ[var]}" for var in THREAD_VARS if var in os.environ]
     lines.append(f"Thread limits: {', '.join(limits) if limits else 'none set'}")
     return lines
@@ -232,8 +285,14 @@ def main() -> int:
         action="store_true",
         help="also report the torch build, for a step that runs torch but does not log this itself",
     )
+    parser.add_argument(
+        "--fingerprint",
+        action="store_true",
+        help="also hash a convolution and a softmax, so two logs can be compared for whether the "
+             "hosts computed the same thing at all. Implies --torch.",
+    )
     args = parser.parse_args()
-    print("\n".join(host_info(with_torch=args.torch)))
+    print("\n".join(host_info(with_torch=args.torch, with_fingerprint=args.fingerprint)))
     return 0
 
 

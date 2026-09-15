@@ -263,7 +263,8 @@ echo "Log file for long_prepare_template" >> "$LF"
   cat "$FREESURFER_HOME/build-stamp.txt" 2>&1
   uname -a  2>&1
   # --torch because neuroreg imports it, so the registration steps below run torch kernels
-  $python "$FASTSURFER_HOME/FastSurferCNN/host_info.py" --torch 2>&1
+  # --fingerprint records what this host computes, for comparing two runs later
+  $python "$FASTSURFER_HOME/FastSurferCNN/host_info.py" --torch --fingerprint 2>&1
 } | tee -a "$LF"
 
 
