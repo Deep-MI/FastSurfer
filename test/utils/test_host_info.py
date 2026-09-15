@@ -229,6 +229,27 @@ class TestNumericalFingerprint:
         assert "\n" not in host_info.numerical_fingerprint()
 
     @needs_torch
+    def test_does_not_depend_on_the_thread_count(self):
+        """
+        The fingerprint has to describe the host, not the invocation.
+
+        It is emitted both from log headers, where torch still has its default thread count,
+        and from the networks, after `--threads` has been applied. Those have to agree, or
+        the same machine reports two classes and every comparison is a false positive.
+        """
+        import torch
+
+        before = torch.get_num_threads()
+        try:
+            torch.set_num_threads(1)
+            one = host_info.numerical_fingerprint()
+            torch.set_num_threads(4)
+            four = host_info.numerical_fingerprint()
+        finally:
+            torch.set_num_threads(before)
+        assert one == four, f"thread count changed the fingerprint: {one} against {four}"
+
+    @needs_torch
     def test_tracks_the_selected_kernels(self):
         """
         Capping the ISA has to change the hash, or it cannot detect the split it exists for.

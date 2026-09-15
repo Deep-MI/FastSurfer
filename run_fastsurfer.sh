@@ -1001,7 +1001,8 @@ if [[ -f "$seg_log" ]]; then log_existed="true" ; else log_existed="false" ; fi
   echo "Log file for FastSurfer pipeline, run_fastsurfer.sh and segmentation(s)"
   echo "Invocation: $invocation_command"
   echo ""
-  # the torch line is logged by each network itself, once its threads and device are final
+  # no --torch here: each network logs the torch line and the numerical fingerprint itself, once
+  # its threads and device are final, which would otherwise cost an import before any work starts
   $python "$FASTSURFER_HOME/FastSurferCNN/host_info.py" 2>&1
 } | tee -a "$seg_log"
 
