@@ -51,6 +51,8 @@ jobs:
         # FastSurfer, because installing it is the entire cost of a job: the tests take seconds.
         #   image: needs nibabel, numpy, scipy and FastSurferCNN, so it installs the project.
         #   shell: runs the shipped scripts, needs nothing but pytest.
+        #   utils: imports FastSurfer, but only modules that are standard library underneath, so
+        #          the PYTHONPATH export below is enough and no install is needed.
         # test/lint is deliberately absent: it only reads files and belongs with the other style
         # checks, so it runs in the much lighter code-style workflow.
         # test/shell also runs on macOS below, which is the only place /bin/bash is 3.2.
@@ -59,12 +61,14 @@ jobs:
         # An include entry whose keys are all absent from the matrix is merged into every
         # combination instead of creating one, so two such entries would collapse into a single
         # job running whichever came last. Listing the values here makes each include a filter.
-        tests: [image, shell]
+        tests: [image, shell, utils]
         pytest-flags: [""]
         include:
           - tests: image
             needs-project: true
           - tests: shell
+            needs-project: false
+          - tests: utils
             needs-project: false
 
     steps:

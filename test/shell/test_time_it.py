@@ -25,6 +25,9 @@ these tests pin.
 The other half of the contract is that the status still reaches the caller unchanged, because
 every call site reads it from PIPESTATUS and exits with it. Losing that would turn a failed
 step into a run that reports success.
+
+Returning is only safe while every call site really does check. That half only reads the script
+and never runs it, so it is a lint: test/lint/test_time_it_call_sites.py.
 """
 
 import subprocess
@@ -89,22 +92,6 @@ def test_success_continues(piped, timed):
     result = run_caller("true", piped, timed)
     assert result.returncode == 0
     assert "CONTINUED" in result.stdout
-
-
-def test_every_call_site_checks_the_status():
-    """
-    Returning is only safe while every caller tests the status itself.
-
-    A new call site without a check would silently carry on past a failed step, which is the
-    one regression this change could introduce and the one a runtime test cannot catch.
-    """
-    lines = (FASTSURFER_HOME / "run_fastsurfer.sh").read_text().splitlines()
-    unchecked = [
-        i + 1
-        for i, line in enumerate(lines)
-        if '"${wrap[@]}"' in line and "ERROR" not in "\n".join(lines[i + 1: i + 8])
-    ]
-    assert not unchecked, f"time_it call sites without an error check: {unchecked}"
 
 
 if __name__ == "__main__":
