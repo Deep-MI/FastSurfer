@@ -92,9 +92,13 @@ function time_it()
   fi
   # Capture the status before testing it. A test is itself a command, so it overwrites PIPESTATUS:
   # reading PIPESTATUS again inside the branch yields the status of the test (0), not of cmd, which
-  # made this exit 0 on failure -- stopping the pipeline while reporting success.
-  local exit_status="${PIPESTATUS[0]}"
-  if [[ "$exit_status" != 0 ]] ; then exit "$exit_status" ; fi
+  # made this exit 0 on failure, stopping the pipeline while reporting success.
+  #
+  # Return rather than exit, so the caller reports which step failed before it stops. A function's
+  # exit ends the shell it runs in, which is the caller for a plain call but only a subshell inside
+  # a pipeline, so exiting here silently skipped the caller's error message wherever the call was
+  # not piped. Every call site checks the status.
+  return "${PIPESTATUS[0]}"
 }
 
 function RunIt()

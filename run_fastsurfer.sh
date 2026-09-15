@@ -1002,8 +1002,7 @@ if [[ -f "$seg_log" ]]; then log_existed="true" ; else log_existed="false" ; fi
   echo "Invocation: $invocation_command"
   echo ""
   # the torch line is logged by each network itself, once its threads and device are final
-  PYTHONPATH="$FASTSURFER_HOME${PYTHONPATH:+:$PYTHONPATH}" \
-    $python -m FastSurferCNN.utils.host_info 2>&1
+  $python "$FASTSURFER_HOME/FastSurferCNN/host_info.py" 2>&1
 } | tee -a "$seg_log"
 
 ### IF tmpLF exists, it has been created with a warning or similar, copy that warning to seg_log now
@@ -1348,6 +1347,11 @@ then
         echo "  robustly scaled (see FastSurferCNN/utils/data_loader/conform.py)!"
       } | tee -a "$seg_log"
       "${wrap[@]}" "${cmd[@]}" 2>&1 | tee -a "$seg_log"
+      if [[ "${PIPESTATUS[0]}" != 0 ]]
+      then
+        echo "ERROR: Rescaling the T2 failed!" | tee -a "$seg_log"
+        exit 1
+      fi
     fi
   fi
 
