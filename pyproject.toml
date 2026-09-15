@@ -134,7 +134,7 @@ tracker = 'https://github.com/Deep-MI/FastSurfer/issues'
 #   - Two places keep a hardcoded copy because neither can read this file: the ARG PYTHON_VERSION
 #     default in tools/Docker/Dockerfile (a Dockerfile cannot parse toml) and the python-version
 #     in .github/workflows/quicktest.yaml (that step provides the interpreter which then reads
-#     this file). test/config/test_python_version.py asserts both against this key.
+#     this file). test/lint/test_python_version.py asserts both against this key.
 #   - NOT .github/workflows/unittest.yaml, which pins the requires-python floor on purpose.
 #
 # This key is deliberately separate from project.requires-python, which answers a different

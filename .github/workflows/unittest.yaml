@@ -1,14 +1,25 @@
 name: test
 
-# File: test.yaml
-# Functionality: This workflow runs unit tests defined in tests/image.
+# File: unittest.yaml
+# Functionality: runs the unit tests under test/, one job per directory, plus the shell tests
+# under the bash macOS ships.
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.number }}-${{ github.event.ref }}
-  cancel-in-progress: true
+  # Superseded pull request runs are worth cancelling, runs on dev are not: a cancelled run saves
+  # no cache, and warming the cache is the only reason dev is a trigger at all.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 on:
   pull_request:
+  # Not for the coverage, which the pull_request run already gives: every change reaches dev
+  # through a pull request, and that event checks out the merge ref, so the merged result is what
+  # was tested. This is for the pip cache. A run can restore caches from its own branch, the
+  # default branch, or, for a pull request, its base branch. Without a run on dev this workflow's
+  # cache only ever exists at pull-request scope, which no other pull request can read, so every
+  # one of them downloads torch and the rest of the install from scratch.
+  push:
+    branches: [dev]
   workflow_dispatch:
 
 permissions:
@@ -27,20 +38,34 @@ permissions:
   statuses: read
 
 jobs:
-  image-test:
+  unit-test:
     name: 'Run FastSurfer unit tests from test/${{ matrix.tests }}'
     runs-on: ubuntu-latest
-    timeout-minutes: 180
+    # Every job here runs in about a minute. The headroom is for the image job on a cold pip
+    # cache, which is what a pull request sees until a run on dev has populated one, since that
+    # install downloads torch. It is a bound on a hung test, not a budget.
+    timeout-minutes: 20
     strategy:
       matrix:
-        # image: image-processing unit tests. config: consistency of declared versions across
-        # pyproject.toml, the Dockerfile and the workflows (see test/config/test_python_version.py).
-        # test/shell is deliberately absent: its static half only reads files and runs in the much
-        # lighter code-style workflow, and its functional half needs a real bash 3.2, so it runs in
-        # the macos-shell-test job below. Adding it here would spin up a whole job, including the
-        # quicktest dependency install, to execute a text scan.
-        tests: ["image", "config"]
+        # One entry per test/<name> directory. needs-project says whether the tests import
+        # FastSurfer, because installing it is the entire cost of a job: the tests take seconds.
+        #   image: needs nibabel, numpy, scipy and FastSurferCNN, so it installs the project.
+        #   shell: runs the shipped scripts, needs nothing but pytest.
+        # test/lint is deliberately absent: it only reads files and belongs with the other style
+        # checks, so it runs in the much lighter code-style workflow.
+        # test/shell also runs on macOS below, which is the only place /bin/bash is 3.2.
+        #
+        # `tests` has to stay a real matrix dimension rather than living only in `include`.
+        # An include entry whose keys are all absent from the matrix is merged into every
+        # combination instead of creating one, so two such entries would collapse into a single
+        # job running whichever came last. Listing the values here makes each include a filter.
+        tests: [image, shell]
         pytest-flags: [""]
+        include:
+          - tests: image
+            needs-project: true
+          - tests: shell
+            needs-project: false
 
     steps:
       - uses: actions/checkout@v7
@@ -55,11 +80,20 @@ jobs:
           cache: 'pip' # caching pip dependencies
       - name: Install dependencies
         shell: bash
-        # uses the same python environment as quicktest
+        env:
+          NEEDS_PROJECT: ${{ matrix.needs-project }}
+        # only the tests that import FastSurfer pay for installing it; the others need pytest and
+        # nothing else, and installing the project would pull torch in for a script that shells out
         run: |
           echo "::group::Create python environment"
           python -m pip install --progress-bar off --upgrade pip setuptools wheel
-          python -m pip install --progress-bar off .[quicktest]
+          if [[ "$NEEDS_PROJECT" == "true" ]]
+          then
+            # the same python environment as quicktest
+            python -m pip install --progress-bar off .[quicktest]
+          else
+            python -m pip install --progress-bar off pytest
+          fi
           echo "::endgroup::"
       - name: Resolve the artifact and JUnit file names
         shell: bash
@@ -75,12 +109,16 @@ jobs:
       # run pytest checks for data consistency/quality
       - name: Run pytest
         env:
-          PYTHON_PATH: .
+          NEEDS_PROJECT: ${{ matrix.needs-project }}
           FASTSURFER_HOME: ${{ github.workspace }}
         shell: bash
         continue-on-error: true  # pytest only exits with code 0, if all tests pass
         run: |
           echo "::group::Run tests"
+          # PYTHONPATH, not the PYTHON_PATH this used to set, which python never reads. Only where
+          # the project was not installed: it precedes site-packages, so setting it unconditionally
+          # would make the installed package untested and silently import the working tree instead.
+          if [[ "$NEEDS_PROJECT" != "true" ]] ; then export PYTHONPATH="$GITHUB_WORKSPACE" ; fi
           flags=("--junit-xml=$FS_JUNIT_FILE")
           if [[ "$ACTION_RUNNER_DEBUG" == "true" ]]
           then 
@@ -110,7 +148,7 @@ jobs:
     # The only place /bin/bash is 3.2, which is what test/shell guards: every shipped script selects
     # it through its own shebang, so a bash-4-only construct breaks macOS while passing on Linux.
     runs-on: macos-15
-    timeout-minutes: 15
+    timeout-minutes: 20  # the same bound as the job above, for the same reason
     steps:
       - uses: actions/checkout@v7
       - name: Setup Python
@@ -134,6 +172,7 @@ jobs:
         env:
           FASTSURFER_HOME: ${{ github.workspace }}
         shell: bash
-        # the bash 3.2 tests, which only run here, plus the fs_time ones for their macOS branches;
-        # the latter also run on ubuntu in the code-style workflow, for the linux branches
-        run: python -m pytest -v test/shell/test_brun_bash32.py test/shell/test_fs_time.py
+        # the whole directory: the bash 3.2 tests only do anything here, and fs_time branches on
+        # the platform, so this is the run that covers its macOS half. The ubuntu job above covers
+        # the linux half of both.
+        run: python -m pytest -v test/shell

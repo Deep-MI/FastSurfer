@@ -7,7 +7,8 @@ login shell is. A bash-4-only builtin therefore breaks FastSurfer on macOS while
 we run on Linux, where bash is 5.x.
 
 This scan only reads files, so it is platform independent and runs in the style job on every pull
-request. The functional counterpart, which needs a real bash 3.2, lives in test_brun_bash32.py.
+request, which is why it lives in test/lint rather than beside the shell tests. The functional
+counterpart, which needs a real bash 3.2, is test/shell/test_brun_bash32.py.
 """
 
 import re

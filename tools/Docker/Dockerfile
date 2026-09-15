@@ -39,7 +39,7 @@
 #   The python version to use for the virtual environment. build.py always passes this explicitly
 #   from tool.python.version in pyproject.toml, which is the single source of truth; the ARG
 #   default only applies to a direct `docker build` and is checked against that key by
-#   test/config/test_python_version.py.
+#   test/lint/test_python_version.py.
 #   - default: see tool.python.version in pyproject.toml
 # - FREESURFER_VERSION:
 #   The freesurfer version used in the image.
