@@ -22,7 +22,10 @@ jobs:
         with:
           python-version: '3.10'
       - name: Run Ruff
-        run: uv run --project src --extra style ruff check src
+        # --no-project, like CONTRIBUTING.md tells contributors to run it: ruff reads its config
+        # from src/pyproject.toml but needs none of the project's 28 dependencies, and --project
+        # resolved and installed all of them, torch included, to lint.
+        run: uv run --no-project --with ruff ruff check src
       - name: Run the static checks
         # test/lint holds the checks that only read files: the bash 3.2 scan over the shipped
         # scripts, and the consistency of the declared python version across pyproject.toml, the
