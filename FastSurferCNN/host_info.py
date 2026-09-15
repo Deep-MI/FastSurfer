@@ -16,14 +16,16 @@
 Describe the machine a run executed on.
 
 Floating point results depend on which vectorised kernels the CPU supports, so two runs
-of the same code on two hosts can differ in the last bits. Recording the host makes that
-visible in the log instead of leaving it to be guessed afterwards.
+of the same code on two hosts can differ in the last bits. Recording the machine makes
+that visible in the log instead of leaving it to be guessed afterwards.
 
-Run as a module to print the block for a shell log. It has to be `-m`: running the file
-directly puts `FastSurferCNN/utils` on the path, where `logging.py` shadows the standard
-library module that torch needs.
+The hostname is deliberately absent: `uname -a` in recon-surf.log, `Machine:` in
+recon-all.log, `HOSTNAME` in recon-all.env and `HOST` in recon-surf.done already carry
+it, and inside a container it is a random string that identifies nothing.
 
-    python3 -m FastSurferCNN.utils.host_info
+Run as a script to print the block for a shell log:
+
+    python3 FastSurferCNN/host_info.py
 """
 
 import argparse
@@ -31,10 +33,18 @@ import os
 import platform
 import re
 import subprocess
+from pathlib import Path
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from logging import Logger
 
 __all__ = [
+    "cpu_count",
     "cpu_model",
+    "cpu_quota",
     "host_info",
+    "log_torch_info",
     "torch_info",
 ]
 
@@ -47,6 +57,10 @@ THREAD_VARS = (
     "NUMEXPR_NUM_THREADS",
     "ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS",
 )
+
+CGROUP_V2_CPU_MAX = Path("/sys/fs/cgroup/cpu.max")
+CGROUP_V1_CPU_QUOTA = Path("/sys/fs/cgroup/cpu/cpu.cfs_quota_us")
+CGROUP_V1_CPU_PERIOD = Path("/sys/fs/cgroup/cpu/cpu.cfs_period_us")
 
 
 def cpu_model() -> str:
@@ -74,16 +88,57 @@ def cpu_model() -> str:
     return platform.processor() or "unknown"
 
 
-def _cpu_count() -> str:
-    """Report the cores the process may actually use, and the cores the host has."""
+def cpu_quota() -> float | None:
+    """
+    Get the CPU limit the cgroup imposes, in cores.
+
+    `docker run --cpus=2` sets a quota rather than an affinity mask, so the core count
+    alone does not describe what the process may use.
+
+    Returns
+    -------
+    float, None
+        The limit in cores, or None if the process is not capped.
+    """
+    try:
+        quota, period = CGROUP_V2_CPU_MAX.read_text().split()
+        if quota != "max":
+            return int(quota) / int(period)
+        return None
+    except (OSError, ValueError):
+        pass
+    try:
+        quota = int(CGROUP_V1_CPU_QUOTA.read_text())
+        period = int(CGROUP_V1_CPU_PERIOD.read_text())
+        if quota > 0 and period > 0:
+            return quota / period
+    except (OSError, ValueError):
+        pass
+    return None
+
+
+def cpu_count() -> str:
+    """
+    Describe how many cores the process may use.
+
+    Returns
+    -------
+    str
+        The usable core count, qualified by the host total and by a cgroup limit where
+        those differ from it.
+    """
     total = os.cpu_count()
     try:
         available = len(os.sched_getaffinity(0))
     except AttributeError:  # sched_getaffinity is linux only
         available = total
-    if available == total:
-        return f"{available}"
-    return f"{available} of {total}"
+    parts = ["unknown" if available is None else str(available)]
+    if total is not None and available != total:
+        parts.append(f"of {total}")
+    quota = cpu_quota()
+    if quota is not None:
+        parts.append(f"capped at {quota:g} by the cgroup")
+    return " ".join(parts)
 
 
 def torch_info(with_threads: bool = True) -> list[str]:
@@ -108,13 +163,11 @@ def torch_info(with_threads: bool = True) -> list[str]:
     try:
         import torch
     except ImportError as e:
-        return [f"Torch: not importable ({e})"]
+        return [f"Torch: not importable ({type(e).__name__}: {str(e).splitlines()[0]})"]
 
     # the vector ISA torch selected, e.g. AVX2 or AVX512, which decides the kernel and
     # therefore the last bits of every reduction
-    get_capability = getattr(torch.backends.cpu, "get_cpu_capability", None)
-    capability = get_capability() if get_capability else "unknown"
-    line = f"Torch {torch.__version__}, CPU capability {capability}"
+    line = f"Torch {torch.__version__}, CPU capability {torch.backends.cpu.get_cpu_capability()}"
     if with_threads:
         line += f", {torch.get_num_threads()} intra-op and {torch.get_num_interop_threads()} inter-op threads"
     lines = [line]
@@ -122,6 +175,23 @@ def torch_info(with_threads: bool = True) -> list[str]:
         devices = ", ".join(torch.cuda.get_device_name(i) for i in range(torch.cuda.device_count()))
         lines.append(f"CUDA {torch.version.cuda}, devices: {devices}")
     return lines
+
+
+def log_torch_info(logger: "Logger") -> None:
+    """
+    Log what torch dispatched to, one record per line.
+
+    Call this after the thread count and the device have been set, so the reported
+    values are the ones the run actually used.
+
+    Parameters
+    ----------
+    logger : logging.Logger
+        The logger to write to.
+    """
+    for line in torch_info():
+        # attribute the record to the caller, so the log says which network emitted it
+        logger.info(line, stacklevel=2)
 
 
 def host_info(with_torch: bool = False) -> list[str]:
@@ -134,8 +204,8 @@ def host_info(with_torch: bool = False) -> list[str]:
         Whether to import torch and report the kernels it selected. Off by default
         because the caller is usually a log header rather than the process doing the
         work, so only the build facts would be true; the thread counts are left out for
-        the same reason. A step that runs torch itself should call `torch_info` once its
-        thread count and device are final.
+        the same reason. A step that runs torch itself should call `log_torch_info` once
+        its thread count and device are final.
 
     Returns
     -------
@@ -143,10 +213,9 @@ def host_info(with_torch: bool = False) -> list[str]:
         One line per fact, ready to be written to a log.
     """
     lines = [
-        f"Host: {platform.node()}",
         f"Platform: {platform.system()} {platform.release()} {platform.machine()}",
         f"CPU: {cpu_model()}",
-        f"CPU cores: {_cpu_count()}",
+        f"CPU cores: {cpu_count()}",
     ]
     if with_torch:
         lines += torch_info(with_threads=False)

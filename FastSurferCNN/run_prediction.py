@@ -41,6 +41,7 @@ from yacs.config import CfgNode
 import FastSurferCNN.reduce_to_aseg as rta
 from FastSurferCNN.data_loader import data_utils as du
 from FastSurferCNN.data_loader.conform import Reorientation, conform, is_conform
+from FastSurferCNN.host_info import log_torch_info
 from FastSurferCNN.inference import Inference
 from FastSurferCNN.quick_qc import check_volume
 from FastSurferCNN.utils import PLANES, AffineMatrix4x4, Plane, logging, nibabelImage, parser_defaults
@@ -48,7 +49,6 @@ from FastSurferCNN.utils.arg_types import OrientationType, VoxSizeOption
 from FastSurferCNN.utils.arg_types import vox_size as _vox_size
 from FastSurferCNN.utils.checkpoint import get_checkpoints, get_config_file, load_checkpoint_config_defaults
 from FastSurferCNN.utils.common import SubjectDirectory, SubjectList, find_device, handle_cuda_memory_exception
-from FastSurferCNN.utils.host_info import torch_info
 from FastSurferCNN.utils.load_config import load_config
 from FastSurferCNN.utils.parallel import SerialExecutor, pipeline
 from FastSurferCNN.utils.parser_defaults import SubjectDirectoryConfig
@@ -240,8 +240,7 @@ class RunModelOnData:
             )
 
         LOGGER.info(f"Running view aggregation on {self.viewagg_device}")
-        for line in torch_info():
-            LOGGER.info(line)
+        log_torch_info(LOGGER)
 
         try:
             self.lut = du.read_classes_from_lut(lut)

@@ -28,6 +28,7 @@ check_version=1.      # Check for supported FreeSurfer version (terminate if not
 if [ -z "$FASTSURFER_HOME" ]
 then
   binpath="$( cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )/"
+  FASTSURFER_HOME="$(cd -- "$(dirname "$binpath")" >/dev/null 2>&1 ; pwd -P )/"
 else
   binpath="$FASTSURFER_HOME/recon_surf/"
 fi
@@ -289,6 +290,8 @@ echo "" | tee -a "$LF"
 cat "$FREESURFER_HOME"/build-stamp.txt 2>&1 | tee -a "$LF"
 echo $VERSION | tee -a "$LF"
 uname -a  2>&1 | tee -a "$LF"
+# --torch because rotate_sphere.py imports neuroreg, which imports torch
+$python "$FASTSURFER_HOME/FastSurferCNN/host_info.py" --torch 2>&1 | tee -a "$LF"
 
 
 # Print parallelization parameters
