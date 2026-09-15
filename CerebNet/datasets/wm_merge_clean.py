@@ -301,6 +301,10 @@ def save_mgh_image(img_data, save_path, header, affine):
 if __name__ == "__main__":
     import argparse
 
+    # without this the logger has no handler, and python's lastResort one sits at WARNING, so
+    # every info record below would be dropped and the script would run in silence
+    logging.setup_logging()
+
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--subject_path",

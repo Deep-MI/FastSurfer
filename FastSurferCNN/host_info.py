@@ -102,9 +102,10 @@ def cpu_quota() -> float | None:
     """
     try:
         quota, period = CGROUP_V2_CPU_MAX.read_text().split()
-        if quota != "max":
+        if quota == "max":
+            return None
+        if int(period) > 0:
             return int(quota) / int(period)
-        return None
     except (OSError, ValueError):
         pass
     try:

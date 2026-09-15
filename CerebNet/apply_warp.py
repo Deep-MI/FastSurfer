@@ -137,6 +137,9 @@ def make_parser() -> argparse.ArgumentParser:
 
 
 if __name__ == '__main__':
+    # without this the logger has no handler, and python's lastResort one sits at WARNING, so
+    # every info record below would be dropped and the script would run in silence
+    logging.setup_logging()
     parser = make_parser()
     args = parser.parse_args()
     warp_path = Path(args.result_path) / args.warp_filename

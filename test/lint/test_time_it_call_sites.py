@@ -24,6 +24,7 @@ is why it lives here. The functional half, that the contract holds in both the p
 unpiped form, is test/shell/test_time_it.py.
 """
 
+import re
 from pathlib import Path
 
 import pytest
@@ -31,8 +32,11 @@ import pytest
 FASTSURFER_HOME = Path(__file__).parent.parent.parent
 RUN_FASTSURFER = FASTSURFER_HOME / "run_fastsurfer.sh"
 
-# how far below a call site an `ERROR` line still counts as its check
+# how many lines below a call site still count as its check
 _CHECK_WINDOW = 8
+# the check has to read the status, not merely mention an error: a nearby `echo "ERROR: ..."`
+# belonging to something else would otherwise satisfy this scan while the failure goes unhandled
+_READS_STATUS = re.compile(r"PIPESTATUS\[0\]|exit_code")
 
 
 def test_the_script_was_found() -> None:
@@ -53,9 +57,9 @@ def test_every_call_site_checks_the_status() -> None:
     unchecked = [
         i + 1
         for i in call_sites
-        if "ERROR" not in "\n".join(lines[i + 1: i + 1 + _CHECK_WINDOW])
+        if not any(_READS_STATUS.search(line) for line in lines[i + 1: i + 1 + _CHECK_WINDOW])
     ]
-    assert not unchecked, f"time_it call sites without an error check, at lines: {unchecked}"
+    assert not unchecked, f"time_it call sites that never read the status, at lines: {unchecked}"
 
 
 if __name__ == "__main__":
