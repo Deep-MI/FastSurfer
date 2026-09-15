@@ -226,7 +226,7 @@ RUN --mount=type=bind,source=tools/build/install_fs_pruned.sh,target=/install/in
 if [[ -n "$INSECURE_FLAG" ]]; then
     echo "SECURITY NOTICE: Downloading freesurfer for the build image without ssl validation."
 fi
-/install/install_fs_pruned.sh /opt --upx --url $FREESURFER_URL $INSECURE_FLAG
+/install/install_fs_pruned.sh /opt --url $FREESURFER_URL $INSECURE_FLAG
 /install/link_fs.sh /opt/freesurfer
 EOF
 
