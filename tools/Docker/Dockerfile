@@ -125,9 +125,7 @@ apt-get install -qyy \
   -o APT::Install-Recommends=false \
   -o APT::Install-Suggests=false \
   aria2 \
-  ca-certificates \
-  file \
-  upx
+  ca-certificates
 apt clean
 rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 EOF
