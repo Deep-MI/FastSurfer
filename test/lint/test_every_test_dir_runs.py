@@ -44,27 +44,45 @@ _PYTEST_PATH = re.compile(r"test/(\$\{\{\s*matrix\.(\w[\w-]*)\s*\}\}|[\w-]+)")
 _MATRIX_LIST = re.compile(r"^\s*([\w-]+):\s*\[([^\]]*)\]\s*$", re.M)
 
 
+def _block(text: str, header: str) -> str:
+    """
+    Return the body of a `header:` block, ending where the indentation returns to its level.
+
+    Scoping matters: `branches: [dev]` under `on:` is the same shape as a matrix dimension, so
+    searching the whole file would count it as one.
+    """
+    lines = text.splitlines()
+    starts = [i for i, line in enumerate(lines) if line.strip() == header]
+    if not starts:
+        return ""
+    start = starts[0]
+    indent = len(lines[start]) - len(lines[start].lstrip())
+    body = []
+    for line in lines[start + 1:]:
+        if line.strip() and len(line) - len(line.lstrip()) <= indent:
+            break  # dedented back out of the block
+        body.append(line)
+    return "\n".join(body)
+
+
 def _matrix_values(text: str, key: str) -> list[str]:
     """Collect every value a matrix dimension can take in one CI file."""
     values = []
-    for name, items in _MATRIX_LIST.findall(text):
+    for name, items in _MATRIX_LIST.findall(_block(text, "matrix:")):
         if name == key:
             values += [item.strip().strip("\"'") for item in items.split(",") if item.strip()]
     return values
 
 
+def _matrix_dimensions(text: str) -> set[str]:
+    """The keys the matrix itself lists, which are what an include entry can filter on."""
+    return {name for name, _ in _MATRIX_LIST.findall(_block(text, "matrix:"))}
+
+
 def _include_keys(text: str) -> set[str]:
     """Collect the keys used inside a matrix's `include:` block, and nothing after it."""
-    lines = text.splitlines()
-    starts = [i for i, line in enumerate(lines) if line.strip() == "include:"]
-    if not starts:
-        return set()
-    start = starts[0]
-    indent = len(lines[start]) - len(lines[start].lstrip())
     keys = set()
-    for line in lines[start + 1:]:
-        if line.strip() and len(line) - len(line.lstrip()) <= indent:
-            break  # dedented back out of the include block
+    for line in _block(text, "include:").splitlines():
         match = re.match(r"\s*-?\s*([\w-]+):", line)
         if match:
             keys.add(match.group(1))
@@ -122,7 +140,7 @@ def test_the_unittest_matrix_expands_to_one_job_per_directory() -> None:
     """
     text = (FASTSURFER_HOME / ".github" / "workflows" / "unittest.yaml").read_text()
     include_keys = _include_keys(text)
-    dimensions = {name for name, _ in _MATRIX_LIST.findall(text)}
+    dimensions = _matrix_dimensions(text)
     assert include_keys & dimensions, (
         "no key of the unittest matrix's include entries is a matrix dimension, so GitHub merges "
         f"them into a single job instead of one per entry. include keys: {sorted(include_keys)}, "
