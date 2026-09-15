@@ -59,6 +59,7 @@ from CorpusCallosum.utils.mapping_helpers import (
 from CorpusCallosum.utils.types import SliceSelection, SubdivisionMethod
 from FastSurferCNN.data_loader.conform import conform, is_conform
 from FastSurferCNN.data_loader.data_utils import as_mgh_image
+from FastSurferCNN.host_info import log_torch_info
 from FastSurferCNN.segstats import HelpFormatter
 from FastSurferCNN.utils import (
     AffineMatrix4x4,
@@ -73,7 +74,6 @@ from FastSurferCNN.utils import (
 )
 from FastSurferCNN.utils.arg_types import path_or_none
 from FastSurferCNN.utils.common import SubjectDirectory, find_device
-from FastSurferCNN.utils.host_info import torch_info
 from FastSurferCNN.utils.parallel import get_num_threads, serial_executor, shutdown_executors, thread_executor
 from FastSurferCNN.utils.parser_defaults import modify_argument
 
@@ -138,9 +138,9 @@ def make_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "-v",
         "--verbose",
-        action="count",
-        default=_do_not_print(0),
-        help="Pass twice for debug output.",
+        action="store_true",
+        default=_do_not_print(0),  # bool cannot be subclassed, and 0 is falsy
+        help="Log debug output as well.",
     )
     # Specify subject directory + subject ID, OR specify individual MRI and segmentation files + output paths
     add_arguments(parser, ["sd", "sid", "conformed_name", "aseg_name", "device"])
@@ -399,7 +399,7 @@ def options_parse() -> argparse.Namespace:
         if not args.aseg_name:
             args.aseg_name = args.subject_dir / DEFAULT_INPUT_PATHS["aseg_name"]
     else:
-        print("WARNING: Not providing subject_dir leads to discarding of files with relative paths!")
+        logger.warning("Not providing subject_dir leads to discarding of files with relative paths!")
         args.subject_dir = None
         for arg, path in (("--aseg_name", args.aseg_name), ("--conformed_name", args.conf_name)):
             if path is None or not Path(path).is_absolute():
@@ -436,19 +436,19 @@ def options_parse() -> argparse.Namespace:
                 setattr(args, path_name, None)
         if warnings_paths:
             _warnings_paths = "' '".join(warnings_paths)
-            print(
-                f"WARNING: Not writing '{_warnings_paths}', because --sd and --sid are not specified and "
+            logger.warning(
+                f"Not writing '{_warnings_paths}', because --sd and --sid are not specified and "
                 f"its paths are relative."
             )
     return args
 
 
 def localize_ac_pc(
-    orig_data: Image3d,
-    aseg_nib: nibabelImage,
-    orig2midslice_vox2vox: AffineMatrix4x4,
-    model_localization: DenseNet,
-    resample_shape: Shape3d,
+        orig_data: Image3d,
+        aseg_nib: nibabelImage,
+        orig2midslice_vox2vox: AffineMatrix4x4,
+        model_localization: DenseNet,
+        resample_shape: Shape3d,
 ) -> tuple[Vector2d, Vector2d]:
     """Localize anterior and posterior commissure points in the brain.
 
@@ -735,12 +735,13 @@ def main(
     manual_edit = sd.has_attribute("cc_segmentation_manedit")
     supplied_landmarks = ac_coords is not None or pc_coords is not None
 
+    # --threads only reaches FastSurfer's own executors, so hand it to torch as well
+    torch.set_num_threads(get_num_threads())
+
     # load only models needed by the selected path
     device = find_device(device)
     logger.info(f"Using device: {device}")
-    # note the thread counts are torch's defaults, this module never sets them
-    for line in torch_info():
-        logger.info(line)
+    log_torch_info(logger)
 
     logger.info("Loading models")
     _model_localization = (
@@ -1005,7 +1006,9 @@ def main(
             return target_idx, result_slice_indices[target_idx], slice_results[target_idx]
 
         valid_results = [
-            (abs(i - target_idx), i, result) for i, result in enumerate(slice_results) if result is not None
+            (abs(i - target_idx), i, result)
+            for i, result in enumerate(slice_results)
+            if result is not None
         ]
         if not valid_results:
             return None, None, None
@@ -1143,7 +1146,9 @@ def main(
     additional_metrics["selected_morphometry_slice"] = selected_slice_idx
     additional_metrics["selected_morphometry_slice_position"] = selected_slice_position
     additional_metrics["selected_morphometry_slice_is_fallback"] = bool(
-        selected_slice_position is not None and slice_results and selected_slice_position != len(slice_results) // 2
+        selected_slice_position is not None
+        and slice_results
+        and selected_slice_position != len(slice_results) // 2
     )
     additional_metrics["contour_smoothing"] = contour_smoothing
     additional_metrics["slice_selection"] = slice_selection
@@ -1291,7 +1296,7 @@ if __name__ == "__main__":
     options = options_parse()
 
     # INFO by default, as in the other segmentation modules, and to --seg_log if given
-    logging.setup_logging(options.log_name or None, options.verbose if options.verbose > 1 else None)
+    logging.setup_logging(options.log_name or None, "DEBUG" if options.verbose else None)
 
     sys.exit(
         main(
