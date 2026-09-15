@@ -140,9 +140,8 @@ def make_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "-v",
         "--verbose",
-        action="count",
-        default=0,
-        help="Enable verbose (pass twice for debug-output).",
+        action="store_true",
+        help="Log debug output as well.",
     )
     return parser
 
@@ -390,8 +389,8 @@ def main(
 if __name__ == "__main__":
     options = options_parse()
 
-    # Set up logging if verbose mode is enabled
-    setup_logging(None, options.verbose)  # Log to stdout only
+    # INFO by default, as in fastsurfer_cc.py; this tool has no log file, only stdout
+    setup_logging(None, "DEBUG" if options.verbose else None)
 
     sys.exit(main(
         template_dir=options.template_dir,

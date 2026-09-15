@@ -24,6 +24,7 @@ from tqdm import tqdm
 
 import FastSurferCNN.utils.logging as logging
 from FastSurferCNN.data_loader.augmentation import ToTensorTest
+from FastSurferCNN.host_info import log_torch_info
 from FastSurferCNN.utils.common import find_device
 from HypVINN.data_loader.data_utils import hypo_map_prediction_sagittal2full
 from HypVINN.data_loader.dataset import HypVINNDataset
@@ -104,6 +105,7 @@ class Inference:
             )
 
         logger.info(f"Running view aggregation on {self.viewagg_device}")
+        log_torch_info(logger)
 
         # Initial model setup
         self.model = self.setup_model(cfg)

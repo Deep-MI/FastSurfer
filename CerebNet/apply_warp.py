@@ -24,6 +24,9 @@ import numpy as np
 from numpy import typing as npt
 
 from CerebNet.datasets import utils
+from FastSurferCNN.utils import logging
+
+logger = logging.get_logger(__name__)
 
 
 def save_nii_image(
@@ -49,7 +52,7 @@ def save_nii_image(
     if not isinstance(header, nib.Nifti1Header):
         header = nib.Nifti1Header.from_header(header)
     img_out = nib.Nifti1Image(img_data, header=header, affine=affine)
-    print(f"Saving {save_path}")
+    logger.info(f"Saving {save_path}")
     nib.save(img_out, save_path)
 
 
@@ -134,6 +137,9 @@ def make_parser() -> argparse.ArgumentParser:
 
 
 if __name__ == '__main__':
+    # without this the logger has no handler, and python's lastResort one sits at WARNING, so
+    # every info record below would be dropped and the script would run in silence
+    logging.setup_logging()
     parser = make_parser()
     args = parser.parse_args()
     warp_path = Path(args.result_path) / args.warp_filename

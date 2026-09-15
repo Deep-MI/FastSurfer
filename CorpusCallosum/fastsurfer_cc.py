@@ -59,6 +59,7 @@ from CorpusCallosum.utils.mapping_helpers import (
 from CorpusCallosum.utils.types import SliceSelection, SubdivisionMethod
 from FastSurferCNN.data_loader.conform import conform, is_conform
 from FastSurferCNN.data_loader.data_utils import as_mgh_image
+from FastSurferCNN.host_info import log_torch_info
 from FastSurferCNN.segstats import HelpFormatter
 from FastSurferCNN.utils import (
     AffineMatrix4x4,
@@ -137,9 +138,9 @@ def make_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "-v",
         "--verbose",
-        action="count",
-        default=_do_not_print(0),
-        help="Enable verbose (pass twice for debug-output).",
+        action="store_true",
+        default=_do_not_print(0),  # bool cannot be subclassed, and 0 is falsy
+        help="Log debug output as well.",
     )
     # Specify subject directory + subject ID, OR specify individual MRI and segmentation files + output paths
     add_arguments(parser, ["sd", "sid", "conformed_name", "aseg_name", "device"])
@@ -200,7 +201,7 @@ def make_parser() -> argparse.ArgumentParser:
         description="Custom output paths, useful if no standard case directory is used. Relative paths are always "
                     "relative to the subject_dir defined via --sd and --sid!",
     )
-    add_arguments(advanced, ["threads"])
+    add_arguments(advanced, ["threads", "seg_log"])
     advanced.add_argument(
         "--segmentation",
         "--seg",
@@ -398,7 +399,7 @@ def options_parse() -> argparse.Namespace:
         if not args.aseg_name:
             args.aseg_name = args.subject_dir / DEFAULT_INPUT_PATHS["aseg_name"]
     else:
-        print("WARNING: Not providing subject_dir leads to discarding of files with relative paths!")
+        logger.warning("Not providing subject_dir leads to discarding of files with relative paths!")
         args.subject_dir = None
         for arg, path in (("--aseg_name", args.aseg_name), ("--conformed_name", args.conf_name)):
             if path is None or not Path(path).is_absolute():
@@ -435,8 +436,8 @@ def options_parse() -> argparse.Namespace:
                 setattr(args, path_name, None)
         if warnings_paths:
             _warnings_paths = "' '".join(warnings_paths)
-            print(
-                f"WARNING: Not writing '{_warnings_paths}', because --sd and --sid are not specified and "
+            logger.warning(
+                f"Not writing '{_warnings_paths}', because --sd and --sid are not specified and "
                 f"its paths are relative."
             )
     return args
@@ -734,9 +735,13 @@ def main(
     manual_edit = sd.has_attribute("cc_segmentation_manedit")
     supplied_landmarks = ac_coords is not None or pc_coords is not None
 
+    # --threads only reaches FastSurfer's own executors, so hand it to torch as well
+    torch.set_num_threads(get_num_threads())
+
     # load only models needed by the selected path
     device = find_device(device)
     logger.info(f"Using device: {device}")
+    log_torch_info(logger)
 
     logger.info("Loading models")
     _model_localization = (
@@ -1290,8 +1295,8 @@ if __name__ == "__main__":
 
     options = options_parse()
 
-    # Set up logging if verbose mode is enabled
-    logging.setup_logging(None, options.verbose)  # Log to stdout only
+    # INFO by default, as in the other segmentation modules, and to --seg_log if given
+    logging.setup_logging(options.log_name or None, "DEBUG" if options.verbose else None)
 
     sys.exit(
         main(

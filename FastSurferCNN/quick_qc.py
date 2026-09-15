@@ -67,9 +67,8 @@ def make_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--verbose",
         "-v",
-        action="count",
-        default=0,
-        help="Increase output verbosity (can be used twice times for DEBUG output)",
+        action="store_true",
+        help="Log debug output as well.",
     )
     parser.add_argument("--version", action="version", version="%(prog)s 1.0 2022/09/28 11:34:08 mreuter Exp $")
     return parser
@@ -174,8 +173,8 @@ if __name__ == "__main__":
     parser = make_parser()
     options = parser.parse_args()
 
-    # default configuration of the logger, only stdout, no logfile
-    setup_logging(log_level=options.verbose)
+    # INFO by default so the QC numbers reach recon-surf.log, which tees this script's stdout
+    setup_logging(log_level="DEBUG" if options.verbose else None)
 
     logger.info(f"Reading in aparc+aseg: {options.asegdkt_segfile} ...")
     inseg = cast(nibabelImage, nib.load(options.asegdkt_segfile))

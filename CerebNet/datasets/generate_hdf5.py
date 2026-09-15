@@ -23,6 +23,9 @@ import h5py
 import numpy as np
 
 from CerebNet.datasets.load_data import SubjectLoader
+from FastSurferCNN.utils import logging
+
+logger = logging.get_logger(__name__)
 
 
 # Class to create hdf5-file
@@ -122,7 +125,7 @@ class CerebNetDataset:
         for idx, current_subject in enumerate(subjects_list):
             # try:
             start = time.time()
-            print(
+            logger.info(
                 f"Volume Nr: {idx + 1}/{len(subjects_list)} Processing MRI Data from {current_subject}"
             )
 
@@ -141,8 +144,8 @@ class CerebNetDataset:
             datasets["subject"].append(sub_name.encode("ascii", "ignore"))
 
             end = time.time() - start
-            print("Number of Cerebellum classes", len(np.unique(in_data["label"])))
-            print(
+            logger.info("Number of Cerebellum classes", len(np.unique(in_data["label"])))
+            logger.info(
                 f"Volume: {idx + 1} Finished Data Reading and Appending in {end:.3f} seconds."
             )
 
@@ -152,4 +155,4 @@ class CerebNetDataset:
 
         self._save_hdf5_file(datasets, dataset_name)
         end_d = time.time() - start_d
-        print(f"Successfully written {dataset_name} in {end_d:.3f} seconds.")
+        logger.info(f"Successfully written {dataset_name} in {end_d:.3f} seconds.")

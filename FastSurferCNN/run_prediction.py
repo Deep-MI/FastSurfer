@@ -41,6 +41,7 @@ from yacs.config import CfgNode
 import FastSurferCNN.reduce_to_aseg as rta
 from FastSurferCNN.data_loader import data_utils as du
 from FastSurferCNN.data_loader.conform import Reorientation, conform, is_conform
+from FastSurferCNN.host_info import log_torch_info
 from FastSurferCNN.inference import Inference
 from FastSurferCNN.quick_qc import check_volume
 from FastSurferCNN.utils import PLANES, AffineMatrix4x4, Plane, logging, nibabelImage, parser_defaults
@@ -239,6 +240,7 @@ class RunModelOnData:
             )
 
         LOGGER.info(f"Running view aggregation on {self.viewagg_device}")
+        log_torch_info(LOGGER)
 
         try:
             self.lut = du.read_classes_from_lut(lut)

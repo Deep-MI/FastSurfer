@@ -29,6 +29,7 @@ from CerebNet.data_loader.dataset import SubjectDataset
 from CerebNet.models.networks import build_model
 from CerebNet.utils import checkpoint as cp
 from FastSurferCNN.data_loader.conform import crop_transform
+from FastSurferCNN.host_info import log_torch_info
 from FastSurferCNN.utils import PLANES, Plane, logging, nibabelImage
 from FastSurferCNN.utils.arg_types import ImageSizeOption, OrientationType
 from FastSurferCNN.utils.common import SubjectDirectory, SubjectList, find_device
@@ -118,6 +119,8 @@ class Inference:
                 min_memory=2 * (2**30),
                 default_cuda_device=_device,
             )
+
+        log_torch_info(logger)
 
         self.batch_size = cfg.TEST.BATCH_SIZE
         _models = self._load_model(cfg)

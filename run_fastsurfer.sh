@@ -1000,6 +1000,9 @@ if [[ -f "$seg_log" ]]; then log_existed="true" ; else log_existed="false" ; fi
   echo ""
   echo "Log file for FastSurfer pipeline, run_fastsurfer.sh and segmentation(s)"
   echo "Invocation: $invocation_command"
+  echo ""
+  # the torch line is logged by each network itself, once its threads and device are final
+  $python "$FASTSURFER_HOME/FastSurferCNN/host_info.py" 2>&1
 } | tee -a "$seg_log"
 
 ### IF tmpLF exists, it has been created with a warning or similar, copy that warning to seg_log now
@@ -1344,6 +1347,11 @@ then
         echo "  robustly scaled (see FastSurferCNN/utils/data_loader/conform.py)!"
       } | tee -a "$seg_log"
       "${wrap[@]}" "${cmd[@]}" 2>&1 | tee -a "$seg_log"
+      if [[ "${PIPESTATUS[0]}" != 0 ]]
+      then
+        echo "ERROR: Rescaling the T2 failed!" | tee -a "$seg_log"
+        exit 1
+      fi
     fi
   fi
 
@@ -1382,11 +1390,11 @@ then
       fi
     fi
     # generate callosum segmentation, mesh, shape and downstream measure files
-    cmd=($python "$CorpusCallosumDir/fastsurfer_cc.py" --sd "$sd" --sid "$subject"
+    cmd=($python "$CorpusCallosumDir/fastsurfer_cc.py" --sd "$sd" --sid "$subject" --seg_log "$seg_log"
          "--threads" "$threads_seg" "--conformed_name" "$conformed_name" "--aseg_name" "$aseg_segfile"
          "--segmentation_in_orig" "$callosum_seg" "${cc_flags[@]}")
     echo_quoted "${cmd[@]}" | tee -a "$seg_log"
-    "${wrap[@]}" "${cmd[@]}" 2>&1 | tee -a "$seg_log"
+    "${wrap[@]}" "${cmd[@]}"  # no tee, directly logging to $seg_log
     exit_code=${PIPESTATUS[0]}
     if [[ "$exit_code" != 0 ]] ; then
       echo "ERROR: FastSurferCC corpus callosum analysis failed!" | tee -a "$seg_log"
