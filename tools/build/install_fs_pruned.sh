@@ -19,10 +19,9 @@ insecure="false"
 
 if [[ "$#" -lt 1 ]]; then
     echo
-    echo "Usage: install_fs_pruned.sh install_dir [--upx] [--url freesurfer_download_url] [--insecure]"
+    echo "Usage: install_fs_pruned.sh install_dir [--url freesurfer_download_url] [--insecure]"
     echo "                                        [--name dirname] [--fs-download-cache path]"
     echo
-    echo "--upx is optional, if passed, fs/bin will be packed"
     echo "--url is recommended! This is the download link for freesurfer."
     echo "  The link can be found in pyproject.toml:tool.freesurfer.url!"
     echo "--insecure will skip certificate checks when downloading freesurfer."
@@ -42,13 +41,11 @@ if [[ "$#" -ge 1 ]]; then
   shift
 fi
 
-upx="false"
 name="freesurfer"
 download_cache=""
 while [[ "$#" -ge 1 ]]; do
   lowercase=$(echo "$1" | tr '[:upper:]' '[:lower:]')
   case $lowercase in
-  --upx) upx="true" ; shift ;;
   --url) fslink=$2 ; shift ; shift ;;
   --insecure) insecure="true" ; shift ;;
   --name) name=$2 ; shift ; shift ;;
@@ -97,8 +94,7 @@ elif command -v sha256sum > /dev/null 2>&1
 then script_digest="$(sha256sum "$THIS_SCRIPT" | cut -d " " -f 1)"
 else script_digest="no-digest" # neither tool available: fall back to matching on the url alone
 fi
-# --upx changes what gets installed, so it is part of the cache identity too
-cache_stamp="$fslink $script_digest upx=$upx"
+cache_stamp="$fslink $script_digest"
 source_marker="$fsd/.fs_pruned_source_url"
 if [[ -f "$source_marker" ]] && [[ -f "$fsd/build-stamp.txt" ]] && [[ "$(cat "$source_marker")" == "$cache_stamp" ]]
 then
@@ -503,22 +499,6 @@ do
   # --fs-pruned-cache-dir, cached and reused as if it were good
   cp -r "$fss/$file" "$fsd/$file" || exit 1
 done
-
-# pack if desired with upx (do this before adding all the links)
-if [[ "$upx" == "true" ]] ; then
-  if [[ -z "$(command -v upx)" ]] ; then
-    echo "UPX requested, but the 'upx' command was not found on PATH; skipping executable packing."
-  else
-    echo "finding executables in $fsd/bin/..."
-    exe=($(find "$fsd/bin" -exec file {} \; | grep ELF | cut -d: -f1))
-    if [[ "${#exe[@]}" -eq 0 ]] ; then
-      echo "No UPX-packable executables found in $fsd/bin, skipping."
-    else
-      echo "packing $fsd/bin/ executables (this can take a while) ..."
-      upx -9 "${exe[@]}"
-    fi
-  fi
-fi
 
 # Modify fsbindings Python package to allow calling scripts like asegstats2table directly:
 echo "from . import legacy" > "$fsd/python/packages/fsbindings/__init__.py"
