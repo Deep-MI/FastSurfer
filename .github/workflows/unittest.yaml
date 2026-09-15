@@ -41,7 +41,10 @@ jobs:
   unit-test:
     name: 'Run FastSurfer unit tests from test/${{ matrix.tests }}'
     runs-on: ubuntu-latest
-    timeout-minutes: 180
+    # Every job here runs in about a minute. The headroom is for the image job on a cold pip
+    # cache, which is what a pull request sees until a run on dev has populated one, since that
+    # install downloads torch. It is a bound on a hung test, not a budget.
+    timeout-minutes: 20
     strategy:
       matrix:
         # One entry per test/<name> directory. needs-project says whether the tests import
@@ -145,7 +148,7 @@ jobs:
     # The only place /bin/bash is 3.2, which is what test/shell guards: every shipped script selects
     # it through its own shebang, so a bash-4-only construct breaks macOS while passing on Linux.
     runs-on: macos-15
-    timeout-minutes: 15
+    timeout-minutes: 20  # the same bound as the job above, for the same reason
     steps:
       - uses: actions/checkout@v7
       - name: Setup Python
