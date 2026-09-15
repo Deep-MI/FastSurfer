@@ -1,14 +1,25 @@
 name: test
 
-# File: test.yaml
-# Functionality: This workflow runs unit tests defined in tests/image.
+# File: unittest.yaml
+# Functionality: runs the unit tests under test/, one job per directory, plus the shell tests
+# under the bash macOS ships.
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.number }}-${{ github.event.ref }}
-  cancel-in-progress: true
+  # Superseded pull request runs are worth cancelling, runs on dev are not: a cancelled run saves
+  # no cache, and warming the cache is the only reason dev is a trigger at all.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 on:
   pull_request:
+  # Not for the coverage, which the pull_request run already gives: every change reaches dev
+  # through a pull request, and that event checks out the merge ref, so the merged result is what
+  # was tested. This is for the pip cache. A run can restore caches from its own branch, the
+  # default branch, or, for a pull request, its base branch. Without a run on dev this workflow's
+  # cache only ever exists at pull-request scope, which no other pull request can read, so every
+  # one of them downloads torch and the rest of the install from scratch.
+  push:
+    branches: [dev]
   workflow_dispatch:
 
 permissions:
