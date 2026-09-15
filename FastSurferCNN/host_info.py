@@ -226,7 +226,7 @@ def torch_info(with_threads: bool = True, with_fingerprint: bool = False) -> lis
     return lines
 
 
-def log_torch_info(logger: "Logger", with_fingerprint: bool = True) -> None:
+def log_torch_info(logger: "Logger", with_fingerprint: bool = False) -> None:
     """
     Log what torch dispatched to, one record per line.
 
@@ -237,9 +237,11 @@ def log_torch_info(logger: "Logger", with_fingerprint: bool = True) -> None:
     ----------
     logger : logging.Logger
         The logger to write to.
-    with_fingerprint : bool, default=True
-        Whether to include `numerical_fingerprint`. On by default: this is the record
-        that lets two runs be compared later, and it costs a few milliseconds once.
+    with_fingerprint : bool, default=False
+        Whether to include `numerical_fingerprint`. Off by default: the fingerprint
+        describes the host, which does not change during a run, so the log header records
+        it once rather than every network repeating it. The thread counts on the line
+        above do differ per process, which is why those are reported here.
     """
     for line in torch_info(with_fingerprint=with_fingerprint):
         # attribute the record to the caller, so the log says which network emitted it
