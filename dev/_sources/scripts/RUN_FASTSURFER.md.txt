@@ -72,14 +72,28 @@ Re-running the same input on the same machine, with the same flags, the same thr
 same FastSurfer and FreeSurfer versions, is expected to give the same result: two runs at the
 default of two threads came out identical in every file we compare.
 
-The only source of deviation we know of is the topology correction, and that now always runs
-single-threaded. Other steps have not been tested at every thread count, so if you need certainty,
-use `--threads 1`, or `--threads 1 --parallel` to keep every binary single threaded while still
-processing the two hemispheres at the same time.
+Within one machine the only source of deviation we know of is the topology correction, and that now
+always runs single-threaded. Other steps have not been tested at every thread count, so if you need
+certainty, use `--threads 1`, or `--threads 1 --parallel` to keep every binary single threaded while
+still processing the two hemispheres at the same time.
 
-Results are not guaranteed to be identical across machines, CPUs or FreeSurfer versions, so for a
-study process everything with one container image, see [Singularity](../overview/SINGULARITY.md).
-On macOS the FreeSurfer binaries are built without OpenMP and run single-threaded regardless.
+Across machines the results do differ, and the same container image does not prevent it. Two
+effects contribute, and they apply to different parts of the pipeline.
+
+The segmentation networks compute slightly different numbers on different hardware, because the
+kernels they run are chosen from what the device offers: on CPU that is the vector instruction
+sets, on GPU the card model and the precision modes it supports. `--device` therefore matters as
+well as the machine, and a CPU run and a GPU run of the same input are not expected to agree.
+
+The surface pipeline has its own, separate source: the topology correction produces a different
+surface on a different CPU even with an identical image, an identical seed and a single thread, and
+every surface and surface-derived number inherits that. This one is independent of `--device`,
+since that stage is FreeSurfer rather than a network.
+
+So the same hardware is as much a condition as the same image: for a study, process everything on
+one machine, or on nodes with the same CPU and GPU, with the same `--device`, and use one container
+image, see [Singularity](../overview/SINGULARITY.md). On macOS the FreeSurfer binaries are built
+without OpenMP and run single-threaded regardless.
 
 To compare two runs, use `tools/compare_subjects.py`: it compares voxels, vertices, transforms,
 statistics and labels rather than raw bytes, and reports how large each difference is. `diff` and
