@@ -561,7 +561,8 @@ commands.</p>
                         <span class="p">[</span><span class="o">--</span><span class="n">subdivision_method</span> <span class="p">{</span><span class="n">shape</span><span class="p">,</span><span class="n">vertical</span><span class="p">,</span><span class="n">angular</span><span class="p">,</span><span class="n">eigenvector</span><span class="p">}]</span>
                         <span class="p">[</span><span class="o">--</span><span class="n">contour_smoothing</span> <span class="n">CONTOUR_SMOOTHING</span><span class="p">]</span>
                         <span class="p">[</span><span class="o">--</span><span class="n">slice_selection</span> <span class="n">SLICE_SELECTION</span><span class="p">]</span>
-                        <span class="p">[</span><span class="o">--</span><span class="n">threads</span> <span class="n">THREADS</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">segmentation</span> <span class="n">SEGMENTATION</span><span class="p">]</span>
+                        <span class="p">[</span><span class="o">--</span><span class="n">threads</span> <span class="n">THREADS</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">seg_log</span> <span class="n">LOG_NAME</span><span class="p">]</span>
+                        <span class="p">[</span><span class="o">--</span><span class="n">segmentation</span> <span class="n">SEGMENTATION</span><span class="p">]</span>
                         <span class="p">[</span><span class="o">--</span><span class="n">segmentation_manedit</span> <span class="n">SEGMENTATION_MANEDIT</span><span class="p">]</span>
                         <span class="p">[</span><span class="o">--</span><span class="n">segmentation_in_orig</span> <span class="n">SEGMENTATION_IN_ORIG</span><span class="p">]</span>
                         <span class="p">[</span><span class="o">--</span><span class="n">cc_measures</span> <span class="n">CC_MEASURES</span><span class="p">]</span>
@@ -586,7 +587,7 @@ commands.</p>
 <h3>Named Arguments<a class="headerlink" href="#CorpusCallosum.fastsurfer_cc-make_parser-named-arguments" title="Link to this heading">¶</a></h3>
 <dl class="option-list">
 <dt><kbd>-v, --verbose</kbd></dt>
-<dd><p>Enable verbose (pass twice for debug-output).</p>
+<dd><p>Log debug output as well.</p>
 <p>Default: <code class="docutils literal notranslate"><span class="pre">0</span></code></p>
 </dd>
 <dt><kbd>--sd</kbd></dt>
@@ -637,6 +638,10 @@ commands.</p>
 <dt><kbd>--threads</kbd></dt>
 <dd><p>Number of threads to use (defaults to number of hardware threads: 4)</p>
 <p>Default: <code class="docutils literal notranslate"><span class="pre">4</span></code></p>
+</dd>
+<dt><kbd>--seg_log</kbd></dt>
+<dd><p>Absolute path to file in which run logs will be saved. If not set, logs will not be saved.</p>
+<p>Default: <code class="docutils literal notranslate"><span class="pre">''</span></code></p>
 </dd>
 <dt><kbd>--segmentation, --seg</kbd></dt>
 <dd><p>Output path for corpus callosum and fornix segmentation output.</p>
