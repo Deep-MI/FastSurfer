@@ -1,0 +1,134 @@
+# Copyright 2026 Image Analysis Lab, German Center for Neurodegenerative Diseases (DZNE), Bonn
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+"""
+Guard that every test directory is actually run by CI.
+
+A directory that no workflow names is not a red test, it is a silent absence: CI stays green
+while the tests it should have run never execute. That has happened twice. A matrix whose
+``include`` entries carry no key from the matrix itself collapses into one job rather than
+expanding into several, dropping every directory but the last, and a directory that is renamed
+or added without touching a workflow is simply never picked up.
+
+No yaml parser here on purpose: this runs under ``uv run --no-project --with pytest``, so only
+the standard library is available, which is the same reason test_python_version.py parses with
+a regex.
+"""
+
+import re
+from pathlib import Path
+
+import pytest
+
+FASTSURFER_HOME = Path(__file__).parent.parent.parent
+TEST_ROOT = FASTSURFER_HOME / "test"
+CI_FILES = sorted(
+    list((FASTSURFER_HOME / ".github" / "workflows").glob("*.y*ml"))
+    + list((FASTSURFER_HOME / ".github" / "actions").glob("*/action.y*ml"))
+)
+
+# `test/<name>`, optionally with the name supplied by a matrix, as in `test/${{ matrix.tests }}`
+_PYTEST_PATH = re.compile(r"test/(\$\{\{\s*matrix\.(\w[\w-]*)\s*\}\}|[\w-]+)")
+# a matrix dimension written inline, e.g. `tests: [image, shell]`
+_MATRIX_LIST = re.compile(r"^\s*([\w-]+):\s*\[([^\]]*)\]\s*$", re.M)
+
+
+def _matrix_values(text: str, key: str) -> list[str]:
+    """Collect every value a matrix dimension can take in one CI file."""
+    values = []
+    for name, items in _MATRIX_LIST.findall(text):
+        if name == key:
+            values += [item.strip().strip("\"'") for item in items.split(",") if item.strip()]
+    return values
+
+
+def _include_keys(text: str) -> set[str]:
+    """Collect the keys used inside a matrix's `include:` block, and nothing after it."""
+    lines = text.splitlines()
+    starts = [i for i, line in enumerate(lines) if line.strip() == "include:"]
+    if not starts:
+        return set()
+    start = starts[0]
+    indent = len(lines[start]) - len(lines[start].lstrip())
+    keys = set()
+    for line in lines[start + 1:]:
+        if line.strip() and len(line) - len(line.lstrip()) <= indent:
+            break  # dedented back out of the include block
+        match = re.match(r"\s*-?\s*([\w-]+):", line)
+        if match:
+            keys.add(match.group(1))
+    return keys
+
+
+def _directories_ci_runs() -> set[str]:
+    """Resolve every test/<name> any workflow or action passes to pytest."""
+    covered: set[str] = set()
+    for ci_file in CI_FILES:
+        text = ci_file.read_text()
+        for line in text.splitlines():
+            if "pytest" not in line:
+                continue
+            for literal, matrix_key in _PYTEST_PATH.findall(line):
+                if matrix_key:
+                    covered.update(_matrix_values(text, matrix_key))
+                else:
+                    covered.add(literal)
+    return covered
+
+
+def _test_directories() -> set[str]:
+    """Every test/<name> that holds tests, which is what CI has to reach."""
+    return {
+        directory.name
+        for directory in TEST_ROOT.iterdir()
+        if directory.is_dir() and any(directory.glob("test_*.py"))
+    }
+
+
+def test_ci_files_were_found() -> None:
+    """A glob that silently matches nothing would make every other check here vacuous."""
+    assert CI_FILES, f"no workflow or action files under {FASTSURFER_HOME / '.github'}"
+    assert _directories_ci_runs(), "no pytest invocation found in any workflow or action"
+
+
+@pytest.mark.parametrize("directory", sorted(_test_directories()))
+def test_directory_is_run_by_ci(directory: str) -> None:
+    """Every test/<name> has to be named by some workflow, directly or through a matrix."""
+    covered = _directories_ci_runs()
+    assert directory in covered, (
+        f"test/{directory} holds tests but no workflow or action runs it, so its failures cannot "
+        f"reach CI. The directories CI runs are: {', '.join(sorted(covered)) or 'none'}"
+    )
+
+
+def test_the_unittest_matrix_expands_to_one_job_per_directory() -> None:
+    """
+    Check the matrix still creates a job per entry rather than merging them into one.
+
+    GitHub adds an ``include`` object to every existing combination when none of its keys is a
+    dimension of the matrix, so two such objects overwrite each other and only the last survives.
+    Listing the values as a real dimension is what makes each include a filter instead.
+    """
+    text = (FASTSURFER_HOME / ".github" / "workflows" / "unittest.yaml").read_text()
+    include_keys = _include_keys(text)
+    dimensions = {name for name, _ in _MATRIX_LIST.findall(text)}
+    assert include_keys & dimensions, (
+        "no key of the unittest matrix's include entries is a matrix dimension, so GitHub merges "
+        f"them into a single job instead of one per entry. include keys: {sorted(include_keys)}, "
+        f"matrix dimensions: {sorted(dimensions)}"
+    )
+
+
+if __name__ == "__main__":
+    pytest.main([__file__, "-v"])

@@ -28,26 +28,30 @@ permissions:
 
 jobs:
   unit-test:
-    name: 'Run FastSurfer unit tests from ${{ matrix.paths }}'
+    name: 'Run FastSurfer unit tests from test/${{ matrix.tests }}'
     runs-on: ubuntu-latest
     timeout-minutes: 180
     strategy:
       matrix:
-        # Split by what the tests need, not by directory, because installing the project is the
-        # entire cost of a job: the tests themselves take seconds.
+        # One entry per test/<name> directory. needs-project says whether the tests import
+        # FastSurfer, because installing it is the entire cost of a job: the tests take seconds.
         #   image: needs nibabel, numpy, scipy and FastSurferCNN, so it installs the project.
         #   shell: runs the shipped scripts, needs nothing but pytest.
         # test/lint is deliberately absent: it only reads files and belongs with the other style
         # checks, so it runs in the much lighter code-style workflow.
         # test/shell also runs on macOS below, which is the only place /bin/bash is 3.2.
+        #
+        # `tests` has to stay a real matrix dimension rather than living only in `include`.
+        # An include entry whose keys are all absent from the matrix is merged into every
+        # combination instead of creating one, so two such entries would collapse into a single
+        # job running whichever came last. Listing the values here makes each include a filter.
+        tests: [image, shell]
+        pytest-flags: [""]
         include:
           - tests: image
-            paths: test/image
             needs-project: true
           - tests: shell
-            paths: test/shell
             needs-project: false
-        pytest-flags: [""]
 
     steps:
       - uses: actions/checkout@v7
@@ -91,20 +95,22 @@ jobs:
       # run pytest checks for data consistency/quality
       - name: Run pytest
         env:
-          # PYTHONPATH, not PYTHON_PATH: the jobs that skip the install import FastSurfer from the
-          # checkout, and python only reads the former
-          PYTHONPATH: ${{ github.workspace }}
+          NEEDS_PROJECT: ${{ matrix.needs-project }}
           FASTSURFER_HOME: ${{ github.workspace }}
         shell: bash
         continue-on-error: true  # pytest only exits with code 0, if all tests pass
         run: |
           echo "::group::Run tests"
+          # PYTHONPATH, not the PYTHON_PATH this used to set, which python never reads. Only where
+          # the project was not installed: it precedes site-packages, so setting it unconditionally
+          # would make the installed package untested and silently import the working tree instead.
+          if [[ "$NEEDS_PROJECT" != "true" ]] ; then export PYTHONPATH="$GITHUB_WORKSPACE" ; fi
           flags=("--junit-xml=$FS_JUNIT_FILE")
           if [[ "$ACTION_RUNNER_DEBUG" == "true" ]]
           then 
             flags+=(-vv --log_cli_level=DEBUG)
           fi
-          python -m pytest "${flags[@]}" ${{ matrix.pytest-flags }} ${{ matrix.paths }}
+          python -m pytest "${flags[@]}" ${{ matrix.pytest-flags }} test/${{ matrix.tests }}
           echo "::endgroup::"
       - name: Upload the JUnit XML file as an artifact
         uses: actions/upload-artifact@v7
