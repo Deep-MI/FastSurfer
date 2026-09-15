@@ -462,7 +462,7 @@
 <span id="hypvinn-utils-preproc"></span><h1>HypVINN.utils.preproc<a class="headerlink" href="#module-HypVINN.utils.preproc" title="Link to this heading">¶</a></h1>
 <dl class="py function">
 <dt class="sig sig-object py" id="HypVINN.utils.preproc.hypvinn_preproc">
-<span class="sig-prename descclassname"><span class="pre">HypVINN.utils.preproc.</span></span><span class="sig-name descname"><span class="pre">hypvinn_preproc</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mode</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reg_mode</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">t1_path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">t2_path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">subject_dir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">threads</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-1</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/b688279/HypVINN/utils/preproc.py#L112-L194"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#HypVINN.utils.preproc.hypvinn_preproc" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">HypVINN.utils.preproc.</span></span><span class="sig-name descname"><span class="pre">hypvinn_preproc</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mode</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reg_mode</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">t1_path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">t2_path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">subject_dir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">threads</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-1</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/17fa7cb/HypVINN/utils/preproc.py#L112-L194"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#HypVINN.utils.preproc.hypvinn_preproc" title="Link to this definition">¶</a></dt>
 <dd><p>Preprocess the input images for HypVINN.</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -477,7 +477,7 @@
 </dd>
 <dt><strong>subject_dir</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.14)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Path</span></code></a></span></dt><dd><p>The directory of the subject.</p>
 </dd>
-<dt><strong>threads</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">int</span></code></a>, default=-1</span></dt><dd><p>The number of threads to be used. If it is less than or equal to 0, the number of threads will be
+<dt><strong>threads</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">int</span></code></a>, default=-1</span></dt><dd><p>The number of threads to be used. If it is less than or equal to 0, the number of threads will be
 automatically determined.</p>
 </dd>
 </dl>
@@ -490,7 +490,7 @@ automatically determined.</p>
 </dd>
 <dt class="field-odd">Raises<span class="colon">:</span></dt>
 <dd class="field-odd"><dl class="simple">
-<dt><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#RuntimeError" title="(in Python v3.14)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">RuntimeError</span></code></a></dt><dd><p>If the mode is not “t1t2”, or if the registration mode is not “none” and the registration fails.</p>
+<dt><a class="reference external" href="https://docs.python.org/3/builtins/exceptions.html#RuntimeError" title="(in Python v3.14)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">RuntimeError</span></code></a></dt><dd><p>If the mode is not “t1t2”, or if the registration mode is not “none” and the registration fails.</p>
 </dd>
 </dl>
 </dd>
@@ -499,7 +499,7 @@ automatically determined.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="HypVINN.utils.preproc.t1_to_t2_registration">
-<span class="sig-prename descclassname"><span class="pre">HypVINN.utils.preproc.</span></span><span class="sig-name descname"><span class="pre">t1_to_t2_registration</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">t1_path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">t2_path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lta_path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">registration_type</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'coreg'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">threads</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-1</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/b688279/HypVINN/utils/preproc.py#L30-L109"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#HypVINN.utils.preproc.t1_to_t2_registration" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">HypVINN.utils.preproc.</span></span><span class="sig-name descname"><span class="pre">t1_to_t2_registration</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">t1_path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">t2_path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lta_path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">registration_type</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'coreg'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">threads</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-1</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/17fa7cb/HypVINN/utils/preproc.py#L30-L109"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#HypVINN.utils.preproc.t1_to_t2_registration" title="Link to this definition">¶</a></dt>
 <dd><p>Register T1 to T2 images using either mri_coreg or mri_robust_register.</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -514,7 +514,7 @@ automatically determined.</p>
 </dd>
 <dt><strong>registration_type</strong><span class="classifier"><code class="xref py py-obj docutils literal notranslate"><span class="pre">RegistrationMode</span></code>, default=”coreg”</span></dt><dd><p>The type of registration to be used. It can be either “coreg” or “robust”.</p>
 </dd>
-<dt><strong>threads</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">int</span></code></a>, default=-1</span></dt><dd><p>The number of threads to be used. If it is less than or equal to 0, the number
+<dt><strong>threads</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">int</span></code></a>, default=-1</span></dt><dd><p>The number of threads to be used. If it is less than or equal to 0, the number
 of threads will be automatically determined.</p>
 </dd>
 </dl>
@@ -527,7 +527,7 @@ of threads will be automatically determined.</p>
 </dd>
 <dt class="field-odd">Raises<span class="colon">:</span></dt>
 <dd class="field-odd"><dl class="simple">
-<dt><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#RuntimeError" title="(in Python v3.14)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">RuntimeError</span></code></a></dt><dd><p>If mri_coreg, mri_vol2vol, or mri_robust_register fails to run or if they cannot
+<dt><a class="reference external" href="https://docs.python.org/3/builtins/exceptions.html#RuntimeError" title="(in Python v3.14)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">RuntimeError</span></code></a></dt><dd><p>If mri_coreg, mri_vol2vol, or mri_robust_register fails to run or if they cannot
 be found.</p>
 </dd>
 </dl>

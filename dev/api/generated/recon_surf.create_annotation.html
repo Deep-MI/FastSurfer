@@ -462,7 +462,7 @@
 <span id="recon-surf-create-annotation"></span><h1>recon_surf.create_annotation<a class="headerlink" href="#module-recon_surf.create_annotation" title="Link to this heading">¶</a></h1>
 <dl class="py function">
 <dt class="sig sig-object py" id="recon_surf.create_annotation.build_annot">
-<span class="sig-prename descclassname"><span class="pre">recon_surf.create_annotation.</span></span><span class="sig-name descname"><span class="pre">build_annot</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">all_labels</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">all_values</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">col_ids</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">trg_white</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cortex_label_name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/b688279/recon_surf/create_annotation.py#L271-L333"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#recon_surf.create_annotation.build_annot" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">recon_surf.create_annotation.</span></span><span class="sig-name descname"><span class="pre">build_annot</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">all_labels</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">all_values</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">col_ids</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">trg_white</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cortex_label_name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/17fa7cb/recon_surf/create_annotation.py#L271-L333"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#recon_surf.create_annotation.build_annot" title="Link to this definition">¶</a></dt>
 <dd><p>Create an annotation from multiple labels.</p>
 <p>Here we also consider the label values and overwrite existing labels
 if values of current are larger (or equal, so the order of the labels matters).
@@ -476,9 +476,9 @@ No output is written.</p>
 </dd>
 <dt><strong>col_ids</strong><span class="classifier"><code class="xref py py-obj docutils literal notranslate"><span class="pre">npt.ArrayLike</span></code></span></dt><dd><p>List of col ids.</p>
 </dd>
-<dt><strong>trg_white</strong><span class="classifier"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Union</span></code>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">npt.NDArray</span></code>]</span></dt><dd><p>Target file of white.</p>
+<dt><strong>trg_white</strong><span class="classifier"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Union</span></code>[<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">npt.NDArray</span></code>]</span></dt><dd><p>Target file of white.</p>
 </dd>
-<dt><strong>cortex_label_name</strong><span class="classifier"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Optional</span></code>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a>]</span></dt><dd><p>Path to the cortex label file. Defaults to None.</p>
+<dt><strong>cortex_label_name</strong><span class="classifier"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Optional</span></code>[<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a>]</span></dt><dd><p>Path to the cortex label file. Defaults to None.</p>
 </dd>
 </dl>
 </dd>
@@ -495,7 +495,7 @@ No output is written.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="recon_surf.create_annotation.create_annotation">
-<span class="sig-prename descclassname"><span class="pre">recon_surf.create_annotation.</span></span><span class="sig-name descname"><span class="pre">create_annotation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">options</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/b688279/recon_surf/create_annotation.py#L408-L493"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#recon_surf.create_annotation.create_annotation" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">recon_surf.create_annotation.</span></span><span class="sig-name descname"><span class="pre">create_annotation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">options</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/17fa7cb/recon_surf/create_annotation.py#L408-L493"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#recon_surf.create_annotation.create_annotation" title="Link to this definition">¶</a></dt>
 <dd><p>Map (if required), build  and write annotation.</p>
 <p>(Main function)</p>
 <dl class="field-list">
@@ -512,7 +512,7 @@ append: optional, e.g. “.thresh” can be appended to label names (I/O) for ex
 srcsphere: optional, when mapping: path to src sphere.reg
 trgsphere: optional, when mapping: path to trg sphere.reg.</p>
 </dd>
-<dt><strong>verbose</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">bool</span></code></a></span></dt><dd><p>True if options should be printed. Defaults to True.</p>
+<dt><strong>verbose</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#bool" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">bool</span></code></a></span></dt><dd><p>True if options should be printed. Defaults to True.</p>
 </dd>
 </dl>
 </dd>
@@ -521,30 +521,30 @@ trgsphere: optional, when mapping: path to trg sphere.reg.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="recon_surf.create_annotation.map_multiple_labels">
-<span class="sig-prename descclassname"><span class="pre">recon_surf.create_annotation.</span></span><span class="sig-name descname"><span class="pre">map_multiple_labels</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">hemi</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">src_dir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">src_labels</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">src_sphere_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">trg_sphere_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">trg_white_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">trg_sid</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">out_dir</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stop_missing</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/b688279/recon_surf/create_annotation.py#L146-L229"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#recon_surf.create_annotation.map_multiple_labels" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">recon_surf.create_annotation.</span></span><span class="sig-name descname"><span class="pre">map_multiple_labels</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">hemi</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">src_dir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">src_labels</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">src_sphere_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">trg_sphere_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">trg_white_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">trg_sid</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">out_dir</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stop_missing</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/17fa7cb/recon_surf/create_annotation.py#L146-L229"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#recon_surf.create_annotation.map_multiple_labels" title="Link to this definition">¶</a></dt>
 <dd><p>Map a list of labels from one surface (e.g. fsavaerage sphere.reg) to another.</p>
 <p>Labels are just names without hemisphere or path,
 which are passed via hemi, src_dir, out_dir).</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><dl>
-<dt><strong>hemi</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a></span></dt><dd><p>“lh” or “rh” for reading labels.</p>
+<dt><strong>hemi</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a></span></dt><dd><p>“lh” or “rh” for reading labels.</p>
 </dd>
-<dt><strong>src_dir</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a></span></dt><dd><p>Director of the source file.</p>
+<dt><strong>src_dir</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a></span></dt><dd><p>Director of the source file.</p>
 </dd>
 <dt><strong>src_labels</strong><span class="classifier"><code class="xref py py-obj docutils literal notranslate"><span class="pre">npt.ArrayLike</span></code></span></dt><dd><p>List of labels.</p>
 </dd>
-<dt><strong>src_sphere_name</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a></span></dt><dd><p>Filename of source sphere.</p>
+<dt><strong>src_sphere_name</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a></span></dt><dd><p>Filename of source sphere.</p>
 </dd>
-<dt><strong>trg_sphere_name</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a></span></dt><dd><p>Filename of target sphere.</p>
+<dt><strong>trg_sphere_name</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a></span></dt><dd><p>Filename of target sphere.</p>
 </dd>
-<dt><strong>trg_white_name</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a></span></dt><dd><p>Filename of target white.</p>
+<dt><strong>trg_white_name</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a></span></dt><dd><p>Filename of target white.</p>
 </dd>
-<dt><strong>trg_sid</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a></span></dt><dd><p>Target subject id.</p>
+<dt><strong>trg_sid</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a></span></dt><dd><p>Target subject id.</p>
 </dd>
-<dt><strong>out_dir</strong><span class="classifier"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Optional</span></code>[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a>]</span></dt><dd><p>Directory for output, defaults to None.</p>
+<dt><strong>out_dir</strong><span class="classifier"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Optional</span></code>[<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a>]</span></dt><dd><p>Directory for output, defaults to None.</p>
 </dd>
-<dt><strong>stop_missing</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">bool</span></code></a></span></dt><dd><p>Determines whether to stop on a missing src label file, or continue
+<dt><strong>stop_missing</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#bool" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">bool</span></code></a></span></dt><dd><p>Determines whether to stop on a missing src label file, or continue
 with a warning. Defaults to True.</p>
 </dd>
 </dl>
@@ -559,7 +559,7 @@ with a warning. Defaults to True.</p>
 </dd>
 <dt class="field-odd">Raises<span class="colon">:</span></dt>
 <dd class="field-odd"><dl class="simple">
-<dt><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.14)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ValueError</span></code></a></dt><dd><p>Label file missing.</p>
+<dt><a class="reference external" href="https://docs.python.org/3/builtins/exceptions.html#ValueError" title="(in Python v3.14)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ValueError</span></code></a></dt><dd><p>Label file missing.</p>
 </dd>
 </dl>
 </dd>
@@ -568,7 +568,7 @@ with a warning. Defaults to True.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="recon_surf.create_annotation.options_parse">
-<span class="sig-prename descclassname"><span class="pre">recon_surf.create_annotation.</span></span><span class="sig-name descname"><span class="pre">options_parse</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/b688279/recon_surf/create_annotation.py#L87-L143"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#recon_surf.create_annotation.options_parse" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">recon_surf.create_annotation.</span></span><span class="sig-name descname"><span class="pre">options_parse</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/17fa7cb/recon_surf/create_annotation.py#L87-L143"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#recon_surf.create_annotation.options_parse" title="Link to this definition">¶</a></dt>
 <dd><p>Command line option parser.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
@@ -582,12 +582,12 @@ with a warning. Defaults to True.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="recon_surf.create_annotation.read_colortable">
-<span class="sig-prename descclassname"><span class="pre">recon_surf.create_annotation.</span></span><span class="sig-name descname"><span class="pre">read_colortable</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">colortab_name</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/b688279/recon_surf/create_annotation.py#L336-L359"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#recon_surf.create_annotation.read_colortable" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">recon_surf.create_annotation.</span></span><span class="sig-name descname"><span class="pre">read_colortable</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">colortab_name</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/17fa7cb/recon_surf/create_annotation.py#L336-L359"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#recon_surf.create_annotation.read_colortable" title="Link to this definition">¶</a></dt>
 <dd><p>Read the colortable of given name.</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><dl>
-<dt><strong>colortab_name</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a></span></dt><dd><p>Path and Name of the colortable file.</p>
+<dt><strong>colortab_name</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a></span></dt><dd><p>Path and Name of the colortable file.</p>
 </dd>
 </dl>
 </dd>
@@ -606,14 +606,14 @@ with a warning. Defaults to True.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="recon_surf.create_annotation.read_multiple_labels">
-<span class="sig-prename descclassname"><span class="pre">recon_surf.create_annotation.</span></span><span class="sig-name descname"><span class="pre">read_multiple_labels</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">hemi</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">input_dir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">label_names</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/b688279/recon_surf/create_annotation.py#L232-L268"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#recon_surf.create_annotation.read_multiple_labels" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">recon_surf.create_annotation.</span></span><span class="sig-name descname"><span class="pre">read_multiple_labels</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">hemi</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">input_dir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">label_names</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/17fa7cb/recon_surf/create_annotation.py#L232-L268"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#recon_surf.create_annotation.read_multiple_labels" title="Link to this definition">¶</a></dt>
 <dd><p>Read multiple label files from input_dir.</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><dl>
-<dt><strong>hemi</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a></span></dt><dd><p>“lh” or “rh” for reading labels.</p>
+<dt><strong>hemi</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a></span></dt><dd><p>“lh” or “rh” for reading labels.</p>
 </dd>
-<dt><strong>input_dir</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a></span></dt><dd><p>Director of the source.</p>
+<dt><strong>input_dir</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a></span></dt><dd><p>Director of the source.</p>
 </dd>
 <dt><strong>label_names</strong><span class="classifier"><code class="xref py py-obj docutils literal notranslate"><span class="pre">npt.ArrayLike</span></code></span></dt><dd><p>List of labels.</p>
 </dd>
@@ -632,7 +632,7 @@ with a warning. Defaults to True.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="recon_surf.create_annotation.write_annot">
-<span class="sig-prename descclassname"><span class="pre">recon_surf.create_annotation.</span></span><span class="sig-name descname"><span class="pre">write_annot</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">annot_ids</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">label_names</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">colortab_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">out_annot</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">append</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/b688279/recon_surf/create_annotation.py#L362-L405"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#recon_surf.create_annotation.write_annot" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">recon_surf.create_annotation.</span></span><span class="sig-name descname"><span class="pre">write_annot</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">annot_ids</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">label_names</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">colortab_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">out_annot</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">append</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/17fa7cb/recon_surf/create_annotation.py#L362-L405"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#recon_surf.create_annotation.write_annot" title="Link to this definition">¶</a></dt>
 <dd><p>Combine the colortable with the annotations ids to write an annotation file.</p>
 <p>The annotation file contains colortable information
 Care needs to be taken that the colortable file has the same number
@@ -644,11 +644,11 @@ and order of labels as specified in the label_names list.</p>
 </dd>
 <dt><strong>label_names</strong><span class="classifier"><code class="xref py py-obj docutils literal notranslate"><span class="pre">npt.ArrayLike</span></code></span></dt><dd><p>List of label names.</p>
 </dd>
-<dt><strong>colortab_name</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a></span></dt><dd><p>Path and name of colortable file.</p>
+<dt><strong>colortab_name</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a></span></dt><dd><p>Path and name of colortable file.</p>
 </dd>
-<dt><strong>out_annot</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a></span></dt><dd><p>Path and name of output annotation file.</p>
+<dt><strong>out_annot</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a></span></dt><dd><p>Path and name of output annotation file.</p>
 </dd>
-<dt><strong>append</strong><span class="classifier"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Union</span></code>[<a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">None</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a>]</span></dt><dd><p>String to append to colour name. Defaults to “”.</p>
+<dt><strong>append</strong><span class="classifier"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Union</span></code>[<a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">None</span></code></a>, <a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a>]</span></dt><dd><p>String to append to colour name. Defaults to “”.</p>
 </dd>
 </dl>
 </dd>

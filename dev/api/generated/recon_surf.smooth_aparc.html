@@ -462,7 +462,7 @@
 <span id="recon-surf-smooth-aparc"></span><h1>recon_surf.smooth_aparc<a class="headerlink" href="#module-recon_surf.smooth_aparc" title="Link to this heading">¶</a></h1>
 <dl class="py function">
 <dt class="sig sig-object py" id="recon_surf.smooth_aparc.bincount2D_vectorized">
-<span class="sig-prename descclassname"><span class="pre">recon_surf.smooth_aparc.</span></span><span class="sig-name descname"><span class="pre">bincount2D_vectorized</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">a</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/b688279/recon_surf/smooth_aparc.py#L106-L122"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#recon_surf.smooth_aparc.bincount2D_vectorized" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">recon_surf.smooth_aparc.</span></span><span class="sig-name descname"><span class="pre">bincount2D_vectorized</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">a</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/17fa7cb/recon_surf/smooth_aparc.py#L106-L122"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#recon_surf.smooth_aparc.bincount2D_vectorized" title="Link to this definition">¶</a></dt>
 <dd><p>Count number of occurrences of each value in array of non-negative ints.</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -482,20 +482,20 @@
 
 <dl class="py function">
 <dt class="sig sig-object py" id="recon_surf.smooth_aparc.get_adjM">
-<span class="sig-prename descclassname"><span class="pre">recon_surf.smooth_aparc.</span></span><span class="sig-name descname"><span class="pre">get_adjM</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">trias</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/b688279/recon_surf/smooth_aparc.py#L76-L103"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#recon_surf.smooth_aparc.get_adjM" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">recon_surf.smooth_aparc.</span></span><span class="sig-name descname"><span class="pre">get_adjM</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">trias</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/17fa7cb/recon_surf/smooth_aparc.py#L76-L103"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#recon_surf.smooth_aparc.get_adjM" title="Link to this definition">¶</a></dt>
 <dd><p>Create symmetric sparse adjacency matrix of triangle mesh.</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><dl>
-<dt><strong>trias</strong><span class="classifier"><code class="xref py py-obj docutils literal notranslate"><span class="pre">npt.NDArray</span></code>[<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">int</span></code></a>](<code class="xref py py-obj docutils literal notranslate"><span class="pre">m</span></code>, 3)</span></dt><dd><p>Triangle mesh matrix.</p>
+<dt><strong>trias</strong><span class="classifier"><code class="xref py py-obj docutils literal notranslate"><span class="pre">npt.NDArray</span></code>[<a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">int</span></code></a>](<code class="xref py py-obj docutils literal notranslate"><span class="pre">m</span></code>, 3)</span></dt><dd><p>Triangle mesh matrix.</p>
 </dd>
-<dt><strong>n</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">int</span></code></a></span></dt><dd><p>Shape of output (n,n) adjaceny matrix, where n&gt;=m.</p>
+<dt><strong>n</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">int</span></code></a></span></dt><dd><p>Shape of output (n,n) adjaceny matrix, where n&gt;=m.</p>
 </dd>
 </dl>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><dl>
-<dt><strong>adjM</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.5)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">bool</span></code></a>) <code class="xref py py-obj docutils literal notranslate"><span class="pre">shape</span></code> (n,n)</span></dt><dd><p>Symmetric sparse CSR adjacency matrix, true corresponds to an edge.</p>
+<dt><strong>adjM</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.5)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a> (<a class="reference external" href="https://docs.python.org/3/builtins/functions.html#bool" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">bool</span></code></a>) <code class="xref py py-obj docutils literal notranslate"><span class="pre">shape</span></code> (n,n)</span></dt><dd><p>Symmetric sparse CSR adjacency matrix, true corresponds to an edge.</p>
 </dd>
 </dl>
 </dd>
@@ -504,18 +504,18 @@
 
 <dl class="py function">
 <dt class="sig sig-object py" id="recon_surf.smooth_aparc.main">
-<span class="sig-prename descclassname"><span class="pre">recon_surf.smooth_aparc.</span></span><span class="sig-name descname"><span class="pre">main</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">insurfname</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inaparcname</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">incortexname</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">outaparcname</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/b688279/recon_surf/smooth_aparc.py#L359-L390"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#recon_surf.smooth_aparc.main" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">recon_surf.smooth_aparc.</span></span><span class="sig-name descname"><span class="pre">main</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">insurfname</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inaparcname</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">incortexname</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">outaparcname</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/17fa7cb/recon_surf/smooth_aparc.py#L359-L390"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#recon_surf.smooth_aparc.main" title="Link to this definition">¶</a></dt>
 <dd><p>Read files, smooth the aparc labels on the surface and save the smoothed labels.</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><dl>
-<dt><strong>insurfname</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a></span></dt><dd><p>Surface filepath and name of source.</p>
+<dt><strong>insurfname</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a></span></dt><dd><p>Surface filepath and name of source.</p>
 </dd>
-<dt><strong>inaparcname</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a></span></dt><dd><p>Annotation filepath and name of source.</p>
+<dt><strong>inaparcname</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a></span></dt><dd><p>Annotation filepath and name of source.</p>
 </dd>
-<dt><strong>incortexname</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a></span></dt><dd><p>Label filepath and name of source.</p>
+<dt><strong>incortexname</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a></span></dt><dd><p>Label filepath and name of source.</p>
 </dd>
-<dt><strong>outaparcname</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a></span></dt><dd><p>Surface filepath and name of destination.</p>
+<dt><strong>outaparcname</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a></span></dt><dd><p>Surface filepath and name of destination.</p>
 </dd>
 </dl>
 </dd>
@@ -524,19 +524,19 @@
 
 <dl class="py function">
 <dt class="sig sig-object py" id="recon_surf.smooth_aparc.mode_filter">
-<span class="sig-prename descclassname"><span class="pre">recon_surf.smooth_aparc.</span></span><span class="sig-name descname"><span class="pre">mode_filter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">adjM</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">labels</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fillonlylabel</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">novote</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/b688279/recon_surf/smooth_aparc.py#L125-L240"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#recon_surf.smooth_aparc.mode_filter" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">recon_surf.smooth_aparc.</span></span><span class="sig-name descname"><span class="pre">mode_filter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">adjM</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">labels</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fillonlylabel</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">novote</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/17fa7cb/recon_surf/smooth_aparc.py#L125-L240"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#recon_surf.smooth_aparc.mode_filter" title="Link to this definition">¶</a></dt>
 <dd><p>Apply mode filter (smoothing) to integer labels on mesh vertices.</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><dl>
-<dt><strong>adjM</strong><span class="classifier"><code class="xref py py-obj docutils literal notranslate"><span class="pre">sparse.csr_matrix</span></code>[<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">bool</span></code></a>]</span></dt><dd><p>Symmetric adjacency matrix defining edges between vertices,
+<dt><strong>adjM</strong><span class="classifier"><code class="xref py py-obj docutils literal notranslate"><span class="pre">sparse.csr_matrix</span></code>[<a class="reference external" href="https://docs.python.org/3/builtins/functions.html#bool" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">bool</span></code></a>]</span></dt><dd><p>Symmetric adjacency matrix defining edges between vertices,
 this determines what edges can vote so usually one adds the
 identity to the adjacency matrix so that each vertex is included
 in its own vote.</p>
 </dd>
-<dt><strong>labels</strong><span class="classifier"><code class="xref py py-obj docutils literal notranslate"><span class="pre">npt.NDArray</span></code>[<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">int</span></code></a>]</span></dt><dd><p>List of integer labels at each vertex of the mesh.</p>
+<dt><strong>labels</strong><span class="classifier"><code class="xref py py-obj docutils literal notranslate"><span class="pre">npt.NDArray</span></code>[<a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">int</span></code></a>]</span></dt><dd><p>List of integer labels at each vertex of the mesh.</p>
 </dd>
-<dt><strong>fillonlylabel</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">int</span></code></a></span></dt><dd><p>Label to fill exclusively. Defaults to None to smooth all labels.</p>
+<dt><strong>fillonlylabel</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">int</span></code></a></span></dt><dd><p>Label to fill exclusively. Defaults to None to smooth all labels.</p>
 </dd>
 <dt><strong>novote</strong><span class="classifier"><code class="xref py py-obj docutils literal notranslate"><span class="pre">npt.ArrayLike</span></code></span></dt><dd><p>Label ids that should not vote. Defaults to None.</p>
 </dd>
@@ -544,7 +544,7 @@ in its own vote.</p>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><dl>
-<dt><strong>labels_new</strong><span class="classifier"><code class="xref py py-obj docutils literal notranslate"><span class="pre">npt.NDArray</span></code>[<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">int</span></code></a>]</span></dt><dd><p>New smoothed labels.</p>
+<dt><strong>labels_new</strong><span class="classifier"><code class="xref py py-obj docutils literal notranslate"><span class="pre">npt.NDArray</span></code>[<a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">int</span></code></a>]</span></dt><dd><p>New smoothed labels.</p>
 </dd>
 </dl>
 </dd>
@@ -553,7 +553,7 @@ in its own vote.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="recon_surf.smooth_aparc.options_parse">
-<span class="sig-prename descclassname"><span class="pre">recon_surf.smooth_aparc.</span></span><span class="sig-name descname"><span class="pre">options_parse</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/b688279/recon_surf/smooth_aparc.py#L51-L73"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#recon_surf.smooth_aparc.options_parse" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">recon_surf.smooth_aparc.</span></span><span class="sig-name descname"><span class="pre">options_parse</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/17fa7cb/recon_surf/smooth_aparc.py#L51-L73"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#recon_surf.smooth_aparc.options_parse" title="Link to this definition">¶</a></dt>
 <dd><p>Create a command line interface and return command line options.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
@@ -567,7 +567,7 @@ in its own vote.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="recon_surf.smooth_aparc.smooth_aparc">
-<span class="sig-prename descclassname"><span class="pre">recon_surf.smooth_aparc.</span></span><span class="sig-name descname"><span class="pre">smooth_aparc</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">surf</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">labels</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cortex</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/b688279/recon_surf/smooth_aparc.py#L243-L356"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#recon_surf.smooth_aparc.smooth_aparc" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">recon_surf.smooth_aparc.</span></span><span class="sig-name descname"><span class="pre">smooth_aparc</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">surf</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">labels</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cortex</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/17fa7cb/recon_surf/smooth_aparc.py#L243-L356"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#recon_surf.smooth_aparc.smooth_aparc" title="Link to this definition">¶</a></dt>
 <dd><p>Smooth aparc label regions on the surface and fill holes.</p>
 <p>First all labels with 0 and -1 unside cortex are filled via repeated
 mode filtering, then all labels are smoothed first with a wider and
@@ -578,15 +578,15 @@ outside cortex are set to -1 at the end.</p>
 <dd class="field-odd"><dl>
 <dt><strong>surf</strong><span class="classifier"><code class="xref py py-obj docutils literal notranslate"><span class="pre">nibabel</span></code> <code class="xref py py-obj docutils literal notranslate"><span class="pre">surface</span></code></span></dt><dd><p>Surface filepath and name of source.</p>
 </dd>
-<dt><strong>labels</strong><span class="classifier"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.array</span></code>[<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">int</span></code></a>]</span></dt><dd><p>Labels at each vertex (int).</p>
+<dt><strong>labels</strong><span class="classifier"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.array</span></code>[<a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">int</span></code></a>]</span></dt><dd><p>Labels at each vertex (int).</p>
 </dd>
-<dt><strong>cortex</strong><span class="classifier"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.array</span></code>[<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">int</span></code></a>]</span></dt><dd><p>Vertex ids inside cortex mask.</p>
+<dt><strong>cortex</strong><span class="classifier"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.array</span></code>[<a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">int</span></code></a>]</span></dt><dd><p>Vertex ids inside cortex mask.</p>
 </dd>
 </dl>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><dl>
-<dt><strong>smoothed_labels</strong><span class="classifier"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.array</span></code>[<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">int</span></code></a>]</span></dt><dd><p>Smoothed labels.</p>
+<dt><strong>smoothed_labels</strong><span class="classifier"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.array</span></code>[<a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">int</span></code></a>]</span></dt><dd><p>Smoothed labels.</p>
 </dd>
 </dl>
 </dd>

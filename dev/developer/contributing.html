@@ -582,7 +582,7 @@ request descriptions. Use a comma, a colon or a second sentence.</p>
 <p><strong>Run the checks before you commit</strong>, so a pull request does not fail on something you can fix in a second. These are
 the checks CI runs:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>uv<span class="w"> </span>run<span class="w"> </span>--no-project<span class="w"> </span>--with<span class="w"> </span>ruff<span class="w"> </span>ruff<span class="w"> </span>check<span class="w"> </span>.
-uv<span class="w"> </span>run<span class="w"> </span>--no-project<span class="w"> </span>--with<span class="w"> </span>pytest<span class="w"> </span>pytest<span class="w"> </span>test/shell/test_bash4_lint.py<span class="w"> </span>test/shell/test_fs_time.py
+uv<span class="w"> </span>run<span class="w"> </span>--no-project<span class="w"> </span>--with<span class="w"> </span>pytest<span class="w"> </span>pytest<span class="w"> </span>test/lint
 uv<span class="w"> </span>run<span class="w"> </span>--no-project<span class="w"> </span>--with<span class="w"> </span>codespell<span class="w"> </span>codespell<span class="w"> </span>--ignore-words<span class="w"> </span>.codespellignore<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>--check-filenames<span class="w"> </span>--check-hidden<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>--skip<span class="w"> </span><span class="s1">'./build,./doc/images,./Tutorial,./.git,./.mypy_cache,./.pytest_cache,./.venv'</span><span class="w"> </span>.

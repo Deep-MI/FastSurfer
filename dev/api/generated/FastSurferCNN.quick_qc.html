@@ -462,22 +462,22 @@
 <span id="fastsurfercnn-quick-qc"></span><h1>FastSurferCNN.quick_qc<a class="headerlink" href="#module-FastSurferCNN.quick_qc" title="Link to this heading">¶</a></h1>
 <dl class="py function">
 <dt class="sig sig-object py" id="FastSurferCNN.quick_qc.check_volume">
-<span class="sig-prename descclassname"><span class="pre">FastSurferCNN.quick_qc.</span></span><span class="sig-name descname"><span class="pre">check_volume</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">asegdkt_segfile</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">voxvol</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">thres</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.7</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/b688279/FastSurferCNN/quick_qc.py#L78-L101"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.quick_qc.check_volume" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">FastSurferCNN.quick_qc.</span></span><span class="sig-name descname"><span class="pre">check_volume</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">asegdkt_segfile</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">voxvol</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">thres</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.7</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/17fa7cb/FastSurferCNN/quick_qc.py#L78-L101"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.quick_qc.check_volume" title="Link to this definition">¶</a></dt>
 <dd><p>Check if total volume is bigger or smaller than threshold.</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><dl>
 <dt><strong>asegdkt_segfile</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.5)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></span></dt><dd><p>The segmentation file.</p>
 </dd>
-<dt><strong>voxvol</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a></span></dt><dd><p>The volume of a voxel.</p>
+<dt><strong>voxvol</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a></span></dt><dd><p>The volume of a voxel.</p>
 </dd>
-<dt><strong>thres</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a>, default=0.7</span></dt><dd><p>The threshold for the total volume.</p>
+<dt><strong>thres</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a>, default=0.7</span></dt><dd><p>The threshold for the total volume.</p>
 </dd>
 </dl>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><dl class="simple">
-<dt><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">bool</span></code></a></dt><dd><p>Whether or not total volume is bigger than the threshold <code class="xref py py-obj docutils literal notranslate"><span class="pre">thres</span></code>.</p>
+<dt><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#bool" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">bool</span></code></a></dt><dd><p>Whether or not total volume is bigger than the threshold <code class="xref py py-obj docutils literal notranslate"><span class="pre">thres</span></code>.</p>
 </dd>
 </dl>
 </dd>
@@ -486,7 +486,7 @@
 
 <dl class="py function">
 <dt class="sig sig-object py" id="FastSurferCNN.quick_qc.get_region_bg_intersection_mask">
-<span class="sig-prename descclassname"><span class="pre">FastSurferCNN.quick_qc.</span></span><span class="sig-name descname"><span class="pre">get_region_bg_intersection_mask</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">seg_array</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">region_labels</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">{'Left-Lateral-Ventricle':</span> <span class="pre">4,</span> <span class="pre">'Left-choroid-plexus':</span> <span class="pre">31,</span> <span class="pre">'Right-Lateral-Ventricle':</span> <span class="pre">43,</span> <span class="pre">'Right-choroid-plexus':</span> <span class="pre">63}</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bg_label</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/b688279/FastSurferCNN/quick_qc.py#L104-L142"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.quick_qc.get_region_bg_intersection_mask" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">FastSurferCNN.quick_qc.</span></span><span class="sig-name descname"><span class="pre">get_region_bg_intersection_mask</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">seg_array</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">region_labels</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">{'Left-Lateral-Ventricle':</span> <span class="pre">4,</span> <span class="pre">'Left-choroid-plexus':</span> <span class="pre">31,</span> <span class="pre">'Right-Lateral-Ventricle':</span> <span class="pre">43,</span> <span class="pre">'Right-choroid-plexus':</span> <span class="pre">63}</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bg_label</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/17fa7cb/FastSurferCNN/quick_qc.py#L104-L142"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.quick_qc.get_region_bg_intersection_mask" title="Link to this definition">¶</a></dt>
 <dd><p>Return a mask of the intersection between the voxels of a given region and background voxels.</p>
 <p>This is obtained by dilating the region by 1 voxel and computing the intersection with the background mask.</p>
 <p>The region can be defined by passing in the region_labels dict.</p>
@@ -495,9 +495,9 @@
 <dd class="field-odd"><dl>
 <dt><strong>seg_array</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.5)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">numpy.ndarray</span></code></a></span></dt><dd><p>Segmentation array.</p>
 </dd>
-<dt><strong>region_labels</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">dict</span></code></a>, default=&lt;dict VENT_LABELS&gt;</span></dt><dd><p>Dictionary whose values correspond to the desired region’s labels (see Note).</p>
+<dt><strong>region_labels</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#dict" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">dict</span></code></a>, default=&lt;dict VENT_LABELS&gt;</span></dt><dd><p>Dictionary whose values correspond to the desired region’s labels (see Note).</p>
 </dd>
-<dt><strong>bg_label</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">int</span></code></a>, default=&lt;BG_LABEL&gt;</span></dt><dd><p>Label id of the background.</p>
+<dt><strong>bg_label</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">int</span></code></a>, default=&lt;BG_LABEL&gt;</span></dt><dd><p>Label id of the background.</p>
 </dd>
 </dl>
 </dd>
@@ -516,20 +516,20 @@ along with their corresponding integer label values (see also FreeSurferColorLUT
 
 <dl class="py function">
 <dt class="sig sig-object py" id="FastSurferCNN.quick_qc.get_ventricle_bg_intersection_volume">
-<span class="sig-prename descclassname"><span class="pre">FastSurferCNN.quick_qc.</span></span><span class="sig-name descname"><span class="pre">get_ventricle_bg_intersection_volume</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">seg_array</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">voxvol</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/b688279/FastSurferCNN/quick_qc.py#L145-L167"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.quick_qc.get_ventricle_bg_intersection_volume" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">FastSurferCNN.quick_qc.</span></span><span class="sig-name descname"><span class="pre">get_ventricle_bg_intersection_volume</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">seg_array</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">voxvol</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/17fa7cb/FastSurferCNN/quick_qc.py#L145-L167"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.quick_qc.get_ventricle_bg_intersection_volume" title="Link to this definition">¶</a></dt>
 <dd><p>Return a volume estimate for the intersection of ventricle voxels with background voxels.</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><dl>
 <dt><strong>seg_array</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.5)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">numpy.ndarray</span></code></a></span></dt><dd><p>Segmentation array.</p>
 </dd>
-<dt><strong>voxvol</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a></span></dt><dd><p>Voxel volume.</p>
+<dt><strong>voxvol</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a></span></dt><dd><p>Voxel volume.</p>
 </dd>
 </dl>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><dl>
-<dt><strong>intersection_volume</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a></span></dt><dd><p>Estimated volume of voxels in ventricle and background intersection.</p>
+<dt><strong>intersection_volume</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a></span></dt><dd><p>Estimated volume of voxels in ventricle and background intersection.</p>
 </dd>
 </dl>
 </dd>
@@ -538,7 +538,7 @@ along with their corresponding integer label values (see also FreeSurferColorLUT
 
 <dl class="py function">
 <dt class="sig sig-object py" id="FastSurferCNN.quick_qc.make_parser">
-<span class="sig-prename descclassname"><span class="pre">FastSurferCNN.quick_qc.</span></span><span class="sig-name descname"><span class="pre">make_parser</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/b688279/FastSurferCNN/quick_qc.py#L48-L75"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.quick_qc.make_parser" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">FastSurferCNN.quick_qc.</span></span><span class="sig-name descname"><span class="pre">make_parser</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/17fa7cb/FastSurferCNN/quick_qc.py#L48-L75"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.quick_qc.make_parser" title="Link to this definition">¶</a></dt>
 <dd><p>Create the argument parser for quick_qc.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
