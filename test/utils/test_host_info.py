@@ -20,12 +20,19 @@ development machines, so a wrong branch fails silently: the log keeps a plausibl
 line that describes the wrong machine. These tests pin each branch against a fake.
 """
 
+import importlib.util
 import subprocess
 import sys
 
 import pytest
 
 from FastSurferCNN import host_info
+
+# The CI job for this directory installs pytest and nothing else, because host_info is standard
+# library underneath. Its torch branch is therefore unreachable there, and its ImportError branch
+# is unreachable anywhere torch is present, so each is skipped where it cannot run.
+HAS_TORCH = importlib.util.find_spec("torch") is not None
+needs_torch = pytest.mark.skipif(not HAS_TORCH, reason="torch is not installed in this job")
 
 
 class TestCpuModel:
@@ -167,18 +174,32 @@ class TestHostInfo:
     def test_torch_is_off_by_default(self):
         assert not any(line.startswith("Torch") for line in host_info.host_info())
 
+    def test_the_hostname_is_not_reported(self):
+        """It says nothing in a container, and four other files already carry it."""
+        assert not any(host_info.platform.node() in line for line in host_info.host_info())
+
 
 class TestTorchInfo:
+    @needs_torch
     def test_reports_the_cpu_capability(self):
         line = host_info.torch_info()[0]
         assert line.startswith("Torch ") and "CPU capability" in line
 
+    @needs_torch
     def test_threads_can_be_left_out(self):
         assert "intra-op" not in host_info.torch_info(with_threads=False)[0]
 
-    def test_the_hostname_is_not_reported(self):
-        """It says nothing in a container, and four other files already carry it."""
-        assert not any(host_info.platform.node() in line for line in host_info.host_info())
+    @pytest.mark.skipif(HAS_TORCH, reason="the ImportError branch cannot be reached with torch")
+    def test_says_so_plainly_when_torch_is_absent(self):
+        """
+        The branch the light CI job actually takes, so it is worth asserting rather than skipping.
+
+        It has to stay one line and name the reason, because the shell caller joins these with
+        newlines and a reader has to be able to tell a missing install from a broken one.
+        """
+        line = host_info.torch_info()[0]
+        assert line.startswith("Torch: not importable (")
+        assert "\n" not in line
 
 
 def test_runs_as_a_script_from_an_unrelated_directory(tmp_path):
@@ -195,7 +216,10 @@ def test_runs_as_a_script_from_an_unrelated_directory(tmp_path):
     )
     fields = [line.split(" ")[0].rstrip(":") for line in result.stdout.splitlines()]
     assert fields == ["Platform", "CPU", "CPU", "Torch", "Thread"]
-    assert "not importable" not in result.stdout
+    if HAS_TORCH:
+        # the point of running it from elsewhere: as a file rather than -m it used to import the
+        # FastSurferCNN/utils/logging.py next to it and report torch as missing
+        assert "not importable" not in result.stdout
 
 
 def _raise_oserror(*args, **kwargs):
