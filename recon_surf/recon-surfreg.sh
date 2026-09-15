@@ -291,7 +291,8 @@ cat "$FREESURFER_HOME"/build-stamp.txt 2>&1 | tee -a "$LF"
 echo $VERSION | tee -a "$LF"
 uname -a  2>&1 | tee -a "$LF"
 # --torch because rotate_sphere.py imports neuroreg, which imports torch
-$python "$FASTSURFER_HOME/FastSurferCNN/host_info.py" --torch 2>&1 | tee -a "$LF"
+# --fingerprint records what this host computes, for comparing two runs later
+$python "$FASTSURFER_HOME/FastSurferCNN/host_info.py" --torch --fingerprint 2>&1 | tee -a "$LF"
 
 
 # Print parallelization parameters

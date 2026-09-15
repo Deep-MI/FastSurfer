@@ -1001,8 +1001,10 @@ if [[ -f "$seg_log" ]]; then log_existed="true" ; else log_existed="false" ; fi
   echo "Log file for FastSurfer pipeline, run_fastsurfer.sh and segmentation(s)"
   echo "Invocation: $invocation_command"
   echo ""
-  # the torch line is logged by each network itself, once its threads and device are final
-  $python "$FASTSURFER_HOME/FastSurferCNN/host_info.py" 2>&1
+  # --fingerprint records what this host computes, so two logs can be compared for whether the
+  # runs were comparable at all. Once here rather than in each network: it describes the machine,
+  # not the process. The thread counts are left out for the opposite reason, they are per network.
+  $python "$FASTSURFER_HOME/FastSurferCNN/host_info.py" --fingerprint 2>&1
 } | tee -a "$seg_log"
 
 ### IF tmpLF exists, it has been created with a warning or similar, copy that warning to seg_log now

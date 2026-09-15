@@ -21,12 +21,17 @@ line that describes the wrong machine. These tests pin each branch against a fak
 """
 
 import importlib.util
+import os
+import re
 import subprocess
 import sys
+from pathlib import Path
 
 import pytest
 
 from FastSurferCNN import host_info
+
+FASTSURFER_HOME = Path(host_info.__file__).parent.parent
 
 # The CI job for this directory installs pytest and nothing else, because host_info is standard
 # library underneath. Its torch branch is therefore unreachable there, and its ImportError branch
@@ -200,6 +205,74 @@ class TestTorchInfo:
         line = host_info.torch_info()[0]
         assert line.startswith("Torch: not importable (")
         assert "\n" not in line
+
+
+class TestNumericalFingerprint:
+    @needs_torch
+    def test_is_stable_within_a_process(self):
+        """
+        Two calls must agree, or the fingerprint says nothing about the host.
+
+        It is the whole point that a difference means the hosts differ, so any variation
+        from call to call would make every comparison a false positive.
+        """
+        assert host_info.numerical_fingerprint() == host_info.numerical_fingerprint()
+
+    @needs_torch
+    def test_reports_the_two_operations_the_networks_use(self):
+        fp = host_info.numerical_fingerprint()
+        assert re.fullmatch(r"conv=[0-9a-f]{12} soft=[0-9a-f]{12}", fp), fp
+
+    @needs_torch
+    def test_is_a_single_line(self):
+        """The shell caller joins these with newlines, so an embedded one breaks the block."""
+        assert "\n" not in host_info.numerical_fingerprint()
+
+    @needs_torch
+    def test_does_not_depend_on_the_thread_count(self):
+        """
+        The fingerprint has to describe the host, not the invocation.
+
+        It is emitted both from log headers, where torch still has its default thread count,
+        and from the networks, after `--threads` has been applied. Those have to agree, or
+        the same machine reports two classes and every comparison is a false positive.
+        """
+        import torch
+
+        before = torch.get_num_threads()
+        try:
+            torch.set_num_threads(1)
+            one = host_info.numerical_fingerprint()
+            torch.set_num_threads(4)
+            four = host_info.numerical_fingerprint()
+        finally:
+            torch.set_num_threads(before)
+        assert one == four, f"thread count changed the fingerprint: {one} against {four}"
+
+    @needs_torch
+    def test_tracks_the_selected_kernels(self):
+        """
+        Capping the ISA has to change the hash, or it cannot detect the split it exists for.
+
+        Skipped where there are no wider kernels compiled in to cap, notably arm64, since
+        there the cap is correctly a no-op and proves nothing either way.
+        """
+        import torch
+
+        if torch.backends.cpu.get_cpu_capability() == "NO AVX":
+            pytest.skip("no wider kernels on this host, so the cap cannot change anything")
+
+        code = "import FastSurferCNN.host_info as h; print(h.numerical_fingerprint())"
+        env = {**os.environ, "PYTHONPATH": str(FASTSURFER_HOME)}
+        capped = {**env, "ATEN_CPU_CAPABILITY": "default", "ONEDNN_MAX_CPU_ISA": "SSE41"}
+        run = [sys.executable, "-c", code]
+        native = subprocess.run(run, env=env, capture_output=True, text=True, check=True).stdout
+        lowered = subprocess.run(run, env=capped, capture_output=True, text=True, check=True).stdout
+        assert native != lowered, f"capping the ISA did not change the fingerprint: {native!r}"
+
+    @pytest.mark.skipif(HAS_TORCH, reason="the ImportError branch cannot be reached with torch")
+    def test_says_so_plainly_when_torch_is_absent(self):
+        assert host_info.numerical_fingerprint().startswith("not available (")
 
 
 def test_runs_as_a_script_from_an_unrelated_directory(tmp_path):
