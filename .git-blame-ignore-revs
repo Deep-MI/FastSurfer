@@ -1,0 +1,10 @@
+# Commits that touched many files without changing behaviour, so that `git blame` attributes each
+# line to the change that actually wrote it rather than to the sweep.
+#
+# GitHub reads this file automatically in its blame view. Locally it has to be switched on once:
+#
+#     git config blame.ignoreRevsFile .git-blame-ignore-revs
+#
+# Full 40-character hashes only; git rejects abbreviated ones here.
+
+# Rename the lab in every copyright header, 94 files
