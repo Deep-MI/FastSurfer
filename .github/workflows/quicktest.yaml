@@ -261,7 +261,11 @@ jobs:
     name: Annotate test results as checks
     runs-on: ubuntu-latest
     needs: [fastsurfer-test, build-docker]
-    if: always() && needs.build-docker.outputs.continue == 'true'
+    # !cancelled() rather than always(): this still reports when the tests ran and failed, which is
+    # the point, but a run cancelled by hand skips it and stays grey instead of going red for work
+    # nobody asked it to finish. The continue clause skips it for a run that was never going to
+    # test anything, such as a pull request without the label.
+    if: ${{ !cancelled() && needs.build-docker.outputs.continue == 'true' }}
     steps:
       - name: Retrieve test JUnit files
         uses: actions/download-artifact@v8
@@ -274,9 +278,14 @@ jobs:
         uses: mikepenz/action-junit-report@v6
         with:
           report_paths: /tmp/fastsurfer-*-junit-*.xml
-          # distinct per workflow: this action publishes through the checks api, so two workflows
-          # using one name collide on the same commit and the failure is attributed to whichever
-          # check suite github picks, which has shown quicktest results under code-style
+          # This is the only annotation step that creates a check run, the others set
+          # annotate_only. Name it for what it is: github prefixes the check with a workflow of its
+          # own choosing, which has read "AUTO code-style / quicktest results", so the name itself
+          # has to say where the results came from.
           check_name: quicktest results
           fail_on_failure: 'true'
           fail_on_parse_error: 'true'
+          # Without this, a run whose tests were cancelled or skipped reports "No test results
+          # found" and passes, so a quicktest that tested nothing looks like a quicktest that
+          # passed. The job already only runs when the tests were meant to run.
+          require_tests: 'true'

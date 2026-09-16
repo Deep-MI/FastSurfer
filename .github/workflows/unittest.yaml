@@ -141,12 +141,14 @@ jobs:
         uses: mikepenz/action-junit-report@v6
         with:
           report_paths: ${{ env.FS_JUNIT_FILE }}
-          # distinct per matrix entry and per workflow: this action publishes through the checks
-          # api, so a shared name collides on the same commit, both between the matrix jobs here
-          # and with quicktest, and the failure is then attributed to an unrelated workflow
+          # Unused while annotate_only is set, since that suppresses the check run this names.
+          # Kept distinct per matrix entry so it is already correct if annotate_only ever goes.
           check_name: 'unit test results (test/${{ matrix.tests }})'
           fail_on_failure: 'true'
           fail_on_parse_error: 'true'
+          # pytest always writes the xml, so this only fires if the file went missing, which would
+          # otherwise be reported as a pass
+          require_tests: 'true'
           # here, we only add the annotations, the fail-state cannot be set here by this action because the github token
           # does not have the required permissions in PRs from forks.
           # See: https://github.com/mikepenz/action-junit-report?tab=readme-ov-file#pr-run-permissions
@@ -206,8 +208,10 @@ jobs:
         uses: mikepenz/action-junit-report@v6
         with:
           report_paths: ${{ env.FS_JUNIT_FILE }}
+          # unused while annotate_only is set, as in the job above
           check_name: 'unit test results (test/shell on macOS)'
           fail_on_failure: 'true'
           fail_on_parse_error: 'true'
+          require_tests: 'true'
           # as in the job above: the fail-state cannot be set from a pull request opened on a fork
           annotate_only: 'true'
