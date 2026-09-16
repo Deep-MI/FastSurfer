@@ -39,7 +39,9 @@ permissions:
 
 jobs:
   unit-test:
-    name: 'Run FastSurfer unit tests from test/${{ matrix.tests }}'
+    # What differs goes first: the matrix view truncates after a few characters, so any shared
+    # prefix hides the only part that identifies the job.
+    name: '${{ matrix.tests }} unit tests'
     runs-on: ubuntu-latest
     # Every job here runs in about a minute. The headroom is for the image job on a cold pip
     # cache, which is what a pull request sees until a run on dev has populated one, since that
@@ -142,8 +144,9 @@ jobs:
         with:
           report_paths: ${{ env.FS_JUNIT_FILE }}
           # Unused while annotate_only is set, since that suppresses the check run this names.
-          # Kept distinct per matrix entry so it is already correct if annotate_only ever goes.
-          check_name: 'unit test results (test/${{ matrix.tests }})'
+          # Kept distinct per matrix entry, and distinguishing first, so it is already correct if
+          # annotate_only ever goes.
+          check_name: '${{ matrix.tests }} unit test results'
           fail_on_failure: 'true'
           fail_on_parse_error: 'true'
           # pytest always writes the xml, so this only fires if the file went missing, which would
@@ -155,7 +158,7 @@ jobs:
           annotate_only: 'true'
 
   macos-shell-test:
-    name: 'Run the shell tests under the bash macOS ships'
+    name: 'bash 3.2 shell tests (macOS)'
     # The only place /bin/bash is 3.2, which is what test/shell guards: every shipped script selects
     # it through its own shebang, so a bash-4-only construct breaks macOS while passing on Linux.
     runs-on: macos-15
@@ -209,7 +212,7 @@ jobs:
         with:
           report_paths: ${{ env.FS_JUNIT_FILE }}
           # unused while annotate_only is set, as in the job above
-          check_name: 'unit test results (test/shell on macOS)'
+          check_name: 'bash 3.2 shell test results (macOS)'
           fail_on_failure: 'true'
           fail_on_parse_error: 'true'
           require_tests: 'true'

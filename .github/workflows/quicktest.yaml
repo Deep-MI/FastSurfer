@@ -204,7 +204,9 @@ jobs:
           # and it is also faster to use this prebuilt, reduced-size freesurfer distribution
           freesurfer-build-image: "${{ steps.parse-version.outputs.FS_BUILD_IMAGE }}"
   fastsurfer-test:
-    name: 'Run FastSurfer on sample images and perform tests'
+    # The resolution goes first: this is a matrix, and without it both entries showed the same
+    # name, so a failure gave no clue which one it was.
+    name: '${{ matrix.subject-id }} pipeline and tests'
     needs: build-docker
     runs-on: ubuntu-latest
     timeout-minutes: 180
