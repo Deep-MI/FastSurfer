@@ -179,6 +179,29 @@ class TestHostInfo:
     def test_torch_is_off_by_default(self):
         assert not any(line.startswith("Torch") for line in host_info.host_info())
 
+    def test_dispatch_overrides_are_reported(self, monkeypatch):
+        """
+        A kernel override changes what every number below it means, so the header records it.
+
+        Reported even when absent, so "none set" is on the record rather than being the same
+        as a line that failed to print.
+        """
+        monkeypatch.delenv("OPENBLAS_CORETYPE", raising=False)
+        monkeypatch.delenv("NPY_DISABLE_CPU_FEATURES", raising=False)
+        for var in host_info.DISPATCH_VARS:
+            monkeypatch.delenv(var, raising=False)
+        assert "Dispatch overrides: none set" in host_info.host_info()
+
+        monkeypatch.setenv("OPENBLAS_CORETYPE", "Nehalem")
+        line = next(ln for ln in host_info.host_info() if ln.startswith("Dispatch overrides:"))
+        assert "OPENBLAS_CORETYPE=Nehalem" in line
+
+    def test_thread_limits_and_dispatch_are_separate_lines(self):
+        """They answer different questions: how many threads, and which kernel."""
+        lines = host_info.host_info()
+        assert sum(ln.startswith("Thread limits:") for ln in lines) == 1
+        assert sum(ln.startswith("Dispatch overrides:") for ln in lines) == 1
+
     def test_the_hostname_is_not_reported(self):
         """It says nothing in a container, and four other files already carry it."""
         assert not any(host_info.platform.node() in line for line in host_info.host_info())
@@ -288,7 +311,7 @@ def test_runs_as_a_script_from_an_unrelated_directory(tmp_path):
         capture_output=True, text=True, cwd=tmp_path, check=True,
     )
     fields = [line.split(" ")[0].rstrip(":") for line in result.stdout.splitlines()]
-    assert fields == ["Platform", "CPU", "CPU", "Torch", "Thread"]
+    assert fields == ["Platform", "CPU", "CPU", "Torch", "Thread", "Dispatch"]
     if HAS_TORCH:
         # the point of running it from elsewhere: as a file rather than -m it used to import the
         # FastSurferCNN/utils/logging.py next to it and report torch as missing

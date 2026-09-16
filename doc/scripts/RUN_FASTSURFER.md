@@ -85,15 +85,18 @@ kernels they run are chosen from what the device offers: on CPU that is the vect
 sets, on GPU the card model and the precision modes it supports. `--device` therefore matters as
 well as the machine, and a CPU run and a GPU run of the same input are not expected to agree.
 
-The surface pipeline has its own, separate source: the topology correction produces a different
-surface on a different CPU even with an identical image, an identical seed and a single thread, and
-every surface and surface-derived number inherits that. This one is independent of `--device`,
-since that stage is FreeSurfer rather than a network.
+The surface pipeline had a second, independent source, in the spherical projection: numpy and
+OpenBLAS each pick their kernels from the CPU features they detect, which moved the projected
+sphere very slightly, and the topology correction then amplified that into a different
+retessellation that every later surface inherited. That step now pins both, so it computes the same
+result on any x86-64 machine. It costs a few seconds per hemisphere. Other steps that use numpy are
+not pinned, so this does not make the whole pipeline machine independent, but it removes the one
+place we found that turns a rounding difference into a structural one.
 
-So the same hardware is as much a condition as the same image: for a study, process everything on
-one machine, or on nodes with the same CPU and GPU, with the same `--device`, and use one container
-image, see [Singularity](../overview/SINGULARITY.md). On macOS the FreeSurfer binaries are built
-without OpenMP and run single-threaded regardless.
+So the same hardware is still a condition, mainly through the networks above: for a study, process
+everything on one machine, or on nodes with the same CPU and GPU, with the same `--device`, and use
+one container image, see [Singularity](../overview/SINGULARITY.md). On macOS the FreeSurfer binaries
+are built without OpenMP and run single-threaded regardless.
 
 To compare two runs, use `tools/compare_subjects.py`: it compares voxels, vertices, transforms,
 statistics and labels rather than raw bytes, and reports how large each difference is. `diff` and

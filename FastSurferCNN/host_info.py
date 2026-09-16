@@ -59,6 +59,18 @@ THREAD_VARS = (
     "ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS",
 )
 
+# overrides that change which vectorised kernel runs, and so the last bits, independently of the
+# thread count. Reported because a value set here changes what the numbers below mean, and because
+# FastSurfer sets some of them itself, so the log should say which are in force.
+DISPATCH_VARS = (
+    "OPENBLAS_CORETYPE",
+    "NPY_DISABLE_CPU_FEATURES",
+    "ATEN_CPU_CAPABILITY",
+    "ONEDNN_MAX_CPU_ISA",
+    "MKL_ENABLE_INSTRUCTIONS",
+    "MKL_CBWR",
+)
+
 CGROUP_V2_CPU_MAX = Path("/sys/fs/cgroup/cpu.max")
 CGROUP_V1_CPU_QUOTA = Path("/sys/fs/cgroup/cpu/cpu.cfs_quota_us")
 CGROUP_V1_CPU_PERIOD = Path("/sys/fs/cgroup/cpu/cpu.cfs_period_us")
@@ -277,6 +289,8 @@ def host_info(with_torch: bool = False, with_fingerprint: bool = False) -> list[
         lines += torch_info(with_threads=False, with_fingerprint=with_fingerprint)
     limits = [f"{var}={os.environ[var]}" for var in THREAD_VARS if var in os.environ]
     lines.append(f"Thread limits: {', '.join(limits) if limits else 'none set'}")
+    overrides = [f"{var}={os.environ[var]}" for var in DISPATCH_VARS if var in os.environ]
+    lines.append(f"Dispatch overrides: {', '.join(overrides) if overrides else 'none set'}")
     return lines
 
 
