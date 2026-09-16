@@ -130,27 +130,39 @@ def test_directory_is_run_by_ci(directory: str) -> None:
     )
 
 
-def test_the_unittest_matrix_expands_to_one_job_per_directory() -> None:
+def _workflows_with_an_include() -> list[Path]:
+    """Every workflow whose matrix has an ``include`` block, which is what can collapse."""
+    return [f for f in CI_FILES if _include_keys(f.read_text())]
+
+
+@pytest.mark.parametrize("workflow", _workflows_with_an_include(), ids=lambda p: p.name)
+def test_a_matrix_include_expands_to_one_job_per_entry(workflow: Path) -> None:
     """
-    Check a matrix still creates a job per entry rather than merging them into one.
+    Check every matrix creates a job per include entry rather than merging them into one.
 
     GitHub adds an ``include`` object to every existing combination when none of its keys is a
     dimension of the matrix, so two such objects overwrite each other and only the last survives.
     Listing the values as a real dimension is what makes each include a filter instead.
 
-    unittest.yaml now runs one job over all three directories, so there is nothing to check.
-    Kept rather than deleted because the collapse has bitten twice: a matrix added later would
-    otherwise reintroduce it unguarded.
+    Parametrised over the workflows that actually have an include, rather than naming one file:
+    unittest.yaml had this matrix and no longer does, and a test pinned to a file that stopped
+    having the construct is a test that passes without checking anything.
     """
-    text = (FASTSURFER_HOME / ".github" / "workflows" / "unittest.yaml").read_text()
+    text = workflow.read_text()
     include_keys = _include_keys(text)
     dimensions = _matrix_dimensions(text)
-    if not include_keys and not dimensions:
-        pytest.skip("unittest.yaml has no matrix, so nothing can collapse")
     assert include_keys & dimensions, (
-        "no key of the unittest matrix's include entries is a matrix dimension, so GitHub merges "
-        f"them into a single job instead of one per entry. include keys: {sorted(include_keys)}, "
-        f"matrix dimensions: {sorted(dimensions)}"
+        f"no key of the matrix include entries in {workflow.name} is a matrix dimension, so GitHub "
+        f"merges them into a single job instead of one per entry. include keys: "
+        f"{sorted(include_keys)}, matrix dimensions: {sorted(dimensions)}"
+    )
+
+
+def test_some_workflow_still_has_a_matrix_include() -> None:
+    """The parametrised check above silently covers nothing if no workflow has one left."""
+    assert _workflows_with_an_include(), (
+        "no workflow has a matrix include, so the collapse check covers nothing. Either that is "
+        "correct and both checks can go, or an include was lost."
     )
 
 

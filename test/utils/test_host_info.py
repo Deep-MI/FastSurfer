@@ -217,14 +217,18 @@ class TestTorchInfo:
     def test_threads_can_be_left_out(self):
         assert "intra-op" not in host_info.torch_info(with_threads=False)[0]
 
-    @pytest.mark.skipif(HAS_TORCH, reason="the ImportError branch cannot be reached with torch")
-    def test_says_so_plainly_when_torch_is_absent(self):
+    def test_says_so_plainly_when_torch_is_absent(self, monkeypatch):
         """
-        The branch the light CI job actually takes, so it is worth asserting rather than skipping.
+        The line a user without torch sees, so it is worth asserting wherever this runs.
+
+        `import torch` raises when sys.modules holds None for it, which makes this testable with
+        torch installed. It used to be gated on torch being absent, which stopped covering
+        anything once every CI job installed the project.
 
         It has to stay one line and name the reason, because the shell caller joins these with
         newlines and a reader has to be able to tell a missing install from a broken one.
         """
+        monkeypatch.setitem(sys.modules, "torch", None)
         line = host_info.torch_info()[0]
         assert line.startswith("Torch: not importable (")
         assert "\n" not in line
@@ -293,8 +297,9 @@ class TestNumericalFingerprint:
         lowered = subprocess.run(run, env=capped, capture_output=True, text=True, check=True).stdout
         assert native != lowered, f"capping the ISA did not change the fingerprint: {native!r}"
 
-    @pytest.mark.skipif(HAS_TORCH, reason="the ImportError branch cannot be reached with torch")
-    def test_says_so_plainly_when_torch_is_absent(self):
+    def test_says_so_plainly_when_torch_is_absent(self, monkeypatch):
+        """Testable with torch installed, so it covers the no-torch line wherever this runs."""
+        monkeypatch.setitem(sys.modules, "torch", None)
         assert host_info.numerical_fingerprint().startswith("not available (")
 
 

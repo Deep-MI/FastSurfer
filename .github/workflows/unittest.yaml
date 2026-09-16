@@ -96,8 +96,13 @@ jobs:
           then 
             flags+=(-vv --log_cli_level=DEBUG)
           fi
-          # one invocation, so a single report covers all three and the summary counts add up
-          python -m pytest "${flags[@]}" test/image test/shell test/utils
+          # One invocation, so a single report covers all three and the summary counts add up.
+          # test_brun_bash32.py is not collected here: every test in it needs /bin/bash to be 3.2,
+          # which no linux runner has, so collecting it only produced seven skips. The macOS job
+          # below is where it runs. Its own skipif stays, for a developer running the directory on
+          # linux by hand.
+          python -m pytest "${flags[@]}" test/image test/shell test/utils \
+            --ignore=test/shell/test_brun_bash32.py
           echo "::endgroup::"
       - name: Upload the JUnit XML file as an artifact
         uses: actions/upload-artifact@v7
@@ -125,6 +130,13 @@ jobs:
     name: 'bash 3.2 shell tests (macOS)'
     # The only place /bin/bash is 3.2, which is what test/shell guards: every shipped script selects
     # it through its own shebang, so a bash-4-only construct breaks macOS while passing on Linux.
+    #
+    # test/shell and no more, deliberately. It is the one directory whose behaviour depends on the
+    # platform: bash 3.2 here, and fs_time and time_it both branch on it. test/image is numerical
+    # and platform neutral, and test/utils would need the project installing, so torch built for
+    # arm64, on a runner billed at ten times the linux rate, to cover one Darwin branch in
+    # host_info. The whole directory rather than named files, so a new test file is picked up here
+    # without anyone remembering to add it.
     runs-on: macos-15
     timeout-minutes: 20  # the same bound as the job above, for the same reason
     steps:
