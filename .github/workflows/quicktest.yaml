@@ -18,10 +18,13 @@ name: quicktest
 #  - QUICKTEST_LICENSE: content of a FreeSurfer license file
 
 concurrency:
-  # one group per pull request and label, or per branch for a dispatch. The label is part of the key
+  # One group per pull request and label, and one per dispatch. The label is part of the key
   # because the group is evaluated when the run is created, before the condition on the job below,
   # so without it attaching an unrelated label cancels a quicktest that is already running.
-  group: ${{ github.workflow }}-${{ github.event.number || github.ref }}-${{ github.event.label.name || 'dispatch' }}
+  # A dispatch keys on the run id rather than the branch, so two dispatches never cancel each
+  # other: running one branch twice is how the hardware is held constant when comparing results,
+  # and keying on the branch made that impossible. Cancel a superseded dispatch by hand.
+  group: ${{ github.workflow }}-${{ github.event.number || github.ref }}-${{ github.event.label.name || github.run_id }}
   cancel-in-progress: true
 
 on:
