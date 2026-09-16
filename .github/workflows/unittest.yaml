@@ -127,7 +127,8 @@ jobs:
           annotate_only: 'true'
 
   macos-shell-test:
-    name: 'bash 3.2 shell tests (macOS)'
+    # the platform leads, parallel with 'linux unit tests' above, since that is what differs
+    name: 'macos shell tests (bash 3.2)'
     # The only place /bin/bash is 3.2, which is what test/shell guards: every shipped script selects
     # it through its own shebang, so a bash-4-only construct breaks macOS while passing on Linux.
     #
@@ -188,7 +189,7 @@ jobs:
         with:
           report_paths: ${{ env.FS_JUNIT_FILE }}
           # unused while annotate_only is set, as in the job above
-          check_name: 'bash 3.2 shell test results (macOS)'
+          check_name: 'macos shell test results (bash 3.2)'
           fail_on_failure: 'true'
           fail_on_parse_error: 'true'
           require_tests: 'true'
