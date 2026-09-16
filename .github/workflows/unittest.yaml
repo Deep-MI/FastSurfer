@@ -86,7 +86,10 @@ jobs:
         env:
           FASTSURFER_HOME: ${{ github.workspace }}
         shell: bash
-        continue-on-error: true  # pytest only exits with code 0, if all tests pass
+        # No continue-on-error: a failing test has to fail the job by itself. Routing that through
+        # the annotation step instead would rest on fail_on_failure working under annotate_only,
+        # which the action does not document. The steps after this one run on !cancelled(), so the
+        # report is still produced and uploaded when a test fails.
         run: |
           echo "::group::Run tests"
           # No PYTHONPATH: the project is installed, and PYTHONPATH precedes site-packages, so
@@ -105,11 +108,16 @@ jobs:
             --ignore=test/shell/test_brun_bash32.py
           echo "::endgroup::"
       - name: Upload the JUnit XML file as an artifact
+        if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v7
         with:
           name: ${{ env.FS_JUNIT_ARTIFACT }}
           path: ${{ env.FS_JUNIT_FILE }}
+          # a missing report means the run died before writing one, which is a failure of this job
+          # rather than something to note and carry on from
+          if-no-files-found: error
       - name: Annotate the results into the check
+        if: ${{ !cancelled() }}
         uses: mikepenz/action-junit-report@v6
         with:
           report_paths: ${{ env.FS_JUNIT_FILE }}
@@ -171,17 +179,22 @@ jobs:
         env:
           FASTSURFER_HOME: ${{ github.workspace }}
         shell: bash
-        continue-on-error: true  # pytest only exits with code 0, if all tests pass
+        # No continue-on-error, as in the linux job: a failing test fails this step, and the two
+        # steps below run on !cancelled() so the report is still written and annotated.
+        #
         # the whole directory: the bash 3.2 tests only do anything here, and fs_time branches on
         # the platform, so this is the run that covers its macOS half. The ubuntu job above covers
         # the linux half of both.
         run: python -m pytest -v --junit-xml="$FS_JUNIT_FILE" test/shell
       - name: Upload the JUnit XML file as an artifact
+        if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v7
         with:
           name: ${{ env.FS_JUNIT_ARTIFACT }}
           path: ${{ env.FS_JUNIT_FILE }}
+          if-no-files-found: error
       - name: Annotate the results into the check
+        if: ${{ !cancelled() }}
         # Without this the only record of a failure here is the raw log, which makes a bash 3.2
         # regression the least visible failure in the repository, and this job exists to catch
         # exactly the drift nobody is watching for.

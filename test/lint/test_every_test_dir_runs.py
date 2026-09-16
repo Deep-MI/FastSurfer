@@ -158,6 +158,25 @@ def test_a_matrix_include_expands_to_one_job_per_entry(workflow: Path) -> None:
     )
 
 
+_IGNORE_PATH = re.compile(r"--ignore=(\S+)")
+
+
+def test_every_ignored_path_exists() -> None:
+    """
+    An ``--ignore`` of a path that is gone is silently a no-op.
+
+    The linux job ignores test/shell/test_brun_bash32.py, whose tests need /bin/bash to be 3.2.
+    Rename or move that file and the ignore stops matching, the file is collected again, and the
+    skips it was added to remove come back with nothing to say so.
+    """
+    for ci_file in CI_FILES:
+        for path in _IGNORE_PATH.findall(ci_file.read_text()):
+            assert (FASTSURFER_HOME / path).exists(), (
+                f"{ci_file.name} ignores {path}, which does not exist, so the ignore does nothing "
+                "and whatever it was hiding is collected again"
+            )
+
+
 def test_some_workflow_still_has_a_matrix_include() -> None:
     """The parametrised check above silently covers nothing if no workflow has one left."""
     assert _workflows_with_an_include(), (
