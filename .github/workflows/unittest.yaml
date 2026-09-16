@@ -61,6 +61,8 @@ jobs:
         # An include entry whose keys are all absent from the matrix is merged into every
         # combination instead of creating one, so two such entries would collapse into a single
         # job running whichever came last. Listing the values here makes each include a filter.
+        # Adding a second value to any dimension below means check_name has to name it too, or two
+        # jobs publish under one name and one silently overwrites the other.
         tests: [image, shell, utils]
         pytest-flags: [""]
         include:
@@ -175,11 +177,37 @@ jobs:
             echo "::error::/bin/bash is no longer 3.x; revisit test/shell and the mapfile workarounds"
             exit 1
           }
+      - name: Resolve the artifact and JUnit file names
+        shell: bash
+        run: |
+          # -macos, because the ubuntu job above also runs test/shell and would otherwise claim the
+          # same artifact name for a different platform's result.
+          artifact="fastsurfer-${GITHUB_SHA::8}-junit-shell-macos"
+          echo "FS_JUNIT_ARTIFACT=$artifact" >> "$GITHUB_ENV"
+          echo "FS_JUNIT_FILE=/tmp/$artifact.xml" >> "$GITHUB_ENV"
       - name: Run pytest
         env:
           FASTSURFER_HOME: ${{ github.workspace }}
         shell: bash
+        continue-on-error: true  # pytest only exits with code 0, if all tests pass
         # the whole directory: the bash 3.2 tests only do anything here, and fs_time branches on
         # the platform, so this is the run that covers its macOS half. The ubuntu job above covers
         # the linux half of both.
-        run: python -m pytest -v test/shell
+        run: python -m pytest -v --junit-xml="$FS_JUNIT_FILE" test/shell
+      - name: Upload the JUnit XML file as an artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ env.FS_JUNIT_ARTIFACT }}
+          path: ${{ env.FS_JUNIT_FILE }}
+      - name: Annotate the results into the check
+        # Without this the only record of a failure here is the raw log, which makes a bash 3.2
+        # regression the least visible failure in the repository, and this job exists to catch
+        # exactly the drift nobody is watching for.
+        uses: mikepenz/action-junit-report@v6
+        with:
+          report_paths: ${{ env.FS_JUNIT_FILE }}
+          check_name: 'unit test results (test/shell on macOS)'
+          fail_on_failure: 'true'
+          fail_on_parse_error: 'true'
+          # as in the job above: the fail-state cannot be set from a pull request opened on a fork
+          annotate_only: 'true'
