@@ -40,6 +40,12 @@ baseid=""             # baseid for longitudinal time point run
 check_version="true"  # Check for supported FreeSurfer version (terminate if not detected)
 get_t1="true"         # Generate T1.mgz from nu.mgz and brainmask from it (default)
 hires_voxsize_threshold=0.999  # Threshold below which the hires options are passed
+# Whether mri_edit_wm_with_aseg runs its MTL path step. That step only runs when the aseg it is
+# handed is uchar, so until now a storage decision was deciding an anatomical correction. "skip"
+# hands it an int copy, which is what FreeSurfer's own int asegs do, "keep" is the behaviour
+# FastSurfer had before. Not a command line flag yet: export FASTSURFER_WM_MTL_PATHS to override,
+# see recon_surf/shims/.
+wm_mtl_paths="skip"
 
 if [[ -z "$FASTSURFER_HOME" ]]
 then
@@ -671,6 +677,24 @@ fi
   echo " "
 } | tee -a "$LF"
 
+# -segmentation calls mri_edit_wm_with_aseg internally, so the only way to reach that one call is
+# to put our shim ahead of FreeSurfer's bin on PATH. Scoped to this block: nothing else here runs
+# that binary, and leaving the shim on PATH afterwards would hide which step it applies to.
+# aseg.presurf.mgz on disk is not touched, only the copy the binary is handed.
+saved_path="$PATH"
+export PATH="${binpath}shims:$PATH"
+# An explicitly set value wins, and is the only way to reach "keep" without editing this script.
+mtl_paths_ours="false"
+if [[ -n "${FASTSURFER_WM_MTL_PATHS:-}" ]] ; then
+  {
+    echo "WARNING: FASTSURFER_WM_MTL_PATHS is already set to '$FASTSURFER_WM_MTL_PATHS', so it is"
+    echo "  used instead of '$wm_mtl_paths'. This is not the configuration FastSurfer tests."
+  } | tee -a "$LF"
+else
+  export FASTSURFER_WM_MTL_PATHS="$wm_mtl_paths"
+  mtl_paths_ours="true"
+fi
+
 if [[ "$long" == "true" ]] ; then
   # in long we can skip fill as surfaces come from base
   # it would be great to also skip WM, but it is needed in place_surface to clip bright
@@ -685,6 +709,9 @@ else # cross and base
   cmd="recon-all -s $subject -asegmerge -normalization2 -maskbfs -segmentation -fill -umask $(umask) $hiresflag $fsthreads"
   RunIt "$cmd" "$LF"
 fi
+
+export PATH="$saved_path"
+if [[ "$mtl_paths_ours" == "true" ]] ; then unset FASTSURFER_WM_MTL_PATHS ; fi
 
 
 # =======
