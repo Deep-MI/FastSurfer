@@ -132,15 +132,21 @@ def test_directory_is_run_by_ci(directory: str) -> None:
 
 def test_the_unittest_matrix_expands_to_one_job_per_directory() -> None:
     """
-    Check the matrix still creates a job per entry rather than merging them into one.
+    Check a matrix still creates a job per entry rather than merging them into one.
 
     GitHub adds an ``include`` object to every existing combination when none of its keys is a
     dimension of the matrix, so two such objects overwrite each other and only the last survives.
     Listing the values as a real dimension is what makes each include a filter instead.
+
+    unittest.yaml now runs one job over all three directories, so there is nothing to check.
+    Kept rather than deleted because the collapse has bitten twice: a matrix added later would
+    otherwise reintroduce it unguarded.
     """
     text = (FASTSURFER_HOME / ".github" / "workflows" / "unittest.yaml").read_text()
     include_keys = _include_keys(text)
     dimensions = _matrix_dimensions(text)
+    if not include_keys and not dimensions:
+        pytest.skip("unittest.yaml has no matrix, so nothing can collapse")
     assert include_keys & dimensions, (
         "no key of the unittest matrix's include entries is a matrix dimension, so GitHub merges "
         f"them into a single job instead of one per entry. include keys: {sorted(include_keys)}, "
