@@ -461,8 +461,58 @@
           <section id="module-recon_surf.spherically_project_wrapper">
 <span id="recon-surf-spherically-project-wrapper"></span><h1>recon_surf.spherically_project_wrapper<a class="headerlink" href="#module-recon_surf.spherically_project_wrapper" title="Link to this heading">¶</a></h1>
 <dl class="py function">
+<dt class="sig sig-object py" id="recon_surf.spherically_project_wrapper.enabled_simd_features">
+<span class="sig-prename descclassname"><span class="pre">recon_surf.spherically_project_wrapper.</span></span><span class="sig-name descname"><span class="pre">enabled_simd_features</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">python</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/96d88c3/recon_surf/spherically_project_wrapper.py#L56-L92"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#recon_surf.spherically_project_wrapper.enabled_simd_features" title="Link to this definition">¶</a></dt>
+<dd><p>Ask a numpy which SIMD extensions it would dispatch to.</p>
+<p>In a throwaway process, because the answer has to be known before this one imports
+numpy. Read rather than hardcoded: the names differ by numpy version and platform,
+unknown ones are ignored, but disabling a baseline feature raises.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl>
+<dt><strong>python</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a></span></dt><dd><p>The interpreter to ask, normally <a class="reference external" href="https://docs.python.org/3/library/sys.html#sys.executable" title="(in Python v3.14)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">sys.executable</span></code></a>.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><dl class="simple">
+<dt><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#list" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">list</span></code></a>[<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a>], <a class="reference external" href="https://docs.python.org/3/builtins/constants.html#None" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">None</span></code></a></dt><dd><p>The dispatchable features this numpy has enabled. An empty list means there are
+none to disable, which is a pinned state rather than a failure. None means the
+list could not be read at all, so nothing can be pinned.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="recon_surf.spherically_project_wrapper.pin_cpu_dispatch">
+<span class="sig-prename descclassname"><span class="pre">recon_surf.spherically_project_wrapper.</span></span><span class="sig-name descname"><span class="pre">pin_cpu_dispatch</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">env</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">python</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/96d88c3/recon_surf/spherically_project_wrapper.py#L95-L133"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#recon_surf.spherically_project_wrapper.pin_cpu_dispatch" title="Link to this definition">¶</a></dt>
+<dd><p>Pin which vectorised kernels numpy and OpenBLAS choose.</p>
+<p>Both read their setting once, when they are imported, so this has to run before numpy
+reaches the interpreter. Without it the same wheel computes slightly different numbers
+on different machines, which moves the projected sphere by about 1e-5, and the topology
+correction turns that into a different retessellation that every later surface inherits.</p>
+<p>A value already in <code class="xref py py-obj docutils literal notranslate"><span class="pre">env</span></code> is left alone. An explicitly set variable should take effect,
+and it is the only escape hatch: forcing a core type the CPU cannot execute faults
+rather than falling back, so someone on unusual hardware needs a way to override this.
+Such a value may well be reproducible, it is simply not the one tested here, hence a
+note about the condition rather than a prediction of trouble.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl>
+<dt><strong>env</strong><span class="classifier"><code class="xref py py-obj docutils literal notranslate"><span class="pre">MutableMapping</span></code>[<a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a>, <a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a>]</span></dt><dd><p>The environment to pin, normally <a class="reference external" href="https://docs.python.org/3/library/os.html#os.environ" title="(in Python v3.14)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">os.environ</span></code></a>.</p>
+</dd>
+<dt><strong>python</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a></span></dt><dd><p>The interpreter whose numpy decides the feature list, normally <a class="reference external" href="https://docs.python.org/3/library/sys.html#sys.executable" title="(in Python v3.14)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">sys.executable</span></code></a>.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
 <dt class="sig sig-object py" id="recon_surf.spherically_project_wrapper.setup_options">
-<span class="sig-prename descclassname"><span class="pre">recon_surf.spherically_project_wrapper.</span></span><span class="sig-name descname"><span class="pre">setup_options</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/e59c714/recon_surf/spherically_project_wrapper.py#L21-L52"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#recon_surf.spherically_project_wrapper.setup_options" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">recon_surf.spherically_project_wrapper.</span></span><span class="sig-name descname"><span class="pre">setup_options</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/96d88c3/recon_surf/spherically_project_wrapper.py#L22-L53"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#recon_surf.spherically_project_wrapper.setup_options" title="Link to this definition">¶</a></dt>
 <dd><p>Create a command line interface and return command line options.</p>
 <dl class="field-list">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
@@ -530,6 +580,8 @@
           <div class="toc-tree">
             <ul>
 <li><a class="reference internal" href="#">recon_surf.spherically_project_wrapper</a><ul>
+<li><a class="reference internal" href="#recon_surf.spherically_project_wrapper.enabled_simd_features"><code class="docutils literal notranslate"><span class="pre">enabled_simd_features()</span></code></a></li>
+<li><a class="reference internal" href="#recon_surf.spherically_project_wrapper.pin_cpu_dispatch"><code class="docutils literal notranslate"><span class="pre">pin_cpu_dispatch()</span></code></a></li>
 <li><a class="reference internal" href="#recon_surf.spherically_project_wrapper.setup_options"><code class="docutils literal notranslate"><span class="pre">setup_options()</span></code></a></li>
 </ul>
 </li>
