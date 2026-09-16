@@ -1,16 +1,18 @@
-name: quicktest
+name: pipelinetest
 
-# File: quicktest.yaml
+# File: pipelinetest.yaml
 # Functionality: This workflow runs FastSurfer on MRI data and runs pytest to check if the results are acceptable. It
 #  also checks if the FastSurfer environment and output already exist, and if not, it creates them.
 # Usage: There are two ways to run this, both restricted to this repository. Attach the label
-#  "quicktest" to a pull request, which tests the merge of it into its base and reports on the pull
+#  "pipelinetest" to a pull request, which tests the merge of it into its base and reports on the pull
 #  request. Or run it from the Actions tab (workflow-dispatch) on any branch, which tests that
 #  branch as it stands and reports on the run; that is also how reference data is produced. A pull
 #  request from a fork is skipped: GitHub gives it no secrets, and must not, because the code under
 #  test runs in the same job as the FreeSurfer license. Merge such a branch into a branch of this
 #  repository and use either way above.
-# Expected Secrets:
+# Expected Secrets. They keep the old QUICKTEST_ prefix: a secret cannot be renamed, only deleted
+# and recreated, and their contents are not to hand. Rename them when the reference data is next
+# refreshed, which is when they have to be re-entered anyway.
 #  - QUICKTEST_IMAGE_HREF_08mm: URL to a sample 0.8mm image
 #  - QUICKTEST_IMAGE_HREF_1mm: URL to a sample 1mm image
 #  - QUICKTEST_TARGET_HREF_08mm: URL to the reference processing of the sample 0.8mm image
@@ -20,7 +22,7 @@ name: quicktest
 concurrency:
   # One group per pull request and label, and one per dispatch. The label is part of the key
   # because the group is evaluated when the run is created, before the condition on the job below,
-  # so without it attaching an unrelated label cancels a quicktest that is already running.
+  # so without it attaching an unrelated label cancels a pipelinetest that is already running.
   # A dispatch adds the run id, so its group is unique and two dispatches never cancel each other:
   # running one branch twice is how the hardware is held constant when comparing results, and
   # without the run id they shared a group and the second killed the first. This makes
@@ -73,7 +75,7 @@ jobs:
     # that does not apply, such as one on a fork, come out as skipped rather than passed or failed.
     if: >-
       github.event_name != 'pull_request'
-      || (github.event.label.name == 'quicktest'
+      || (github.event.label.name == 'pipelinetest'
           && github.event.pull_request.head.repo.full_name == github.repository)
     outputs:
       continue: ${{ steps.parse.outputs.CONTINUE }}
@@ -282,12 +284,12 @@ jobs:
           report_paths: /tmp/fastsurfer-*-junit-*.xml
           # This is the only annotation step that creates a check run, the others set
           # annotate_only. Name it for what it is: github prefixes the check with a workflow of its
-          # own choosing, which has read "AUTO code-style / quicktest results", so the name itself
+          # own choosing, which has read "AUTO code-style / pipelinetest results", so the name itself
           # has to say where the results came from.
-          check_name: quicktest results
+          check_name: pipelinetest results
           fail_on_failure: 'true'
           fail_on_parse_error: 'true'
           # Without this, a run whose tests were cancelled or skipped reports "No test results
-          # found" and passes, so a quicktest that tested nothing looks like a quicktest that
+          # found" and passes, so a pipelinetest that tested nothing looks like a pipelinetest that
           # passed. The job already only runs when the tests were meant to run.
           require_tests: 'true'

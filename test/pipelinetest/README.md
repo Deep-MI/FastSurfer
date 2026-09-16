@@ -1,12 +1,12 @@
-quicktest tests
+pipelinetest tests
 ===============
 
-This suite compares two runs of fastsurfer and is used as a online check for function in the [github quicktest workflow](../../.github/workflows/quicktest.yaml).
+This suite compares two runs of fastsurfer and is used as a online check for function in the [github pipelinetest workflow](../../.github/workflows/pipelinetest.yaml).
 
-The `quicktest` suite requires
-- A python environment as defined by `fastsurfer[quicktest]`
+The `pipelinetest` suite requires
+- A python environment as defined by `fastsurfer[pipelinetest]`
   ```bash
-  python -m pip install $FASTSURFER_HOME[quicktest]
+  python -m pip install $FASTSURFER_HOME[pipelinetest]
   ```
 - A target `subject directory` for an image (processed with a known good version of FastSurfer). This should be placed in the directory defined by the environment variable `REF_DIR`.
 - A to-compare `subject directory` for an image. This should be placed in the directory defined by the environment variable `SUBJECTS_DIR`.
@@ -44,9 +44,9 @@ recent released version. Outputs drift as the models and the pipeline change, an
 turns that drift into test failures, which then hide any real regression.
 
 The inputs and the references are downloaded from urls kept in repository secrets
-(`QUICKTEST_IMAGE_HREF_*` and `QUICKTEST_TARGET_HREF_*`), because the data is too large for the
+(`PIPELINETEST_IMAGE_HREF_*` and `PIPELINETEST_TARGET_HREF_*`), because the data is too large for the
 repository. To refresh one, process the input with the **released container image** and the flags
-from the matrix in [quicktest.yaml](../../.github/workflows/quicktest.yaml), archive the subject
+from the matrix in [pipelinetest.yaml](../../.github/workflows/pipelinetest.yaml), archive the subject
 folder, and update the url. The archive is unpacked into `REF_DIR`, so the subject folder has to sit
 at its top level under the name the workflow uses for the case.
 

@@ -70,7 +70,7 @@ jobs:
           python -m pip install --progress-bar off --upgrade pip setuptools wheel
           # the same python environment as the pipeline test, so the tests guarded on numpy and
           # torch actually run rather than skipping
-          python -m pip install --progress-bar off .[quicktest]
+          python -m pip install --progress-bar off .[pipelinetest]
           echo "::endgroup::"
       - name: Resolve the artifact and JUnit file names
         shell: bash

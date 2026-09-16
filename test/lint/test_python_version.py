@@ -21,7 +21,7 @@ two consumers cannot and therefore hold hardcoded copies:
 
 * the ``ARG PYTHON_VERSION`` default in tools/Docker/Dockerfile -- a Dockerfile cannot parse a
   toml file at build time,
-* the ``python-version`` in .github/workflows/quicktest.yaml -- that step *provides* the
+* the ``python-version`` in .github/workflows/pipelinetest.yaml -- that step *provides* the
   interpreter which later reads pyproject.toml.
 
 Without these tests, bumping the key leaves those copies behind silently. The failure mode is a
@@ -38,7 +38,7 @@ FASTSURFER_HOME = Path(__file__).parent.parent.parent
 PYPROJECT = FASTSURFER_HOME / "pyproject.toml"
 DOCKERFILE = FASTSURFER_HOME / "tools" / "Docker" / "Dockerfile"
 BUILD_PY = FASTSURFER_HOME / "tools" / "Docker" / "build.py"
-QUICKTEST_YAML = FASTSURFER_HOME / ".github" / "workflows" / "quicktest.yaml"
+PIPELINETEST_YAML = FASTSURFER_HOME / ".github" / "workflows" / "pipelinetest.yaml"
 UNITTEST_YAML = FASTSURFER_HOME / ".github" / "workflows" / "unittest.yaml"
 MACOS_BUILD_SH = FASTSURFER_HOME / "tools" / "macos_build" / "build_release_package.sh"
 
@@ -231,13 +231,13 @@ def test_macos_postinstall_does_not_install_at_runtime() -> None:
     )
 
 
-def test_quicktest_workflow_matches(config: dict) -> None:
-    """Check the quicktest runner interpreter tracks the shipped default."""
-    versions = re.findall(r"^\s*python-version:\s*['\"]([^'\"]+)['\"]", QUICKTEST_YAML.read_text(), re.M)
-    assert versions, f"no python-version found in {QUICKTEST_YAML}"
+def test_pipelinetest_workflow_matches(config: dict) -> None:
+    """Check the pipelinetest runner interpreter tracks the shipped default."""
+    versions = re.findall(r"^\s*python-version:\s*['\"]([^'\"]+)['\"]", PIPELINETEST_YAML.read_text(), re.M)
+    assert versions, f"no python-version found in {PIPELINETEST_YAML}"
     for version in versions:
         assert version == config["python_version"], (
-            f"{QUICKTEST_YAML.name} pins python {version} but tool.python.version is "
+            f"{PIPELINETEST_YAML.name} pins python {version} but tool.python.version is "
             f"{config['python_version']}; this value cannot be read from pyproject.toml because "
             f"it provides the interpreter that reads it, so it must be bumped by hand"
         )

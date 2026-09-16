@@ -1,6 +1,6 @@
-"""Tests for the header comparison the quicktest suite uses, `quicktest.helper`.
+"""Tests for the header comparison the pipelinetest suite uses, `pipelinetest.helper`.
 
-They live here rather than next to the code they test because `test/quicktest/conftest.py` requires
+They live here rather than next to the code they test because `test/pipelinetest/conftest.py` requires
 `REF_DIR` and `SUBJECTS_DIR` at import, so nothing in that directory can be collected without a
 reference dataset, while `test/image` runs in the unittest workflow on every push.
 
@@ -19,7 +19,7 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from quicktest.helper import assert_same_headers, equal_within_tolerance  # noqa: E402
+from pipelinetest.helper import assert_same_headers, equal_within_tolerance  # noqa: E402
 
 # the largest deviation measured across all 39 shared 0.8mm files of a released v2.5.4 run
 MDC_DUST = 8.842e-18
