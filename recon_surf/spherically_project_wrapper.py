@@ -52,6 +52,40 @@ def setup_options():
     return args
 
 
+def enabled_simd_features(python: str) -> list[str]:
+    """
+    Ask a numpy which SIMD extensions it would dispatch to.
+
+    In a throwaway process, because the answer has to be known before this one imports
+    numpy. Read rather than hardcoded: the names differ by numpy version and platform,
+    unknown ones are ignored, but disabling a baseline feature raises.
+
+    Parameters
+    ----------
+    python : str
+        The interpreter to ask, normally `sys.executable`.
+
+    Returns
+    -------
+    list[str]
+        The dispatchable features this numpy has enabled, empty if they cannot be read.
+    """
+    import subprocess
+
+    code = (
+        "try:\n"
+        "    from numpy._core._multiarray_umath import __cpu_dispatch__ as d, __cpu_features__ as f\n"
+        "except ImportError:\n"
+        "    from numpy.core._multiarray_umath import __cpu_dispatch__ as d, __cpu_features__ as f\n"
+        "print(' '.join(x for x in d if f[x]))\n"
+    )
+    try:
+        out = subprocess.run([python, "-c", code], capture_output=True, text=True, check=True)
+    except (OSError, subprocess.SubprocessError):
+        return []
+    return out.stdout.split()
+
+
 if __name__ == "__main__":
     import sys
     from os import environ
@@ -69,6 +103,24 @@ if __name__ == "__main__":
         "ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS",
     ):
         environ[var] = "1"
+
+    # Thread counts are not the only thing that decides the arithmetic here. numpy and OpenBLAS
+    # both choose kernels from the CPU features they detect at import, so the same wheel computes
+    # slightly different numbers on different machines. Measured across eight runners and four CPU
+    # models, that moves the projected sphere by about 1e-5, and the topology correction turns that
+    # into a different retessellation and a different vertex count, which every later surface and
+    # every number derived from one inherits.
+    #
+    # Pinning both to a level every x86-64 machine can reach collapsed those runners to one result.
+    # It costs about 20% of this step, seconds against a pipeline measured in tens of minutes.
+    # Set before numpy is imported below, because both are read once at import.
+    environ["OPENBLAS_CORETYPE"] = "Nehalem"
+    simd = enabled_simd_features(sys.executable)
+    if simd:
+        environ["NPY_DISABLE_CPU_FEATURES"] = " ".join(simd)
+    else:
+        print("WARNING: could not read numpy's SIMD features, so this projection is not pinned")
+        print("  and may not reproduce on other hardware.")
 
     # identify whether sksparse is installed (in which case we can use_cholmod in LaPy
     try:
