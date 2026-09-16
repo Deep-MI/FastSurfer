@@ -1,4 +1,4 @@
-# Copyright 2023 Image Analysis Lab, German Center for Neurodegenerative Diseases(DZNE), Bonn
+# Copyright 2023 DeepMI Lab, German Center for Neurodegenerative Diseases (DZNE), Bonn
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -61,7 +61,7 @@
 #   - default: "https://deep-mi.org/FastSurfer/dev"
 # - VENDOR:
 #   The vendor string to include in image labels.
-#   - default: "Image Analysis Lab, DZNE https://deep-mi.org/"
+#   - default: "DeepMI Lab, DZNE https://deep-mi.org/"
 # - AUTHOR:
 #   The author string to include in image labels.
 #   - default: "FastSurfer Developers <https://github.com/Deep-MI/FastSurfer>"
@@ -99,7 +99,7 @@ ARG FASTSURFER_VERSION="dev"
 ARG GIT_HASH=""
 ARG REPOSITORY_URL="<no repository set>"
 ARG DOC_URL="https://deep-mi.org/FastSurfer/dev"
-ARG VENDOR="Image Analysis Lab, DZNE https://deep-mi.org/"
+ARG VENDOR="DeepMI Lab, DZNE https://deep-mi.org/"
 ARG AUTHOR="FastSurfer Developers <https://github.com/Deep-MI/FastSurfer>"
 ARG BUILDKIT_SBOM_SCAN_CONTEXT="true"
 ARG DEVICE="cu128"

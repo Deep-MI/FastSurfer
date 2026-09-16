@@ -1,6 +1,6 @@
 #!/bin/python
 
-# Copyright 2024 Image Analysis Lab, German Center for Neurodegenerative Diseases
+# Copyright 2024 DeepMI Lab, German Center for Neurodegenerative Diseases
 # (DZNE), Bonn
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
