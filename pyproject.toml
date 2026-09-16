@@ -35,6 +35,7 @@ classifiers = [
 dependencies = [
     'h5py>=3.7',
     'lapy>=1.5.0',
+    'libigl>=2.6.0', # needed for the cortical ribbon
     'matplotlib>=3.7.1',
     'meshpy>=2025.1.1', # needed for FastSurfer-CC
     'monai>=1.4.0', # needed for FastSurfer-CC
