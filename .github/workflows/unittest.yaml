@@ -139,7 +139,10 @@ jobs:
         uses: mikepenz/action-junit-report@v6
         with:
           report_paths: ${{ env.FS_JUNIT_FILE }}
-          check_name: Annotate the test results as checks
+          # distinct per matrix entry and per workflow: this action publishes through the checks
+          # api, so a shared name collides on the same commit, both between the matrix jobs here
+          # and with quicktest, and the failure is then attributed to an unrelated workflow
+          check_name: 'unit test results (test/${{ matrix.tests }})'
           fail_on_failure: 'true'
           fail_on_parse_error: 'true'
           # here, we only add the annotations, the fail-state cannot be set here by this action because the github token

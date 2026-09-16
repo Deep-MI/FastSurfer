@@ -268,6 +268,9 @@ jobs:
         uses: mikepenz/action-junit-report@v6
         with:
           report_paths: /tmp/fastsurfer-*-junit-*.xml
-          check_name: Annotate the test results as checks
+          # distinct per workflow: this action publishes through the checks api, so two workflows
+          # using one name collide on the same commit and the failure is attributed to whichever
+          # check suite github picks, which has shown quicktest results under code-style
+          check_name: quicktest results
           fail_on_failure: 'true'
           fail_on_parse_error: 'true'
