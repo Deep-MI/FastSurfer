@@ -130,21 +130,58 @@ def test_directory_is_run_by_ci(directory: str) -> None:
     )
 
 
-def test_the_unittest_matrix_expands_to_one_job_per_directory() -> None:
+def _workflows_with_an_include() -> list[Path]:
+    """Every workflow whose matrix has an ``include`` block, which is what can collapse."""
+    return [f for f in CI_FILES if _include_keys(f.read_text())]
+
+
+@pytest.mark.parametrize("workflow", _workflows_with_an_include(), ids=lambda p: p.name)
+def test_a_matrix_include_expands_to_one_job_per_entry(workflow: Path) -> None:
     """
-    Check the matrix still creates a job per entry rather than merging them into one.
+    Check every matrix creates a job per include entry rather than merging them into one.
 
     GitHub adds an ``include`` object to every existing combination when none of its keys is a
     dimension of the matrix, so two such objects overwrite each other and only the last survives.
     Listing the values as a real dimension is what makes each include a filter instead.
+
+    Parametrised over the workflows that actually have an include, rather than naming one file:
+    unittest.yaml had this matrix and no longer does, and a test pinned to a file that stopped
+    having the construct is a test that passes without checking anything.
     """
-    text = (FASTSURFER_HOME / ".github" / "workflows" / "unittest.yaml").read_text()
+    text = workflow.read_text()
     include_keys = _include_keys(text)
     dimensions = _matrix_dimensions(text)
     assert include_keys & dimensions, (
-        "no key of the unittest matrix's include entries is a matrix dimension, so GitHub merges "
-        f"them into a single job instead of one per entry. include keys: {sorted(include_keys)}, "
-        f"matrix dimensions: {sorted(dimensions)}"
+        f"no key of the matrix include entries in {workflow.name} is a matrix dimension, so GitHub "
+        f"merges them into a single job instead of one per entry. include keys: "
+        f"{sorted(include_keys)}, matrix dimensions: {sorted(dimensions)}"
+    )
+
+
+_IGNORE_PATH = re.compile(r"--ignore=(\S+)")
+
+
+def test_every_ignored_path_exists() -> None:
+    """
+    An ``--ignore`` of a path that is gone is silently a no-op.
+
+    The linux job ignores test/shell/test_brun_bash32.py, whose tests need /bin/bash to be 3.2.
+    Rename or move that file and the ignore stops matching, the file is collected again, and the
+    skips it was added to remove come back with nothing to say so.
+    """
+    for ci_file in CI_FILES:
+        for path in _IGNORE_PATH.findall(ci_file.read_text()):
+            assert (FASTSURFER_HOME / path).exists(), (
+                f"{ci_file.name} ignores {path}, which does not exist, so the ignore does nothing "
+                "and whatever it was hiding is collected again"
+            )
+
+
+def test_some_workflow_still_has_a_matrix_include() -> None:
+    """The parametrised check above silently covers nothing if no workflow has one left."""
+    assert _workflows_with_an_include(), (
+        "no workflow has a matrix include, so the collapse check covers nothing. Either that is "
+        "correct and both checks can go, or an include was lost."
     )
 
 

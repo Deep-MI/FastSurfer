@@ -39,38 +39,19 @@ permissions:
 
 jobs:
   unit-test:
-    name: 'Run FastSurfer unit tests from test/${{ matrix.tests }}'
+    name: 'linux unit tests'
     runs-on: ubuntu-latest
-    # Every job here runs in about a minute. The headroom is for the image job on a cold pip
-    # cache, which is what a pull request sees until a run on dev has populated one, since that
-    # install downloads torch. It is a bound on a hung test, not a budget.
+    # A bound on a hung test, not a budget: the tests take seconds and the install is the rest.
     timeout-minutes: 20
-    strategy:
-      matrix:
-        # One entry per test/<name> directory. needs-project says whether the tests import
-        # FastSurfer, because installing it is the entire cost of a job: the tests take seconds.
-        #   image: needs nibabel, numpy, scipy and FastSurferCNN, so it installs the project.
-        #   shell: runs the shipped scripts, needs nothing but pytest.
-        #   utils: imports FastSurfer, but only modules that are standard library underneath, so
-        #          the PYTHONPATH export below is enough and no install is needed.
-        # test/lint is deliberately absent: it only reads files and belongs with the other style
-        # checks, so it runs in the much lighter code-style workflow.
-        # test/shell also runs on macOS below, which is the only place /bin/bash is 3.2.
-        #
-        # `tests` has to stay a real matrix dimension rather than living only in `include`.
-        # An include entry whose keys are all absent from the matrix is merged into every
-        # combination instead of creating one, so two such entries would collapse into a single
-        # job running whichever came last. Listing the values here makes each include a filter.
-        tests: [image, shell, utils]
-        pytest-flags: [""]
-        include:
-          - tests: image
-            needs-project: true
-          - tests: shell
-            needs-project: false
-          - tests: utils
-            needs-project: false
-
+    # One job, not one per test/<name> directory. Splitting them saved nothing, because they ran in
+    # parallel and the wall clock was set by whichever job installed the project. It also cost
+    # coverage: the directories that skipped the install had no numpy or torch, so every test
+    # guarded on those silently skipped, including the ones that check the dispatch pin and the
+    # host fingerprint. Installing once and running the lot is cheaper and tests more.
+    #
+    # test/lint is deliberately absent: it only reads files and belongs with the other style
+    # checks, so it runs in the much lighter code-style workflow.
+    # test/shell also runs on macOS below, which is the only place /bin/bash is 3.2.
     steps:
       - uses: actions/checkout@v7
       - name: Setup Python 3.10 (oldest supported)
@@ -84,73 +65,87 @@ jobs:
           cache: 'pip' # caching pip dependencies
       - name: Install dependencies
         shell: bash
-        env:
-          NEEDS_PROJECT: ${{ matrix.needs-project }}
-        # only the tests that import FastSurfer pay for installing it; the others need pytest and
-        # nothing else, and installing the project would pull torch in for a script that shells out
         run: |
           echo "::group::Create python environment"
           python -m pip install --progress-bar off --upgrade pip setuptools wheel
-          if [[ "$NEEDS_PROJECT" == "true" ]]
-          then
-            # the same python environment as quicktest
-            python -m pip install --progress-bar off .[quicktest]
-          else
-            python -m pip install --progress-bar off pytest
-          fi
+          # the same python environment as the pipeline test, so the tests guarded on numpy and
+          # torch actually run rather than skipping
+          python -m pip install --progress-bar off .[pipelinetest]
           echo "::endgroup::"
       - name: Resolve the artifact and JUnit file names
         shell: bash
-        env:
-          TESTS: ${{ matrix.tests }}
         run: |
           # Short sha: the full 40 characters make the downloaded name unreadable and carry no more
           # information. The file is named after its artifact, so that files downloaded from several
           # runs sit next to each other.
-          artifact="fastsurfer-${GITHUB_SHA::8}-junit-$TESTS"
+          artifact="fastsurfer-${GITHUB_SHA::8}-junit-linux"
           echo "FS_JUNIT_ARTIFACT=$artifact" >> "$GITHUB_ENV"
           echo "FS_JUNIT_FILE=/tmp/$artifact.xml" >> "$GITHUB_ENV"
       # run pytest checks for data consistency/quality
       - name: Run pytest
         env:
-          NEEDS_PROJECT: ${{ matrix.needs-project }}
           FASTSURFER_HOME: ${{ github.workspace }}
         shell: bash
-        continue-on-error: true  # pytest only exits with code 0, if all tests pass
+        # No continue-on-error: a failing test has to fail the job by itself. Routing that through
+        # the annotation step instead would rest on fail_on_failure working under annotate_only,
+        # which the action does not document. The steps after this one run on !cancelled(), so the
+        # report is still produced and uploaded when a test fails.
         run: |
           echo "::group::Run tests"
-          # PYTHONPATH, not the PYTHON_PATH this used to set, which python never reads. Only where
-          # the project was not installed: it precedes site-packages, so setting it unconditionally
-          # would make the installed package untested and silently import the working tree instead.
-          if [[ "$NEEDS_PROJECT" != "true" ]] ; then export PYTHONPATH="$GITHUB_WORKSPACE" ; fi
+          # No PYTHONPATH: the project is installed, and PYTHONPATH precedes site-packages, so
+          # setting it would leave the installed package untested and import the working tree.
           flags=("--junit-xml=$FS_JUNIT_FILE")
           if [[ "$ACTION_RUNNER_DEBUG" == "true" ]]
           then 
             flags+=(-vv --log_cli_level=DEBUG)
           fi
-          python -m pytest "${flags[@]}" ${{ matrix.pytest-flags }} test/${{ matrix.tests }}
+          # One invocation, so a single report covers all three and the summary counts add up.
+          # test_brun_bash32.py is not collected here: every test in it needs /bin/bash to be 3.2,
+          # which no linux runner has, so collecting it only produced seven skips. The macOS job
+          # below is where it runs. Its own skipif stays, for a developer running the directory on
+          # linux by hand.
+          python -m pytest "${flags[@]}" test/image test/shell test/utils \
+            --ignore=test/shell/test_brun_bash32.py
           echo "::endgroup::"
       - name: Upload the JUnit XML file as an artifact
+        if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v7
         with:
           name: ${{ env.FS_JUNIT_ARTIFACT }}
           path: ${{ env.FS_JUNIT_FILE }}
+          # a missing report means the run died before writing one, which is a failure of this job
+          # rather than something to note and carry on from
+          if-no-files-found: error
       - name: Annotate the results into the check
+        if: ${{ !cancelled() }}
         uses: mikepenz/action-junit-report@v6
         with:
           report_paths: ${{ env.FS_JUNIT_FILE }}
-          check_name: Annotate the test results as checks
+          # Unused while annotate_only is set, since that suppresses the check run this names.
+          # Kept distinct, and distinguishing first, so it is already correct if annotate_only goes.
+          check_name: 'linux unit test results'
           fail_on_failure: 'true'
           fail_on_parse_error: 'true'
+          # pytest always writes the xml, so this only fires if the file went missing, which would
+          # otherwise be reported as a pass
+          require_tests: 'true'
           # here, we only add the annotations, the fail-state cannot be set here by this action because the github token
           # does not have the required permissions in PRs from forks.
           # See: https://github.com/mikepenz/action-junit-report?tab=readme-ov-file#pr-run-permissions
           annotate_only: 'true'
 
   macos-shell-test:
-    name: 'Run the shell tests under the bash macOS ships'
+    # the platform leads, parallel with 'linux unit tests' above, since that is what differs
+    name: 'macos shell tests (bash 3.2)'
     # The only place /bin/bash is 3.2, which is what test/shell guards: every shipped script selects
     # it through its own shebang, so a bash-4-only construct breaks macOS while passing on Linux.
+    #
+    # test/shell and no more, deliberately. It is the one directory whose behaviour depends on the
+    # platform: bash 3.2 here, and fs_time and time_it both branch on it. test/image is numerical
+    # and platform neutral, and test/utils would need the project installing, so torch built for
+    # arm64, on a runner billed at ten times the linux rate, to cover one Darwin branch in
+    # host_info. The whole directory rather than named files, so a new test file is picked up here
+    # without anyone remembering to add it.
     runs-on: macos-15
     timeout-minutes: 20  # the same bound as the job above, for the same reason
     steps:
@@ -172,11 +167,44 @@ jobs:
             echo "::error::/bin/bash is no longer 3.x; revisit test/shell and the mapfile workarounds"
             exit 1
           }
+      - name: Resolve the artifact and JUnit file names
+        shell: bash
+        run: |
+          # -macos, because the ubuntu job above also runs test/shell and would otherwise claim the
+          # same artifact name for a different platform's result.
+          artifact="fastsurfer-${GITHUB_SHA::8}-junit-shell-macos"
+          echo "FS_JUNIT_ARTIFACT=$artifact" >> "$GITHUB_ENV"
+          echo "FS_JUNIT_FILE=/tmp/$artifact.xml" >> "$GITHUB_ENV"
       - name: Run pytest
         env:
           FASTSURFER_HOME: ${{ github.workspace }}
         shell: bash
+        # No continue-on-error, as in the linux job: a failing test fails this step, and the two
+        # steps below run on !cancelled() so the report is still written and annotated.
+        #
         # the whole directory: the bash 3.2 tests only do anything here, and fs_time branches on
         # the platform, so this is the run that covers its macOS half. The ubuntu job above covers
         # the linux half of both.
-        run: python -m pytest -v test/shell
+        run: python -m pytest -v --junit-xml="$FS_JUNIT_FILE" test/shell
+      - name: Upload the JUnit XML file as an artifact
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ env.FS_JUNIT_ARTIFACT }}
+          path: ${{ env.FS_JUNIT_FILE }}
+          if-no-files-found: error
+      - name: Annotate the results into the check
+        if: ${{ !cancelled() }}
+        # Without this the only record of a failure here is the raw log, which makes a bash 3.2
+        # regression the least visible failure in the repository, and this job exists to catch
+        # exactly the drift nobody is watching for.
+        uses: mikepenz/action-junit-report@v6
+        with:
+          report_paths: ${{ env.FS_JUNIT_FILE }}
+          # unused while annotate_only is set, as in the job above
+          check_name: 'macos shell test results (bash 3.2)'
+          fail_on_failure: 'true'
+          fail_on_parse_error: 'true'
+          require_tests: 'true'
+          # as in the job above: the fail-state cannot be set from a pull request opened on a fork
+          annotate_only: 'true'

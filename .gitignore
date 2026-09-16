@@ -22,7 +22,7 @@ uv.lock
 
 # pytest JUnit reports. junit-results.xml lands in the repo root on *every* local pytest run,
 # because --junit-xml=junit-results.xml is in addopts ([tool.pytest.ini_options] in pyproject.toml).
-# The fastsurfer-{quick,unit}test-*.junit.xml names are what CI produces (per quicktest subject and
+# The fastsurfer-{quick,unit}test-*.junit.xml names are what CI produces (per pipelinetest subject and
 # per unittest matrix entry); CI writes them under /tmp, but they land here when downloaded from a
 # workflow run to inspect a failure.
 /junit-results.xml

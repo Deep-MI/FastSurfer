@@ -1,9 +1,9 @@
-# Compares one processed subject against reference data with the quicktest pytest suite.
+# Compares one processed subject against reference data with the pipelinetest pytest suite.
 # The calling job has to have checked this repository out, and either processed the subject on the
 # same runner or produced the artifact that load-processed fetches.
 
-name: 'Run quicktest'
-description: 'Runs the quicktest suite against reference data'
+name: 'Run pipelinetest'
+description: 'Runs the pipelinetest suite against reference data'
 
 inputs:
   subject-id:
@@ -94,7 +94,7 @@ runs:
         then 
           flags+=(-vv --log_cli_level=DEBUG)
         fi
-        uv run --extra quicktest python -m pytest "${flags[@]}" test/quicktest
+        uv run --extra pipelinetest python -m pytest "${flags[@]}" test/pipelinetest
         echo "::endgroup::"
     - name: Upload the the JUnit XML file as an artifact
       uses: actions/upload-artifact@v7

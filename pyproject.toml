@@ -104,7 +104,7 @@ style = [
     'ruff',
     'ty',
 ]
-quicktest = [
+pipelinetest = [
     'pytest>=8.2.2',
 ]
 all = [
@@ -112,7 +112,7 @@ all = [
     'fastsurfer[style]',
     'fastsurfer[qc]',
     'fastsurfer[lit]',
-    'fastsurfer[quicktest]',
+    'fastsurfer[pipelinetest]',
 ]
 full = [
     'fastsurfer[all]',
@@ -134,7 +134,7 @@ tracker = 'https://github.com/Deep-MI/FastSurfer/issues'
 #     version: python/bin/python<version>, python/lib/python<version>/site-packages.
 #   - Two places keep a hardcoded copy because neither can read this file: the ARG PYTHON_VERSION
 #     default in tools/Docker/Dockerfile (a Dockerfile cannot parse toml) and the python-version
-#     in .github/workflows/quicktest.yaml (that step provides the interpreter which then reads
+#     in .github/workflows/pipelinetest.yaml (that step provides the interpreter which then reads
 #     this file). test/lint/test_python_version.py asserts both against this key.
 #   - NOT .github/workflows/unittest.yaml, which pins the requires-python floor on purpose.
 #
