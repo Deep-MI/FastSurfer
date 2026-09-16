@@ -72,7 +72,10 @@ runs:
         # via the environment, so that a license containing a quote or a backtick cannot end up
         # being interpreted as part of this script
         printf '%s\n' "$LICENSE" > $DATA_DIR/.fs_license
-        curl --fail -L -k "$IMAGE_HREF" -o "$DATA_DIR/T1${{ inputs.file-extension }}"
+        # --retry-all-errors as well as --retry, which on its own covers only 5xx, 408 and 429 and
+        # so not the connection resets and stalled handshakes the host also produces
+        curl --fail -L -k --retry 5 --retry-all-errors --retry-delay 10 --connect-timeout 30 \
+          "$IMAGE_HREF" -o "$DATA_DIR/T1${{ inputs.file-extension }}"
         if [[ "$EXTRA_ARGS" != "${EXTRA_ARGS/--threads/}" ]] || [[ "$EXTRA_ARGS" != "${EXTRA_ARGS/--parallel/}" ]] || [[ "$EXTRA_ARGS" != "${EXTRA_ARGS/--fs_license/}" ]] || [[ "$EXTRA_ARGS" != "${EXTRA_ARGS/--sd/}" ]] || [[ "$EXTRA_ARGS" != "${EXTRA_ARGS/--sid/}" ]] ; then
           echo "--threads, --parallel, --fs_license, --sid, --sd are not allowed in extra-args!"
           exit 1

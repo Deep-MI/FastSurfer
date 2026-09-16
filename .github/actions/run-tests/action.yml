@@ -67,8 +67,11 @@ runs:
           echo "  pull_request run on a fork, it cannot have the secrets."
           exit 1
         fi
-        # --fail, so that an error page is not unpacked as if it were the reference archive
-        curl --fail -k "$CASE_HREF" -o "$REF_DIR/ref-download-data"
+        # --fail, so that an error page is not unpacked as if it were the reference archive.
+        # --retry-all-errors as well as --retry, which on its own covers only 5xx, 408 and 429 and
+        # so not the connection resets and stalled handshakes the host also produces
+        curl --fail -k --retry 5 --retry-all-errors --retry-delay 10 --connect-timeout 30 \
+          "$CASE_HREF" -o "$REF_DIR/ref-download-data"
         tar xf "$REF_DIR/ref-download-data" -C "$REF_DIR"
         rm -f "$REF_DIR/ref-download-data"
         echo "::endgroup::"

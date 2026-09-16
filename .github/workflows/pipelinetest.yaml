@@ -237,6 +237,16 @@ jobs:
             case-key: QUICKTEST_TARGET_HREF_08mm
             extra-args: "--3T"
     steps:
+      - name: Report the runner CPU
+        # which vector kernels torch selects follows the vendor, so two runs are only comparable
+        # once this is known. First step, because the same information inside the container arrives
+        # minutes later, after the image has been pulled or built.
+        shell: bash
+        run: |
+          # || true, because bash runs with set -e here and a diagnostic must not fail the job on a
+          # runner whose /proc/cpuinfo lacks these fields
+          grep -m1 vendor_id /proc/cpuinfo || true
+          grep -m1 'model name' /proc/cpuinfo || true
       - name: Check out the repository that is to be tested
         uses: actions/checkout@v7
         with:
