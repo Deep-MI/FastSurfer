@@ -248,3 +248,59 @@ def test_time_it_writes_an_entry(tmp_path: Path):
     assert log.exists(), result.stdout + result.stderr
     entry = log.read_text()
     assert " e 1." in entry, f"expected ~1 s elapsed, got:\n{entry}"
+
+
+def reported_command(line: str) -> tuple[str, int]:
+    """The command name and the nargs count fs_time put in an output line."""
+    parts = line.split()
+    index = parts.index("N")
+    return parts[index - 1], int(parts[index + 1])
+
+
+class TestCommandNaming:
+    """
+    What fs_time calls the command, and how many arguments it credits to it.
+
+    Both become keys in recon-surf_times.yaml. talairach-reg.sh prefixes its neuroreg calls with
+    `env VAR=value` to pin the cpu dispatch for those calls alone; without the prefix being
+    recognised, all four report as "env" with the assignments counted as their arguments, which
+    collapses four distinct steps into one key.
+    """
+
+    @pytest.fixture
+    def script(self, tmp_path):
+        path = tmp_path / "a_script.py"
+        path.write_text("pass\n")
+        return str(path)
+
+    def test_a_python_call_is_named_by_its_script(self, script):
+        result = run_fs_time("-k", "@#@FSTIME", "--no-load", sys.executable, script)
+        assert result.returncode == 0, result.stderr
+        assert reported_command(result.stderr.strip()) == (script, 0)
+
+    def test_an_env_prefix_does_not_become_the_command(self):
+        result = run_fs_time("-k", "@#@FSTIME", "--no-load", "env", "FOO=bar", "true")
+        assert result.returncode == 0, result.stderr
+        assert reported_command(result.stderr.strip()) == ("true", 0), result.stderr
+
+    def test_an_env_prefix_in_front_of_python_still_names_the_script(self, script):
+        """Both prefixes at once, which is what the pinned neuroreg calls look like."""
+        result = run_fs_time(
+            "-k", "@#@FSTIME", "--no-load", "env", "FOO=bar", "BAZ=qux", sys.executable, script,
+        )
+        assert result.returncode == 0, result.stderr
+        assert reported_command(result.stderr.strip()) == (script, 0), result.stderr
+
+    def test_the_assignments_are_not_counted_as_arguments(self, script):
+        """The count has to describe the command, not the prefix that set its environment."""
+        result = run_fs_time(
+            "-k", "@#@FSTIME", "--no-load", "env", "FOO=bar", sys.executable, script, "one", "two",
+        )
+        assert result.returncode == 0, result.stderr
+        assert reported_command(result.stderr.strip()) == (script, 2), result.stderr
+
+    def test_env_on_its_own_is_still_reported(self):
+        """Degenerate, but it must not raise while building the line."""
+        result = run_fs_time("-k", "@#@FSTIME", "--no-load", "env")
+        assert result.returncode == 0, result.stderr
+        assert reported_command(result.stderr.strip())[0] == "env"

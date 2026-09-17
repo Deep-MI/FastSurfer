@@ -107,8 +107,10 @@ runs:
         # Asked of the image rather than hardcoded: NPY_DISABLE_CPU_FEATURES has to name features
         # the runtime numpy actually has, and naming a baseline one raises instead of being ignored.
         echo "::group::Kernel pins"
-        if pins=$(docker run --rm "$IMAGE_NAME" \
-                    python3 /fastsurfer/recon_surf/pin_cpu_dispatch.py --env) ; then
+        # --entrypoint, because the image entrypoint is run_fastsurfer.sh: without it these become
+        # FastSurfer arguments and the run exits with "Flag 'python3' unrecognized".
+        if pins=$(docker run --rm --entrypoint python3 "$IMAGE_NAME" \
+                    /fastsurfer/recon_surf/pin_cpu_dispatch.py --env) ; then
           echo "$pins"
           echo "$pins" >> "$GITHUB_ENV"
         else

@@ -139,14 +139,29 @@ def shorten_command(cmd: list[str]) -> tuple[str, int]:
 
     A python invocation is reported as the script it runs, not as "python3", and a path inside
     $FASTSURFER_HOME is reported relative to it, so that the command name stays a short, stable key.
+
+    An `env VAR=value ...` prefix is skipped first. Callers use it to set a variable for one command,
+    and reporting every such call as "env" would collapse them into one key in the timing file.
     """
+    skipped = 0
+    if cmd and os.path.basename(cmd[0]) == "env":
+        skipped = 1
+        # the assignments belong to env; the first entry that is not one starts the real command
+        for entry in cmd[1:]:
+            if "=" in entry and not entry.startswith("-"):
+                skipped += 1
+            else:
+                break
+        cmd = cmd[skipped:]
+        if not cmd:
+            return "env", 0
     command = cmd[0]
-    npyargs = 0
+    npyargs = skipped
     basename = os.path.basename(command)
     if basename in ("python", "python3") or (
         basename.startswith("python3.") and basename[8:].isdigit()
     ):
-        npyargs = 1
+        npyargs = skipped + 1
         for entry in cmd[1:]:
             if not entry.startswith("-"):
                 command = entry
