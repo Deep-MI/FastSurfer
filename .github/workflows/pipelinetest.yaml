@@ -207,7 +207,11 @@ jobs:
         run: |
           # get the FreeSurfer version from pyproject.toml
           {
-            fs_version="$(uv run python ./tools/read_toml.py --file ./pyproject.toml --key tool.freesurfer.version)"
+            # --no-project, because read_toml.py imports only the standard library. Without it uv
+            # installs the whole project first, which pulls the CUDA wheels onto a cpu-only runner
+            # and takes minutes, and setup-uv prunes those wheels from its cache so it repeats
+            # every run.
+            fs_version="$(uv run --no-project python ./tools/read_toml.py --file ./pyproject.toml --key tool.freesurfer.version)"
             fs_version_short="${fs_version//\./}"
             echo "FS_VERSION=$fs_version"
             echo "FS_VERSION_SHORT=$fs_version_short"

@@ -13,6 +13,11 @@
 # limitations under the License.
 
 """
+Keep the build job from paying for work it does not need.
+
+Both things guarded here cost only wall clock, never correctness, which is why each went unnoticed
+for a long time and why neither would announce a regression.
+
 Keep the built image travelling to the test jobs as one copy rather than three.
 
 The build job hands the image to the test jobs as an artifact and never runs it itself, so buildkit
@@ -30,6 +35,7 @@ from pathlib import Path
 FASTSURFER_HOME = Path(__file__).parent.parent.parent
 BUILD_ACTION = FASTSURFER_HOME / ".github" / "actions" / "build-docker" / "action.yml"
 BUILD_PY = FASTSURFER_HOME / "tools" / "Docker" / "build.py"
+PIPELINETEST = FASTSURFER_HOME / ".github" / "workflows" / "pipelinetest.yaml"
 TARBALL = "/tmp/docker-image.tar"
 
 
@@ -60,6 +66,31 @@ def test_an_exported_image_can_be_loaded_back():
     assert 'image_type = f"docker{dest}"' in export_branch, (
         "an image exported without attestation has to be in the docker format, otherwise "
         "load-docker cannot read it back"
+    )
+
+
+def test_the_build_job_does_not_install_the_project():
+    """
+    Every `uv run` in the build path skips the project, which none of them needs.
+
+    Without `--no-project` uv resolves and installs the whole environment first, which downloads
+    the CUDA wheels onto a cpu-only runner and takes minutes. setup-uv prunes those wheels from
+    its cache, so it is paid again on every run. build.py itself reaches only the standard library,
+    FastSurferCNN.version and .utils.run_tools, and PYTHONPATH covers those.
+    """
+    sources = {
+        "build-docker/action.yml": BUILD_ACTION.read_text(),
+        "pipelinetest.yaml": PIPELINETEST.read_text(),
+    }
+    # every occurrence, wherever it sits: one of these is inside an `if [[ -z "$( ... )" ]]`, so
+    # anchoring to the start of a line would miss it
+    bare = {
+        name: re.findall(r"uv run (?!--no-project)\S+", text)
+        for name, text in sources.items()
+    }
+    offenders = {name: calls for name, calls in bare.items() if calls}
+    assert offenders == {}, (
+        f"these `uv run` calls sync the whole project before running: {offenders}"
     )
 
 

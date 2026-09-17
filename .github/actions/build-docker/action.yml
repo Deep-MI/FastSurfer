@@ -45,6 +45,9 @@ runs:
       shell: bash
       env:
         FASTSURFER_HOME: ${{ inputs.fastsurfer-home }}
+        # build.py imports FastSurferCNN, which the project install would otherwise provide. Set
+        # here so the uv calls below can skip that install, see --no-project.
+        PYTHONPATH: ${{ inputs.fastsurfer-home }}
       run: |
         echo "::group::Build FastSurfer Image"
         bashopts=
@@ -54,8 +57,12 @@ runs:
           v="$(bash $bashopts "$FASTSURFER_HOME/run_fastsurfer.sh" --version --py python)"
           image_name="fastsurfer:cpu-${v/+/_}"
         fi
-        if [[ -z "$(uv run python -c 'import sys; print(sys.executable)' 2>/dev/null)" ]] ; then echo "ERROR: Cannot find python!" ; fi
-        cmd=(uv run python "$FASTSURFER_HOME/tools/Docker/build.py" --device cpu --tag "$image_name" --target "${{ inputs.target }}")
+        if [[ -z "$(uv run --no-project python -c 'import sys; print(sys.executable)' 2>/dev/null)" ]] ; then echo "ERROR: Cannot find python!" ; fi
+        # --no-project, because build.py needs no third-party package: its imports are the standard
+        # library plus FastSurferCNN.version and .utils.run_tools, which are themselves standard
+        # library only, and the one heavy import it has falls back to argparse when absent. Syncing
+        # the project instead downloads the CUDA wheels onto a cpu-only runner every run.
+        cmd=(uv run --no-project python "$FASTSURFER_HOME/tools/Docker/build.py" --device cpu --tag "$image_name" --target "${{ inputs.target }}")
         # --save_image, so buildkit writes the artifact tarball itself. Importing a multi-GB image
         # into this job's docker only to docker save it straight back out is a second and a third
         # copy of it, and no step here runs the image. A step added below that needs it has to
