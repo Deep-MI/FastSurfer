@@ -89,6 +89,8 @@ runs:
         subjects-dir: ${{ inputs.subjects-dir }}
     # run pytest checks for data consistency/quality
     - name: Run pytest
+      # id, so the grading step below can read whether the tolerances held
+      id: pytest
       env:
         PYTHON_PATH: .
         FASTSURFER_HOME: ${{ github.workspace }}
@@ -104,25 +106,69 @@ runs:
         fi
         uv run --extra pipelinetest python -m pytest "${flags[@]}" test/pipelinetest
         echo "::endgroup::"
-    - name: Report every difference against the reference
-      env:
-        FASTSURFER_HOME: ${{ github.workspace }}
-        REF_DIR: ${{ inputs.reference-dir }}
-        SUBJECTS_DIR: ${{ inputs.subjects-dir }}
-        SUBJECT_ID: ${{ inputs.subject-id }}
-      shell: bash
-      # continue-on-error, because this reports rather than decides: the suite above is what passes
-      # or fails the run. This sweeps the whole directory, so it also covers the outputs the suite
-      # has no tolerance for and therefore never looks at, which is where the last two
-      # reproducibility bugs were found.
-      continue-on-error: true
-      run: |
-        echo "::group::Compare every output against the reference"
-        uv run --extra pipelinetest python tools/compare_subjects.py \
-          "$REF_DIR" "$SUBJECTS_DIR" --subject "$SUBJECT_ID"
-        echo "::endgroup::"
     - name: Upload the the JUnit XML file as an artifact
       uses: actions/upload-artifact@v7
       with:
         name: ${{ env.FS_JUNIT_ARTIFACT }}
         path: ${{ env.FS_JUNIT_FILE }}
+    - name: Grade this run against the reference
+      env:
+        FASTSURFER_HOME: ${{ github.workspace }}
+        REF_DIR: ${{ inputs.reference-dir }}
+        SUBJECTS_DIR: ${{ inputs.subjects-dir }}
+        PYTEST_OUTCOME: ${{ steps.pytest.outcome }}
+      shell: bash
+      # The verdict for the whole run, in three grades, because "drifted" and "broke" call for
+      # different responses:
+      #   green   every compared output is identical, as a rerun on the same code should be
+      #   yellow  outputs differ but every one is inside its tolerance. Drift worth a look, not a
+      #           failure. Widening a tolerance later is a decision, not something to hide.
+      #   red     a tolerance was exceeded, an expected file is missing, or the comparison could
+      #           not run at all. A change of this size, such as a new module, needs the reference
+      #           rebuilt rather than waved through.
+      #
+      # Last, so that the JUnit upload above has already happened: a failing step skips the rest.
+      run: |
+        echo "::group::Compare every output against the reference"
+        # no --subject: the reference tarball names its own directory, which the suite discovers
+        # rather than assumes, and compare_subjects does the same and says so if it cannot.
+        # An if, so the exit code is read rather than ending the step under `bash -e`.
+        if uv run --extra pipelinetest python tools/compare_subjects.py \
+             "$REF_DIR" "$SUBJECTS_DIR" > /tmp/compare.txt 2>&1
+        then compared=0 ; else compared=$? ; fi
+        cat /tmp/compare.txt
+        echo "::endgroup::"
+
+        summary="$(tail -n 1 /tmp/compare.txt)"
+        report() {
+          {
+            echo "### $1"
+            echo ""
+            echo "$summary"
+            echo ""
+            echo "<details><summary>Full comparison</summary>"
+            echo ""
+            echo '```'
+            cat /tmp/compare.txt
+            echo '```'
+            echo ""
+            echo "</details>"
+          } >> "$GITHUB_STEP_SUMMARY"
+        }
+
+        if [[ "$compared" -ge 2 ]] ; then
+          echo "::error title=Cannot compare against the reference::$summary"
+          report "Cannot compare against the reference"
+          exit 1
+        fi
+        if [[ "$PYTEST_OUTCOME" != "success" ]] ; then
+          echo "::error title=Outputs are beyond tolerance::$summary. See the pipelinetest results check."
+          report "Outputs are beyond tolerance"
+          exit 1
+        fi
+        if [[ "$compared" -eq 1 ]] ; then
+          echo "::warning title=Outputs drifted, within tolerance::$summary"
+          report "Outputs drifted, within tolerance"
+          exit 0
+        fi
+        echo "Every compared output is identical to the reference."
