@@ -200,6 +200,9 @@ FROM build_base AS build_freesurfer
 
 ARG DEVICE
 ARG FREESURFER_URL
+# re-declared, because a global arg is not in scope inside a stage: without this the RUN below
+# expands it to empty and --insecure never reaches the installer
+ARG INSECURE_FLAG
 
 # install freesurfer and point to new python location
 RUN --mount=type=bind,source=tools/build/install_fs_pruned.sh,target=/install/install_fs_pruned.sh \
@@ -257,8 +260,6 @@ FROM $VENV_BUILD_IMAGE AS selected_venv_build_image
 # Here, we create the smaller runtime image
 # =========================================
 FROM $RUNTIME_BASE_IMAGE AS runtime
-
-ARG PYTHON_VERSION
 
 ENV MPLCONFIGDIR=/tmp/matplotlib-config
 
@@ -416,6 +417,9 @@ LABEL org.opencontainers.image.authors="$AUTHOR" \
 FROM runtime AS runtime_cuda
 # parse DEVICE to extract the CUDA version, this is needed to correctly initialize NVIDIA_REQUIRE_CUDA below
 # Note, here 'cuda' defaults to 12.8
+# DEVICE is re-declared, because arg scope does not cross stages: without it the substitutions
+# below all start from an empty string and NVIDIA_REQUIRE_CUDA ends up as "cuda>=".
+ARG DEVICE
 ARG CUDA_VERSION__0=${DEVICE/cu11/11.}
 ARG CUDA_VERSION__1=${CUDA_VERSION__0/cu12/12.}
 ARG CUDA_VERSION__2=${CUDA_VERSION__1/cu13/13.}
