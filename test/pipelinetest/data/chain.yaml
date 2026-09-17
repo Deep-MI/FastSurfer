@@ -23,6 +23,8 @@ stages:
     stage: corpus callosum
   - file: aseg.auto.mgz
     stage: corpus callosum
+  - file: callosum.surf
+    stage: corpus callosum
   - file: cerebellum.CerebNet.nii.gz
     stage: cerebellum
   - file: hypothalamus.HypVINN.nii.gz

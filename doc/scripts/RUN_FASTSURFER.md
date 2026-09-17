@@ -68,6 +68,9 @@ Optional arguments
 
 Reproducibility
 ---------------
+
+### On one machine
+
 Re-running the same input on the same machine, with the same flags, the same thread count and the
 same FastSurfer and FreeSurfer versions, is expected to give the same result: two runs at the
 default of two threads came out identical in every file we compare.
@@ -77,26 +80,57 @@ always runs single-threaded. Other steps have not been tested at every thread co
 certainty, use `--threads 1`, or `--threads 1 --parallel` to keep every binary single threaded while
 still processing the two hemispheres at the same time.
 
-Across machines the results do differ, and the same container image does not prevent it. Two
-effects contribute, and they apply to different parts of the pipeline.
+### Across machines
 
-The segmentation networks compute slightly different numbers on different hardware, because the
-kernels they run are chosen from what the device offers: on CPU that is the vector instruction
-sets, on GPU the card model and the precision modes it supports. `--device` therefore matters as
-well as the machine, and a CPU run and a GPU run of the same input are not expected to agree.
+Numerical libraries choose their kernels from what the processor offers, so the same code can take
+a different path on a different machine. Two layers do this independently, and both had to be
+addressed:
 
-The surface pipeline had a second, independent source, in the spherical projection: numpy and
-OpenBLAS each pick their kernels from the CPU features they detect, which moved the projected
-sphere very slightly, and the topology correction then amplified that into a different
-retessellation that every later surface inherited. That step now pins both, so it computes the same
-result on any x86-64 machine. It costs a few seconds per hemisphere. Other steps that use numpy are
-not pinned, so this does not make the whole pipeline machine independent, but it removes the one
-place we found that turns a rounding difference into a structural one.
+- **torch**, in the segmentation networks. The vector instruction set decides the convolution
+  kernel, and within one instruction set the vendor can still decide the code branch. Capping the
+  instruction set alone leaves a difference between vendors; fixing the branch alone leaves a
+  difference between instruction sets. Both are needed.
+- **LAPACK and BLAS**, through numpy, in the surface pipeline and the registrations. These pick
+  kernels the same way, independently of torch. A difference here is small, but the topology
+  correction turns a rounding difference into a different retessellation that every later surface
+  inherits, which is how a change far below single precision becomes a visible one.
 
-So the same hardware is still a condition, mainly through the networks above: for a study, process
-everything on one machine, or on nodes with the same CPU and GPU, with the same `--device`, and use
-one container image, see [Singularity](../overview/SINGULARITY.md). On macOS the FreeSurfer binaries
-are built without OpenMP and run single-threaded regardless.
+Only the second of these is pinned for you. The spherical projection, the talairach registration
+and the corpus callosum step set the numpy and OpenBLAS variables themselves, because that is where
+a rounding difference was found to become a structural one. Nothing sets the torch variables: they
+would slow every segmentation down for everyone, and most runs do not need to match another
+machine.
+
+**So a default run is not reproducible across machines.** If you need that, set all of them
+yourself for the whole run:
+
+```bash
+# the numpy and OpenBLAS values depend on the host, so read them from the helper
+eval "$(python $FASTSURFER_HOME/recon_surf/pin_cpu_dispatch.py)"
+export ATEN_CPU_CAPABILITY=avx2 ONEDNN_MAX_CPU_ISA=AVX2 MKL_CBWR=COMPATIBLE
+```
+
+Pass them into the container with `--env` if you run FastSurfer with docker or singularity. This is
+the configuration we test, and with it two x86-64 machines of different vendors produce identical
+output. The cost is some speed, because the faster kernels are the ones being declined.
+
+**It also covers the places we found, not every place that could exist.** Any numpy or BLAS call in
+a step we have not examined is still free to dispatch on the hardware, which is the other reason to
+set these globally rather than to rely on the three steps that pin themselves.
+
+**GPU is not covered.** None of this applies to `--device cuda`: the card model and the precision
+modes it selects are a separate source, and we have not tested it. A CPU run and a GPU run of the
+same input are not expected to agree, so `--device` is part of what you have to hold constant.
+
+Use one container image as well, see [Singularity](../overview/SINGULARITY.md). On macOS the
+FreeSurfer binaries are built without OpenMP and run single-threaded regardless, and that
+combination is untested for cross-machine agreement.
+
+To see which kernels a run actually chose, look at the host block near the top of
+`scripts/deep-seg.log`. It records the CPU, the instruction set torch selected, the dispatch
+overrides in force and a numerical fingerprint. The fingerprint is the reliable key for "was this
+comparable hardware": the CPU model name is not, because the same model can expose different
+features on different hosts.
 
 To compare two runs, use `tools/compare_subjects.py`: it compares voxels, vertices, transforms,
 statistics and labels rather than raw bytes, and reports how large each difference is. `diff` and

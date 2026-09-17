@@ -104,6 +104,23 @@ runs:
         fi
         uv run --extra pipelinetest python -m pytest "${flags[@]}" test/pipelinetest
         echo "::endgroup::"
+    - name: Report every difference against the reference
+      env:
+        FASTSURFER_HOME: ${{ github.workspace }}
+        REF_DIR: ${{ inputs.reference-dir }}
+        SUBJECTS_DIR: ${{ inputs.subjects-dir }}
+        SUBJECT_ID: ${{ inputs.subject-id }}
+      shell: bash
+      # continue-on-error, because this reports rather than decides: the suite above is what passes
+      # or fails the run. This sweeps the whole directory, so it also covers the outputs the suite
+      # has no tolerance for and therefore never looks at, which is where the last two
+      # reproducibility bugs were found.
+      continue-on-error: true
+      run: |
+        echo "::group::Compare every output against the reference"
+        uv run --extra pipelinetest python tools/compare_subjects.py \
+          "$REF_DIR" "$SUBJECTS_DIR" --subject "$SUBJECT_ID"
+        echo "::endgroup::"
     - name: Upload the the JUnit XML file as an artifact
       uses: actions/upload-artifact@v7
       with:
