@@ -68,6 +68,38 @@ def chain_order(filename: str) -> tuple[int, str]:
     return chain_position(filename), filename
 
 
+_DIFFERING = "_pipelinetest_differing"
+_FAILED = "_pipelinetest_failed"
+
+
+def _store(config: "pytest.Config", attribute: str) -> set[str]:
+    store = getattr(config, attribute, None)
+    if store is None:
+        store = set()
+        setattr(config, attribute, store)
+    return store
+
+
+def record_difference(config: "pytest.Config", filename: str) -> None:
+    """
+    Note that a file is not identical to the reference, whatever its tolerance then says.
+
+    A tolerance answers "is this close enough", which is not the same question as "where did the
+    change enter". One flipped voxel passes every tolerance downstream of it and still marks the
+    stage that changed, so the two are reported separately.
+    """
+    _store(config, _DIFFERING).add(filename)
+
+
+def record_failure(config: "pytest.Config", filename: str) -> None:
+    """Note that a file failed its comparison, which is the tolerance being exceeded."""
+    _store(config, _FAILED).add(filename)
+
+
+def recorded_files(config: "pytest.Config", *, failed: bool) -> set[str]:
+    return _store(config, _FAILED if failed else _DIFFERING)
+
+
 def skip_if_missing(
         ref_subject: "SubjectDefinition",
         test_subject: "SubjectDefinition",

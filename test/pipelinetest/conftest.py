@@ -10,7 +10,7 @@ from pathlib import Path
 
 import pytest
 
-from .common import SubjectDefinition, chain_position, chain_stage
+from .common import SubjectDefinition, chain_order, chain_stage, record_failure, recorded_files
 
 __all__ = [
     "pytest_addoption",
@@ -73,15 +73,6 @@ def test_subject(ref_subject: SubjectDefinition, subjects_dir: Path) -> SubjectD
     return ref_subject.with_subjects_dir(subjects_dir)
 
 
-def _divergences(config: pytest.Config) -> set[tuple[int, str]]:
-    """The pipeline outputs whose comparison failed, as (chain position, filename)."""
-    store = getattr(config, "_pipelinetest_divergences", None)
-    if store is None:
-        store = set()
-        config._pipelinetest_divergences = store
-    return store
-
-
 @pytest.hookimpl(hookwrapper=True)
 def pytest_runtest_makereport(item: pytest.Item, call: pytest.CallInfo):
     """Record which pipeline outputs failed a comparison, for the summary below."""
@@ -93,29 +84,48 @@ def pytest_runtest_makereport(item: pytest.Item, call: pytest.CallInfo):
     for name in _COMPARED_FILE_PARAMS:
         filename = callspec.params.get(name)
         if isinstance(filename, str):
-            _divergences(item.config).add((chain_position(filename), filename))
+            record_failure(item.config, filename)
             break
+
+
+def _earliest(files: set[str]) -> str:
+    """The listed file that the pipeline writes first, described for the summary."""
+    filename = min(files, key=chain_order)
+    stage = chain_stage(filename)
+    return f"{filename}, stage '{stage}'" if stage else f"{filename}, which data/chain.yaml does not list"
 
 
 def pytest_terminal_summary(terminalreporter, exitstatus, config: pytest.Config):
     """
-    Name the first pipeline stage that differs.
+    Name where the outputs start to diverge, by the two questions that have different answers.
 
-    Each stage reads the one before it, so a single upstream change shows up as a wall of failures.
-    Only the earliest is a finding; the rest are its consequences.
+    Each stage reads the one before it, so one upstream change shows up as a wall of failures
+    downstream of it. Which stage changed and which comparisons failed are not the same thing: a
+    difference small enough to pass every tolerance still marks the stage it entered at, and is
+    usually the one worth explaining.
     """
-    divergences = _divergences(config)
-    if not divergences:
+    differing = recorded_files(config, failed=False)
+    failed = recorded_files(config, failed=True)
+    if not differing and not failed:
         return
-    position, filename = min(divergences)
-    stage = chain_stage(filename)
-    where = f"{filename}, stage '{stage}'" if stage else f"{filename}, which data/chain.yaml does not list"
-    terminalreporter.write_sep("=", "first divergence", yellow=True)
-    terminalreporter.write_line(f"Earliest pipeline output that differs: {where}")
-    later = sum(1 for pos, _ in divergences if pos > position)
-    if later:
+    terminalreporter.write_sep("=", "where the outputs diverge", yellow=True)
+    if differing:
         terminalreporter.write_line(
-            f"{later} later output(s) also differ and are likely downstream of it, so explain this one first."
+            f"First output that differs from the reference at all: {_earliest(differing)}"
+        )
+        terminalreporter.write_line(
+            f"  {len(differing)} output(s) differ, of which {len(differing & failed)} also failed a check."
+        )
+    if failed:
+        # "failed a check" rather than "exceeds its tolerance": this is recorded for any failing
+        # comparison, which includes a header mismatch or a dtype assert, not only a tolerance
+        terminalreporter.write_line(f"First output that failed a check: {_earliest(failed)}")
+    if differing and failed and chain_order(min(differing, key=chain_order)) < chain_order(
+        min(failed, key=chain_order)
+    ):
+        terminalreporter.write_line(
+            "The change enters earlier than the first failure and passes the checks in between, "
+            "so explain the earlier one."
         )
 
 

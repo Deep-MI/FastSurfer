@@ -13,12 +13,13 @@
 # limitations under the License.
 
 """
-Check the CPU dispatch pin in the spherical projection wrapper.
+Check the CPU dispatch pin used by the steps that have to reproduce across machines.
 
 numpy and OpenBLAS each choose kernels from the CPU features they detect at import, so the same
-wheel computes slightly different numbers on different machines. In this step that moved the
-projected sphere enough for the topology correction to make a different retessellation, which every
-later surface inherited.
+wheel computes slightly different numbers on different machines. In the spherical projection that
+moved the projected sphere enough for the topology correction to make a different retessellation,
+which every later surface inherited. In talairach-reg.sh it moved the registration transforms in
+their last digits, and everything concatenated from them with it.
 
 `pin_cpu_dispatch` takes the environment to pin as an argument, so these tests hand it a plain dict
 and read back what it did. Stub interpreters stand in for numpy, so this runs in the light CI job.
@@ -32,7 +33,7 @@ from pathlib import Path
 
 import pytest
 
-from recon_surf.spherically_project_wrapper import enabled_simd_features, pin_cpu_dispatch
+from recon_surf.pin_cpu_dispatch import enabled_simd_features, pin_cpu_dispatch
 
 FASTSURFER_HOME = Path(__file__).parent.parent.parent
 HAS_NUMPY = importlib.util.find_spec("numpy") is not None

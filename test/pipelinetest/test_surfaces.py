@@ -14,7 +14,14 @@ import numpy as np
 import pytest
 import yaml
 
-from .common import SubjectDefinition, chain_order, chain_stage, skip_if_missing, write_table_file
+from .common import (
+    SubjectDefinition,
+    chain_order,
+    chain_stage,
+    record_difference,
+    skip_if_missing,
+    write_table_file,
+)
 
 logger = getLogger(__name__)
 
@@ -55,6 +62,12 @@ def test_surface_geometry(
     _, test_coords, test_faces = test_subject.load_surface(surface)
     _, reference_coords, reference_faces = ref_subject.load_surface(surface)
 
+    def same(a: np.ndarray, b: np.ndarray) -> bool:
+        return a.shape == b.shape and np.array_equal(a, b)
+
+    if not same(test_coords, reference_coords) or not same(test_faces, reference_faces):
+        record_difference(pytestconfig, surface)
+
     stage = chain_stage(surface)
     counts = (
         f"vertices {test_coords.shape[0]} against {reference_coords.shape[0]}, "
@@ -65,6 +78,13 @@ def test_surface_geometry(
         f"vertex: {counts}. First divergence is at or before '{stage}'."
     )
     assert test_faces.shape == reference_faces.shape, f"{surface} has a different face count: {counts}"
+    # faces are vertex indices, so they compare exactly. Equal counts with different connectivity is
+    # a retessellation, which the coordinate check below would not see.
+    differing_faces = int(np.count_nonzero((test_faces != reference_faces).any(axis=1)))
+    assert differing_faces == 0, (
+        f"{surface} has the same vertex and face counts but {differing_faces} of "
+        f"{test_faces.shape[0]} faces connect different vertices. Stage '{stage}'."
+    )
 
     # euclidean distance per vertex, which is what "the surface moved" means
     distance = np.linalg.norm(test_coords - reference_coords, axis=1)

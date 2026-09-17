@@ -8,7 +8,14 @@ import yaml
 
 from FastSurferCNN.utils.metrics import dice_score
 
-from .common import SubjectDefinition, Tolerances, chain_order, skip_if_missing, write_table_file
+from .common import (
+    SubjectDefinition,
+    Tolerances,
+    chain_order,
+    record_difference,
+    skip_if_missing,
+    write_table_file,
+)
 from .helper import Approx, assert_same_headers
 
 logger = getLogger(__name__)
@@ -122,6 +129,9 @@ def test_segmentation_image(
     reference_file, reference_img = ref_subject.load_image(segmentation_image)
     reference_data = np.asarray(reference_img.dataobj)
 
+    if test_data.shape != reference_data.shape or not np.array_equal(test_data, reference_data):
+        record_difference(pytestconfig, segmentation_image)
+
     label_segids = np.unique([reference_data, test_data]).tolist()
     labels_lnames_tols = {lbl: segmentation_tolerances.threshold(lbl) for lbl in label_segids}
     labels_lnames = {k: v for k, (v, _) in labels_lnames_tols.items()}
@@ -186,6 +196,9 @@ def test_intensity_image(
     test_data = test_img.get_fdata()
     reference_file, reference_img = ref_subject.load_image(intensity_image)
     reference_data = reference_img.get_fdata()
+
+    if test_data.shape != reference_data.shape or not np.array_equal(test_data, reference_data):
+        record_difference(pytestconfig, intensity_image)
 
     delta_dir = pytestconfig.getoption("--collect_csv")
     if delta_dir:

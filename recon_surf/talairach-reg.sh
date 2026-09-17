@@ -153,6 +153,15 @@ else
       exit 1
     fi
 
+    # segreg ends in a Schur decomposition, and a decomposition turns a last-bit difference in
+    # its input into a visible one in its output. numpy and OpenBLAS pick their kernels from the
+    # CPU features they find at import, so without this the transform below differs in its last
+    # digits between an Intel and an AMD runner, and everything concatenated from it inherits that.
+    # LAPACK is what does the work here, which is why the torch and MKL pins the pipeline test sets
+    # do not cover it. Same reasoning and same pinning as the spherical projection.
+    # Exported before the first python call, because both are read once at import.
+    eval "$($python "${binpath}pin_cpu_dispatch.py")"
+
     # compute prealignment
     prealigned_lta=$mdir/transforms/segreg_prealigned.lta
     reference_centroids=mni_icbm152_t1_tal_nlin_asym_09c
