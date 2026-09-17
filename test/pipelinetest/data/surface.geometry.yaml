@@ -1,0 +1,21 @@
+# Surfaces compared as geometry: vertex and face counts exactly, coordinates to the tolerance below
+# in millimetres. Listed in pipeline order, which data/chain.yaml defines.
+#
+# The counts are the strict part. Two surfaces with different vertex counts are not comparable
+# vertex by vertex, so the coordinate check is skipped once the counts differ and the count failure
+# is the finding.
+#
+# Tolerances are wider further down the chain because each step inherits the last. They are starting
+# values from the first run that compared surfaces at all, not measured limits, so expect to revisit
+# them when the reference is refreshed.
+tolerances:
+  lh.orig.nofix: 0.001
+  rh.orig.nofix: 0.001
+  lh.orig.premesh: 0.001
+  rh.orig.premesh: 0.001
+  lh.orig: 0.01
+  rh.orig: 0.01
+  lh.white: 0.05
+  rh.white: 0.05
+  lh.pial: 0.05
+  rh.pial: 0.05

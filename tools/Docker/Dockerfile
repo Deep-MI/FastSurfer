@@ -324,11 +324,22 @@ COPY --from=selected_venv_build_image /venv /venv
 # also copy the python installation to /opt/python from venv image
 COPY --from=selected_venv_build_image /opt/python /opt/python
 
-# Copy fastsurfer over from the build context and add PYTHONPATH
-COPY . /fastsurfer/
 ENV PYTHONPATH=/fastsurfer:/opt/freesurfer/python/packages \
     FASTSURFER_HOME=/fastsurfer \
     PATH=/fastsurfer:$PATH
+
+# The downloader and what it reads, copied before the rest of FastSurfer so that the weights layer
+# below keys on these files alone. With `COPY . /fastsurfer/` above it instead, every source change
+# invalidated the layer and re-fetched about 700 MB, which is both slow and the step that has
+# failed on a dropped connection. get_config_file resolves each module's checkpoint_paths.yaml by
+# path rather than importing it, which is why the four are listed rather than their packages.
+# test/lint/test_dockerfile_download_layer.py keeps this list covering the downloader's imports.
+COPY FastSurferCNN/__init__.py FastSurferCNN/download_checkpoints.py /fastsurfer/FastSurferCNN/
+COPY FastSurferCNN/utils /fastsurfer/FastSurferCNN/utils
+COPY FastSurferCNN/config/checkpoint_paths.yaml /fastsurfer/FastSurferCNN/config/
+COPY CerebNet/config/checkpoint_paths.yaml /fastsurfer/CerebNet/config/
+COPY CorpusCallosum/config/checkpoint_paths.yaml /fastsurfer/CorpusCallosum/config/
+COPY HypVINN/config/checkpoint_paths.yaml /fastsurfer/HypVINN/config/
 
 RUN <<EOF
 source /venv/bin/activate
@@ -338,6 +349,15 @@ install -d -m 0777 /var/.local "$XDG_DATA_HOME"
 python3 FastSurferCNN/download_checkpoints.py --all
 # Download LIT checkpoints used by the lesion inpainting integration.
 lit-download-models
+EOF
+
+# Copy fastsurfer over from the build context. /checkpoints is in .dockerignore, so this cannot
+# overwrite what the layer above downloaded.
+COPY . /fastsurfer/
+
+RUN <<EOF
+source /venv/bin/activate
+cd /fastsurfer
 # compile all FastSurfer scripts into bytecode
 python3 -m compileall *
 # update the build file with checkpoints md5sums and pip packages.

@@ -15,7 +15,6 @@
 
 # IMPORTS
 import argparse
-from collections.abc import MutableMapping
 from pathlib import Path
 
 
@@ -53,86 +52,6 @@ def setup_options():
     return args
 
 
-def enabled_simd_features(python: str) -> list[str] | None:
-    """
-    Ask a numpy which SIMD extensions it would dispatch to.
-
-    In a throwaway process, because the answer has to be known before this one imports
-    numpy. Read rather than hardcoded: the names differ by numpy version and platform,
-    unknown ones are ignored, but disabling a baseline feature raises.
-
-    Parameters
-    ----------
-    python : str
-        The interpreter to ask, normally `sys.executable`.
-
-    Returns
-    -------
-    list[str], None
-        The dispatchable features this numpy has enabled. An empty list means there are
-        none to disable, which is a pinned state rather than a failure. None means the
-        list could not be read at all, so nothing can be pinned.
-    """
-    import subprocess
-
-    code = (
-        "try:\n"
-        "    from numpy._core._multiarray_umath import __cpu_dispatch__ as d, __cpu_features__ as f\n"
-        "except ImportError:\n"
-        "    from numpy.core._multiarray_umath import __cpu_dispatch__ as d, __cpu_features__ as f\n"
-        "print(' '.join(x for x in d if f[x]))\n"
-    )
-    try:
-        out = subprocess.run([python, "-c", code], capture_output=True, text=True, check=True)
-    except (OSError, subprocess.SubprocessError):
-        return None
-    # the last line only: anything else that writes to stdout, a sitecustomize or a chatty
-    # build, would otherwise be passed to numpy as feature names
-    lines = out.stdout.strip().splitlines()
-    return lines[-1].split() if lines else []
-
-
-def pin_cpu_dispatch(env: MutableMapping[str, str], python: str) -> None:
-    """
-    Pin which vectorised kernels numpy and OpenBLAS choose.
-
-    Both read their setting once, when they are imported, so this has to run before numpy
-    reaches the interpreter. Without it the same wheel computes slightly different numbers
-    on different machines, which moves the projected sphere by about 1e-5, and the topology
-    correction turns that into a different retessellation that every later surface inherits.
-
-    A value already in `env` is left alone. An explicitly set variable should take effect,
-    and it is the only escape hatch: forcing a core type the CPU cannot execute faults
-    rather than falling back, so someone on unusual hardware needs a way to override this.
-    Such a value may well be reproducible, it is simply not the one tested here, hence a
-    note about the condition rather than a prediction of trouble.
-
-    Parameters
-    ----------
-    env : MutableMapping[str, str]
-        The environment to pin, normally `os.environ`.
-    python : str
-        The interpreter whose numpy decides the feature list, normally `sys.executable`.
-    """
-    pins = {"OPENBLAS_CORETYPE": "Nehalem"}
-    simd = enabled_simd_features(python)
-    if simd is None:
-        # only a failure to read is worth warning about; an empty list means that numpy has
-        # nothing dispatchable enabled, which is already the pinned state
-        print("WARNING: could not read numpy's SIMD features, so numpy is not pinned here and")
-        print("  this projection may not reproduce on other hardware.")
-    elif simd:
-        pins["NPY_DISABLE_CPU_FEATURES"] = " ".join(simd)
-
-    for var, value in pins.items():
-        if var in env:
-            print(f"WARNING: {var} is already set to '{env[var]}', so FastSurfer is not")
-            print("  pinning it. Reproducing this step on another machine then requires that")
-            print("  value to be supported and identical there.")
-        else:
-            env[var] = value
-
-
 if __name__ == "__main__":
     import sys
     from os import environ
@@ -161,6 +80,10 @@ if __name__ == "__main__":
     # Pinning both to a level every x86-64 machine can reach collapsed those runners to one result.
     # It costs about 20% of this step, seconds against a pipeline measured in tens of minutes.
     # Set before numpy is imported below, because both are read once at import.
+    # Imported here rather than at the top, because this file runs as a script and it is its own
+    # directory, added to the path by the interpreter, that makes the sibling module importable.
+    from pin_cpu_dispatch import pin_cpu_dispatch
+
     pin_cpu_dispatch(environ, sys.executable)
 
     # identify whether sksparse is installed (in which case we can use_cholmod in LaPy

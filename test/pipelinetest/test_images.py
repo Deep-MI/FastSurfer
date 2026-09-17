@@ -8,7 +8,14 @@ import yaml
 
 from FastSurferCNN.utils.metrics import dice_score
 
-from .common import SubjectDefinition, Tolerances, write_table_file
+from .common import (
+    SubjectDefinition,
+    Tolerances,
+    chain_order,
+    record_difference,
+    skip_if_missing,
+    write_table_file,
+)
 from .helper import Approx, assert_same_headers
 
 logger = getLogger(__name__)
@@ -77,6 +84,8 @@ def test_image_headers(test_subject: SubjectDefinition, ref_subject: SubjectDefi
         If the image headers do not match
     """
 
+    skip_if_missing(ref_subject, test_subject, image)
+
     # Load images
     test_file, test_img = test_subject.load_image(image)
     reference_file, reference_img = ref_subject.load_image(image)
@@ -112,11 +121,16 @@ def test_segmentation_image(
     AssertionError
         If the dice score is not 1 for all classes
     """
+    skip_if_missing(ref_subject, test_subject, segmentation_image)
+
     test_file, test_img = test_subject.load_image(segmentation_image)
     assert np.issubdtype(test_img.get_data_dtype(), np.integer), f"The image {segmentation_image} is not integer!"
     test_data = np.asarray(test_img.dataobj)
     reference_file, reference_img = ref_subject.load_image(segmentation_image)
     reference_data = np.asarray(reference_img.dataobj)
+
+    if not np.array_equal(test_data, reference_data):
+        record_difference(pytestconfig, test_subject.name, segmentation_image)
 
     label_segids = np.unique([reference_data, test_data]).tolist()
     labels_lnames_tols = {lbl: segmentation_tolerances.threshold(lbl) for lbl in label_segids}
@@ -175,11 +189,18 @@ def test_intensity_image(
     AssertionError
         If the mean square error is not 0
     """
+    skip_if_missing(ref_subject, test_subject, intensity_image)
+
     # Get the image data
+    # caching="unchanged", so nibabel does not keep the float64 array on the image: _read_image_cached
+    # holds every image for the session, and these are 250 MB each at 0.8mm
     test_file, test_img = test_subject.load_image(intensity_image)
-    test_data = test_img.get_fdata()
+    test_data = test_img.get_fdata(caching="unchanged")
     reference_file, reference_img = ref_subject.load_image(intensity_image)
-    reference_data = reference_img.get_fdata()
+    reference_data = reference_img.get_fdata(caching="unchanged")
+
+    if not np.array_equal(test_data, reference_data):
+        record_difference(pytestconfig, test_subject.name, intensity_image)
 
     delta_dir = pytestconfig.getoption("--collect_csv")
     if delta_dir:
@@ -200,21 +221,25 @@ def test_intensity_image(
 
 
 def pytest_generate_tests(metafunc: pytest.Metafunc):
+    # every list is ordered by the pipeline, so the first failure reported is the first divergence
+    # and the ones after it are its consequences rather than separate findings
     intensity_files = []
     if any(f in metafunc.fixturenames for f in ("intensity_image", "image")):
         intensity_thresholds = read_image_intensity_thresholds()
-        intensity_files = list(intensity_thresholds.keys())
+        intensity_files = sorted(intensity_thresholds.keys(), key=chain_order)
         if "intensity_image" in metafunc.fixturenames:
             metafunc.parametrize("intensity_image", intensity_files, scope="module")
 
     segmentation_files = []
     if any(f in metafunc.fixturenames for f in ("segmentation_image", "image")):
         __files = (Path(__file__).parent / "data").glob("*.yaml")
-        segmentation_files = [f.stem for f in __files if f.stem.endswith((".nii", ".nii.gz", ".mgz"))]
+        segmentation_files = sorted(
+            (f.stem for f in __files if f.stem.endswith((".nii", ".nii.gz", ".mgz"))),
+            key=chain_order,
+        )
         if "segmentation_image" in metafunc.fixturenames:
             metafunc.parametrize("segmentation_image", segmentation_files, scope="module")
 
     if "image" in metafunc.fixturenames:
-        from itertools import chain
-        all_images = chain(intensity_files, segmentation_files)
+        all_images = sorted(set(intensity_files) | set(segmentation_files), key=chain_order)
         metafunc.parametrize("image", all_images, scope="module")

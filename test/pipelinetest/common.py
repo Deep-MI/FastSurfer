@@ -24,6 +24,110 @@ def _read_stats_cached(__file: Path) -> tuple[dict[str, MeasureTuple], list[PVSt
     return annotations, dataframe_to_table(dataframe)
 
 
+@lru_cache
+def _read_surface_cached(__file: Path) -> tuple[np.ndarray, np.ndarray]:
+    from nibabel.freesurfer.io import read_geometry
+    coords, faces = read_geometry(str(__file))
+    return np.asarray(coords), np.asarray(faces)
+
+
+@lru_cache
+def read_chain() -> list[dict[str, str]]:
+    """The pipeline outputs in the order they are produced, see data/chain.yaml."""
+    with open(Path(__file__).parent / "data/chain.yaml") as fp:
+        return yaml.safe_load(fp)["stages"]
+
+
+@lru_cache
+def _chain_index() -> dict[str, tuple[int, str]]:
+    """Filename to its position and stage, so both lookups share one pass over the chain."""
+    return {entry["file"]: (i, entry["stage"]) for i, entry in enumerate(read_chain())}
+
+
+def chain_position(filename: str) -> int:
+    """
+    Where a file sits in the pipeline, for sorting comparisons so that the first failure is the
+    first divergence. Files missing from the chain sort last, keeping them out of that reading.
+    """
+    index = _chain_index()
+    return index[filename][0] if filename in index else len(index)
+
+
+def chain_stage(filename: str) -> str:
+    """The pipeline stage a file belongs to, or an empty string if it is not in the chain."""
+    return _chain_index().get(filename, (0, ""))[1]
+
+
+def chain_order(filename: str) -> tuple[int, str]:
+    """
+    Sort key placing a file at its pipeline position, breaking ties by name.
+
+    The name matters: files the chain does not list all share the last position, and without a
+    second key their order would follow set iteration and change between runs.
+    """
+    return chain_position(filename), filename
+
+
+_DIFFERING = "_pipelinetest_differing"
+_FAILED = "_pipelinetest_failed"
+
+
+def _store(config: "pytest.Config", attribute: str) -> set[tuple[str, str]]:
+    store = getattr(config, attribute, None)
+    if store is None:
+        store = set()
+        setattr(config, attribute, store)
+    return store
+
+
+def record_difference(config: "pytest.Config", subject: str, filename: str) -> None:
+    """
+    Note that a file is not identical to the reference, whatever its tolerance then says.
+
+    A tolerance answers "is this close enough", which is not the same question as "where did the
+    change enter". One flipped voxel passes every tolerance downstream of it and still marks the
+    stage that changed, so the two are reported separately.
+
+    Keyed by subject as well as file: several subjects can share a session, and they diverge in
+    different places, so merging them would name a first divergence that is wrong for one of them.
+    """
+    _store(config, _DIFFERING).add((subject, filename))
+
+
+def record_failure(config: "pytest.Config", subject: str, filename: str) -> None:
+    """Note that a file failed a comparison, which is not only a tolerance being exceeded."""
+    _store(config, _FAILED).add((subject, filename))
+
+
+def recorded_files(config: "pytest.Config", *, failed: bool) -> set[tuple[str, str]]:
+    """The recorded (subject, filename) pairs, for the terminal summary."""
+    return _store(config, _FAILED if failed else _DIFFERING)
+
+
+def skip_if_missing(
+        ref_subject: "SubjectDefinition",
+        test_subject: "SubjectDefinition",
+        filename: str,
+        *,
+        surface: bool = False,
+) -> None:
+    """
+    Decide what a comparison should do when a side lacks the file.
+
+    The two sides are not symmetric. test_file_existence walks the test subject only, so a file
+    missing there is already reported and the comparison skips rather than failing twice. Nothing
+    checks the reference, so a file missing there is a silent loss of coverage and fails here.
+    """
+    has = SubjectDefinition.has_surface if surface else SubjectDefinition.has_image
+    if not has(ref_subject, filename):
+        pytest.fail(
+            f"{filename} is absent from the reference, so this comparison cannot run. Nothing else "
+            f"checks the reference side, so skipping it would drop the check silently."
+        )
+    if not has(test_subject, filename):
+        pytest.skip(f"{filename} is absent from the test subject, which test_file_existence reports")
+
+
 logger = logging.getLogger(__name__)
 
 class SubjectDefinition:
@@ -49,6 +153,21 @@ class SubjectDefinition:
             pytest.fail(f"The image {self.name}/mri/{filename} does not exist!")
 
         return image_path, _read_image_cached(image_path)
+
+    def has_image(self, filename: str) -> bool:
+        return (self.path / "mri" / filename).exists()
+
+    def load_surface(self, filename: str) -> tuple[Path, np.ndarray, np.ndarray]:
+        """Vertex coordinates and faces of a FreeSurfer surface under surf/."""
+        surface_path = self.path / "surf" / filename
+        if not surface_path.exists():
+            pytest.fail(f"The surface {self.name}/surf/{filename} does not exist!")
+
+        coords, faces = _read_surface_cached(surface_path)
+        return surface_path, coords, faces
+
+    def has_surface(self, filename: str) -> bool:
+        return (self.path / "surf" / filename).exists()
 
     def load_stats_file(self, filename: str) -> tuple[Path, dict[str, MeasureTuple], list[PVStats]]:
         stats_path = self.path / "stats" / filename

@@ -1,0 +1,4 @@
+default_threshold: 0.01
+lut: FastSurferCNN/config/FreeSurferColorLUT.txt
+thresholds:
+  Right-Accumbens-area: 1.0
