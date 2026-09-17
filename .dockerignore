@@ -1,9 +1,13 @@
 **/.git
 **/.github
 **/*.md
+# bytecode embeds the source mtime, so it changes every checkout and busts the build cache
+**/__pycache__
+**/*.py[co]
 /.codespellignore
 /.gitignore
 /.venv
+/build
 /BUILD.info
 /checkpoints
 /doc

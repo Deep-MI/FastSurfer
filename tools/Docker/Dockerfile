@@ -345,10 +345,28 @@ RUN <<EOF
 source /venv/bin/activate
 cd /fastsurfer
 install -d -m 0777 /var/.local "$XDG_DATA_HOME"
-# Download all remote network checkpoints already
+# TQDM_DISABLE, because a progress bar in a build log is thousands of lines that say nothing once
+# the build is over. Harmless if a downloader does not use tqdm.
+export TQDM_DISABLE=1
+# Download all remote network checkpoints already. This retries each host itself, see
+# download_checkpoint in FastSurferCNN/utils/checkpoint.py.
 python3 FastSurferCNN/download_checkpoints.py --all
-# Download LIT checkpoints used by the lesion inpainting integration.
-lit-download-models
+# Download LIT checkpoints used by the lesion inpainting integration. Retried here rather than
+# inside, because it is a third-party entry point with one host and no retry of its own, and it is
+# the largest download in the image.
+lit_attempts=3
+for ((attempt = 1; attempt <= lit_attempts; attempt++)) ; do
+  if lit-download-models ; then break ; fi
+  if [ "$attempt" = "$lit_attempts" ] ; then
+    echo "ERROR: lit-download-models failed $attempt times, giving up."
+    exit 1
+  fi
+  echo "WARNING: lit-download-models failed, attempt $attempt of $lit_attempts, retrying in $((attempt * 15))s."
+  # a partial file left behind would make a later presence check believe the model is there.
+  # :? rather than a bare expansion, so an unset variable cannot make this rm -rf /LIT
+  rm -rf "${XDG_DATA_HOME:?}/LIT"
+  sleep $((attempt * 15))
+done
 EOF
 
 # Copy fastsurfer over from the build context. /checkpoints is in .dockerignore, so this cannot
