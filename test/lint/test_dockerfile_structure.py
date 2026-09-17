@@ -46,7 +46,7 @@ def lines() -> list[str]:
 
 @pytest.fixture(scope="module")
 def global_args(lines: list[str]) -> set[str]:
-    """Args declared before the first FROM, which every stage has to re-declare to use."""
+    """Args declared before the first FROM, which every stage has to redeclare to use."""
     first_from = next(i for i, line in enumerate(lines) if line.startswith("FROM"))
     return {m.group(2) for line in lines[:first_from] if (m := DECLARES.match(line))}
 
@@ -91,7 +91,7 @@ def test_no_build_step_follows_a_label(lines: list[str]):
 
 def test_every_referenced_global_arg_is_declared_in_its_stage(lines: list[str], global_args: set[str]):
     """
-    An arg declared before the first FROM is not in scope inside a stage until re-declared.
+    An arg declared before the first FROM is not in scope inside a stage until redeclared.
 
     It expands to the empty string instead, which no builder warns about. That silently disabled
     the `--insecure` escape hatch for the FreeSurfer download, and left the CUDA image with
@@ -120,6 +120,6 @@ def test_every_referenced_global_arg_is_declared_in_its_stage(lines: list[str], 
             index += 1
     # one report per stage and arg, a loop body repeated per line is the same defect
     unique = sorted(set(problems))
-    assert unique == [], "these build args expand to nothing, because the stage never re-declares them:\n" + "\n".join(
+    assert unique == [], "these build args expand to nothing, because the stage never redeclares them:\n" + "\n".join(
         f"  {problem}" for problem in unique
     )

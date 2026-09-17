@@ -200,7 +200,7 @@ FROM build_base AS build_freesurfer
 
 ARG DEVICE
 ARG FREESURFER_URL
-# re-declared, because a global arg is not in scope inside a stage: without this the RUN below
+# redeclared, because a global arg is not in scope inside a stage: without this the RUN below
 # expands it to empty and --insecure never reaches the installer
 ARG INSECURE_FLAG
 
@@ -417,7 +417,7 @@ LABEL org.opencontainers.image.authors="$AUTHOR" \
 FROM runtime AS runtime_cuda
 # parse DEVICE to extract the CUDA version, this is needed to correctly initialize NVIDIA_REQUIRE_CUDA below
 # Note, here 'cuda' defaults to 12.8
-# DEVICE is re-declared, because arg scope does not cross stages: without it the substitutions
+# DEVICE is redeclared, because arg scope does not cross stages: without it the substitutions
 # below all start from an empty string and NVIDIA_REQUIRE_CUDA ends up as "cuda>=".
 ARG DEVICE
 ARG CUDA_VERSION__0=${DEVICE/cu11/11.}
