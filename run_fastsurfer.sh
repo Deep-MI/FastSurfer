@@ -1396,8 +1396,24 @@ then
          "--threads" "$threads_seg" "--conformed_name" "$conformed_name" "--aseg_name" "$aseg_segfile"
          "--segmentation_in_orig" "$callosum_seg" "${cc_flags[@]}")
     echo_quoted "${cmd[@]}" | tee -a "$seg_log"
-    "${wrap[@]}" "${cmd[@]}"  # no tee, directly logging to $seg_log
-    exit_code=${PIPESTATUS[0]}
+    # The upright and acpc transforms this writes come out of a decomposition, so which vectorised
+    # kernels numpy and OpenBLAS pick decides their last digits, and the curvature measures derived
+    # from them amplify that into percent. Same pinning as the spherical projection and the
+    # talairach registration. In a subshell, so the rest of this script keeps the kernels it had.
+    if pins=$($python "${reconsurfdir}/pin_cpu_dispatch.py") ; then
+      echo "$pins" | tee -a "$seg_log"  # what was pinned, and any warning, as shell comments
+    else
+      {
+        echo "WARNING: could not pin the cpu dispatch, so the callosum shape measures may not"
+        echo "  reproduce on other hardware."
+      } | tee -a "$seg_log"
+      pins=""
+    fi
+    (
+      eval "$pins"
+      "${wrap[@]}" "${cmd[@]}"  # no tee, directly logging to $seg_log
+    )
+    exit_code=$?
     if [[ "$exit_code" != 0 ]] ; then
       echo "ERROR: FastSurferCC corpus callosum analysis failed!" | tee -a "$seg_log"
       exit "$exit_code"

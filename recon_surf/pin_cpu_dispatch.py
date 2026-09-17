@@ -137,22 +137,21 @@ def pin_cpu_dispatch(env: MutableMapping[str, str], python: str) -> None:
 
 
 if __name__ == "__main__":
+    import os
     import shlex
     import sys
 
-    # shell form: the assignments on stdout for eval, any warning on stderr so that eval does
-    # not consume it. An already-set value is left alone here too, by emitting nothing for it.
+    # Shell form. Everything goes to stdout, warnings as `#` comments, so that one stream is both
+    # safe to eval and worth appending to the log: eval ignores comments, and the caller keeps the
+    # record of what was pinned without having to interleave two streams.
+    # An already-set value is left alone here too, and says so rather than emitting an assignment.
     _pins, _warning = pins_for(sys.executable)
     if _warning:
-        print(_warning, file=sys.stderr)
-    import os
-
+        for _line in _warning.splitlines():
+            print(f"# {_line}")
     for _var, _value in _pins.items():
         if _var in os.environ:
-            print(
-                f"WARNING: {_var} is already set to '{os.environ[_var]}', so FastSurfer is not "
-                f"pinning it.",
-                file=sys.stderr,
-            )
+            print(f"# WARNING: {_var} is already set to '{os.environ[_var]}', so it is left alone.")
+            print("#   Reproducing this step elsewhere then needs that value supported and identical there.")
         else:
             print(f"export {_var}={shlex.quote(_value)}")

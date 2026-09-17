@@ -160,7 +160,15 @@ else
     # LAPACK is what does the work here, which is why the torch and MKL pins the pipeline test sets
     # do not cover it. Same reasoning and same pinning as the spherical projection.
     # Exported before the first python call, because both are read once at import.
-    eval "$($python "${binpath}pin_cpu_dispatch.py")"
+    if pins=$($python "${binpath}pin_cpu_dispatch.py") ; then
+      echo "$pins" | tee -a "$LF"  # what was pinned, and any warning, as shell comments
+      eval "$pins"
+    else
+      {
+        echo "WARNING: could not pin the cpu dispatch, so this registration may not reproduce"
+        echo "  on other hardware."
+      } | tee -a "$LF"
+    fi
 
     # compute prealignment
     prealigned_lta=$mdir/transforms/segreg_prealigned.lta
