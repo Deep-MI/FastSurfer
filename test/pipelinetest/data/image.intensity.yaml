@@ -1,3 +1,11 @@
+# Relative tolerance per intensity volume. Listed in pipeline order, which data/chain.yaml defines
+# and the comparisons are sorted by.
 thresholds:
   orig.mgz: 0.02
   orig_nu.mgz: 0.01
+  nu.mgz: 0.01
+  norm.mgz: 0.01
+  brainmask.mgz: 0.01
+  brain.mgz: 0.01
+  brain.finalsurfs.mgz: 0.01
+  wm.mgz: 0.01

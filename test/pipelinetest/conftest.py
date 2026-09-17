@@ -10,15 +10,20 @@ from pathlib import Path
 
 import pytest
 
-from .common import SubjectDefinition
+from .common import SubjectDefinition, chain_position, chain_stage
 
 __all__ = [
     "pytest_addoption",
+    "pytest_runtest_makereport",
+    "pytest_terminal_summary",
     "ref_subject",
     "ref_subjects",
     "reference_dir",
     "subjects_dir",
 ]
+
+# the files a comparison is parametrised over, in the order the parameter names appear
+_COMPARED_FILE_PARAMS = ("segmentation_image", "intensity_image", "image", "surface")
 
 env: dict[str, Path] = {}
 # Checking environment variables
@@ -66,6 +71,52 @@ def ref_subject(request: pytest.FixtureRequest) -> SubjectDefinition:
 @pytest.fixture(scope="session")
 def test_subject(ref_subject: SubjectDefinition, subjects_dir: Path) -> SubjectDefinition:
     return ref_subject.with_subjects_dir(subjects_dir)
+
+
+def _divergences(config: pytest.Config) -> set[tuple[int, str]]:
+    """The pipeline outputs whose comparison failed, as (chain position, filename)."""
+    store = getattr(config, "_pipelinetest_divergences", None)
+    if store is None:
+        store = set()
+        config._pipelinetest_divergences = store
+    return store
+
+
+@pytest.hookimpl(hookwrapper=True)
+def pytest_runtest_makereport(item: pytest.Item, call: pytest.CallInfo):
+    """Record which pipeline outputs failed a comparison, for the summary below."""
+    outcome = yield
+    report = outcome.get_result()
+    callspec = getattr(item, "callspec", None)
+    if report.when != "call" or not report.failed or callspec is None:
+        return
+    for name in _COMPARED_FILE_PARAMS:
+        filename = callspec.params.get(name)
+        if isinstance(filename, str):
+            _divergences(item.config).add((chain_position(filename), filename))
+            break
+
+
+def pytest_terminal_summary(terminalreporter, exitstatus, config: pytest.Config):
+    """
+    Name the first pipeline stage that differs.
+
+    Each stage reads the one before it, so a single upstream change shows up as a wall of failures.
+    Only the earliest is a finding; the rest are its consequences.
+    """
+    divergences = _divergences(config)
+    if not divergences:
+        return
+    position, filename = min(divergences)
+    stage = chain_stage(filename)
+    where = f"{filename}, stage '{stage}'" if stage else f"{filename}, which data/chain.yaml does not list"
+    terminalreporter.write_sep("=", "first divergence", yellow=True)
+    terminalreporter.write_line(f"Earliest pipeline output that differs: {where}")
+    later = sum(1 for pos, _ in divergences if pos > position)
+    if later:
+        terminalreporter.write_line(
+            f"{later} later output(s) also differ and are likely downstream of it, so explain this one first."
+        )
 
 
 def pytest_addoption(parser):

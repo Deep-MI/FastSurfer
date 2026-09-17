@@ -24,6 +24,74 @@ def _read_stats_cached(__file: Path) -> tuple[dict[str, MeasureTuple], list[PVSt
     return annotations, dataframe_to_table(dataframe)
 
 
+@lru_cache
+def _read_surface_cached(__file: Path) -> tuple[np.ndarray, np.ndarray]:
+    from nibabel.freesurfer.io import read_geometry
+    coords, faces = read_geometry(str(__file))
+    return np.asarray(coords), np.asarray(faces)
+
+
+@lru_cache
+def read_chain() -> list[dict[str, str]]:
+    """The pipeline outputs in the order they are produced, see data/chain.yaml."""
+    with open(Path(__file__).parent / "data/chain.yaml") as fp:
+        return yaml.safe_load(fp)["stages"]
+
+
+@lru_cache
+def chain_position(filename: str) -> int:
+    """
+    Where a file sits in the pipeline, for sorting comparisons so that the first failure is the
+    first divergence. Files missing from the chain sort last, keeping them out of that reading.
+    """
+    for position, entry in enumerate(read_chain()):
+        if entry["file"] == filename:
+            return position
+    return len(read_chain())
+
+
+def chain_stage(filename: str) -> str:
+    """The pipeline stage a file belongs to, or an empty string if it is not in the chain."""
+    for entry in read_chain():
+        if entry["file"] == filename:
+            return entry["stage"]
+    return ""
+
+
+def chain_order(filename: str) -> tuple[int, str]:
+    """
+    Sort key placing a file at its pipeline position, breaking ties by name.
+
+    The name matters: files the chain does not list all share the last position, and without a
+    second key their order would follow set iteration and change between runs.
+    """
+    return chain_position(filename), filename
+
+
+def skip_if_missing(
+        ref_subject: "SubjectDefinition",
+        test_subject: "SubjectDefinition",
+        filename: str,
+        *,
+        surface: bool = False,
+) -> None:
+    """
+    Skip a comparison when either side lacks the file, naming the side that does.
+
+    test_file_existence owns the existence assertion, so a comparison that cannot run reports the
+    gap once rather than a second time as a confusing failure inside a dice or distance check.
+    Both subjects carry the same name, so they are labelled by role here.
+    """
+    has = SubjectDefinition.has_surface if surface else SubjectDefinition.has_image
+    absent = [
+        label
+        for label, subject in (("the reference", ref_subject), ("the test subject", test_subject))
+        if not has(subject, filename)
+    ]
+    if absent:
+        pytest.skip(f"{filename} is absent from {' and '.join(absent)}")
+
+
 logger = logging.getLogger(__name__)
 
 class SubjectDefinition:
@@ -49,6 +117,21 @@ class SubjectDefinition:
             pytest.fail(f"The image {self.name}/mri/{filename} does not exist!")
 
         return image_path, _read_image_cached(image_path)
+
+    def has_image(self, filename: str) -> bool:
+        return (self.path / "mri" / filename).exists()
+
+    def load_surface(self, filename: str) -> tuple[Path, np.ndarray, np.ndarray]:
+        """Vertex coordinates and faces of a FreeSurfer surface under surf/."""
+        surface_path = self.path / "surf" / filename
+        if not surface_path.exists():
+            pytest.fail(f"The surface {self.name}/surf/{filename} does not exist!")
+
+        coords, faces = _read_surface_cached(surface_path)
+        return surface_path, coords, faces
+
+    def has_surface(self, filename: str) -> bool:
+        return (self.path / "surf" / filename).exists()
 
     def load_stats_file(self, filename: str) -> tuple[Path, dict[str, MeasureTuple], list[PVStats]]:
         stats_path = self.path / "stats" / filename

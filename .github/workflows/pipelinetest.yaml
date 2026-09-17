@@ -69,6 +69,17 @@ jobs:
     name: 'docker image build'
     runs-on: ubuntu-latest
     timeout-minutes: 180
+    env:
+      # build.py turns this into --cache-from and --cache-to for buildx. Job level rather than step
+      # level, because the build runs inside a composite action.
+      #
+      # ignore-error, so that a rejected or truncated export costs the cache and not the run: without
+      # it a cache failure fails this job and the test jobs never start.
+      #
+      # mode=max also exports the venv and FreeSurfer stages, which is where the build time goes. It
+      # counts against the repository-wide cache quota, shared with every other workflow, so watch
+      # for eviction churn before assuming it is free.
+      FASTSURFER_BUILD_CACHE: type=gha,mode=max,ignore-error=true
     # the first clause admits a workflow-dispatch, the rest a pull request. A labeled event fires for
     # every label, because GitHub cannot filter by label name in the trigger, so deciding here rather
     # than in a step keeps a runner from starting for the labels dependabot attaches, and makes a run
@@ -197,6 +208,12 @@ jobs:
             fi
             echo "FASTSURFER_HOME=$(pwd)"
           } > $GITHUB_OUTPUT
+      - name: Expose the actions cache to buildx
+        # type=gha needs ACTIONS_RESULTS_URL and ACTIONS_RUNTIME_TOKEN in the environment. Only
+        # docker/build-push-action injects them on its own, and build.py drives buildx directly, so
+        # without this step the cache resolves to nothing and the build silently stays cold.
+        if: steps.parse.outputs.CONTINUE == 'true' && steps.parse.outputs.DOCKER_IMAGE == 'build-cached'
+        uses: crazy-max/ghaction-github-runtime@v3
       - uses: Deep-MI/FastSurfer/.github/actions/build-docker@dev
         if: steps.parse.outputs.CONTINUE == 'true' && steps.parse.outputs.DOCKER_IMAGE == 'build-cached'
         # This action needs the "full" checkout (located at ${{ inputs.fastsurfer-home }})

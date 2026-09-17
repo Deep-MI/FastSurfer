@@ -1,0 +1,75 @@
+# The order the pipeline produces these outputs, used to sort the comparisons so that failures read
+# downstream from the first one rather than in glob order. A difference at one stage propagates to
+# every later stage, so only the first entry that differs needs explaining.
+#
+# Ordered from a real 0.8mm run, by the order the files were written. orig.mgz sits first because it
+# is the conformed input every later stage reads, although recon-surf touches it again afterwards.
+#
+# Entries not compared numerically anywhere are still listed: position is what this file is for, and
+# a stage with no comparison is a gap worth seeing.
+
+stages:
+  - file: orig.mgz
+    stage: conform
+  - file: aparc.DKTatlas+aseg.deep.mgz
+    stage: deep segmentation
+  - file: mask.mgz
+    stage: deep segmentation
+  - file: aseg.auto_noCCseg.mgz
+    stage: deep segmentation
+  - file: orig_nu.mgz
+    stage: bias field correction
+  - file: aparc.DKTatlas+aseg.deep.withCC.mgz
+    stage: corpus callosum
+  - file: aseg.auto.mgz
+    stage: corpus callosum
+  - file: cerebellum.CerebNet.nii.gz
+    stage: cerebellum
+  - file: hypothalamus.HypVINN.nii.gz
+    stage: hypothalamus
+  - file: nu.mgz
+    stage: surface pipeline, intensity normalisation
+  - file: norm.mgz
+    stage: surface pipeline, intensity normalisation
+  - file: brainmask.mgz
+    stage: surface pipeline, skull strip
+  - file: aseg.presurf.mgz
+    stage: surface pipeline, presurf
+  - file: brain.mgz
+    stage: surface pipeline, presurf
+  - file: brain.finalsurfs.mgz
+    stage: surface pipeline, presurf
+  - file: wm.mgz
+    stage: white matter
+  - file: filled.mgz
+    stage: white matter
+  - file: lh.orig.nofix
+    stage: surfaces, tessellation
+  - file: rh.orig.nofix
+    stage: surfaces, tessellation
+  - file: lh.orig.premesh
+    stage: surfaces, topology fix
+  - file: rh.orig.premesh
+    stage: surfaces, topology fix
+  - file: lh.orig
+    stage: surfaces, topology fix
+  - file: rh.orig
+    stage: surfaces, topology fix
+  - file: lh.white
+    stage: surfaces, white
+  - file: rh.white
+    stage: surfaces, white
+  - file: lh.pial
+    stage: surfaces, pial
+  - file: rh.pial
+    stage: surfaces, pial
+  - file: ribbon.mgz
+    stage: ribbon
+  - file: aseg.presurf.hypos.mgz
+    stage: final segmentations
+  - file: aseg.mgz
+    stage: final segmentations
+  - file: aparc.DKTatlas+aseg.mapped.mgz
+    stage: final segmentations
+  - file: wmparc.DKTatlas.mapped.mgz
+    stage: final segmentations

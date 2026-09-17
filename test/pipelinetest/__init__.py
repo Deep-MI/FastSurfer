@@ -5,4 +5,5 @@ __all__ = [  # This is a list of modules that should be imported when using the 
     "test_file_existence",
     "test_images",
     "test_stats",
+    "test_surfaces",
 ]
