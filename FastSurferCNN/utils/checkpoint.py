@@ -18,6 +18,7 @@ import sys
 from collections.abc import MutableSequence
 from functools import lru_cache
 from pathlib import Path
+from time import sleep
 from typing import TYPE_CHECKING, Literal, TypedDict, cast, overload
 from uuid import uuid4
 
@@ -359,7 +360,6 @@ def download_checkpoint(
         checkpoint_name: str,
         checkpoint_path: str | Path,
         urls: list[str],
-        attempts: int = DOWNLOAD_ATTEMPTS,
 ) -> None:
     """
     Download a checkpoint file.
@@ -374,21 +374,21 @@ def download_checkpoint(
         Path of the file in which the checkpoint will be saved.
     urls : list[str]
         List of URLs of checkpoint hosting sites.
-    attempts : int, default=DOWNLOAD_ATTEMPTS
-        How often to try each url before moving to the next.
     """
-    from time import sleep
-
     responses = []
     for url in urls:
-        for attempt in range(1, attempts + 1):
+        # this url's own reply, so that exhausting the attempts here does not read the reply of
+        # the url before it
+        reply = None
+        for attempt in range(1, DOWNLOAD_ATTEMPTS + 1):
             try:
                 LOGGER.info(f"Downloading checkpoint {checkpoint_name} from {url}")
-                responses.append(requests.get(
+                reply = requests.get(
                     url + "/" + checkpoint_name,
                     verify=True,
                     timeout=DOWNLOAD_TIMEOUT,
-                ))
+                )
+                responses.append(reply)
                 break  # a reply arrived, and its status decides whether to try the next url
 
             except requests.exceptions.RequestException as e:
@@ -397,18 +397,23 @@ def download_checkpoint(
                 LOGGER.warning(f"Server {url} not reachable ({type(e).__name__}): {e}")
                 if isinstance(e.response, requests.Response):
                     responses.append(e.response)
-                if attempt < attempts:
+                if attempt < DOWNLOAD_ATTEMPTS:
                     delay = DOWNLOAD_BACKOFF * 2 ** (attempt - 1)
-                    LOGGER.info(f"Retrying {url} in {delay:.0f}s ({attempt} of {attempts} used)")
+                    LOGGER.info(
+                        f"Retrying {url} in {delay:.0f}s "
+                        f"({attempt} of {DOWNLOAD_ATTEMPTS} used)"
+                    )
                     sleep(delay)
         # Raise error if file does not exist:
-        if responses and responses[-1].ok:
+        if reply is not None and reply.ok:
             break
 
     # if no request was successful, raise an error with all responses
     if not any(_response.ok for _response in responses):
         import textwrap
-        message = f"Could not download checkpoint {checkpoint_name} from any server."
+        # the urls, because a transport failure leaves no response to report below
+        message = (f"Could not download checkpoint {checkpoint_name} from any of "
+                   f"{', '.join(urls)}.")
         exceptions = []
         for _response in responses:
             message += f"\n\nResponse code from {_response.url}: {_response.status_code}"
@@ -419,7 +424,9 @@ def download_checkpoint(
                 except Exception as e:
                     exceptions.append(e)
         # ExceptionGroup is introduced in Python 3.11
-        if sys.version_info >= (3, 11):
+        # exceptions is empty when every url failed in transport, which leaves no response to
+        # raise_for_status, and an ExceptionGroup must hold at least one exception
+        if sys.version_info >= (3, 11) and exceptions:
             raise ExceptionGroup(message, exceptions)  # noqa: F821
         else:
             raise RuntimeError(message, responses)

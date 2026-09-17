@@ -354,15 +354,17 @@ python3 FastSurferCNN/download_checkpoints.py --all
 # Download LIT checkpoints used by the lesion inpainting integration. Retried here rather than
 # inside, because it is a third-party entry point with one host and no retry of its own, and it is
 # the largest download in the image.
-for attempt in 1 2 3 ; do
+lit_attempts=3
+for ((attempt = 1; attempt <= lit_attempts; attempt++)) ; do
   if lit-download-models ; then break ; fi
-  if [ "$attempt" = 3 ] ; then
+  if [ "$attempt" = "$lit_attempts" ] ; then
     echo "ERROR: lit-download-models failed $attempt times, giving up."
     exit 1
   fi
-  echo "WARNING: lit-download-models failed, attempt $attempt of 3, retrying in $((attempt * 15))s."
-  # a partial file left behind would make a later presence check believe the model is there
-  rm -rf "$XDG_DATA_HOME/LIT"
+  echo "WARNING: lit-download-models failed, attempt $attempt of $lit_attempts, retrying in $((attempt * 15))s."
+  # a partial file left behind would make a later presence check believe the model is there.
+  # :? rather than a bare expansion, so an unset variable cannot make this rm -rf /LIT
+  rm -rf "${XDG_DATA_HOME:?}/LIT"
   sleep $((attempt * 15))
 done
 EOF

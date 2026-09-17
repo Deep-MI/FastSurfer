@@ -148,8 +148,9 @@ def test_bytecode_stays_out_of_the_build_context():
     its own: it runs `run_fastsurfer.sh --version` to name the image, and that imports
     FastSurferCNN.utils.run_tools.
     """
+    # trailing slashes stripped, so that `**/__pycache__/` reads as the same exclusion it is
     patterns = [
-        line.strip()
+        line.strip().rstrip("/")
         for line in DOCKERIGNORE.read_text().splitlines()
         if line.strip() and not line.strip().startswith("#")
     ]

@@ -81,13 +81,13 @@ jobs:
       # from it is current, so the dependency install would not be skipped.
       #
       # scope names the index only. This backend writes one cache entry per layer blob, so the
-      # caches page shows an `index-pipelinetest-...` entry plus a `buildkit-blob-...` entry for
-      # every layer, around twenty of them. Blobs are keyed by content digest and shared, so a
-      # rebuild of unchanged layers reuses them rather than adding more; what accumulates is one new
-      # blob per layer that actually changed, until the 7 day expiry removes the old one.
+      # caches page shows an `index-pipelinetest-...` entry plus a `buildkit-blob-...` entry per
+      # layer. Blobs are keyed by content digest and shared, so a rebuild of unchanged layers
+      # reuses them rather than adding more; what accumulates is one new blob per layer that
+      # actually changed, until the 7 day expiry removes the old one. Fewer, larger layers in the
+      # Dockerfile would mean fewer entries.
       #
-      # Measured after the first two runs: about 2.3 GB in total, of which nine blobs are 2.28 GB.
-      # The quota is 10 GB for the whole repository, so check
+      # The cache quota is 10 GB for the whole repository and the image is the bulk of it, so check
       # https://github.com/Deep-MI/FastSurfer/actions/caches if other workflows start missing.
       FASTSURFER_BUILD_CACHE: type=gha,mode=max,ignore-error=true,scope=pipelinetest
     # the first clause admits a workflow-dispatch, the rest a pull request. A labeled event fires for

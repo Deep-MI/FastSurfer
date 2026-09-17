@@ -22,10 +22,18 @@ and not a transfer that breaks on a host that is otherwise up. No network is tou
 is replaced with stubs.
 """
 
+import sys
+
 import pytest
 import requests
 
 from FastSurferCNN.utils import checkpoint
+
+# what a failed download raises: an ExceptionGroup where that builtin exists, a RuntimeError
+# before 3.11, and a RuntimeError either way when no host produced a response to group
+DOWNLOAD_FAILED: tuple[type[Exception], ...] = (RuntimeError,)
+if sys.version_info >= (3, 11):
+    DOWNLOAD_FAILED += (ExceptionGroup,)
 
 
 class Reply:
@@ -47,7 +55,8 @@ class Reply:
 def no_sleep(monkeypatch):
     """The backoff must not actually wait, and the delays are asserted on instead."""
     slept = []
-    monkeypatch.setattr("time.sleep", slept.append)
+    # the name the module bound, not time.sleep, so this keeps working wherever the import sits
+    monkeypatch.setattr(checkpoint, "sleep", slept.append)
     return slept
 
 
@@ -142,9 +151,30 @@ def test_giving_up_reports_every_host(monkeypatch, no_sleep, target):
     """When nothing worked, the error has to name what was tried."""
     stub_get(monkeypatch, [Reply(ok=False, status=404, url="https://host-a/a_checkpoint.pkl")])
 
-    # ExceptionGroup on 3.11 and later, RuntimeError before it, and both derive from Exception
-    with pytest.raises(Exception):  # noqa: B017
+    with pytest.raises(DOWNLOAD_FAILED) as failure:
         checkpoint.download_checkpoint(
             "a_checkpoint.pkl", target, ["https://host-a", "https://host-b"]
         )
+    assert "host-b" in str(failure.value)
     assert not target.exists(), "a failed download must not leave a file behind"
+
+
+def test_giving_up_with_no_reply_at_all_still_raises_the_right_error(monkeypatch, no_sleep, target):
+    """
+    The end of the retry path, where the only outcome is transport failures.
+
+    A broken transfer carries no response, so nothing reaches raise_for_status and there is no
+    exception to group. Reporting that as a ValueError about sequence length says nothing about
+    the download.
+    """
+    broken = requests.exceptions.ChunkedEncodingError("Connection broken: IncompleteRead")
+    stub_get(monkeypatch, [broken])
+
+    with pytest.raises(DOWNLOAD_FAILED) as failure:
+        checkpoint.download_checkpoint(
+            "a_checkpoint.pkl", target, ["https://host-a", "https://host-b"]
+        )
+    message = str(failure.value)
+    assert "a_checkpoint.pkl" in message, "the error has to name the checkpoint"
+    assert "host-a" in message and "host-b" in message, "and the hosts it tried"
+    assert not target.exists()
