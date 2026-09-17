@@ -44,7 +44,9 @@ in the other is not reported as a difference. Without it, the files fall back to
 Typical uses are checking whether two runs of the same input agree, and checking whether a change
 to FastSurfer, to FreeSurfer or to the hardware moved any measurement.
 
-Exits 0 when everything compared is identical and 1 otherwise, so it can be used in a script.
+Exit codes, so a caller can tell a finding from a failure: 0 when everything compared is identical,
+1 when it ran and found differences, 2 when it could not run at all, such as a path that holds no
+subject or a pair with nothing comparable in it.
 """
 
 import argparse
@@ -52,6 +54,7 @@ import re
 import sys
 from collections.abc import Callable
 from pathlib import Path
+from typing import NoReturn
 
 import nibabel as nib
 import numpy as np
@@ -298,21 +301,27 @@ GROUPS = (
 )
 
 
+def _cannot_run(message: str) -> NoReturn:
+    """Exit 2, which says the comparison never happened rather than that it found something."""
+    print(f"ERROR: {message}", file=sys.stderr)
+    sys.exit(2)
+
+
 def find_subject(root: Path, subject: "str | None") -> Path:
     """The subject directory inside root, or root itself if it is already one."""
     if not root.is_dir():
-        sys.exit(f"ERROR: {root} is not a directory.")
+        _cannot_run(f"{root} is not a directory.")
     if subject:
         # checked, so that a typo cannot end as "0 files compared" and an exit code of 0
         if not (root / subject / "mri").is_dir():
-            sys.exit(f"ERROR: {root / subject} is not a subject directory, it has no mri.")
+            _cannot_run(f"{root / subject} is not a subject directory, it has no mri.")
         return root / subject
     if (root / "mri").is_dir():
         return root
     candidates = [p for p in sorted(root.iterdir()) if p.is_dir() and (p / "mri").is_dir()]
     if len(candidates) != 1:
         names = [p.name for p in candidates]
-        sys.exit(f"ERROR: cannot pick a subject in {root}, found {names}. Use --subject.")
+        _cannot_run(f"cannot pick a subject in {root}, found {names}. Use --subject.")
     return candidates[0]
 
 
