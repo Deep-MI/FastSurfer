@@ -76,10 +76,15 @@ jobs:
       # ignore-error, so that a rejected or truncated export costs the cache and not the run: without
       # it a cache failure fails this job and the test jobs never start.
       #
-      # mode=max also exports the venv and FreeSurfer stages, which is where the build time goes. It
-      # counts against the repository-wide cache quota, shared with every other workflow, so watch
-      # for eviction churn before assuming it is free.
-      FASTSURFER_BUILD_CACHE: type=gha,mode=max,ignore-error=true
+      # mode=max, because only that exports the build_venv stage: min would cache the final image's
+      # layers, but buildkit still has to rebuild build_venv to know whether the layer that copies
+      # from it is current, so the dependency install would not be skipped.
+      #
+      # One fixed scope, so the entry is overwritten rather than accumulating one per dependency
+      # state. The repository cache quota is 10 GB shared with every workflow, and the image is
+      # about 1.7 GB compressed, so this should sit near 2.5 GB. Check
+      # https://github.com/Deep-MI/FastSurfer/actions/caches if other workflows start missing.
+      FASTSURFER_BUILD_CACHE: type=gha,mode=max,ignore-error=true,scope=pipelinetest
     # the first clause admits a workflow-dispatch, the rest a pull request. A labeled event fires for
     # every label, because GitHub cannot filter by label name in the trigger, so deciding here rather
     # than in a step keeps a runner from starting for the labels dependabot attaches, and makes a run
