@@ -33,7 +33,7 @@ from FastSurferCNN.utils import checkpoint
 # before 3.11, and a RuntimeError either way when no host produced a response to group
 DOWNLOAD_FAILED: tuple[type[Exception], ...] = (RuntimeError,)
 if sys.version_info >= (3, 11):
-    DOWNLOAD_FAILED += (ExceptionGroup,)
+    DOWNLOAD_FAILED += (ExceptionGroup,)  # noqa: F821
 
 
 class Reply:
@@ -127,7 +127,37 @@ def test_a_missing_file_is_not_retried(monkeypatch, no_sleep, target):
     assert [url.split("/")[2] for url, _ in calls] == ["host-a", "host-b"], (
         "the 404 should move straight to the next host rather than being retried"
     )
-    assert no_sleep == [], "a status reply is not a transport failure, so there is nothing to wait for"
+    assert no_sleep == [], "a settled answer is not a failure, so there is nothing to wait for"
+
+
+@pytest.mark.parametrize("status", sorted(checkpoint.DOWNLOAD_RETRY_STATUS))
+def test_a_host_asking_for_later_is_retried(monkeypatch, no_sleep, target, status):
+    """
+    An overloaded host refuses with a status rather than dropping the connection.
+
+    This is the same overload that truncates a transfer, so treating it as a settled answer would
+    end the download on the last url for a host that is about to recover.
+    """
+    calls = stub_get(monkeypatch, [Reply(ok=False, status=status), Reply(ok=True)])
+
+    checkpoint.download_checkpoint("a_checkpoint.pkl", target, ["https://only-host"])
+
+    assert len(calls) == 2, f"{status} should have been retried on the same host"
+    assert no_sleep == [checkpoint.DOWNLOAD_BACKOFF]
+    assert target.read_bytes() == b"weights"
+
+
+def test_a_host_stuck_on_a_transient_status_falls_through(monkeypatch, no_sleep, target):
+    """Retrying is bounded: once the attempts are used up the next host still gets a turn."""
+    # one 503 per attempt on the first host, so that the reply after them belongs to the second
+    outcomes = [Reply(ok=False, status=503)] * checkpoint.DOWNLOAD_ATTEMPTS + [Reply(ok=True)]
+    calls = stub_get(monkeypatch, outcomes)
+
+    checkpoint.download_checkpoint("a_checkpoint.pkl", target, ["https://host-a", "https://host-b"])
+
+    hosts = [url.split("/")[2] for url, _ in calls]
+    assert hosts == ["host-a"] * checkpoint.DOWNLOAD_ATTEMPTS + ["host-b"]
+    assert target.read_bytes() == b"weights"
 
 
 def test_the_read_is_bounded(monkeypatch, no_sleep, target):

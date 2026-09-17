@@ -354,6 +354,10 @@ DOWNLOAD_TIMEOUT = (5, 60)  # (connect, read) in seconds
 # actually do, and it is the only thing protecting the last url in the list.
 DOWNLOAD_ATTEMPTS = 3
 DOWNLOAD_BACKOFF = 5.0  # seconds before the second attempt, doubled for each one after
+# Statuses where the host is up but is refusing for now, which is what an overloaded host returns
+# and is worth another attempt. Every other status, 404 and 403 in particular, is the same answer
+# every time, so the next url is the faster move.
+DOWNLOAD_RETRY_STATUS = frozenset({429, 500, 502, 503, 504})
 
 
 def download_checkpoint(
@@ -364,7 +368,10 @@ def download_checkpoint(
     """
     Download a checkpoint file.
 
-    Raises an HTTPError if the file is not found or the server is not reachable.
+    Each url is tried up to DOWNLOAD_ATTEMPTS times, backing off between attempts, for a broken
+    transfer or a status in DOWNLOAD_RETRY_STATUS. Any other status moves straight to the next url.
+    Raises an ExceptionGroup, or a RuntimeError before Python 3.11 and whenever no host answered at
+    all, once every url has been exhausted.
 
     Parameters
     ----------
@@ -388,25 +395,29 @@ def download_checkpoint(
                     verify=True,
                     timeout=DOWNLOAD_TIMEOUT,
                 )
-                responses.append(reply)
-                break  # a reply arrived, and its status decides whether to try the next url
+                if reply.ok or reply.status_code not in DOWNLOAD_RETRY_STATUS:
+                    break  # a settled answer, and it decides whether to try the next url
+                reason = f"Server {url} answered {reply.status_code}"
 
             except requests.exceptions.RequestException as e:
-                # only the transport failed, which is what another attempt can fix. A reply with a
-                # bad status is not retried: it is the same answer every time.
-                LOGGER.warning(f"Server {url} not reachable ({type(e).__name__}): {e}")
+                reason = f"Server {url} not reachable ({type(e).__name__}): {e}"
                 if isinstance(e.response, requests.Response):
-                    responses.append(e.response)
-                if attempt < DOWNLOAD_ATTEMPTS:
-                    delay = DOWNLOAD_BACKOFF * 2 ** (attempt - 1)
-                    LOGGER.info(
-                        f"Retrying {url} in {delay:.0f}s "
-                        f"({attempt} of {DOWNLOAD_ATTEMPTS} used)"
-                    )
-                    sleep(delay)
-        # Raise error if file does not exist:
-        if reply is not None and reply.ok:
-            break
+                    reply = e.response
+
+            # the transport broke or the host asked for later, and another attempt fixes either
+            LOGGER.warning(reason)
+            if attempt < DOWNLOAD_ATTEMPTS:
+                delay = DOWNLOAD_BACKOFF * 2 ** (attempt - 1)
+                LOGGER.info(
+                    f"Retrying {url} in {delay:.0f}s ({attempt} of {DOWNLOAD_ATTEMPTS} used)"
+                )
+                sleep(delay)
+        # one entry per url rather than per attempt, so the error below reads as a list of hosts
+        if reply is not None:
+            responses.append(reply)
+            # Raise error if file does not exist:
+            if reply.ok:
+                break
 
     # if no request was successful, raise an error with all responses
     if not any(_response.ok for _response in responses):
