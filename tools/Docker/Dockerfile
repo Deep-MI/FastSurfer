@@ -56,6 +56,11 @@
 # - REPOSITORY_URL:
 #   The repository URL of the fastsurfer source code to include in image labels.
 #   - default: "<no repository set>"
+# - SOURCE_URL:
+#   The same repository URL in the form that links to a file rather than a directory, used for the
+#   image source label. Built by build.py, because rewriting it here would replace the first match
+#   in the string rather than the path segment.
+#   - default: "<no repository set>"
 # - DOC_URL:
 #   The documentation URL of fastsurfer to include in image labels.
 #   - default: "https://deep-mi.org/FastSurfer/dev"
@@ -98,6 +103,7 @@ ARG FREESURFER_URL="not set"
 ARG FASTSURFER_VERSION="dev"
 ARG GIT_HASH=""
 ARG REPOSITORY_URL="<no repository set>"
+ARG SOURCE_URL="<no repository set>"
 ARG DOC_URL="https://deep-mi.org/FastSurfer/dev"
 ARG VENDOR="DeepMI Lab, DZNE https://deep-mi.org/"
 ARG AUTHOR="FastSurfer Developers <https://github.com/Deep-MI/FastSurfer>"
@@ -147,6 +153,7 @@ ARG PYTHON_VERSION
 ARG DEVICE
 ARG AUTHOR
 ARG REPOSITORY_URL
+ARG SOURCE_URL
 ARG DOC_URL
 ARG FASTSURFER_VERSION
 ARG GIT_HASH
@@ -176,7 +183,7 @@ EOF
 LABEL org.opencontainers.image.authors="$AUTHOR" \
       org.opencontainers.image.url="$REPOSITORY_URL" \
       org.opencontainers.image.documentation="$DOC_URL/overview/docker.html" \
-      org.opencontainers.image.source="${REPOSITORY_URL/tree/blob}/tools/Docker/Dockerfile" \
+      org.opencontainers.image.source="$SOURCE_URL/tools/Docker/Dockerfile" \
       org.opencontainers.image.version="$FASTSURFER_VERSION" \
       org.opencontainers.image.revision="$GIT_HASH" \
       org.opencontainers.image.vendor="$VENDOR" \
@@ -192,6 +199,7 @@ FROM build_base AS build_freesurfer
 ARG DEVICE
 ARG AUTHOR
 ARG REPOSITORY_URL
+ARG SOURCE_URL
 ARG DOC_URL
 ARG FREESURFER_VERSION
 ARG FREESURFER_URL
@@ -203,7 +211,7 @@ ARG BUILD_BASE_IMAGE
 LABEL org.opencontainers.image.authors="$AUTHOR" \
       org.opencontainers.image.url="$REPOSITORY_URL" \
       org.opencontainers.image.documentation="$DOC_URL/overview/docker.html" \
-      org.opencontainers.image.source="${REPOSITORY_URL/tree/blob}/tools/Docker/Dockerfile" \
+      org.opencontainers.image.source="$SOURCE_URL/tools/Docker/Dockerfile" \
       org.opencontainers.image.version="$FREESURFER_VERSION" \
       org.opencontainers.image.revision="$GIT_HASH" \
       org.opencontainers.image.vendor="$VENDOR" \
@@ -246,6 +254,7 @@ FROM $RUNTIME_BASE_IMAGE AS runtime
 
 ARG AUTHOR
 ARG REPOSITORY_URL
+ARG SOURCE_URL
 ARG DOC_URL
 ARG FASTSURFER_VERSION
 ARG GIT_HASH
@@ -258,7 +267,7 @@ ARG PYTHON_VERSION
 LABEL org.opencontainers.image.authors="$AUTHOR" \
       org.opencontainers.image.url="$REPOSITORY_URL" \
       org.opencontainers.image.documentation="$DOC_URL/overview/docker.html" \
-      org.opencontainers.image.source="${REPOSITORY_URL/tree/blob}/tools/Docker/Dockerfile" \
+      org.opencontainers.image.source="$SOURCE_URL/tools/Docker/Dockerfile" \
       org.opencontainers.image.version="$FASTSURFER_VERSION" \
       org.opencontainers.image.revision="$GIT_HASH" \
       org.opencontainers.image.vendor="$VENDOR" \

@@ -24,7 +24,8 @@ from collections.abc import Sequence
 from pathlib import Path
 from typing import Literal, cast, get_args
 
-# python 3.11 supports tomllib, but we have tomli in fastsurfer
+# tomllib is standard library from 3.11. tomli covers older interpreters, but it is not a
+# dependency of this project, so this script needs 3.11 or newer in practice.
 if sys.version_info >= (3, 11):
     import tomllib
 else:
@@ -729,11 +730,19 @@ def main(
     with open(build_filename) as build_file:
         build_info = parse_build_file(build_file)
 
-    if repository_url == "":
+    # falsy rather than == "", because get_repository_url returns None when the branch tracks no
+    # remote, which a detached checkout such as the one CI makes always does
+    if not repository_url:
         logger.info("Could not read upstream from git, defaulting to repository URL from pyproject.toml.")
         remote_branch = "stable" if has_git() and build_info["git_branch"] == "stable" else "dev"
         repository_url = f"{pyproject_repository_url}/tree/{remote_branch}"
 
+    # the url of the source file, derived here rather than by rewriting "tree" to "blob" in the
+    # Dockerfile: that substitution takes the first match anywhere in the string, so an owner whose
+    # name contains "tree" would have that replaced instead of the path segment. rpartition, so the
+    # segment appended just above is the one that changes.
+    head, separator, branch_segment = repository_url.rpartition("/tree/")
+    source_url = f"{head}/blob/{branch_segment}" if separator else repository_url
 
     if has_git():
         kwargs["build_arg"].append(f"GIT_HASH={build_info['git_hash']}")
@@ -743,6 +752,7 @@ def main(
     kwargs["build_arg"].extend([
         f"FASTSURFER_VERSION={build_info['version_tag']}",
         f"REPOSITORY_URL={repository_url}",
+        f"SOURCE_URL={source_url}",
     ])
     version_tag = build_info["version_tag"]
     image_prefix = ""
@@ -799,27 +809,44 @@ def get_repository_url(branch: str = "HEAD") -> str | None:
     str or None
         If a remote is defined, the repository URL of the tracking remote repository, including the branch, else None.
     """
+    from subprocess import PIPE
+    from urllib.parse import urlsplit, urlunsplit
+
     from FastSurferCNN.utils.run_tools import Popen
 
-    process = Popen(["git", "branch", "--format=%(upstream:short)", "--list", branch], capture_output=True)
-    result = process.finish()
-    if result.retcode != 0:
-        logger.error(result.err_str())
-        raise RuntimeError("Could not get the remote of the current branch from git.")
-    remote_ref = result.out_str().strip()
-    if remote_ref == "":
+    # rev-parse of <branch>@{upstream} rather than `git branch --list <branch>`, which filters
+    # branch names by glob and so never matched HEAD. A non-zero exit means no upstream is
+    # configured, which is the normal state of the detached checkout CI builds from.
+    # stdout/stderr rather than capture_output, which is a subprocess.run keyword, not a Popen one.
+    upstream = Popen(
+        ["git", "rev-parse", "--abbrev-ref", "--symbolic-full-name", f"{branch}@{{upstream}}"],
+        stdout=PIPE, stderr=PIPE,
+    ).finish()
+    if upstream.retcode != 0:
+        return None
+    remote_ref = upstream.out_str().strip()
+    if "/" not in remote_ref:
         # no remote branch defined, no repository URL can be determined
         return None
     remote, remote_branch = remote_ref.split("/", 1)
-    repository_process = Popen(["git", "remote", "get-url", remote], capture_output=True).finish()
+    repository_process = Popen(["git", "remote", "get-url", remote],
+                               stdout=PIPE, stderr=PIPE).finish()
     if repository_process.retcode != 0:
-        logger.error(repository_process.err_str())
+        # info, not error: the caller treats this as a normal fallback to the pyproject url
+        logger.info(repository_process.err_str())
         raise RuntimeError("Could not get the repository URL from git.")
     repository_url = repository_process.out_str().strip()
     if repository_url.endswith(".git"):
         repository_url = repository_url[:-4]
     if repository_url.startswith("git@"):
         repository_url = "https://" + repository_url[4:].replace(":", "/")
+    # drop any userinfo: an https remote can carry a username and a personal access token, and
+    # this string is written into the image's org.opencontainers.image.url label, which anyone
+    # who pulls the image can read
+    split = urlsplit(repository_url)
+    if split.hostname and "@" in split.netloc:
+        host = split.hostname + (f":{split.port}" if split.port else "")
+        repository_url = urlunsplit(split._replace(netloc=host))
     return repository_url + "/tree/" + remote_branch
 
 
