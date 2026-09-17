@@ -729,7 +729,9 @@ def main(
     with open(build_filename) as build_file:
         build_info = parse_build_file(build_file)
 
-    if repository_url == "":
+    # falsy rather than == "", because get_repository_url returns None when the branch tracks no
+    # remote, which a detached checkout such as the one CI makes always does
+    if not repository_url:
         logger.info("Could not read upstream from git, defaulting to repository URL from pyproject.toml.")
         remote_branch = "stable" if has_git() and build_info["git_branch"] == "stable" else "dev"
         repository_url = f"{pyproject_repository_url}/tree/{remote_branch}"
@@ -799,19 +801,27 @@ def get_repository_url(branch: str = "HEAD") -> str | None:
     str or None
         If a remote is defined, the repository URL of the tracking remote repository, including the branch, else None.
     """
+    from subprocess import PIPE
+
     from FastSurferCNN.utils.run_tools import Popen
 
-    process = Popen(["git", "branch", "--format=%(upstream:short)", "--list", branch], capture_output=True)
-    result = process.finish()
-    if result.retcode != 0:
-        logger.error(result.err_str())
-        raise RuntimeError("Could not get the remote of the current branch from git.")
-    remote_ref = result.out_str().strip()
-    if remote_ref == "":
+    # rev-parse of <branch>@{upstream} rather than `git branch --list <branch>`, which filters
+    # branch names by glob and so never matched HEAD. A non-zero exit means no upstream is
+    # configured, which is the normal state of the detached checkout CI builds from.
+    # stdout/stderr rather than capture_output, which is a subprocess.run keyword, not a Popen one.
+    upstream = Popen(
+        ["git", "rev-parse", "--abbrev-ref", "--symbolic-full-name", f"{branch}@{{upstream}}"],
+        stdout=PIPE, stderr=PIPE,
+    ).finish()
+    if upstream.retcode != 0:
+        return None
+    remote_ref = upstream.out_str().strip()
+    if "/" not in remote_ref:
         # no remote branch defined, no repository URL can be determined
         return None
     remote, remote_branch = remote_ref.split("/", 1)
-    repository_process = Popen(["git", "remote", "get-url", remote], capture_output=True).finish()
+    repository_process = Popen(["git", "remote", "get-url", remote],
+                               stdout=PIPE, stderr=PIPE).finish()
     if repository_process.retcode != 0:
         logger.error(repository_process.err_str())
         raise RuntimeError("Could not get the repository URL from git.")
