@@ -33,6 +33,7 @@ import pytest
 
 FASTSURFER_HOME = Path(__file__).parent.parent.parent
 DOCKERFILE = FASTSURFER_HOME / "tools" / "Docker" / "Dockerfile"
+DOCKERIGNORE = FASTSURFER_HOME / ".dockerignore"
 ENTRY_POINT = "FastSurferCNN/download_checkpoints.py"
 # the packages whose files are part of this repository rather than the venv
 REPO_PACKAGES = ("FastSurferCNN", "CerebNet", "CorpusCallosum", "HypVINN", "recon_surf")
@@ -135,4 +136,24 @@ def test_early_copy_stays_narrow(sources: list[str]):
     assert packages == [], (
         f"the early COPY takes whole package(s) {packages}, so any edit inside them re-downloads "
         f"the weights; copy the files the downloader needs instead"
+    )
+
+
+def test_bytecode_stays_out_of_the_build_context():
+    """
+    Bytecode reaching the context would invalidate the weights layer on every build.
+
+    `COPY FastSurferCNN/utils` takes the directory, and a .pyc left there carries the source
+    mtime in its header, which a fresh checkout sets anew. The CI build gets into that state on
+    its own: it runs `run_fastsurfer.sh --version` to name the image, and that imports
+    FastSurferCNN.utils.run_tools.
+    """
+    patterns = [
+        line.strip()
+        for line in DOCKERIGNORE.read_text().splitlines()
+        if line.strip() and not line.strip().startswith("#")
+    ]
+    assert "**/__pycache__" in patterns, (
+        ".dockerignore no longer excludes **/__pycache__, so bytecode written before the build "
+        "enters the context and the weights layer misses the cache on every run"
     )
