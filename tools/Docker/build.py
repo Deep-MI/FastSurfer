@@ -737,6 +737,12 @@ def main(
         remote_branch = "stable" if has_git() and build_info["git_branch"] == "stable" else "dev"
         repository_url = f"{pyproject_repository_url}/tree/{remote_branch}"
 
+    # the url of the source file, derived here rather than by rewriting "tree" to "blob" in the
+    # Dockerfile: that substitution takes the first match anywhere in the string, so an owner whose
+    # name contains "tree" would have that replaced instead of the path segment. rpartition, so the
+    # segment appended just above is the one that changes.
+    head, separator, branch_segment = repository_url.rpartition("/tree/")
+    source_url = f"{head}/blob/{branch_segment}" if separator else repository_url
 
     if has_git():
         kwargs["build_arg"].append(f"GIT_HASH={build_info['git_hash']}")
@@ -746,6 +752,7 @@ def main(
     kwargs["build_arg"].extend([
         f"FASTSURFER_VERSION={build_info['version_tag']}",
         f"REPOSITORY_URL={repository_url}",
+        f"SOURCE_URL={source_url}",
     ])
     version_tag = build_info["version_tag"]
     image_prefix = ""
