@@ -344,10 +344,22 @@ def remove_ckpt(ckpt: str | Path):
         pass
 
 
+# A read timeout, unlike a connect timeout, bounds the gap between received chunks. Without one a
+# server that accepts the connection and then stops sending leaves this hanging with nothing to
+# time it out, which in a docker build means hanging until the job's own limit.
+DOWNLOAD_TIMEOUT = (5, 60)  # (connect, read) in seconds
+# Attempts per url before moving to the next one. The urls are alternative hosts, so falling through
+# already covers one being down; this covers the transfer itself breaking, which is what the hosts
+# actually do, and it is the only thing protecting the last url in the list.
+DOWNLOAD_ATTEMPTS = 3
+DOWNLOAD_BACKOFF = 5.0  # seconds before the second attempt, doubled for each one after
+
+
 def download_checkpoint(
         checkpoint_name: str,
         checkpoint_path: str | Path,
         urls: list[str],
+        attempts: int = DOWNLOAD_ATTEMPTS,
 ) -> None:
     """
     Download a checkpoint file.
@@ -362,24 +374,36 @@ def download_checkpoint(
         Path of the file in which the checkpoint will be saved.
     urls : list[str]
         List of URLs of checkpoint hosting sites.
+    attempts : int, default=DOWNLOAD_ATTEMPTS
+        How often to try each url before moving to the next.
     """
+    from time import sleep
+
     responses = []
     for url in urls:
-        try:
-            LOGGER.info(f"Downloading checkpoint {checkpoint_name} from {url}")
-            responses.append(requests.get(
-                url + "/" + checkpoint_name,
-                verify=True,
-                timeout=(5, None),  # (connect timeout: 5 sec, read timeout: None)
-            ))
-            # Raise error if file does not exist:
-            if responses[-1].ok:
-                break
+        for attempt in range(1, attempts + 1):
+            try:
+                LOGGER.info(f"Downloading checkpoint {checkpoint_name} from {url}")
+                responses.append(requests.get(
+                    url + "/" + checkpoint_name,
+                    verify=True,
+                    timeout=DOWNLOAD_TIMEOUT,
+                ))
+                break  # a reply arrived, and its status decides whether to try the next url
 
-        except requests.exceptions.RequestException as e:
-            LOGGER.warning(f"Server {url} not reachable ({type(e).__name__}): {e}")
-            if isinstance(e.response, requests.Response):
-                responses.append(e.response)
+            except requests.exceptions.RequestException as e:
+                # only the transport failed, which is what another attempt can fix. A reply with a
+                # bad status is not retried: it is the same answer every time.
+                LOGGER.warning(f"Server {url} not reachable ({type(e).__name__}): {e}")
+                if isinstance(e.response, requests.Response):
+                    responses.append(e.response)
+                if attempt < attempts:
+                    delay = DOWNLOAD_BACKOFF * 2 ** (attempt - 1)
+                    LOGGER.info(f"Retrying {url} in {delay:.0f}s ({attempt} of {attempts} used)")
+                    sleep(delay)
+        # Raise error if file does not exist:
+        if responses and responses[-1].ok:
+            break
 
     # if no request was successful, raise an error with all responses
     if not any(_response.ok for _response in responses):
