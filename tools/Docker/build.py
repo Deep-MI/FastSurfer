@@ -265,14 +265,14 @@ def make_parser() -> argparse.ArgumentParser:
         help="Build the Python environment from backend-neutral pinned requirements.txt "
              "instead of resolving the latest compatible versions from pyproject.toml.",
     )
-    # --save_image does not work as expected right now, it cannot be imported via
-    # docker load, but must be transferred to a registry...
-    # parser.add_argument(
-    #     "--save_image",
-    #     dest="image_path",
-    #     default=None,
-    #     help="Export the image to a tarball.",
-    # )
+    parser.add_argument(
+        "--save_image",
+        dest="image_path",
+        default=None,
+        help="Export the image to a tarball instead of loading it into docker. The tarball is in "
+             "the docker format, so 'docker load -i <file>' reads it back, unless --attest is also "
+             "given, which requires the oci layout to keep the attestation manifests.",
+    )
     parser.add_argument(
         "--singularity",
         type=Path,
@@ -430,7 +430,8 @@ def docker_build_image(
     action : "load", "push", default="load"
         The operation to perform after the image is built (only if a docker-container builder is detected).
     image_path : Path, str, optional
-        A path to save the image to (experimental; currently cannot be imported into a legacy docker storage driver).
+        A path to save the image to instead of performing `action`. Written in the docker format,
+        which `docker load` reads back, unless attestation is on, which needs the oci layout.
 
     Additional kwargs add additional build flags to the build command in the following manner: "_" is replaced by "-" in
     the keyword name and each sequence entry is passed with its own flag, e.g.
@@ -477,10 +478,9 @@ def docker_build_image(
                          any(is_inline_cache(f"cache_{c}") for c in ("to", "from")))
     import_after_args = []
     if dest := (image_path or ""):
-        logger.warning(
-            "Images exported with image_path cannot be imported into legacy storage drivers. This feature is currently "
-            "experimental. Also note, that exporting to a file is incompatible with the load and push actions. "
-            f"Deactivating {action}-action!")
+        logger.info(
+            f"Exporting to a file is incompatible with the load and push actions, "
+            f"deactivating the {action}-action.")
         dest = f",dest={dest}"
         action = "export"
     if not has_buildx:
@@ -512,23 +512,26 @@ def docker_build_image(
             image_type = "image"
             # both support attestation no problem
         elif action == "export":
-            experimental = ". No image will be imported. This features is experimental."
             if attestation:
-                warn_msg = (f"{CONTAINERD_MESSAGE}The build script will save the image "
-                            f"to {image_path} (which will contain the attestation "
-                            f"manifest files){experimental}")
+                # the oci layout is what carries the attestation manifests, and docker load
+                # cannot read it, so such an image has to travel through a registry
+                logger.warning(
+                    f"{CONTAINERD_MESSAGE}The build script will save the image to {image_path}, "
+                    f"which will contain the attestation manifest files. No image will be "
+                    f"imported, and this layout cannot be read back with docker load."
+                )
+                image_type = f"oci{dest}"
             else:
-                warn_msg = (f"The build script will save the image to {image_path}"
-                            f"{experimental}")
-            logger.warning(warn_msg)
-            image_type = f"oci{dest}"
+                # the docker format, so that `docker load -i <image_path>` reads it back
+                logger.info(
+                    f"The build script will save the image to {image_path}. No image will be "
+                    f"imported into docker."
+                )
+                image_type = f"docker{dest}"
             if dry_run:
                 print(f"mkdir -p {Path(image_path).parent} && ", end="")
             else:
-                Path(image_path).parent.mkdir(exist_ok=True)
-            # importing after (bock docker image import as well as docker image load are not supported for images
-            # exported by buildkit.
-            # import_after_args = ["image", "import", image_path, image_name]
+                Path(image_path).parent.mkdir(parents=True, exist_ok=True)
         elif attestation:
             # also implicitly action == load
             raise RuntimeError(CONTAINERD_MESSAGE)
@@ -538,7 +541,8 @@ def docker_build_image(
             image_type = "docker"
 
         args.extend(["--output", f"type={image_type},name={image_name}"])
-        if not bool(import_after_args):
+        # export is not a buildx flag, the --output above already names the destination file
+        if action in ("load", "push") and not bool(import_after_args):
             args.append(f"--{action}")
         if attestation:
             args.extend([
