@@ -73,8 +73,12 @@ runs:
         # being interpreted as part of this script
         printf '%s\n' "$LICENSE" > $DATA_DIR/.fs_license
         # --retry-all-errors as well as --retry, which on its own covers only 5xx, 408 and 429 and
-        # so not the connection resets and stalled handshakes the host also produces
+        # so not the connection resets and stalled handshakes the host also produces.
+        # --speed-limit with --speed-time, because neither --connect-timeout nor --retry bounds a
+        # transfer that stalls after the handshake: curl would block to the job timeout without ever
+        # returning the error a retry needs.
         curl --fail -L -k --retry 5 --retry-all-errors --retry-delay 10 --connect-timeout 30 \
+          --speed-limit 1000 --speed-time 60 \
           "$IMAGE_HREF" -o "$DATA_DIR/T1${{ inputs.file-extension }}"
         if [[ "$EXTRA_ARGS" != "${EXTRA_ARGS/--threads/}" ]] || [[ "$EXTRA_ARGS" != "${EXTRA_ARGS/--parallel/}" ]] || [[ "$EXTRA_ARGS" != "${EXTRA_ARGS/--fs_license/}" ]] || [[ "$EXTRA_ARGS" != "${EXTRA_ARGS/--sd/}" ]] || [[ "$EXTRA_ARGS" != "${EXTRA_ARGS/--sid/}" ]] ; then
           echo "--threads, --parallel, --fs_license, --sid, --sd are not allowed in extra-args!"

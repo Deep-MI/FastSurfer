@@ -151,7 +151,9 @@ if __name__ == "__main__":
             print(f"# {_line}")
     for _var, _value in _pins.items():
         if _var in os.environ:
-            print(f"# WARNING: {_var} is already set to '{os.environ[_var]}', so it is left alone.")
+            # quoted, because a value carrying a newline would otherwise end the comment and leave
+            # the rest of it as a line the caller's eval would try to run
+            print(f"# WARNING: {_var} is already set to {shlex.quote(os.environ[_var])!r}, left alone.")
             print("#   Reproducing this step elsewhere then needs that value supported and identical there.")
         else:
             print(f"export {_var}={shlex.quote(_value)}")

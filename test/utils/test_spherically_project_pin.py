@@ -214,3 +214,67 @@ def test_the_wrapper_imports_without_numpy():
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
+
+
+class TestShellForm:
+    """
+    The `python pin_cpu_dispatch.py` form, which talairach-reg.sh and run_fastsurfer.sh eval.
+
+    Nothing else covers it: a regression here produces output that eval ignores or chokes on, and
+    both callers treat a zero exit as success, so the step would run unpinned while the log says it
+    succeeded. That is the failure this pinning exists to remove.
+    """
+
+    SCRIPT = FASTSURFER_HOME / "recon_surf" / "pin_cpu_dispatch.py"
+
+    def run(self, env_extra=None):
+        env = {**os.environ, "PYTHONPATH": str(FASTSURFER_HOME)}
+        for key in ("OPENBLAS_CORETYPE", "NPY_DISABLE_CPU_FEATURES"):
+            env.pop(key, None)
+        env.update(env_extra or {})
+        return subprocess.run(
+            [sys.executable, str(self.SCRIPT)], env=env, capture_output=True, text=True, check=True,
+        ).stdout
+
+    def eval_in_bash(self, stdout, env_extra=None):
+        """
+        What the callers do with it: eval, then report what landed in the environment.
+
+        env_extra has to match what the script was run with, since a variable it deliberately left
+        alone is only visible here if this shell inherited it too.
+        """
+        script = f'{stdout}\nprintf "%s|%s" "${{OPENBLAS_CORETYPE-}}" "${{NPY_DISABLE_CPU_FEATURES-}}"'
+        env = {**os.environ}
+        for key in ("OPENBLAS_CORETYPE", "NPY_DISABLE_CPU_FEATURES"):
+            env.pop(key, None)
+        env.update(env_extra or {})
+        done = subprocess.run(["bash", "-c", script], env=env, capture_output=True, text=True)
+        assert done.returncode == 0, f"eval of the emitted text failed: {done.stderr}"
+        return done.stdout.split("|")
+
+    @pytest.mark.skipif(not HAS_NUMPY, reason="needs a numpy to read features from")
+    def test_emits_a_core_type_that_survives_eval(self):
+        coretype, _ = self.eval_in_bash(self.run())
+        assert coretype == "Nehalem"
+
+    @pytest.mark.skipif(not HAS_NUMPY, reason="needs a numpy to read features from")
+    def test_an_already_set_value_is_left_alone_and_only_commented(self):
+        already = {"OPENBLAS_CORETYPE": "Haswell"}
+        stdout = self.run(already)
+        assert "export OPENBLAS_CORETYPE" not in stdout
+        coretype, _ = self.eval_in_bash(stdout, already)
+        assert coretype == "Haswell"
+
+    @pytest.mark.skipif(not HAS_NUMPY, reason="needs a numpy to read features from")
+    def test_a_value_carrying_a_newline_cannot_break_out_of_the_comment(self):
+        """A `#` comment ends at the newline, so an unquoted value would leave a line to run."""
+        hostile = {"OPENBLAS_CORETYPE": "Haswell\ntouch pwned"}
+        stdout = self.run(hostile)
+        # must not raise, so the emitted text is still valid shell despite the newline
+        self.eval_in_bash(stdout, hostile)
+        assert not Path("pwned").exists(), "a value with a newline escaped into an executed line"
+
+    def test_every_non_comment_line_is_an_export(self):
+        """eval gets only assignments, whatever the interpreter reports."""
+        for line in self.run().splitlines():
+            assert line.startswith(("#", "export ")), f"not evalable: {line!r}"

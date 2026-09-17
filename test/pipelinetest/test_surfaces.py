@@ -62,10 +62,8 @@ def test_surface_geometry(
     _, test_coords, test_faces = test_subject.load_surface(surface)
     _, reference_coords, reference_faces = ref_subject.load_surface(surface)
 
-    def same(a: np.ndarray, b: np.ndarray) -> bool:
-        return a.shape == b.shape and np.array_equal(a, b)
-
-    if not same(test_coords, reference_coords) or not same(test_faces, reference_faces):
+    # array_equal is False for a shape mismatch too, so it covers a changed vertex or face count
+    if not np.array_equal(test_coords, reference_coords) or not np.array_equal(test_faces, reference_faces):
         record_difference(pytestconfig, surface)
 
     stage = chain_stage(surface)

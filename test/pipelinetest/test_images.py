@@ -129,7 +129,7 @@ def test_segmentation_image(
     reference_file, reference_img = ref_subject.load_image(segmentation_image)
     reference_data = np.asarray(reference_img.dataobj)
 
-    if test_data.shape != reference_data.shape or not np.array_equal(test_data, reference_data):
+    if not np.array_equal(test_data, reference_data):
         record_difference(pytestconfig, segmentation_image)
 
     label_segids = np.unique([reference_data, test_data]).tolist()
@@ -192,12 +192,14 @@ def test_intensity_image(
     skip_if_missing(ref_subject, test_subject, intensity_image)
 
     # Get the image data
+    # caching="unchanged", so nibabel does not keep the float64 array on the image: _read_image_cached
+    # holds every image for the session, and these are 250 MB each at 0.8mm
     test_file, test_img = test_subject.load_image(intensity_image)
-    test_data = test_img.get_fdata()
+    test_data = test_img.get_fdata(caching="unchanged")
     reference_file, reference_img = ref_subject.load_image(intensity_image)
-    reference_data = reference_img.get_fdata()
+    reference_data = reference_img.get_fdata(caching="unchanged")
 
-    if test_data.shape != reference_data.shape or not np.array_equal(test_data, reference_data):
+    if not np.array_equal(test_data, reference_data):
         record_difference(pytestconfig, intensity_image)
 
     delta_dir = pytestconfig.getoption("--collect_csv")

@@ -69,8 +69,13 @@ runs:
         fi
         # --fail, so that an error page is not unpacked as if it were the reference archive.
         # --retry-all-errors as well as --retry, which on its own covers only 5xx, 408 and 429 and
-        # so not the connection resets and stalled handshakes the host also produces
+        # so not the connection resets and stalled handshakes the host also produces.
+        # --speed-limit with --speed-time, because neither --connect-timeout nor --retry bounds a
+        # transfer that stalls after the handshake: curl would block to the job timeout without ever
+        # returning the error a retry needs. A rate floor rather than --max-time, which would also
+        # cut a download that is merely slow.
         curl --fail -k --retry 5 --retry-all-errors --retry-delay 10 --connect-timeout 30 \
+          --speed-limit 1000 --speed-time 60 \
           "$CASE_HREF" -o "$REF_DIR/ref-download-data"
         tar xf "$REF_DIR/ref-download-data" -C "$REF_DIR"
         rm -f "$REF_DIR/ref-download-data"

@@ -39,23 +39,23 @@ def read_chain() -> list[dict[str, str]]:
 
 
 @lru_cache
+def _chain_index() -> dict[str, tuple[int, str]]:
+    """Filename to its position and stage, so both lookups share one pass over the chain."""
+    return {entry["file"]: (i, entry["stage"]) for i, entry in enumerate(read_chain())}
+
+
 def chain_position(filename: str) -> int:
     """
     Where a file sits in the pipeline, for sorting comparisons so that the first failure is the
     first divergence. Files missing from the chain sort last, keeping them out of that reading.
     """
-    for position, entry in enumerate(read_chain()):
-        if entry["file"] == filename:
-            return position
-    return len(read_chain())
+    index = _chain_index()
+    return index[filename][0] if filename in index else len(index)
 
 
 def chain_stage(filename: str) -> str:
     """The pipeline stage a file belongs to, or an empty string if it is not in the chain."""
-    for entry in read_chain():
-        if entry["file"] == filename:
-            return entry["stage"]
-    return ""
+    return _chain_index().get(filename, (0, ""))[1]
 
 
 def chain_order(filename: str) -> tuple[int, str]:
@@ -108,20 +108,20 @@ def skip_if_missing(
         surface: bool = False,
 ) -> None:
     """
-    Skip a comparison when either side lacks the file, naming the side that does.
+    Decide what a comparison should do when a side lacks the file.
 
-    test_file_existence owns the existence assertion, so a comparison that cannot run reports the
-    gap once rather than a second time as a confusing failure inside a dice or distance check.
-    Both subjects carry the same name, so they are labelled by role here.
+    The two sides are not symmetric. test_file_existence walks the test subject only, so a file
+    missing there is already reported and the comparison skips rather than failing twice. Nothing
+    checks the reference, so a file missing there is a silent loss of coverage and fails here.
     """
     has = SubjectDefinition.has_surface if surface else SubjectDefinition.has_image
-    absent = [
-        label
-        for label, subject in (("the reference", ref_subject), ("the test subject", test_subject))
-        if not has(subject, filename)
-    ]
-    if absent:
-        pytest.skip(f"{filename} is absent from {' and '.join(absent)}")
+    if not has(ref_subject, filename):
+        pytest.fail(
+            f"{filename} is absent from the reference, so this comparison cannot run. Nothing else "
+            f"checks the reference side, so skipping it would drop the check silently."
+        )
+    if not has(test_subject, filename):
+        pytest.skip(f"{filename} is absent from the test subject, which test_file_existence reports")
 
 
 logger = logging.getLogger(__name__)
