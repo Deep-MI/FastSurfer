@@ -206,7 +206,7 @@ class Tolerances:
             self.mapper = None
             # raise ValueError("lut not found in config file")
 
-    def threshold(self, label_or_key: int | str) -> tuple[str, float]:
+    def threshold(self, label_or_key: int | str, fallback_key: str | None = None) -> tuple[str, float]:
         """
         Return a threshold for a label or key.
 
@@ -214,6 +214,9 @@ class Tolerances:
         ----------
         label_or_key : int | str
             If label is an int, assume this is a segmentation id, so try the lut, else get the value under thresholds.
+        fallback_key : str, optional
+            Key under thresholds to use when the label has no entry of its own, tried before
+            default_threshold. The stats tables pass "structure", the limit shared by every row.
 
         Returns
         -------
@@ -233,10 +236,14 @@ class Tolerances:
                 _labelname = str(label_or_key)
                 if not bool(labelname):
                     labelname = _labelname
-            try:
-                return labelname, self.config["thresholds"][_labelname]
-            except KeyError:
-                return labelname, self.config["default_threshold"]
+            for key in (_labelname, fallback_key):
+                if key is None:
+                    continue
+                try:
+                    return labelname, self.config["thresholds"][key]
+                except KeyError:
+                    pass
+            return labelname, self.config["default_threshold"]
         else:
             raise ValueError("Invalid type of label argument!")
 
