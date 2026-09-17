@@ -64,7 +64,7 @@ def test_surface_geometry(
 
     # array_equal is False for a shape mismatch too, so it covers a changed vertex or face count
     if not np.array_equal(test_coords, reference_coords) or not np.array_equal(test_faces, reference_faces):
-        record_difference(pytestconfig, surface)
+        record_difference(pytestconfig, test_subject.name, surface)
 
     stage = chain_stage(surface)
     counts = (

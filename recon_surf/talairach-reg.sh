@@ -159,10 +159,20 @@ else
     # digits between an Intel and an AMD runner, and everything concatenated from it inherits that.
     # LAPACK is what does the work here, which is why the torch and MKL pins the pipeline test sets
     # do not cover it. Same reasoning and same pinning as the spherical projection.
-    # Exported before the first python call, because both are read once at import.
-    if pins=$($python "${binpath}pin_cpu_dispatch.py") ; then
-      echo "$pins" | tee -a "$LF"  # what was pinned, and any warning, as shell comments
-      eval "$pins"
+    #
+    # Prefixed onto the python calls rather than exported, so the FreeSurfer binaries in between
+    # keep the kernels they would have chosen: their outputs already reproduce across vendors, and
+    # OPENBLAS_CORETYPE names an x86 core, which is not a value to hand an aarch64 build untested.
+    # Warnings go straight to the log, because every line on stdout becomes a variable here.
+    pin=()
+    if pins=$($python "${binpath}pin_cpu_dispatch.py" --env 2>>"$LF") ; then
+      while IFS= read -r line ; do
+        if [[ -n "$line" ]] ; then pin+=("$line") ; fi
+      done <<< "$pins"
+      if [[ ${#pin[@]} -gt 0 ]] ; then
+        echo "pinning the cpu dispatch for the registration: ${pin[*]}" | tee -a "$LF"
+        pin=(env "${pin[@]}")
+      fi
     else
       {
         echo "WARNING: could not pin the cpu dispatch, so this registration may not reproduce"
@@ -173,7 +183,7 @@ else
     # compute prealignment
     prealigned_lta=$mdir/transforms/segreg_prealigned.lta
     reference_centroids=mni_icbm152_t1_tal_nlin_asym_09c
-    cmd=($python -m "neuroreg.cli.segreg" --seg "$asegdkt_segfile" --lta "$prealigned_lta" --dof 12
+    cmd=("${pin[@]}" $python -m "neuroreg.cli.segreg" --seg "$asegdkt_segfile" --lta "$prealigned_lta" --dof 12
          --centroids "$reference_centroids")
     run_it "$LF" "${cmd[@]}"
 
@@ -195,7 +205,7 @@ else
 
     # convert intermediate xfm to lta (must be done before removing prealigned_name, which provides src geometry)
     intermediate_talairach_lta=$intermediate_tal_file.auto.xfm.lta
-    cmd=($python -m "neuroreg.cli.lta" convert
+    cmd=("${pin[@]}" $python -m "neuroreg.cli.lta" convert
          "$intermediate_tal_file.auto.xfm" "$intermediate_talairach_lta"
          --src-img "$prealigned_name"
          --dst-img "$FREESURFER_HOME/average/mni305.cor.mgz"
@@ -209,11 +219,11 @@ else
 
     concatenated_lta=$tal_file.auto.xfm.lta
 
-    cmd=($python -m "neuroreg.cli.lta" concat "$prealigned_lta" "$intermediate_talairach_lta" "$concatenated_lta")
+    cmd=("${pin[@]}" $python -m "neuroreg.cli.lta" concat "$prealigned_lta" "$intermediate_talairach_lta" "$concatenated_lta")
     run_it "$LF" "${cmd[@]}"
 
     concatenated_xfm=$mdir/transforms/talairach.auto.xfm
-    cmd=($python -m "neuroreg.cli.lta" convert "$concatenated_lta" "$concatenated_xfm")
+    cmd=("${pin[@]}" $python -m "neuroreg.cli.lta" convert "$concatenated_lta" "$concatenated_xfm")
     run_it "$LF" "${cmd[@]}"
 
   fi
@@ -229,7 +239,7 @@ else
     # regular processing (cross and base)
 
     # talairach.lta: convert to lta
-    cmd=($python -m "neuroreg.cli.lta" convert
+    cmd=("${pin[@]}" $python -m "neuroreg.cli.lta" convert
          "$tal_file.xfm" "$tal_file.xfm.lta"
          --src-img "$conformed_name"
          --dst-img "$FREESURFER_HOME/average/mni305.cor.mgz"

@@ -128,6 +128,10 @@ def pin_cpu_dispatch(env: MutableMapping[str, str], python: str) -> None:
         print(warning)
 
     for var, value in pins.items():
+        if env.get(var) == value:
+            # already what this would set, so there is nothing to do and nothing to report. The
+            # pipeline test pins the whole container, which is how this arises in CI.
+            continue
         if var in env:
             print(f"WARNING: {var} is already set to '{env[var]}', so FastSurfer is not")
             print("  pinning it. Reproducing this step on another machine then requires that")
@@ -137,23 +141,50 @@ def pin_cpu_dispatch(env: MutableMapping[str, str], python: str) -> None:
 
 
 if __name__ == "__main__":
+    import argparse
     import os
     import shlex
     import sys
 
-    # Shell form. Everything goes to stdout, warnings as `#` comments, so that one stream is both
-    # safe to eval and worth appending to the log: eval ignores comments, and the caller keeps the
-    # record of what was pinned without having to interleave two streams.
-    # An already-set value is left alone here too, and says so rather than emitting an assignment.
+    _parser = argparse.ArgumentParser(description=__doc__.splitlines()[1])
+    _parser.add_argument(
+        "--env",
+        action="store_true",
+        help="print bare VAR=value lines for `env` or `docker run --env` instead of shell "
+             "assignments for `eval`. Warnings then go to stderr, since every stdout line is "
+             "consumed as an assignment.",
+    )
+    _args = _parser.parse_args()
+
+    # Two forms, because the callers differ. Default is shell: assignments plus warnings as `#`
+    # comments, so one stream is both safe to eval and worth appending to the log. --env is for a
+    # caller that turns each line into an argument, where a comment would be read as a variable.
+    #
+    # A value that already matches is passed over in silence: the pipeline test pins the whole
+    # container, so every step would otherwise report it.
     _pins, _warning = pins_for(sys.executable)
+
+    def _note(text: str) -> None:
+        if _args.env:
+            print(text, file=sys.stderr)
+        else:
+            for _line in text.splitlines():
+                print(f"# {_line}")
+
     if _warning:
-        for _line in _warning.splitlines():
-            print(f"# {_line}")
+        _note(_warning)
     for _var, _value in _pins.items():
+        if os.environ.get(_var) == _value:
+            continue
         if _var in os.environ:
-            # quoted, because a value carrying a newline would otherwise end the comment and leave
-            # the rest of it as a line the caller's eval would try to run
-            print(f"# WARNING: {_var} is already set to {shlex.quote(os.environ[_var])!r}, left alone.")
-            print("#   Reproducing this step elsewhere then needs that value supported and identical there.")
+            # quoted, because a value carrying a newline would otherwise end a `#` comment and
+            # leave the rest of it as a line the caller's eval would try to run
+            _note(
+                f"WARNING: {_var} is already set to {shlex.quote(os.environ[_var])!r}, left alone.\n"
+                f"  Reproducing this step elsewhere then needs that value supported and identical there."
+            )
+        elif _args.env:
+            # one argv element per line, so no quoting: the caller must not word-split these
+            print(f"{_var}={_value}")
         else:
             print(f"export {_var}={shlex.quote(_value)}")

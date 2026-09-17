@@ -72,7 +72,7 @@ _DIFFERING = "_pipelinetest_differing"
 _FAILED = "_pipelinetest_failed"
 
 
-def _store(config: "pytest.Config", attribute: str) -> set[str]:
+def _store(config: "pytest.Config", attribute: str) -> set[tuple[str, str]]:
     store = getattr(config, attribute, None)
     if store is None:
         store = set()
@@ -80,23 +80,27 @@ def _store(config: "pytest.Config", attribute: str) -> set[str]:
     return store
 
 
-def record_difference(config: "pytest.Config", filename: str) -> None:
+def record_difference(config: "pytest.Config", subject: str, filename: str) -> None:
     """
     Note that a file is not identical to the reference, whatever its tolerance then says.
 
     A tolerance answers "is this close enough", which is not the same question as "where did the
     change enter". One flipped voxel passes every tolerance downstream of it and still marks the
     stage that changed, so the two are reported separately.
+
+    Keyed by subject as well as file: several subjects can share a session, and they diverge in
+    different places, so merging them would name a first divergence that is wrong for one of them.
     """
-    _store(config, _DIFFERING).add(filename)
+    _store(config, _DIFFERING).add((subject, filename))
 
 
-def record_failure(config: "pytest.Config", filename: str) -> None:
-    """Note that a file failed its comparison, which is the tolerance being exceeded."""
-    _store(config, _FAILED).add(filename)
+def record_failure(config: "pytest.Config", subject: str, filename: str) -> None:
+    """Note that a file failed a comparison, which is not only a tolerance being exceeded."""
+    _store(config, _FAILED).add((subject, filename))
 
 
-def recorded_files(config: "pytest.Config", *, failed: bool) -> set[str]:
+def recorded_files(config: "pytest.Config", *, failed: bool) -> set[tuple[str, str]]:
+    """The recorded (subject, filename) pairs, for the terminal summary."""
     return _store(config, _FAILED if failed else _DIFFERING)
 
 

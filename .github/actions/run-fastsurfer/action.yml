@@ -97,6 +97,25 @@ runs:
       uses: Deep-MI/FastSurfer/.github/actions/load-docker@dev
       with:
         docker-image: ${{ inputs.docker-image }}
+    - name: Work out the numpy and OpenBLAS pins from the image
+      shell: bash
+      env:
+        IMAGE_NAME: ${{ steps.prep.outputs.IMAGE_LOADED == 0 && steps.load-docker.outputs.image-name || inputs.docker-image }}
+      run: |
+        # The whole container is pinned below, not only the steps that are known to need it, so a
+        # later change that adds numpy work somewhere new is covered without anyone remembering.
+        # Asked of the image rather than hardcoded: NPY_DISABLE_CPU_FEATURES has to name features
+        # the runtime numpy actually has, and naming a baseline one raises instead of being ignored.
+        echo "::group::Kernel pins"
+        if pins=$(docker run --rm "$IMAGE_NAME" \
+                    python3 /fastsurfer/recon_surf/pin_cpu_dispatch.py --env) ; then
+          echo "$pins"
+          echo "$pins" >> "$GITHUB_ENV"
+        else
+          echo "WARNING: could not read the pins from the image, so this run is not pinned and"
+          echo "  may not reproduce on a runner with a different CPU."
+        fi
+        echo "::endgroup::"
     - name: FastSurfer Segmentation pipeline
       shell: bash
       if: ${{ ! contains( inputs.extra-args, '--surf_only' ) }}
@@ -106,9 +125,13 @@ runs:
         # Segmentation call
         echo "::group::FastSurfer Segmentation"
         # Kernels pinned, see below. Here rather than in the image so that only CI pays for it.
+        # --env NAME without a value forwards the value from this step's environment, which the
+        # step above put there; writing NAME=VALUE here would need quoting the space in the
+        # feature list.
         docker run -t -v "$DATA_DIR:/data" -u $(id -u):$(id -g) --env TQDM_DISABLE=1 \
           --env ATEN_CPU_CAPABILITY=avx2 --env ONEDNN_MAX_CPU_ISA=AVX2 \
           --env MKL_CBWR=COMPATIBLE \
+          --env OPENBLAS_CORETYPE --env NPY_DISABLE_CPU_FEATURES \
           --name seg_container "$IMAGE_NAME" \
           --fs_license /data/.fs_license --t1 /data/T1${{ inputs.file-extension }} --sid "${{ inputs.subject-id }}" \
           --sd /data --threads $(nproc) --seg_only ${{ inputs.extra-args }}
@@ -137,6 +160,7 @@ runs:
         docker run -t -v "$DATA_DIR:/data" -u $(id -u):$(id -g) --env TQDM_DISABLE=1 \
           --env ATEN_CPU_CAPABILITY=avx2 --env ONEDNN_MAX_CPU_ISA=AVX2 \
           --env MKL_CBWR=COMPATIBLE \
+          --env OPENBLAS_CORETYPE --env NPY_DISABLE_CPU_FEATURES \
           --name surf_container "$IMAGE_NAME" \
           --fs_license /data/.fs_license --t1 /data/T1${{ inputs.file-extension }} --sid "${{ inputs.subject-id }}" \
           --sd /data --threads $(nproc) --surf_only ${{ inputs.extra-args }}

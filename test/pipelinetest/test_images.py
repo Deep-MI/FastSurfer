@@ -130,7 +130,7 @@ def test_segmentation_image(
     reference_data = np.asarray(reference_img.dataobj)
 
     if not np.array_equal(test_data, reference_data):
-        record_difference(pytestconfig, segmentation_image)
+        record_difference(pytestconfig, test_subject.name, segmentation_image)
 
     label_segids = np.unique([reference_data, test_data]).tolist()
     labels_lnames_tols = {lbl: segmentation_tolerances.threshold(lbl) for lbl in label_segids}
@@ -200,7 +200,7 @@ def test_intensity_image(
     reference_data = reference_img.get_fdata(caching="unchanged")
 
     if not np.array_equal(test_data, reference_data):
-        record_difference(pytestconfig, intensity_image)
+        record_difference(pytestconfig, test_subject.name, intensity_image)
 
     delta_dir = pytestconfig.getoption("--collect_csv")
     if delta_dir:
