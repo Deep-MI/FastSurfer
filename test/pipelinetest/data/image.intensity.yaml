@@ -1,5 +1,12 @@
 # Relative tolerance per intensity volume. Listed in pipeline order, which data/chain.yaml defines
 # and the comparisons are sorted by.
+
+# A voxel near zero has no meaningful relative error: a background voxel of 2 that rounds to 0 is a
+# 100% difference, so without a floor the comparison is decided by the background rather than by the
+# tissue. These volumes are 8 bit, and the tolerances below are 2.5 to 5 grey levels at full scale,
+# so a floor of 2 is under what the relative tolerance already allows everywhere it matters.
+absolute_floor: 2
+
 thresholds:
   orig.mgz: 0.02
   orig_nu.mgz: 0.01
