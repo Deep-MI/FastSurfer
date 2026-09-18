@@ -97,7 +97,7 @@ Behind the Scenes
      --t1s <T1_1> <T1_2> ... \
      --tpids <tID1> <tID2>
    ```
-   This will register (align) all time point images into the unbiased mid-space using `mri_robust_template`, after an initial segmentation and skull stripping. It will also create the template image, kind of a mean image across time. For single time point cases, it will align the input into a standard upright position.
+   This will register (align) all time point images into the unbiased mid-space using neuroreg's robust multi-image registration, after an initial segmentation and skull stripping. It will also create the template image, kind of a mean image across time. For single time point cases, it will align the input into a standard upright position, obtained from a rigid registration of its segmentation to MNI centroids.
 2. **Template Seg**: Next, the template image will be segmented via a call to `run_fastsurfer.sh --sid <templateID> --base --seg_only ...` where the `--base` flag indicates that the input image will be taken from the already existing template directory.
 3. **Template Surf**: This is followed by the surface processing of the template  `run_fastsurfer.sh --sid <templateID> --base --surf_only ...`, which can be combined with the previous step.
 4. **Long Seg**: Next, the segmentation of each time point, which can theoretically run in parallel with the previous two steps, is performed `run_fastsurfer.sh --sid <tIDn> --long <templateID> --seg_only ...`,
