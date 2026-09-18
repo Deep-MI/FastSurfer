@@ -1449,13 +1449,21 @@ then
         )
         if [[ "$run_talairach_registration" == "true" ]]
         then
-          cmd+=("EstimatedTotalIntraCranialVol" "BrainSegVol-to-eTIV" "MaskVol-to-eTIV")
+          # eTIV comes from the talairach transform and Mask is imported above, so neither they nor
+          # their ratio change with the corpus callosum
+          cmd+=("EstimatedTotalIntraCranialVol" "MaskVol-to-eTIV")
         fi
         cmd+=(--file "$asegdkt_vinn_statsfile"
               # recompute the measures changes coming from CC inpainting (only SubCortGray does not change)
               --compute BrainSeg BrainSegNotVent SupraTentorial SupraTentorialNotVent
                         rhCerebralWhiteMatter lhCerebralWhiteMatter CerebralWhiteMatter
         )
+        if [[ "$run_talairach_registration" == "true" ]]
+        then
+          # computed, not imported: BrainSeg changes with the corpus callosum, so the ratio has to
+          # follow the value recomputed above rather than be copied from the file without it
+          cmd+=("BrainSegVol-to-eTIV")
+        fi
         echo_quoted "${cmd[@]}"
         "${wrap[@]}" "${cmd[@]}"
         exit_code=${PIPESTATUS[0]}
