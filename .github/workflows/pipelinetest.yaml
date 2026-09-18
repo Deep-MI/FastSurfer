@@ -227,7 +227,7 @@ jobs:
         # docker/build-push-action injects them on its own, and build.py drives buildx directly, so
         # without this step the cache resolves to nothing and the build silently stays cold.
         if: steps.parse.outputs.CONTINUE == 'true' && steps.parse.outputs.DOCKER_IMAGE == 'build-cached'
-        uses: crazy-max/ghaction-github-runtime@v3
+        uses: crazy-max/ghaction-github-runtime@v4
       - uses: Deep-MI/FastSurfer/.github/actions/build-docker@dev
         if: steps.parse.outputs.CONTINUE == 'true' && steps.parse.outputs.DOCKER_IMAGE == 'build-cached'
         # This action needs the "full" checkout (located at ${{ inputs.fastsurfer-home }})
