@@ -26,7 +26,7 @@ from CerebNet.data_loader import data_utils as utils
 from CerebNet.data_loader.augmentation import ToTensor
 from CerebNet.datasets.load_data import SubjectLoader
 from CerebNet.datasets.utils import bounding_volume_offset
-from FastSurferCNN.data_loader.conform import Reorientation, crop_transform
+from FastSurferCNN.data_loader.conform import Reorientation, apply_vox2vox, crop_transform
 from FastSurferCNN.data_loader.data_utils import get_thick_slices, transform_axial, transform_sagittal
 from FastSurferCNN.utils import AffineMatrix4x4, Mask3d, Plane, Shape3d, logging, nibabelImage
 
@@ -253,22 +253,19 @@ class SubjectDataset(Dataset):
         # binarize the cerebellum from brain_seg
         cereb_aseg_mask: Mask3d = utils.get_aseg_cereb_mask(np.asarray(brain_seg.dataobj))
 
+        # localize the cerebellum in the conformed image; apply_vox2vox returns the mask untouched
+        # when the two already share a grid, so it decides whether resampling is needed.
+        # order=0 because this is a binary mask: interpolating a membership overshoots past 0 and 1
+        # and only the bounding box below is read off it.
         img2aseg_v2v: AffineMatrix4x4 = inv(brain_seg.affine) @ img_org.affine
-
-        # print(brain_seg.affine, img_org.affine)
-        if not np.allclose(img2aseg_v2v, np.eye(img2aseg_v2v.shape[0])):
-            logger.info(
-                "The conformed image and the segmentation do not share the same affine. The cerebellum mask "
-                "is being resampled to localize it in the conformed image."
-            )
-            from scipy.ndimage import affine_transform
-
-            cereb_aseg = affine_transform(cereb_aseg_mask.astype(np.float32), img2aseg_v2v, output_shape=img_org.shape)
-            cereb_aseg_mask: Mask3d = cereb_aseg > 0.5
+        cereb_aseg = apply_vox2vox(
+            cereb_aseg_mask.astype(np.float32), img2aseg_v2v, out_shape=img_org.shape, order=0,
+        )
+        cereb_aseg_mask: Mask3d = cereb_aseg > 0.5
 
         bbox = self.locate_mask_bbox(cereb_aseg_mask)
 
-        # create the roi from cereb_aseg (where labels after interpolation > 0.05 --> membership rounded to 1 decimal)
+        # create the roi from the located cerebellum, padded out to the patch size
         self.roi = LocalizerROI(
             source_shape=cast(Shape3d, img_org.shape),
             offsets=cast(Shape3d, bounding_volume_offset(bbox, patch_size, image_shape=cereb_aseg_mask.shape)),

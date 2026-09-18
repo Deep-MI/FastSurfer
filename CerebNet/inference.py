@@ -41,6 +41,12 @@ if TYPE_CHECKING:
 
 logger = logging.get_logger(__name__)
 
+# How far a voxel-to-voxel matrix may sit from the identity before the statistics image is
+# resliced. conform.py splits this into vox_eps=1e-4 on the diagonal and rot_eps=1e-6 elsewhere,
+# which is too strict for the translation column: two grids derived from the same geometry differ
+# there by around 1e-05 of a voxel, and reslicing to correct that only smooths the image.
+_GRID_EPS = 1e-4
+
 
 class Inference:
     """
@@ -361,6 +367,67 @@ class Inference:
         logger.info(f"Saving CerebNet cerebellum segmentation at {filename}")
         return self.pool.submit(save_image, orig.header, orig.affine, cerebnet_seg, filename, dtype=np.int16)
 
+    def _norm_on_segmentation_grid(self, norm_file: Path, conf_img: nibabelImage) -> tuple[Path, np.ndarray]:
+        """
+        Load the image the statistics are measured on, resliced onto the segmentation's grid.
+
+        The statistics pair the two voxel by voxel, so they have to sit on the same grid. Reslicing
+        into the target makes that hold by construction, as `CerebNet.data_loader.dataset` already
+        does for the segmentation, rather than conforming both separately and relying on the two
+        results agreeing.
+
+        The intensities are left alone. They are read for the partial volume estimates, which depend
+        on local contrast rather than the absolute scale, and for the intensity statistics, which are
+        reported in the image's own units, so neither rescaling nor casting would make them more
+        correct. Rescaling in particular would undo the white matter normalisation the bias field
+        correction applied.
+
+        Parameters
+        ----------
+        norm_file : Path
+            The image to measure the statistics on.
+        conf_img : nibabelImage
+            The image the segmentation is in, whose grid is the target.
+
+        Returns
+        -------
+        Path
+            The file the statistics refer to, the resliced copy where one was written.
+        np.ndarray
+            The image data on the segmentation's grid.
+        """
+        from FastSurferCNN.data_loader.conform import apply_vox2vox
+        from FastSurferCNN.data_loader.data_utils import (
+            SUPPORTED_OUTPUT_FILE_FORMATS,
+            load_image,
+            save_image,
+        )
+
+        norm_img, norm_data = load_image(norm_file, "bias field corrected image")
+        vox2vox = np.linalg.inv(norm_img.affine) @ conf_img.affine
+        resliced = apply_vox2vox(
+            norm_data, vox2vox, out_shape=conf_img.shape, order=1,
+            # rot_eps is as loose as vox_eps here: two grids derived from the same geometry differ
+            # by float dust, in the order of 1e-05 of a voxel, and interpolating to correct that
+            # only smooths the image the intensities are then measured on
+            vox_eps=_GRID_EPS, rot_eps=_GRID_EPS,
+        )
+        if resliced is norm_data:
+            return norm_file, norm_data
+
+        fileext = [ext for ext in SUPPORTED_OUTPUT_FILE_FORMATS if norm_file.name.endswith("." + ext)]
+        if len(fileext) != 1:
+            raise RuntimeError(
+                f"Invalid file extension of norm_name: {norm_file}, must be one of "
+                f"{SUPPORTED_OUTPUT_FILE_FORMATS}."
+            )
+        vox_size = self._conform_kwargs.get("vox_size", 1.0)
+        suffix = ".min" if vox_size == "min" else f".{str(vox_size).replace('.', '')}mm"
+        stem = str(norm_file)[:-len(fileext[0]) - 1]
+        dst_file = Path((stem if stem.endswith(suffix) else stem + suffix) + "." + fileext[0])
+        save_image(conf_img.header, conf_img.affine, resliced, dst_file)
+        return dst_file, resliced
+
     def _get_subject_dataset(
         self, subject: SubjectDirectory
     ) -> tuple[np.ndarray | None, Path | None, SubjectDataset]:
@@ -390,8 +457,6 @@ class Inference:
                 )
 
             norm_file = subject.filename_by_attribute("norm_name")
-            # finally, load the bias field file
-            _norm = self.pool.submit(load_maybe_conform, norm_file, norm_file, **self._conform_kwargs)
 
         # localization
         if not subject.fileexists_by_attribute("asegdkt_segfile"):
@@ -411,6 +476,12 @@ class Inference:
         seg, seg_data = _seg.result()
         conf_file, conf_img, conf_data = _conf_img.result()
 
+        # the statistics image goes onto the grid the segmentation is in, so it can only be
+        # prepared once that grid is known
+        _norm = None if norm_file is None else self.pool.submit(
+            self._norm_on_segmentation_grid, norm_file, conf_img,
+        )
+
         if not np.allclose(conf_img.header.get_zooms(), 1.0, atol=0.01):
             logger.warning(
                 "CerebNet does not support images that are not conformed to 1.0mm. We detected a voxel sizes of "
@@ -425,7 +496,7 @@ class Inference:
         )
         subject_dataset.transforms = ToTensorTest()
         if _norm is not None:
-            norm_file, _, norm_data = _norm.result()
+            norm_file, norm_data = _norm.result()
         return norm_data, norm_file, subject_dataset
 
     def run(self, subject_dirs: SubjectList):
