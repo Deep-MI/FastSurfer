@@ -51,7 +51,7 @@ runs:
         echo "FS_JUNIT_ARTIFACT=$artifact" >> "$GITHUB_ENV"
         echo "FS_JUNIT_FILE=$JUNIT_DIR/$artifact.xml" >> "$GITHUB_ENV"
     - name: Setup uv and Python 3.10
-      uses: astral-sh/setup-uv@v10.0.1
+      uses: astral-sh/setup-uv@v10.1.0
       with:
         python-version: '3.10'
     - name: Download and unpack reference data
