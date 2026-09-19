@@ -25,11 +25,12 @@ Three inputs, all optional:
   write the result back for later runs. The weekly scheduled run does this on its own, so reach for
   it when you want a new dependency version tested now rather than on the next weekly run.
 
-**On a nightly schedule, on the default branch.** Most nights stop immediately: the run only
-continues if the branch moved since the last one, plus once a week whatever happened. The weekly run
-exists because an unchanged branch that produces a changed result means something under us moved,
-and a run gated purely on our own commits can never see that. It is also the run that refreshes the
-build cache, see below, because otherwise the dependency versions would never move either.
+**On a schedule, on the default branch.** The weekly run goes ahead whether or not the branch moved,
+because an unchanged branch that produces a changed result means something under us moved, and a run
+gated on our own commits can never see that. It is also the run that refreshes the build cache, see
+below, since otherwise the dependency versions would never move either. On a nightly cron the gate
+additionally skips any night on which the branch did not move; the cron in the workflow says which
+of the two is in force and why.
 
 **Not on a pull request.** GitHub passes no secrets to a workflow triggered from a fork, whatever
 the workflow looks like, so a trigger on a pull request could never work for a fork, which is where

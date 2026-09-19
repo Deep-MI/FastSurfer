@@ -5,9 +5,9 @@ name: pipelinetest
 #  also checks if the FastSurfer environment and output already exist, and if not, it creates them.
 # Usage: There are two ways to run this, both restricted to this repository. Run it from the Actions
 #  tab (workflow-dispatch) on any branch, which tests that branch as it stands and reports on the
-#  run; that is also how reference data is produced. Or let the nightly schedule run it on the
-#  default branch, which it does only when that branch moved since the last one, plus once a week
-#  whatever happened.
+#  run; that is also how reference data is produced. Or let the schedule run it on the default
+#  branch. The scheduled run always refreshes the build cache, and when the cron goes back to
+#  nightly it will also skip any night on which the branch did not move.
 #
 #  There is no trigger on a pull request. GitHub gives a pull request from a fork no secrets, and
 #  must not, because the code under test runs in the same job as the FreeSurfer license, so the
@@ -39,13 +39,17 @@ concurrency:
 
 on:
   schedule:
-    # Nightly, so a regression surfaces within a day rather than within a week. The job below turns
-    # most of these into a no-op, see the schedule branch of the parse step for when it does not.
-    # Not on the hour, which is when GitHub's scheduler is most congested and runs are delayed.
-    # A Sunday that fails or never fires costs that week its cache refresh, which the next Sunday
+    # Sundays only, until the reference data is refreshed. The stored reference predates the corpus
+    # callosum module, so every run that gets as far as comparing fails, and a nightly cadence would
+    # buy five red checks a week instead of one while telling us nothing new. The parse step below
+    # already handles a nightly cron, where a night on which the branch did not move stops early, so
+    # restoring '37 2 * * *' is the whole change once the reference is fresh.
+    #
+    # Not on the hour, which is when GitHub's scheduler is most congested and runs are delayed. A
+    # Sunday that fails or never fires costs that week its cache refresh, which the next Sunday
     # repairs; keying the refresh on the weekday rather than on when it last happened is what buys
     # that, and it is the cheaper trade.
-    - cron: '37 2 * * *'
+    - cron: '37 2 * * 0'
   workflow_dispatch:
     inputs:
       docker-image:
