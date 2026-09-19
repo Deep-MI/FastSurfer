@@ -539,6 +539,8 @@ The voxel size (whether set manually or derived) determines whether the surfaces
 </section>
 <section id="reproducibility">
 <h2>Reproducibility<a class="headerlink" href="#reproducibility" title="Link to this heading">¶</a></h2>
+<section id="on-one-machine">
+<h3>On one machine<a class="headerlink" href="#on-one-machine" title="Link to this heading">¶</a></h3>
 <p>Re-running the same input on the same machine, with the same flags, the same thread count and the
 same FastSurfer and FreeSurfer versions, is expected to give the same result: two runs at the
 default of two threads came out identical in every file we compare.</p>
@@ -546,23 +548,51 @@ default of two threads came out identical in every file we compare.</p>
 always runs single-threaded. Other steps have not been tested at every thread count, so if you need
 certainty, use <code class="docutils literal notranslate"><span class="pre">--threads</span> <span class="pre">1</span></code>, or <code class="docutils literal notranslate"><span class="pre">--threads</span> <span class="pre">1</span> <span class="pre">--parallel</span></code> to keep every binary single threaded while
 still processing the two hemispheres at the same time.</p>
-<p>Across machines the results do differ, and the same container image does not prevent it. Two
-effects contribute, and they apply to different parts of the pipeline.</p>
-<p>The segmentation networks compute slightly different numbers on different hardware, because the
-kernels they run are chosen from what the device offers: on CPU that is the vector instruction
-sets, on GPU the card model and the precision modes it supports. <code class="docutils literal notranslate"><span class="pre">--device</span></code> therefore matters as
-well as the machine, and a CPU run and a GPU run of the same input are not expected to agree.</p>
-<p>The surface pipeline had a second, independent source, in the spherical projection: numpy and
-OpenBLAS each pick their kernels from the CPU features they detect, which moved the projected
-sphere very slightly, and the topology correction then amplified that into a different
-retessellation that every later surface inherited. That step now pins both, so it computes the same
-result on any x86-64 machine. It costs a few seconds per hemisphere. Other steps that use numpy are
-not pinned, so this does not make the whole pipeline machine independent, but it removes the one
-place we found that turns a rounding difference into a structural one.</p>
-<p>So the same hardware is still a condition, mainly through the networks above: for a study, process
-everything on one machine, or on nodes with the same CPU and GPU, with the same <code class="docutils literal notranslate"><span class="pre">--device</span></code>, and use
-one container image, see <a class="reference internal" href="../overview/SINGULARITY.html"><span class="std std-doc">Singularity</span></a>. On macOS the FreeSurfer binaries
-are built without OpenMP and run single-threaded regardless.</p>
+</section>
+<section id="across-machines">
+<h3>Across machines<a class="headerlink" href="#across-machines" title="Link to this heading">¶</a></h3>
+<p>Numerical libraries choose their kernels from what the processor offers, so the same code can take
+a different path on a different machine. Two layers do this independently, and both had to be
+addressed:</p>
+<ul class="simple">
+<li><p><strong>torch</strong>, in the segmentation networks. The vector instruction set decides the convolution
+kernel, and within one instruction set the vendor can still decide the code branch. Capping the
+instruction set alone leaves a difference between vendors; fixing the branch alone leaves a
+difference between instruction sets. Both are needed.</p></li>
+<li><p><strong>LAPACK and BLAS</strong>, through numpy, in the surface pipeline and the registrations. These pick
+kernels the same way, independently of torch. A difference here is small, but the topology
+correction turns a rounding difference into a different retessellation that every later surface
+inherits, which is how a change far below single precision becomes a visible one.</p></li>
+</ul>
+<p>Only the second of these is pinned for you. The spherical projection, the talairach registration
+and the corpus callosum step set the numpy and OpenBLAS variables themselves, because that is where
+a rounding difference was found to become a structural one. Nothing sets the torch variables: they
+would slow every segmentation down for everyone, and most runs do not need to match another
+machine.</p>
+<p><strong>So a default run is not reproducible across machines.</strong> If you need that, set all of them
+yourself for the whole run:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># the numpy and OpenBLAS values depend on the host, so read them from the helper</span>
+<span class="nb">eval</span><span class="w"> </span><span class="s2">"</span><span class="k">$(</span>python<span class="w"> </span><span class="nv">$FASTSURFER_HOME</span>/recon_surf/pin_cpu_dispatch.py<span class="k">)</span><span class="s2">"</span>
+<span class="nb">export</span><span class="w"> </span><span class="nv">ATEN_CPU_CAPABILITY</span><span class="o">=</span>avx2<span class="w"> </span><span class="nv">ONEDNN_MAX_CPU_ISA</span><span class="o">=</span>AVX2<span class="w"> </span><span class="nv">MKL_CBWR</span><span class="o">=</span>COMPATIBLE
+</pre></div>
+</div>
+<p>Pass them into the container with <code class="docutils literal notranslate"><span class="pre">--env</span></code> if you run FastSurfer with docker or singularity. This is
+the configuration we test, and with it two x86-64 machines of different vendors produce identical
+output. The cost is some speed, because the faster kernels are the ones being declined.</p>
+<p><strong>It also covers the places we found, not every place that could exist.</strong> Any numpy or BLAS call in
+a step we have not examined is still free to dispatch on the hardware, which is the other reason to
+set these globally rather than to rely on the three steps that pin themselves.</p>
+<p><strong>GPU is not covered.</strong> None of this applies to <code class="docutils literal notranslate"><span class="pre">--device</span> <span class="pre">cuda</span></code>: the card model and the precision
+modes it selects are a separate source, and we have not tested it. A CPU run and a GPU run of the
+same input are not expected to agree, so <code class="docutils literal notranslate"><span class="pre">--device</span></code> is part of what you have to hold constant.</p>
+<p>Use one container image as well, see <a class="reference internal" href="../overview/SINGULARITY.html"><span class="std std-doc">Singularity</span></a>. On macOS the
+FreeSurfer binaries are built without OpenMP and run single-threaded regardless, and that
+combination is untested for cross-machine agreement.</p>
+<p>To see which kernels a run actually chose, look at the host block near the top of
+<code class="docutils literal notranslate"><span class="pre">scripts/deep-seg.log</span></code>. It records the CPU, the instruction set torch selected, the dispatch
+overrides in force and a numerical fingerprint. The fingerprint is the reliable key for “was this
+comparable hardware”: the CPU model name is not, because the same model can expose different
+features on different hosts.</p>
 <p>To compare two runs, use <code class="docutils literal notranslate"><span class="pre">tools/compare_subjects.py</span></code>: it compares voxels, vertices, transforms,
 statistics and labels rather than raw bytes, and reports how large each difference is. <code class="docutils literal notranslate"><span class="pre">diff</span></code> and
 checksums are no use here, because the headers record timestamps and the command line, so identical
@@ -570,6 +600,7 @@ runs still differ byte for byte.</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>tools/compare_subjects.py<span class="w"> </span><span class="nv">$SUBJECTS_DIR</span>/subject_a<span class="w"> </span><span class="nv">$SUBJECTS_DIR</span>/subject_b
 </pre></div>
 </div>
+</section>
 </section>
 <section id="full-list-of-flags">
 <h2>Full list of flags<a class="headerlink" href="#full-list-of-flags" title="Link to this heading">¶</a></h2>
@@ -915,7 +946,11 @@ Reuter M, Schmansky NJ, Rosas HD, Fischl B. Within-subject template estimation
 <li><a class="reference internal" href="#some-other-flags">Some other flags</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#reproducibility">Reproducibility</a></li>
+<li><a class="reference internal" href="#reproducibility">Reproducibility</a><ul>
+<li><a class="reference internal" href="#on-one-machine">On one machine</a></li>
+<li><a class="reference internal" href="#across-machines">Across machines</a></li>
+</ul>
+</li>
 <li><a class="reference internal" href="#full-list-of-flags">Full list of flags</a></li>
 </ul>
 </li>
