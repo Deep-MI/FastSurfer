@@ -31,11 +31,12 @@ exists because an unchanged branch that produces a changed result means somethin
 and a run gated purely on our own commits can never see that. It is also the run that refreshes the
 build cache, see below, because otherwise the dependency versions would never move either.
 
-**Not on a pull request.** GitHub passes no secrets to a workflow triggered from a fork, and must
-not, because the code under test runs in the same job as the FreeSurfer license. A trigger on a pull
-request could therefore never work for a fork, which is where most contributions come from, while
-producing a skipped check on every unrelated label on every pull request. To test a branch before it
-lands, dispatch on it.
+**Not on a pull request.** GitHub passes no secrets to a workflow triggered from a fork, whatever
+the workflow looks like, so a trigger on a pull request could never work for a fork, which is where
+most contributions come from. We would not want it to either, because the code under test runs in
+the same job as the FreeSurfer license. Meanwhile the label that used to start it produced a skipped
+check on every unrelated label on every pull request. To test a branch before it lands, dispatch on
+it.
 
 Jobs
 ----

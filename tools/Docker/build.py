@@ -250,7 +250,9 @@ def make_parser() -> argparse.ArgumentParser:
     )
     # the environment variable form exists because the composite action in CI has fixed inputs, so
     # a new flag there cannot be reached without editing the action
-    refresh_cache = os.environ.get("FASTSURFER_BUILD_CACHE_REFRESH", "") not in ("", "0", "false")
+    refresh_cache = os.environ.get("FASTSURFER_BUILD_CACHE_REFRESH", "").strip().lower() not in (
+        "", "0", "false", "no", "off",
+    )
     parser.add_argument(
         "--refresh_cache",
         action="store_true",
@@ -672,6 +674,8 @@ def main(
         if not refresh_cache:
             kwargs["cache_from"] = cache.format_cache_from()
         kwargs["cache_to"] = cache.format_cache_to()
+    elif refresh_cache:
+        logger.warning("--refresh_cache has no effect without --cache, which is what it refreshes.")
 
     fastsurfer_home = Path(fastsurfer_home) if fastsurfer_home else default_home()
     # read the freesurfer download url from pyproject.toml
