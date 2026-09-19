@@ -46,6 +46,10 @@ on:
       freesurfer-build-image:
         description: 'FreeSurfer build image to build with ("" (default) => deepmi/fastsurfer-build:freesurferXXX; extract version from pyproject.toml)'
         type: string
+      refresh-cache:
+        description: 'Resolve the dependencies afresh rather than restoring the cached layers, and write the result back for later runs. The weekly scheduled run does this on its own.'
+        default: false
+        type: boolean
 
 permissions:
   actions: read
@@ -119,6 +123,7 @@ jobs:
             # nothing further to check here
             continue_tests="true"
             if [[ -n "${{ inputs.docker-image }}" ]] ; then docker_image="${{ inputs.docker-image }}" ; fi
+            if [[ "${{ inputs.refresh-cache }}" == "true" ]] ; then refresh_cache="true" ; fi
           elif [[ "${{ github.event_name }}" == "schedule" ]]
           then
             # Nightly only pays for itself when there is something new to test, so most nights stop
@@ -131,18 +136,31 @@ jobs:
             since="$(date -u -d '25 hours ago' +%Y-%m-%dT%H:%M:%SZ)"
             # fail open: the gate is an optimisation, and an api that is down or rate limited must
             # not quietly turn the nightly test off for as long as it stays down
+            commits_known="true"
             if ! new_commits="$(gh api "${gh_header[@]}" \
                                 "/repos/${{ github.repository }}/commits?sha=${{ github.ref_name }}&since=$since" \
                                 --jq "length")"
             then
               echo "Could not list recent commits, so running rather than skipping on a guess."
               new_commits=1
+              commits_known="false"
             fi
             if [[ "$(date -u +%u)" == "7" ]]
             then
               echo "Weekly baseline run, testing ${{ github.ref_name }} whether or not it moved."
               continue_tests="true"
               refresh_cache="true"
+              # The baseline is worth reading because it varies the dependencies while the code
+              # stands still, so a difference points at the environment. A commit landing the same
+              # day breaks that and nothing in the result would show it, hence saying so here.
+              # Only when the count is known: the fail-open branch above guesses 1.
+              if [[ "$commits_known" == "true" && "$new_commits" -gt 0 ]]
+              then
+                confounded="$new_commits commit(s) also landed on ${{ github.ref_name }} since $since,"
+                confounded="$confounded so a difference in this run is not attributable to the dependencies alone."
+                echo "::warning title=Baseline run is confounded::$confounded"
+                printf '### Baseline run is confounded\n\n%s\n' "$confounded" >> "$GITHUB_STEP_SUMMARY"
+              fi
             elif [[ "$new_commits" -gt 0 ]]
             then
               echo "$new_commits commit(s) on ${{ github.ref_name }} since $since."

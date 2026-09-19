@@ -15,12 +15,15 @@ How it is started
 and reports on the run. It is also how reference data is produced: run it on the commit the
 reference should come from and keep the resulting subject directories.
 
-Two inputs, both optional:
+Three inputs, all optional:
 
 - `docker-image`: `build-cached` (the default) builds the image from the branch this runs on.
   Anything else is taken as the name of an image to pull instead.
 - `freesurfer-build-image`: overrides the FreeSurfer build image, which otherwise comes from
   `tool.freesurfer.version` in `pyproject.toml`.
+- `refresh-cache`: resolve the dependencies afresh rather than restoring the cached layers, and
+  write the result back for later runs. The weekly scheduled run does this on its own, so reach for
+  it when you want a new dependency version tested now rather than on the next weekly run.
 
 **On a nightly schedule, on the default branch.** Most nights stop immediately: the run only
 continues if the branch moved since the last one, plus once a week whatever happened. The weekly run
