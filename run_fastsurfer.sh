@@ -686,6 +686,11 @@ if [[ -z "$callosum_seg" ]] ; then callosum_seg="$subject_dir/mri/callosum.CC.or
 if [[ -z "$asegdkt_statsfile" ]] ; then asegdkt_statsfile="$subject_dir/stats/aseg+DKT.stats" ; fi
 if [[ -z "$asegdkt_vinn_statsfile" ]] ; then asegdkt_vinn_statsfile="$subject_dir/stats/aseg+DKT.VINN.stats" ; fi
 if [[ -z "$aseg_vinn_statsfile" ]] ; then aseg_vinn_statsfile="$subject_dir/stats/aseg.VINN.stats" ; fi
+# derived from the three above, and here rather than in the corpus callosum module because the stats
+# that read them run from their inputs, whether or not that module runs in this call
+asegdkt_withcc_segfile="$(add_file_suffix "$asegdkt_segfile" "withCC")"
+asegdkt_withcc_vinn_statsfile="$(add_file_suffix "$asegdkt_vinn_statsfile" "withCC")"
+aseg_auto_statsfile="$(add_file_suffix "$aseg_vinn_statsfile" "withCC")"
 if [[ -z "$cereb_segfile" ]] ; then cereb_segfile="$subject_dir/mri/cerebellum.CerebNet.nii.gz" ; fi
 if [[ -z "$cereb_statsfile" ]] ; then cereb_statsfile="$subject_dir/stats/cerebellum.CerebNet.stats" ; fi
 if [[ -z "$hypo_segfile" ]] ; then hypo_segfile="$subject_dir/mri/hypothalamus.HypVINN.nii.gz" ; fi
@@ -1441,9 +1446,6 @@ then
 
     echo "MODULE: FastSurfer-CC Corpus Callosum processing" >> "$exec_time_log"
     # generate file names of for the analysis
-    asegdkt_withcc_segfile="$(add_file_suffix "$asegdkt_segfile" "withCC")"
-    asegdkt_withcc_vinn_statsfile="$(add_file_suffix "$asegdkt_vinn_statsfile" "withCC")"
-    aseg_auto_statsfile="$(add_file_suffix "$aseg_vinn_statsfile" "withCC")"
     callosum_upright_seg="$subject_dir/mri/callosum.CC.upright.mgz"
     callosum_upright_seg_manedit="$(add_file_suffix "$callosum_upright_seg" "manedit")"
     callosum_seg_manedit="$(add_file_suffix "$callosum_seg" "manedit")"
@@ -1508,75 +1510,77 @@ then
       echo_quoted "${cmd[@]}"
       "${wrap[@]}" "${cmd[@]}"
       if [[ "${PIPESTATUS[0]}" != 0 ]] ; then echo "ERROR: asegdkt cc inpainting failed!" ; exit 1 ; fi
-
-      # the normfile, not run_biasfield: these are partial volume corrected, and the image an
-      # earlier run wrote serves as well as one computed here
-      if [[ -f "$norm_name" ]]
-      then
-        cmd=($python "${fastsurfercnndir}/segstats.py" --segfile "$asegdkt_withcc_segfile" --normfile "$norm_name"
-             --lut "$fastsurfercnndir/config/FreeSurferColorLUT.txt" --sd "${sd}" --sid "${subject}"
-             --ids 2 4 5 7 8 10 11 12 13 14 15 16 17 18 24 26 28 31 41 43 44 46 47 49 50 51 52 53
-                   54 58 60 63 77 251 252 253 254 255
-                   1002 1003 1005 1006 1007 1008 1009 1010 1011 1012 1013 1014 1015 1016 1017 1018
-                   1019 1020 1021 1022 1023 1024 1025 1026 1027 1028 1029 1030 1031 1034 1035
-                   2002 2003 2005 2006 2007 2008 2009 2010 2011 2012 2013 2014 2015 2016 2017 2018
-                   2019 2020 2021 2022 2023 2024 2025 2026 2027 2028 2029 2030 2031 2034 2035
-             --threads "$threads_seg" --empty --excludeid 0
-             --segstatsfile "$asegdkt_withcc_vinn_statsfile"
-             measures
-             # the following measures are unaffected by CC and do not need to be recomputed
-             --import SubCortGray Mask
-        )
-        if [[ "$run_talairach_registration" == "true" ]]
-        then
-          # eTIV comes from the talairach transform and Mask is imported above, so neither they nor
-          # their ratio change with the corpus callosum
-          cmd+=("EstimatedTotalIntraCranialVol" "MaskVol-to-eTIV")
-        fi
-        cmd+=(--file "$asegdkt_vinn_statsfile"
-              # recompute the measures changes coming from CC inpainting (only SubCortGray does not change)
-              --compute BrainSeg BrainSegNotVent SupraTentorial SupraTentorialNotVent
-                        rhCerebralWhiteMatter lhCerebralWhiteMatter CerebralWhiteMatter
-        )
-        if [[ "$run_talairach_registration" == "true" ]]
-        then
-          # computed, not imported: BrainSeg changes with the corpus callosum, so the ratio has to
-          # follow the value recomputed above rather than be copied from the file without it
-          cmd+=("BrainSegVol-to-eTIV")
-        fi
-        echo_quoted "${cmd[@]}"
-        "${wrap[@]}" "${cmd[@]}"
-        exit_code=${PIPESTATUS[0]}
-        if [[ "$exit_code" != 0 ]] ; then
-          echo "ERROR: asegdkt statsfile ($asegdkt_withcc_segfile) generation failed!"
-          exit "$exit_code"
-          # this will only terminate the subshell
-        fi
-      fi
     } 2>&1 | tee -a "$seg_log"
     # forward the subshell exit to the main script. Capture first: the [[ ]] below overwrites
     # PIPESTATUS, so re-reading it inside the branch exited 0 and the failure was reported as success
     exit_code="${PIPESTATUS[0]}"
     if [[ "$exit_code" != 0 ]]; then exit "$exit_code"; fi
+  fi
 
-    if [[ -f "$norm_name" ]]
-    then
-      {
-        cmd=($python "${fastsurfercnndir}/segstats.py" --segfile "$aseg_auto_segfile" --normfile "$norm_name"
-             --lut "$fastsurfercnndir/config/FreeSurferColorLUT.txt" --sd "${sd}" --sid "${subject}"
-             --threads "$threads_seg" --empty --excludeid 0
-             --ids 2 4 3 5 7 8 10 11 12 13 14 15 16 17 18 24 26 28 31 41 42 43 44 46 47 49 50 51 52 53 54 58 60 63 77
-                   251 252 253 254 255
-             --segstatsfile "$aseg_auto_statsfile"
-             measures --import "all" --file "$asegdkt_withcc_vinn_statsfile"
-        )
-        echo_quoted "${cmd[@]}"
-        "${wrap[@]}" "${cmd[@]}" 2>&1
-        if [[ "${PIPESTATUS[0]}" != 0 ]] ; then echo "ERROR: aseg statsfile ($aseg_auto_segfile) failed!" ; exit 1 ; fi
-      } | tee -a "$seg_log"
-      if [[ "${PIPESTATUS[0]}" != 0 ]] ; then exit 1; fi # forward subshell exit to main script
+  # Keyed on the files they read rather than on run_cc_module, like the asegdkt and aseg stats
+  # above and for the same reason: both carry eTIV, so adding --tal_reg to a subject that is
+  # already processed has to rewrite them without the corpus callosum being segmented again. The
+  # normfile is needed because they are partial volume corrected.
+  if [[ -f "$norm_name" ]] && [[ -f "$asegdkt_withcc_segfile" ]] && [[ -f "$aseg_auto_segfile" ]]
+  then
+    {
+      cmd=($python "${fastsurfercnndir}/segstats.py" --segfile "$asegdkt_withcc_segfile" --normfile "$norm_name"
+           --lut "$fastsurfercnndir/config/FreeSurferColorLUT.txt" --sd "${sd}" --sid "${subject}"
+           --ids 2 4 5 7 8 10 11 12 13 14 15 16 17 18 24 26 28 31 41 43 44 46 47 49 50 51 52 53
+                 54 58 60 63 77 251 252 253 254 255
+                 1002 1003 1005 1006 1007 1008 1009 1010 1011 1012 1013 1014 1015 1016 1017 1018
+                 1019 1020 1021 1022 1023 1024 1025 1026 1027 1028 1029 1030 1031 1034 1035
+                 2002 2003 2005 2006 2007 2008 2009 2010 2011 2012 2013 2014 2015 2016 2017 2018
+                 2019 2020 2021 2022 2023 2024 2025 2026 2027 2028 2029 2030 2031 2034 2035
+           --threads "$threads_seg" --empty --excludeid 0
+           --segstatsfile "$asegdkt_withcc_vinn_statsfile"
+           measures
+           # the following measures are unaffected by CC and do not need to be recomputed
+           --import SubCortGray Mask
+      )
+      if [[ "$run_talairach_registration" == "true" ]]
+      then
+        # eTIV comes from the talairach transform and Mask is imported above, so neither they nor
+        # their ratio change with the corpus callosum
+        cmd+=("EstimatedTotalIntraCranialVol" "MaskVol-to-eTIV")
+      fi
+      cmd+=(--file "$asegdkt_vinn_statsfile"
+            # recompute the measures changes coming from CC inpainting (only SubCortGray does not change)
+            --compute BrainSeg BrainSegNotVent SupraTentorial SupraTentorialNotVent
+                      rhCerebralWhiteMatter lhCerebralWhiteMatter CerebralWhiteMatter
+      )
+      if [[ "$run_talairach_registration" == "true" ]]
+      then
+        # computed, not imported: BrainSeg changes with the corpus callosum, so the ratio has to
+        # follow the value recomputed above rather than be copied from the file without it
+        cmd+=("BrainSegVol-to-eTIV")
+      fi
+      echo_quoted "${cmd[@]}"
+      "${wrap[@]}" "${cmd[@]}"
+      exit_code=${PIPESTATUS[0]}
+      if [[ "$exit_code" != 0 ]] ; then
+        echo "ERROR: asegdkt statsfile ($asegdkt_withcc_segfile) generation failed!"
+        exit "$exit_code"
+        # this will only terminate the subshell
+      fi
+    } 2>&1 | tee -a "$seg_log"
+    exit_code="${PIPESTATUS[0]}"
+    if [[ "$exit_code" != 0 ]]; then exit "$exit_code"; fi
 
-    fi
+    {
+      cmd=($python "${fastsurfercnndir}/segstats.py" --segfile "$aseg_auto_segfile" --normfile "$norm_name"
+           --lut "$fastsurfercnndir/config/FreeSurferColorLUT.txt" --sd "${sd}" --sid "${subject}"
+           --threads "$threads_seg" --empty --excludeid 0
+           --ids 2 4 3 5 7 8 10 11 12 13 14 15 16 17 18 24 26 28 31 41 42 43 44 46 47 49 50 51 52 53 54 58 60 63 77
+                 251 252 253 254 255
+           --segstatsfile "$aseg_auto_statsfile"
+           measures --import "all" --file "$asegdkt_withcc_vinn_statsfile"
+      )
+      echo_quoted "${cmd[@]}"
+      "${wrap[@]}" "${cmd[@]}" 2>&1
+      if [[ "${PIPESTATUS[0]}" != 0 ]] ; then echo "ERROR: aseg statsfile ($aseg_auto_segfile) failed!" ; exit 1 ; fi
+    } | tee -a "$seg_log"
+    if [[ "${PIPESTATUS[0]}" != 0 ]] ; then exit 1; fi # forward subshell exit to main script
   fi
 
   if [[ "$run_cereb_module" == "true" ]]
