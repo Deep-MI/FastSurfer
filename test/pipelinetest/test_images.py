@@ -30,9 +30,13 @@ def segmentation_tolerances(segmentation_image: str) -> Tolerances:
 
 
 @lru_cache
-def read_image_intensity_thresholds() -> dict:
+def read_image_intensity_config() -> dict:
     with open(Path(__file__).parent / "data/image.intensity.yaml") as fp:
-        return yaml.safe_load(fp)["thresholds"]
+        return yaml.safe_load(fp)
+
+
+def read_image_intensity_thresholds() -> dict:
+    return read_image_intensity_config()["thresholds"]
 
 
 def compute_dice_score(test_data, reference_data, labels: dict[int, str]) -> tuple[float, dict[int, float]]:
@@ -213,9 +217,12 @@ def test_intensity_image(
         scores.update(rel=reldelta.mean(), relmax=np.max(reldelta))
         write_table_file(delta_dir / "intensity.csv", test_subject.name, intensity_image, scores)
 
-    rtol = read_image_intensity_thresholds()[intensity_image]
+    config = read_image_intensity_config()
+    rtol = config["thresholds"][intensity_image]
+    # the floor keeps background rounding out of the comparison, see the file for why
+    atol = config["absolute_floor"]
     # Check the image data
-    assert test_data == Approx(reference_data, rel=rtol), "Image intensity data do not match!"
+    assert test_data == Approx(reference_data, rel=rtol, abs=atol), "Image intensity data do not match!"
 
     logger.debug("Image data matches!")
 

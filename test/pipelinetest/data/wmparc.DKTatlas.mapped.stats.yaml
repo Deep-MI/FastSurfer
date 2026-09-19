@@ -9,4 +9,8 @@ measure_thresholds:
   Mask: 0.1
 
 thresholds:
-  structure: 0.1
+  # The wm-* structures are a projection from the surface into the white matter. Folding makes that
+  # projection volatile: a branch that touches a neighbour closes off early, so a gyral label can
+  # gain or lose a fifth of its volume without anything upstream being wrong. Wide enough to let
+  # that through, still tight enough to catch a structure that doubles or halves.
+  structure: 0.2

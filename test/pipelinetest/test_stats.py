@@ -40,14 +40,28 @@ class MeasureTolerances(Tolerances):
         return self.config["default_threshold"]
 
 
+@lru_cache
+def read_stats_files_with_measures() -> list[str]:
+    """The stats files that declare measures, which is what the measure tests can run against.
+
+    The module tables, such as the CerebNet and HypVINN ones, carry no `# Measure` lines at all, so
+    the measure tests are not generated for them rather than skipping once they run: a skip reads
+    like a warning, and there is nothing here to warn about.
+    """
+    def has_measures(stats_file: str) -> bool:
+        return bool(MeasureTolerances(Path(__file__).parent / f"data/{stats_file}.yaml").measures())
+
+    return [stats_file for stats_file in read_stats_files() if has_measures(stats_file)]
+
+
 @pytest.fixture(scope="module")
-def measure_tolerances(stats_file: str) -> MeasureTolerances:
+def measure_tolerances(measure_stats_file: str) -> MeasureTolerances:
     """
     Read the expected measures for the given stats file.
 
     Parameters
     ----------
-    stats_file : str
+    measure_stats_file : str
         The name of the stats file.
 
     Returns
@@ -55,7 +69,7 @@ def measure_tolerances(stats_file: str) -> MeasureTolerances:
     MeasureTolerances
         The list of measures expected for this file.
     """
-    thresholds_file = Path(__file__).parent / f"data/{stats_file}.yaml"
+    thresholds_file = Path(__file__).parent / f"data/{measure_stats_file}.yaml"
     assert Path(thresholds_file).is_file(), f"The threshold file {thresholds_file} does not exist!"
     return MeasureTolerances(thresholds_file)
 
@@ -81,7 +95,7 @@ def stats_tolerances(stats_file: str) -> Tolerances:
 
 def test_measure_exists(
         test_subject: SubjectDefinition,
-        stats_file: str,
+        measure_stats_file: str,
         measure_tolerances: MeasureTolerances,
 ):
     """
@@ -91,39 +105,35 @@ def test_measure_exists(
     ----------
     test_subject : SubjectDefinition
         Definition of the test subject.
-    stats_file : str
+    measure_stats_file : str
         Name of the test directory.
     measure_tolerances : MeasureTolerances
-        The object to provide the measure tolerances for stats_file.
+        The object to provide the measure tolerances for measure_stats_file.
 
     Raises
     ------
     AssertionError
         If the measure does not exist in the stats file.
     """
-    _, annotations, _ = test_subject.load_stats_file(stats_file)
+    _, annotations, _ = test_subject.load_stats_file(measure_stats_file)
     expected_measures = measure_tolerances.measures()
 
-    if not expected_measures:
-        # no expected measures, skip
-        pytest.skip(f"No measures expected for {stats_file}.")
-        return
     # measures are missing => None => not a tuple
     # measures are not a tuple => not a tuple
     missing_invalid_measures = [m for m in expected_measures if not isinstance(annotations.get(m, None), tuple)]
 
     # Check if all measures exist in stats file
-    assert missing_invalid_measures == [], f"Some Measures are missing in {test_subject}: {stats_file}!"
+    assert missing_invalid_measures == [], f"Some Measures are missing in {test_subject}: {measure_stats_file}!"
 
 
 def test_measure_meta(
         test_subject: SubjectDefinition,
         ref_subject: SubjectDefinition,
-        stats_file: str,
+        measure_stats_file: str,
         measure_tolerances: MeasureTolerances,
 ):
     """
-    Test if the measure meta-information is correct in stats_file.
+    Test if the measure meta-information is correct in measure_stats_file.
 
     Parameters
     ----------
@@ -131,39 +141,37 @@ def test_measure_meta(
         Definition of the test subject.
     ref_subject : SubjectDefinition
         Definition of the reference subject.
-    stats_file : str
+    measure_stats_file : str
         Name of the test directory.
     measure_tolerances : MeasureTolerances
-        The object to provide the measure tolerances for stats_file.
+        The object to provide the measure tolerances for measure_stats_file.
 
     Raises
     ------
     AssertionError
         If the measure is not within the defined threshold in the stats file.
     """
-    _, test_annots, _ = test_subject.load_stats_file(stats_file)
-    _, ref_annots, _ = ref_subject.load_stats_file(stats_file)
+    _, test_annots, _ = test_subject.load_stats_file(measure_stats_file)
+    _, ref_annots, _ = ref_subject.load_stats_file(measure_stats_file)
 
     expected_measures = measure_tolerances.measures()
-    if not expected_measures:
-        # no expected measures, skip
-        pytest.skip(f"No measures expected for {stats_file}.")
-        return
     _expected_meta = {k: ref_annots[k][:2] + (None,) + ref_annots[k][3:] for k in expected_measures if k in ref_annots}
     _actual_meta = {k: test_annots[k][:2] + (None,) + test_annots[k][3:] for k in expected_measures if k in test_annots}
 
-    assert _actual_meta == _expected_meta, f"Some Measure meta-information is wrong for {test_subject} in {stats_file}!"
+    assert _actual_meta == _expected_meta, (
+        f"Some Measure meta-information is wrong for {test_subject} in {measure_stats_file}!"
+    )
 
 
 def test_measure_thresholds(
         test_subject: SubjectDefinition,
         ref_subject: SubjectDefinition,
-        stats_file: str,
+        measure_stats_file: str,
         measure_tolerances: MeasureTolerances,
         pytestconfig: pytest.Config,
 ):
     """
-    Test if the measure is within thresholds in stats_file.
+    Test if the measure is within thresholds in measure_stats_file.
 
     Parameters
     ----------
@@ -171,10 +179,10 @@ def test_measure_thresholds(
         Definition of the test subject.
     ref_subject : SubjectDefinition
         Definition of the reference subject.
-    stats_file : str
+    measure_stats_file : str
         Name of the test directory.
     measure_tolerances : MeasureTolerances
-        The object to provide the measure tolerances for stats_file.
+        The object to provide the measure tolerances for measure_stats_file.
     pytestconfig : pytest.Config
         The sessions config object.
 
@@ -183,14 +191,10 @@ def test_measure_thresholds(
     AssertionError
         If the measure is not within the defined threshold in the stats file.
     """
-    _, expected_annots, _ = ref_subject.load_stats_file(stats_file)
-    _, actual_annots, _ = test_subject.load_stats_file(stats_file)
+    _, expected_annots, _ = ref_subject.load_stats_file(measure_stats_file)
+    _, actual_annots, _ = test_subject.load_stats_file(measure_stats_file)
 
     expected_measures = measure_tolerances.measures()
-    if not expected_measures:
-        # no expected measures, skip
-        pytest.skip(f"No measures expected for {stats_file}.")
-        return
     # the more pytest-way to evaluate the thresholds would be
     # assert expected_measures == pytest.approx(actual_measures), (f"Some Measures are outside of the threshold in"
     #                                                              f"{test_subject}: {stats_file}!")
@@ -212,7 +216,7 @@ def test_measure_thresholds(
         values = [(m, expected_annots[m][2], actual_annots[m][2]) for m in expected_measures if has_measure(m)]
         scores: dict[str, float] = {m: abs(a - b) for m, a, b in values}
         scores.update({m + "_rel": abs(a - b)/max((abs(a), abs(b), 1e-8)) for m, a, b in values})
-        write_table_file(delta_dir / "stats-measure.csv", test_subject.name, stats_file, scores)
+        write_table_file(delta_dir / "stats-measure.csv", test_subject.name, measure_stats_file, scores)
 
     missing_measures = [m for m in expected_measures if not has_measure(m)]
     failed_measures = [m for m in expected_measures if has_measure(m) and not check_measure(m)]
@@ -236,7 +240,7 @@ def test_measure_thresholds(
             f"{relative_deviation(worst):.2%} (limit {measure_tolerances.threshold(worst):.2%})."
         )
     assert measures_outside_spec == [], (
-        f"Some Measures are outside of the threshold in {test_subject}: {stats_file}!{summary}"
+        f"Some Measures are outside of the threshold in {test_subject}: {measure_stats_file}!{summary}"
     )
 
 
@@ -385,3 +389,7 @@ def pytest_generate_tests(metafunc: pytest.Metafunc):
     # populate the stats_file fixture
     if "stats_file" in metafunc.fixturenames:
         metafunc.parametrize("stats_file", read_stats_files(), scope="module")
+    # the measure tests take measure_stats_file instead, so they are only generated for the files
+    # that have measures to compare
+    if "measure_stats_file" in metafunc.fixturenames:
+        metafunc.parametrize("measure_stats_file", read_stats_files_with_measures(), scope="module")
