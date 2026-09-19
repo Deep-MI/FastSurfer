@@ -248,6 +248,20 @@ def make_parser() -> argparse.ArgumentParser:
         metavar="type={inline,local,...}[,<param>=<value>[,...]]",
         **cache_kwargs,
     )
+    # the environment variable form exists because the composite action in CI has fixed inputs, so
+    # a new flag there cannot be reached without editing the action
+    refresh_cache = os.environ.get("FASTSURFER_BUILD_CACHE_REFRESH", "").strip().lower() not in (
+        "", "0", "false", "no", "off",
+    )
+    parser.add_argument(
+        "--refresh_cache",
+        action="store_true",
+        default=refresh_cache,
+        help=f"""Build without restoring --cache, then write what the build produced, so the next 
+             build starts from it. Use this to pick up dependency versions that the cached layer 
+             would otherwise keep hiding. Defaults to the environment variable 
+             FASTSURFER_BUILD_CACHE_REFRESH: {refresh_cache}""",
+    )
     parser.add_argument(
         "--dry_run",
         "--print",
@@ -642,6 +656,7 @@ def main(
         dry_run: bool = False,
         tag_dev: bool = True,
         pinned_requirements: bool = False,
+        refresh_cache: bool = False,
         fastsurfer_home: Path | None = None,
         insecure: bool = False,
         **keywords,
@@ -652,10 +667,15 @@ def main(
     if cache is not None:
         if not isinstance(cache, CacheSpec):
             cache = CacheSpec(cache)
+        # Refreshing writes the cache without restoring it first, so the build resolves everything
+        # afresh and the next build still starts from the result.
         if not dry_run:
-            logger.info(f"cache: {cache}")
-        kwargs["cache_from"] = cache.format_cache_from()
+            logger.info(f"cache: {cache}" + (" (refreshing, so not restoring it)" if refresh_cache else ""))
+        if not refresh_cache:
+            kwargs["cache_from"] = cache.format_cache_from()
         kwargs["cache_to"] = cache.format_cache_to()
+    elif refresh_cache:
+        logger.warning("--refresh_cache has no effect without --cache, which is what it refreshes.")
 
     fastsurfer_home = Path(fastsurfer_home) if fastsurfer_home else default_home()
     # read the freesurfer download url from pyproject.toml

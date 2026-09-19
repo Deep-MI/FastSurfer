@@ -3,13 +3,16 @@ name: pipelinetest
 # File: pipelinetest.yaml
 # Functionality: This workflow runs FastSurfer on MRI data and runs pytest to check if the results are acceptable. It
 #  also checks if the FastSurfer environment and output already exist, and if not, it creates them.
-# Usage: There are two ways to run this, both restricted to this repository. Attach the label
-#  "pipelinetest" to a pull request, which tests the merge of it into its base and reports on the pull
-#  request. Or run it from the Actions tab (workflow-dispatch) on any branch, which tests that
-#  branch as it stands and reports on the run; that is also how reference data is produced. A pull
-#  request from a fork is skipped: GitHub gives it no secrets, and must not, because the code under
-#  test runs in the same job as the FreeSurfer license. Merge such a branch into a branch of this
-#  repository and use either way above.
+# Usage: There are two ways to run this, both restricted to this repository. Run it from the Actions
+#  tab (workflow-dispatch) on any branch, which tests that branch as it stands and reports on the
+#  run; that is also how reference data is produced. Or let the schedule run it on the default
+#  branch. The scheduled run always refreshes the build cache, and when the cron goes back to
+#  nightly it will also skip any night on which the branch did not move.
+#
+#  There is no trigger on a pull request. GitHub gives a pull request from a fork no secrets, and
+#  must not, because the code under test runs in the same job as the FreeSurfer license, so the
+#  label that used to start this could never work for a fork and produced a skipped check for every
+#  unrelated label on every pull request. To test a branch before it lands, dispatch on it.
 # Expected Secrets. They keep the old QUICKTEST_ prefix: a secret cannot be renamed, only deleted
 # and recreated, and their contents are not to hand. Rename them when the reference data is next
 # refreshed, which is when they have to be re-entered anyway.
@@ -20,21 +23,33 @@ name: pipelinetest
 #  - QUICKTEST_LICENSE: content of a FreeSurfer license file
 
 concurrency:
-  # One group per pull request and label, and one per dispatch. The label is part of the key
-  # because the group is evaluated when the run is created, before the condition on the job below,
-  # so without it attaching an unrelated label cancels a pipelinetest that is already running.
-  # A dispatch adds the run id, so its group is unique and two dispatches never cancel each other:
-  # running one branch twice is how the hardware is held constant when comparing results, and
-  # without the run id they shared a group and the second killed the first. This makes
-  # cancel-in-progress reachable only from the pull request path; cancel a superseded dispatch by
-  # hand. If two dispatches on one branch ever cancel each other again, check that run_id is
-  # actually being substituted here rather than expanding to nothing.
-  group: ${{ github.workflow }}-${{ github.event.number || github.ref }}-${{ github.event.label.name || github.run_id }}
-  cancel-in-progress: true
+  # One group per run, so nothing ever cancels anything. That is deliberate: the runner a job lands
+  # on is not ours to choose, so dispatching one branch twice is how that variation gets sampled,
+  # and a shared group made the second dispatch kill the first. Back to back, because then the
+  # dependencies have not moved in between and the runner is what is left to differ. Cancel a
+  # superseded run by hand.
+  #
+  # The cost, accepted rather than unnoticed: two builds can export the cache at once, and the
+  # later export wins. A run that started before the weekly refresh exported still holds the old
+  # layers, so it can put the old index back and cost that week its refresh. The window is the
+  # build job only, since that is what exports, and it takes a dispatch on a Sunday morning to
+  # reach it. The next weekly run repairs it.
+  group: ${{ github.workflow }}-${{ github.run_id }}
+  cancel-in-progress: false
 
 on:
-  pull_request:
-    types: [labeled]
+  schedule:
+    # Sundays only, until the reference data is refreshed. The stored reference predates the corpus
+    # callosum module, so every run that gets as far as comparing fails, and a nightly cadence would
+    # buy five red checks a week instead of one while telling us nothing new. The parse step below
+    # already handles a nightly cron, where a night on which the branch did not move stops early, so
+    # restoring '37 2 * * *' is the whole change once the reference is fresh.
+    #
+    # Not on the hour, which is when GitHub's scheduler is most congested and runs are delayed. A
+    # Sunday that fails or never fires costs that week its cache refresh, which the next Sunday
+    # repairs; keying the refresh on the weekday rather than on when it last happened is what buys
+    # that, and it is the cheaper trade.
+    - cron: '37 2 * * 0'
   workflow_dispatch:
     inputs:
       docker-image:
@@ -44,6 +59,10 @@ on:
       freesurfer-build-image:
         description: 'FreeSurfer build image to build with ("" (default) => deepmi/fastsurfer-build:freesurferXXX; extract version from pyproject.toml)'
         type: string
+      refresh-cache:
+        description: 'Resolve the dependencies afresh rather than restoring the cached layers, and write the result back for later runs. The weekly scheduled run does this on its own.'
+        default: false
+        type: boolean
 
 permissions:
   actions: read
@@ -55,7 +74,8 @@ permissions:
   discussions: read
   packages: read
   pages: read
-  pull-requests: write
+  # no pull-requests: nothing here runs in the context of one any more. The results land on a check
+  # run against the tested commit, which is what checks: write above is for.
   repository-projects: read
   security-events: read
   statuses: read
@@ -69,35 +89,10 @@ jobs:
     name: 'docker image build'
     runs-on: ubuntu-latest
     timeout-minutes: 180
-    env:
-      # build.py turns this into --cache-from and --cache-to for buildx. Job level rather than step
-      # level, because the build runs inside a composite action.
-      #
-      # ignore-error, so that a rejected or truncated export costs the cache and not the run: without
-      # it a cache failure fails this job and the test jobs never start.
-      #
-      # mode=max, because only that exports the build_venv stage: min would cache the final image's
-      # layers, but buildkit still has to rebuild build_venv to know whether the layer that copies
-      # from it is current, so the dependency install would not be skipped.
-      #
-      # scope names the index only. This backend writes one cache entry per layer blob, so the
-      # caches page shows an `index-pipelinetest-...` entry plus a `buildkit-blob-...` entry per
-      # layer. Blobs are keyed by content digest and shared, so a rebuild of unchanged layers
-      # reuses them rather than adding more; what accumulates is one new blob per layer that
-      # actually changed, until the 7 day expiry removes the old one. Fewer, larger layers in the
-      # Dockerfile would mean fewer entries.
-      #
-      # The cache quota is 10 GB for the whole repository and the image is the bulk of it, so check
-      # https://github.com/Deep-MI/FastSurfer/actions/caches if other workflows start missing.
-      FASTSURFER_BUILD_CACHE: type=gha,mode=max,ignore-error=true,scope=pipelinetest
-    # the first clause admits a workflow-dispatch, the rest a pull request. A labeled event fires for
-    # every label, because GitHub cannot filter by label name in the trigger, so deciding here rather
-    # than in a step keeps a runner from starting for the labels dependabot attaches, and makes a run
-    # that does not apply, such as one on a fork, come out as skipped rather than passed or failed.
-    if: >-
-      github.event_name != 'pull_request'
-      || (github.event.label.name == 'pipelinetest'
-          && github.event.pull_request.head.repo.full_name == github.repository)
+    # A scheduled workflow runs on the default branch of whatever repository holds the file, and a
+    # fork has neither the secrets nor a reason to burn three hours nightly. GitHub disables
+    # schedules in forks by default, so this is the belt to that braces.
+    if: github.repository == 'Deep-MI/FastSurfer'
     outputs:
       continue: ${{ steps.parse.outputs.CONTINUE }}
       docker-image: ${{ steps.parse.outputs.DOCKER_IMAGE }}
@@ -112,20 +107,24 @@ jobs:
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
+          # through the environment rather than interpolated into the script below: an expression is
+          # substituted before bash parses the line, so a value containing $(...) would run
+          INPUT_DOCKER_IMAGE: ${{ inputs.docker-image }}
+          INPUT_REFRESH_CACHE: ${{ inputs.refresh-cache }}
         run: |
-          # Debug information
+          # None of this block runs. It is here because GitHub echoes the rendered script into the
+          # log, so the comments and the heredoc body are how the run records what triggered it.
+          # Quoted delimiter, so the interpolated JSON is recorded rather than expanded.
           # Workflow: ${{ github.workflow }}
-          # Event Name: ${{ github.event_name }} 
-          # Action: ${{ github.event.action }}
-          # pull_request-Event
-          # PR: ${{ github.event.number }}
+          # Event Name: ${{ github.event_name }}
+          # Branch: ${{ github.ref_name }}
           # Event Triggered by: ${{ github.event.sender.login }}
           # workflow_dispatch-Event
           # Inputs:
-          cat > /dev/null <<ENDOFINPUTS
+          cat > /dev/null <<'ENDOFINPUTS'
           ${{ toJSON(inputs) }}
           ENDOFINPUTS
-          
+
           gh_header=(-H "Accept: application/vnd.github+json"
                      -H "X-GitHub-Api-Version: 2022-11-28")
           # collected in variables and written once at the end, so that a later decision cannot
@@ -134,50 +133,109 @@ jobs:
           # as passed without it having tested anything.
           continue_tests="false"
           docker_image="build-cached"
-          if [[ "${{ github.event_name }}" == "pull_request" ]]
+          # whether this run resolves its dependencies afresh rather than restoring them, see the
+          # cache block at the end of this step
+          refresh_cache="false"
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]
           then
-            if [[ "${{ github.event.pull_request.head.repo.full_name }}" != "${{ github.repository }}" ]]
-            then
-              # not reachable: the condition on this job skips a fork, so that such a run reads as
-              # skipped. Kept as a guard, because the license is in the job this decides for, and a
-              # condition that stops holding should be loud rather than silent.
-              echo "Refusing to run: pull request ${{ github.event.number }} comes from"
-              echo "  '${{ github.event.pull_request.head.repo.full_name }}', so its code would run in a"
-              echo "  job that holds the FreeSurfer license. The condition on this job should have"
-              echo "  skipped the run, which means that condition no longer holds."
-              exit 1
-            else
-              continue_tests="true"
-            fi
-          elif [[ "${{ github.event_name }}" == "workflow_dispatch" ]]
-          then
-            # the inputs context is only useful/set in the workflow dispatch event case
+            # only a dispatch carries inputs, and only write access can start one, so there is
+            # nothing further to check here
             continue_tests="true"
-            if [[ -n "${{ inputs.docker-image }}" ]] ; then docker_image="${{ inputs.docker-image }}" ; fi
+            if [[ -n "$INPUT_DOCKER_IMAGE" ]] ; then docker_image="$INPUT_DOCKER_IMAGE" ; fi
+            if [[ "$INPUT_REFRESH_CACHE" == "true" ]] ; then refresh_cache="true" ; fi
+          elif [[ "${{ github.event_name }}" == "schedule" ]]
+          then
+            # Nightly only pays for itself when there is something new to test, so most nights stop
+            # here. Sunday runs whatever happened: an unchanged branch that produces a changed
+            # result is the base image, the runner or a dependency moving under us, and a run gated
+            # purely on our own commits can never see that.
+            #
+            # 25 rather than 24 hours, so a commit landing near the cron time is not missed by a run
+            # that starts a minute late. The cost of the overlap is at most one extra run.
+            since="$(date -u -d '25 hours ago' +%Y-%m-%dT%H:%M:%SZ)"
+            # fail open: the gate is an optimisation, and an api that is down or rate limited must
+            # not quietly turn the nightly test off for as long as it stays down
+            commits_known="true"
+            if ! new_commits="$(gh api "${gh_header[@]}" \
+                                "/repos/${{ github.repository }}/commits?sha=${{ github.ref_name }}&since=$since" \
+                                --jq "length")"
+            then
+              echo "Could not list recent commits, so running rather than skipping on a guess."
+              new_commits=1
+              commits_known="false"
+            fi
+            if [[ "$(date -u +%u)" == "7" ]]
+            then
+              echo "Weekly baseline run, testing ${{ github.ref_name }} whether or not it moved."
+              continue_tests="true"
+              refresh_cache="true"
+              # The baseline is worth reading because it varies the dependencies while the code
+              # stands still, so a difference points at the environment. A commit landing the same
+              # day breaks that and nothing in the result would show it, hence saying so here.
+              # Only when the count is known: the fail-open branch above guesses 1.
+              if [[ "$commits_known" == "true" && "$new_commits" -gt 0 ]]
+              then
+                # "at least", because the api returns one page and stops counting at 30
+                confounded="At least $new_commits commit(s) also landed on ${{ github.ref_name }} since $since,"
+                confounded="$confounded so a difference in this run is not attributable to the dependencies alone."
+                echo "::warning title=Baseline run is confounded::$confounded"
+                printf '### Baseline run is confounded\n\n%s\n' "$confounded" >> "$GITHUB_STEP_SUMMARY"
+              fi
+            elif [[ "$new_commits" -gt 0 ]]
+            then
+              echo "$new_commits commit(s) on ${{ github.ref_name }} since $since."
+              continue_tests="true"
+            else
+              echo "Nothing new on ${{ github.ref_name }} since $since and this is not the weekly"
+              echo "  baseline run, so there is nothing to test."
+            fi
           else #  this event has no specific rules (invalid)
             echo "This workflow is not defined for the event ${{ github.event_name }}!"
-            exit 1
-          fi
-          # a failure rather than a skip, unlike the cases the job condition covers: whether the
-          # sender is a collaborator takes an api call, which a job condition cannot make, so the job
-          # is already running by the time we know. Being refused is an error, not a run that does
-          # not apply. Quoted, because a bot login such as dependabot[bot] is a glob unquoted.
-          if [[ "$continue_tests" == "true" ]] \
-             && ! gh api "${gh_header[@]}" "/repos/${{ github.repository }}/collaborators/${{ github.event.sender.login }}"
-          then
-            echo "Only collaborators explicitly listed as collaborators can trigger this workflow!"
             exit 1
           fi
           {
             echo "CONTINUE=$continue_tests"
             echo "DOCKER_IMAGE=$docker_image"
           } >> "$GITHUB_OUTPUT"
-          # later, we might want to extract additional run options from the pr text or issue comments
-          # these should just be added here 
-          # https://api.github.com/repos/${{ github.repository }}/issues/${{ github.number }}
-          # https://api.github.com/repos/${{ github.repository }}/issues/${{ github.number }}/comments
-          # this may also need adaptations in the test script at the bottom
           echo "EXTRA_ARGS=" >> $GITHUB_OUTPUT
+
+          # build.py turns this into --cache-from and --cache-to for buildx. Written to GITHUB_ENV
+          # rather than set as a job-level env, because the scope below is computed here and because
+          # a step-level env does not reach the steps of the composite action that runs the build,
+          # while the job environment does.
+          #
+          # ignore-error, so that a rejected or truncated export costs the cache and not the run:
+          # without it a cache failure fails this job and the test jobs never start.
+          #
+          # mode=max, because only that exports the build_venv stage: min would cache the final
+          # image's layers, but buildkit still has to rebuild build_venv to know whether the layer
+          # that copies from it is current, so the dependency install would not be skipped.
+          #
+          # scope names the index only. This backend writes one cache entry per layer blob, so the
+          # caches page shows an `index-pipelinetest` entry plus a `buildkit-blob-...` entry per
+          # layer. Blobs are keyed by content digest and shared, so a rebuild of unchanged layers
+          # reuses them rather than adding more. One scope, always, so only one image's worth of
+          # layers is live: the quota is 10 GB for the whole repository and the image is the bulk
+          # of it, so check https://github.com/Deep-MI/FastSurfer/actions/caches if other workflows
+          # start missing their caches.
+          echo "FASTSURFER_BUILD_CACHE=type=gha,mode=max,ignore-error=true,scope=pipelinetest" >> "$GITHUB_ENV"
+
+          # The baseline run resolves its dependencies rather than restoring them, and still writes
+          # what it resolved so the rest of the week reuses it. Without this the dependency layer
+          # never moves: it lives in build_venv, `COPY . /fastsurfer/` is in a later stage, and its
+          # key is the two bind-mounted files, so no amount of committing invalidates it and a new
+          # release on PyPI is invisible to it. A run that restored that layer is only showing that
+          # our own code is deterministic, never that the environment held still.
+          #
+          # Read and write have to be separable for that. The variable below is the default for
+          # build.py --refresh_cache, which the composite action cannot pass because its inputs are
+          # fixed. Pointing the baseline at an unwritten scope name would not do instead: a name
+          # nothing has written is also a name nothing can read the next night.
+          if [[ "$refresh_cache" == "true" ]]
+          then
+            echo "Resolving dependencies afresh for this run, and writing the result to the cache."
+            echo "FASTSURFER_BUILD_CACHE_REFRESH=1" >> "$GITHUB_ENV"
+          fi
       - name: Checkout repository
         # DOCKER_IMAGE is build-cached => we want to build, check this repository out to build the
         # docker image
@@ -309,7 +367,7 @@ jobs:
     # !cancelled() rather than always(): this still reports when the tests ran and failed, which is
     # the point, but a run cancelled by hand skips it and stays grey instead of going red for work
     # nobody asked it to finish. The continue clause skips it for a run that was never going to
-    # test anything, such as a pull request without the label.
+    # test anything, such as a scheduled night on which nothing was committed.
     if: ${{ !cancelled() && needs.build-docker.outputs.continue == 'true' }}
     steps:
       - name: Retrieve test JUnit files
