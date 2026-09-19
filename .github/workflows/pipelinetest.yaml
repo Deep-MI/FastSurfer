@@ -28,6 +28,12 @@ concurrency:
   # and a shared group made the second dispatch kill the first. Back to back, because then the
   # dependencies have not moved in between and the runner is what is left to differ. Cancel a
   # superseded run by hand.
+  #
+  # The cost, accepted rather than unnoticed: two builds can export the cache at once, and the
+  # later export wins. A run that started before the weekly refresh exported still holds the old
+  # layers, so it can put the old index back and cost that week its refresh. The window is the
+  # build job only, since that is what exports, and it takes a dispatch on a Sunday morning to
+  # reach it. The next weekly run repairs it.
   group: ${{ github.workflow }}-${{ github.run_id }}
   cancel-in-progress: false
 
@@ -36,6 +42,9 @@ on:
     # Nightly, so a regression surfaces within a day rather than within a week. The job below turns
     # most of these into a no-op, see the schedule branch of the parse step for when it does not.
     # Not on the hour, which is when GitHub's scheduler is most congested and runs are delayed.
+    # A Sunday that fails or never fires costs that week its cache refresh, which the next Sunday
+    # repairs; keying the refresh on the weekday rather than on when it last happened is what buys
+    # that, and it is the cheaper trade.
     - cron: '37 2 * * *'
   workflow_dispatch:
     inputs:
@@ -162,7 +171,8 @@ jobs:
               # Only when the count is known: the fail-open branch above guesses 1.
               if [[ "$commits_known" == "true" && "$new_commits" -gt 0 ]]
               then
-                confounded="$new_commits commit(s) also landed on ${{ github.ref_name }} since $since,"
+                # "at least", because the api returns one page and stops counting at 30
+                confounded="At least $new_commits commit(s) also landed on ${{ github.ref_name }} since $since,"
                 confounded="$confounded so a difference in this run is not attributable to the dependencies alone."
                 echo "::warning title=Baseline run is confounded::$confounded"
                 printf '### Baseline run is confounded\n\n%s\n' "$confounded" >> "$GITHUB_STEP_SUMMARY"
