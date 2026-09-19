@@ -72,27 +72,6 @@ jobs:
     name: 'docker image build'
     runs-on: ubuntu-latest
     timeout-minutes: 180
-    env:
-      # build.py turns this into --cache-from and --cache-to for buildx. Job level rather than step
-      # level, because the build runs inside a composite action.
-      #
-      # ignore-error, so that a rejected or truncated export costs the cache and not the run: without
-      # it a cache failure fails this job and the test jobs never start.
-      #
-      # mode=max, because only that exports the build_venv stage: min would cache the final image's
-      # layers, but buildkit still has to rebuild build_venv to know whether the layer that copies
-      # from it is current, so the dependency install would not be skipped.
-      #
-      # scope names the index only. This backend writes one cache entry per layer blob, so the
-      # caches page shows an `index-pipelinetest-...` entry plus a `buildkit-blob-...` entry per
-      # layer. Blobs are keyed by content digest and shared, so a rebuild of unchanged layers
-      # reuses them rather than adding more; what accumulates is one new blob per layer that
-      # actually changed, until the 7 day expiry removes the old one. Fewer, larger layers in the
-      # Dockerfile would mean fewer entries.
-      #
-      # The cache quota is 10 GB for the whole repository and the image is the bulk of it, so check
-      # https://github.com/Deep-MI/FastSurfer/actions/caches if other workflows start missing.
-      FASTSURFER_BUILD_CACHE: type=gha,mode=max,ignore-error=true,scope=pipelinetest
     # A scheduled workflow runs on the default branch of whatever repository holds the file, and a
     # fork has neither the secrets nor a reason to burn three hours nightly. GitHub disables
     # schedules in forks by default, so this is the belt to that braces.
@@ -131,6 +110,9 @@ jobs:
           # as passed without it having tested anything.
           continue_tests="false"
           docker_image="build-cached"
+          # whether this run resolves its dependencies afresh rather than restoring them, see the
+          # cache block at the end of this step
+          refresh_cache="false"
           if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]
           then
             # only a dispatch carries inputs, and only write access can start one, so there is
@@ -160,6 +142,7 @@ jobs:
             then
               echo "Weekly baseline run, testing ${{ github.ref_name }} whether or not it moved."
               continue_tests="true"
+              refresh_cache="true"
             elif [[ "$new_commits" -gt 0 ]]
             then
               echo "$new_commits commit(s) on ${{ github.ref_name }} since $since."
@@ -176,12 +159,45 @@ jobs:
             echo "CONTINUE=$continue_tests"
             echo "DOCKER_IMAGE=$docker_image"
           } >> "$GITHUB_OUTPUT"
-          # later, we might want to extract additional run options from the pr text or issue comments
-          # these should just be added here 
-          # https://api.github.com/repos/${{ github.repository }}/issues/${{ github.number }}
-          # https://api.github.com/repos/${{ github.repository }}/issues/${{ github.number }}/comments
-          # this may also need adaptations in the test script at the bottom
           echo "EXTRA_ARGS=" >> $GITHUB_OUTPUT
+
+          # build.py turns this into --cache-from and --cache-to for buildx. Written to GITHUB_ENV
+          # rather than set as a job-level env, because the scope below is computed here and because
+          # a step-level env does not reach the steps of the composite action that runs the build,
+          # while the job environment does.
+          #
+          # ignore-error, so that a rejected or truncated export costs the cache and not the run:
+          # without it a cache failure fails this job and the test jobs never start.
+          #
+          # mode=max, because only that exports the build_venv stage: min would cache the final
+          # image's layers, but buildkit still has to rebuild build_venv to know whether the layer
+          # that copies from it is current, so the dependency install would not be skipped.
+          #
+          # scope names the index only. This backend writes one cache entry per layer blob, so the
+          # caches page shows an `index-pipelinetest` entry plus a `buildkit-blob-...` entry per
+          # layer. Blobs are keyed by content digest and shared, so a rebuild of unchanged layers
+          # reuses them rather than adding more. One scope, always, so only one image's worth of
+          # layers is live: the quota is 10 GB for the whole repository and the image is the bulk
+          # of it, so check https://github.com/Deep-MI/FastSurfer/actions/caches if other workflows
+          # start missing their caches.
+          echo "FASTSURFER_BUILD_CACHE=type=gha,mode=max,ignore-error=true,scope=pipelinetest" >> "$GITHUB_ENV"
+
+          # The baseline run resolves its dependencies rather than restoring them, and still writes
+          # what it resolved so the rest of the week reuses it. Without this the dependency layer
+          # never moves: it lives in build_venv, `COPY . /fastsurfer/` is in a later stage, and its
+          # key is the two bind-mounted files, so no amount of committing invalidates it and a new
+          # release on PyPI is invisible to it. A run that restored that layer is only showing that
+          # our own code is deterministic, never that the environment held still.
+          #
+          # Read and write have to be separable for that. The variable below is the default for
+          # build.py --refresh_cache, which the composite action cannot pass because its inputs are
+          # fixed. Pointing the baseline at an unwritten scope name would not do instead: a name
+          # nothing has written is also a name nothing can read the next night.
+          if [[ "$refresh_cache" == "true" ]]
+          then
+            echo "Resolving dependencies afresh for this run, and writing the result to the cache."
+            echo "FASTSURFER_BUILD_CACHE_REFRESH=1" >> "$GITHUB_ENV"
+          fi
       - name: Checkout repository
         # DOCKER_IMAGE is build-cached => we want to build, check this repository out to build the
         # docker image
