@@ -151,14 +151,6 @@ FROM build_base AS build_venv
 
 ARG PYTHON_VERSION
 ARG DEVICE
-ARG AUTHOR
-ARG REPOSITORY_URL
-ARG SOURCE_URL
-ARG DOC_URL
-ARG FASTSURFER_VERSION
-ARG GIT_HASH
-ARG VENDOR
-ARG BUILD_BASE_IMAGE
 ARG PINNED_REQUIREMENTS=false
 
 SHELL ["/bin/bash", "--login", "-e", "-c"]
@@ -180,6 +172,16 @@ else
 fi
 EOF
 
+# The labels go last, and so do the args they read, see the runtime stage.
+ARG AUTHOR
+ARG REPOSITORY_URL
+ARG SOURCE_URL
+ARG DOC_URL
+ARG FASTSURFER_VERSION
+ARG GIT_HASH
+ARG VENDOR
+ARG BUILD_BASE_IMAGE
+
 LABEL org.opencontainers.image.authors="$AUTHOR" \
       org.opencontainers.image.url="$REPOSITORY_URL" \
       org.opencontainers.image.documentation="$DOC_URL/overview/docker.html" \
@@ -197,29 +199,10 @@ LABEL org.opencontainers.image.authors="$AUTHOR" \
 FROM build_base AS build_freesurfer
 
 ARG DEVICE
-ARG AUTHOR
-ARG REPOSITORY_URL
-ARG SOURCE_URL
-ARG DOC_URL
-ARG FREESURFER_VERSION
 ARG FREESURFER_URL
-ARG FASTSURFER_VERSION
-ARG GIT_HASH
-ARG VENDOR
-ARG BUILD_BASE_IMAGE
-
-LABEL org.opencontainers.image.authors="$AUTHOR" \
-      org.opencontainers.image.url="$REPOSITORY_URL" \
-      org.opencontainers.image.documentation="$DOC_URL/overview/docker.html" \
-      org.opencontainers.image.source="$SOURCE_URL/tools/Docker/Dockerfile" \
-      org.opencontainers.image.version="$FREESURFER_VERSION" \
-      org.opencontainers.image.revision="$GIT_HASH" \
-      org.opencontainers.image.vendor="$VENDOR" \
-      org.opencontainers.image.licenses="FreeSurfer License" \
-      org.opencontainers.image.ref.name="deepmi/fastsurfer-build:freesurfer${FREESURFER_VERSION//./}" \
-      org.opencontainers.image.title="FreeSurfer $FREESURFER_VERSION minimal installation for FastSurfer $FASTSURFER_VERSION" \
-      org.opencontainers.image.description="This image contains the FreeSurfer binaries used in FastSurfer, for example for surface reconstruction, for the official FastSurfer docker image. These binaries are placed at /opt/freesurfer in the image." \
-      org.opencontainers.image.base.name="$BUILD_BASE_IMAGE"
+# redeclared, because a global arg is not in scope inside a stage: without this the RUN below
+# expands it to empty and --insecure never reaches the installer
+ARG INSECURE_FLAG
 
 # install freesurfer and point to new python location
 RUN --mount=type=bind,source=tools/build/install_fs_pruned.sh,target=/install/install_fs_pruned.sh \
@@ -238,6 +221,32 @@ EOF
 
 COPY tools/build/fspython /opt/freesurfer/bin/fspython
 
+# The labels go last, and so do the args they read. A label writes metadata and no filesystem
+# layer, but everything after it in the stage keys on it, so a version or a hash that changes with
+# every commit would rebuild the steps above from here.
+ARG AUTHOR
+ARG REPOSITORY_URL
+ARG SOURCE_URL
+ARG DOC_URL
+ARG FREESURFER_VERSION
+ARG FASTSURFER_VERSION
+ARG GIT_HASH
+ARG VENDOR
+ARG BUILD_BASE_IMAGE
+
+LABEL org.opencontainers.image.authors="$AUTHOR" \
+      org.opencontainers.image.url="$REPOSITORY_URL" \
+      org.opencontainers.image.documentation="$DOC_URL/overview/docker.html" \
+      org.opencontainers.image.source="$SOURCE_URL/tools/Docker/Dockerfile" \
+      org.opencontainers.image.version="$FREESURFER_VERSION" \
+      org.opencontainers.image.revision="$GIT_HASH" \
+      org.opencontainers.image.vendor="$VENDOR" \
+      org.opencontainers.image.licenses="FreeSurfer License" \
+      org.opencontainers.image.ref.name="deepmi/fastsurfer-build:freesurfer${FREESURFER_VERSION//./}" \
+      org.opencontainers.image.title="FreeSurfer $FREESURFER_VERSION minimal installation for FastSurfer $FASTSURFER_VERSION" \
+      org.opencontainers.image.description="This image contains the FreeSurfer binaries used in FastSurfer, for example for surface reconstruction, for the official FastSurfer docker image. These binaries are placed at /opt/freesurfer in the image." \
+      org.opencontainers.image.base.name="$BUILD_BASE_IMAGE"
+
 # =======================================================
 # Here, we create references to the requested build image
 # =======================================================
@@ -251,31 +260,6 @@ FROM $VENV_BUILD_IMAGE AS selected_venv_build_image
 # Here, we create the smaller runtime image
 # =========================================
 FROM $RUNTIME_BASE_IMAGE AS runtime
-
-ARG AUTHOR
-ARG REPOSITORY_URL
-ARG SOURCE_URL
-ARG DOC_URL
-ARG FASTSURFER_VERSION
-ARG GIT_HASH
-ARG VENDOR
-ARG DEVICE
-ARG RUNTIME_BASE_IMAGE
-ARG PYTHON_VERSION
-
-
-LABEL org.opencontainers.image.authors="$AUTHOR" \
-      org.opencontainers.image.url="$REPOSITORY_URL" \
-      org.opencontainers.image.documentation="$DOC_URL/overview/docker.html" \
-      org.opencontainers.image.source="$SOURCE_URL/tools/Docker/Dockerfile" \
-      org.opencontainers.image.version="$FASTSURFER_VERSION" \
-      org.opencontainers.image.revision="$GIT_HASH" \
-      org.opencontainers.image.vendor="$VENDOR" \
-      org.opencontainers.image.licenses="FreeSurfer License" \
-      org.opencontainers.image.ref.name="deepmi/fastsurfer:${DEVICE}_v${FASTSURFER_VERSION}" \
-      org.opencontainers.image.title="FastSurfer $FASTSURFER_VERSION minimal installation for $DEVICE" \
-      org.opencontainers.image.description="This image contains the python virtual environment for the official FastSurfer docker image. The corresponding virtual environment is placed at /venv in the image." \
-      org.opencontainers.image.base.name="$RUNTIME_BASE_IMAGE"
 
 ENV MPLCONFIGDIR=/tmp/matplotlib-config
 
@@ -404,9 +388,38 @@ WORKDIR "/fastsurfer"
 ENTRYPOINT ["/fastsurfer/tools/Docker/entrypoint.sh","/fastsurfer/run_fastsurfer.sh"]
 CMD ["--help"]
 
+# The labels go last, and so do the args they read. A label writes metadata and no filesystem
+# layer, but every step after it keys on it, and the version and the hash change with every commit,
+# so higher up they rebuilt this whole stage each time, the weights download included.
+ARG AUTHOR
+ARG REPOSITORY_URL
+ARG SOURCE_URL
+ARG DOC_URL
+ARG FASTSURFER_VERSION
+ARG GIT_HASH
+ARG VENDOR
+ARG DEVICE
+ARG RUNTIME_BASE_IMAGE
+
+LABEL org.opencontainers.image.authors="$AUTHOR" \
+      org.opencontainers.image.url="$REPOSITORY_URL" \
+      org.opencontainers.image.documentation="$DOC_URL/overview/docker.html" \
+      org.opencontainers.image.source="$SOURCE_URL/tools/Docker/Dockerfile" \
+      org.opencontainers.image.version="$FASTSURFER_VERSION" \
+      org.opencontainers.image.revision="$GIT_HASH" \
+      org.opencontainers.image.vendor="$VENDOR" \
+      org.opencontainers.image.licenses="FreeSurfer License" \
+      org.opencontainers.image.ref.name="deepmi/fastsurfer:${DEVICE}_v${FASTSURFER_VERSION}" \
+      org.opencontainers.image.title="FastSurfer $FASTSURFER_VERSION minimal installation for $DEVICE" \
+      org.opencontainers.image.description="This image contains the python virtual environment for the official FastSurfer docker image. The corresponding virtual environment is placed at /venv in the image." \
+      org.opencontainers.image.base.name="$RUNTIME_BASE_IMAGE"
+
 FROM runtime AS runtime_cuda
 # parse DEVICE to extract the CUDA version, this is needed to correctly initialize NVIDIA_REQUIRE_CUDA below
 # Note, here 'cuda' defaults to 12.8
+# DEVICE is redeclared, because arg scope does not cross stages: without it the substitutions
+# below all start from an empty string and NVIDIA_REQUIRE_CUDA ends up as "cuda>=".
+ARG DEVICE
 ARG CUDA_VERSION__0=${DEVICE/cu11/11.}
 ARG CUDA_VERSION__1=${CUDA_VERSION__0/cu12/12.}
 ARG CUDA_VERSION__2=${CUDA_VERSION__1/cu13/13.}

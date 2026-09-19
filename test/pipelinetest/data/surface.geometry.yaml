@@ -19,3 +19,8 @@ tolerances:
   rh.white: 0.05
   lh.pial: 0.05
   rh.pial: 0.05
+  # The corpus callosum module's own surface. Tight because it is early and barely moves: on a pair
+  # that diverged before the dispatch pins it shifted 1.7e-5 mm, while the white and pial surfaces
+  # retessellated outright. Its thickness and curvature are not compared separately, neither moves
+  # without this moving first.
+  callosum.surf: 0.001

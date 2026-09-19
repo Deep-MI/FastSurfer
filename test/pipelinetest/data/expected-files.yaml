@@ -78,6 +78,16 @@ files:
   - "stats/aseg+DKT.stats"
   - "stats/cerebellum.CerebNet.stats"
   - "stats/hypothalamus.HypVINN.stats"
+  # the corpus callosum module. The two withCC statistics and callosum.surf are compared as well,
+  # the rest are listed so that a module which silently produced nothing is still caught.
+  - "stats/aseg.VINN.withCC.stats"
+  - "stats/aseg+DKT.VINN.withCC.stats"
+  - "stats/callosum.CC.midslice.json"
+  - "stats/callosum.CC.all_slices.json"
+  - "surf/callosum.surf"
+  - "surf/callosum.thickness.w"
+  - "mri/callosum.CC.orig.mgz"
+  - "mri/callosum.CC.upright.mgz"
   - "stats/lh.curv.stats"
   - "stats/rh.curv.stats"
   - "stats/lh.aparc.DKTatlas.mapped.stats"

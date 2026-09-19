@@ -1,0 +1,19 @@
+# The segmentation statistics after the corpus callosum is painted in. This and the aseg+DKT
+# variant are what react to a change in the CC segmentation or in the transform that places it,
+# which the aseg.auto.mgz comparison alone does not resolve to a volume per structure.
+default_threshold: 0.01
+lut: FastSurferCNN/config/FreeSurferColorLUT.txt
+
+measure_thresholds:
+  BrainSeg: 0.1
+  BrainSegNotVent: 0.1
+  lhCerebralWhiteMatter: 0.1
+  rhCerebralWhiteMatter: 0.1
+  CerebralWhiteMatter: 0.1
+  SubCortGray: 0.1
+  SupraTentorial: 0.1
+  SupraTentorialNotVent: 0.1
+  Mask: 0.1
+
+thresholds:
+  structure: 0.1
