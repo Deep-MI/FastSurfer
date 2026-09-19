@@ -25,7 +25,8 @@ Two inputs, both optional:
 **On a nightly schedule, on the default branch.** Most nights stop immediately: the run only
 continues if the branch moved since the last one, plus once a week whatever happened. The weekly run
 exists because an unchanged branch that produces a changed result means something under us moved,
-and a run gated purely on our own commits can never see that.
+and a run gated purely on our own commits can never see that. It is also the run that refreshes the
+build cache, see below, because otherwise the dependency versions would never move either.
 
 **Not on a pull request.** GitHub passes no secrets to a workflow triggered from a fork, and must
 not, because the code under test runs in the same job as the FreeSurfer license. A trigger on a pull
@@ -39,9 +40,15 @@ Jobs
 ### docker image build
 
 Decides whether the run applies at all and, when it does, builds the image with
-`tools/Docker/build.py`. The build is cached into the GitHub Actions cache, so an unchanged source
-tree restores the layers rather than rebuilding them. This is also the job that publishes the
-outputs the other two read, chiefly whether to continue and which image to use.
+`tools/Docker/build.py`. This is also the job that publishes the outputs the other two read, chiefly
+whether to continue and which image to use.
+
+The build is cached into the GitHub Actions cache, so an unchanged source tree restores the layers
+rather than rebuilding them. That includes the layer that resolves the Python dependencies, which
+sits in an earlier stage than the one copying our source, so committing does not invalidate it and
+a new release on PyPI would otherwise stay invisible indefinitely. The weekly run therefore builds
+without restoring the cache and writes what it resolved, so the following week starts from that.
+By hand, `build.py --refresh_cache` does the same thing.
 
 ### run and tests, once per subject
 
