@@ -3,13 +3,16 @@ name: pipelinetest
 # File: pipelinetest.yaml
 # Functionality: This workflow runs FastSurfer on MRI data and runs pytest to check if the results are acceptable. It
 #  also checks if the FastSurfer environment and output already exist, and if not, it creates them.
-# Usage: There are two ways to run this, both restricted to this repository. Attach the label
-#  "pipelinetest" to a pull request, which tests the merge of it into its base and reports on the pull
-#  request. Or run it from the Actions tab (workflow-dispatch) on any branch, which tests that
-#  branch as it stands and reports on the run; that is also how reference data is produced. A pull
-#  request from a fork is skipped: GitHub gives it no secrets, and must not, because the code under
-#  test runs in the same job as the FreeSurfer license. Merge such a branch into a branch of this
-#  repository and use either way above.
+# Usage: There are two ways to run this, both restricted to this repository. Run it from the Actions
+#  tab (workflow-dispatch) on any branch, which tests that branch as it stands and reports on the
+#  run; that is also how reference data is produced. Or let the nightly schedule run it on the
+#  default branch, which it does only when that branch moved since the last one, plus once a week
+#  whatever happened.
+#
+#  There is no trigger on a pull request. GitHub gives a pull request from a fork no secrets, and
+#  must not, because the code under test runs in the same job as the FreeSurfer license, so the
+#  label that used to start this could never work for a fork and produced a skipped check for every
+#  unrelated label on every pull request. To test a branch before it lands, dispatch on it.
 # Expected Secrets. They keep the old QUICKTEST_ prefix: a secret cannot be renamed, only deleted
 # and recreated, and their contents are not to hand. Rename them when the reference data is next
 # refreshed, which is when they have to be re-entered anyway.
@@ -20,21 +23,20 @@ name: pipelinetest
 #  - QUICKTEST_LICENSE: content of a FreeSurfer license file
 
 concurrency:
-  # One group per pull request and label, and one per dispatch. The label is part of the key
-  # because the group is evaluated when the run is created, before the condition on the job below,
-  # so without it attaching an unrelated label cancels a pipelinetest that is already running.
-  # A dispatch adds the run id, so its group is unique and two dispatches never cancel each other:
-  # running one branch twice is how the hardware is held constant when comparing results, and
-  # without the run id they shared a group and the second killed the first. This makes
-  # cancel-in-progress reachable only from the pull request path; cancel a superseded dispatch by
-  # hand. If two dispatches on one branch ever cancel each other again, check that run_id is
-  # actually being substituted here rather than expanding to nothing.
-  group: ${{ github.workflow }}-${{ github.event.number || github.ref }}-${{ github.event.label.name || github.run_id }}
-  cancel-in-progress: true
+  # One group per run, so nothing ever cancels anything. That is deliberate: the runner a job lands
+  # on is not ours to choose, so dispatching one branch twice is how that variation gets sampled,
+  # and a shared group made the second dispatch kill the first. Back to back, because then the
+  # dependencies have not moved in between and the runner is what is left to differ. Cancel a
+  # superseded run by hand.
+  group: ${{ github.workflow }}-${{ github.run_id }}
+  cancel-in-progress: false
 
 on:
-  pull_request:
-    types: [labeled]
+  schedule:
+    # Nightly, so a regression surfaces within a day rather than within a week. The job below turns
+    # most of these into a no-op, see the schedule branch of the parse step for when it does not.
+    # Not on the hour, which is when GitHub's scheduler is most congested and runs are delayed.
+    - cron: '37 2 * * *'
   workflow_dispatch:
     inputs:
       docker-image:
@@ -55,7 +57,8 @@ permissions:
   discussions: read
   packages: read
   pages: read
-  pull-requests: write
+  # no pull-requests: nothing here runs in the context of one any more. The results land on a check
+  # run against the tested commit, which is what checks: write above is for.
   repository-projects: read
   security-events: read
   statuses: read
@@ -90,14 +93,10 @@ jobs:
       # The cache quota is 10 GB for the whole repository and the image is the bulk of it, so check
       # https://github.com/Deep-MI/FastSurfer/actions/caches if other workflows start missing.
       FASTSURFER_BUILD_CACHE: type=gha,mode=max,ignore-error=true,scope=pipelinetest
-    # the first clause admits a workflow-dispatch, the rest a pull request. A labeled event fires for
-    # every label, because GitHub cannot filter by label name in the trigger, so deciding here rather
-    # than in a step keeps a runner from starting for the labels dependabot attaches, and makes a run
-    # that does not apply, such as one on a fork, come out as skipped rather than passed or failed.
-    if: >-
-      github.event_name != 'pull_request'
-      || (github.event.label.name == 'pipelinetest'
-          && github.event.pull_request.head.repo.full_name == github.repository)
+    # A scheduled workflow runs on the default branch of whatever repository holds the file, and a
+    # fork has neither the secrets nor a reason to burn three hours nightly. GitHub disables
+    # schedules in forks by default, so this is the belt to that braces.
+    if: github.repository == 'Deep-MI/FastSurfer'
     outputs:
       continue: ${{ steps.parse.outputs.CONTINUE }}
       docker-image: ${{ steps.parse.outputs.DOCKER_IMAGE }}
@@ -115,17 +114,15 @@ jobs:
         run: |
           # Debug information
           # Workflow: ${{ github.workflow }}
-          # Event Name: ${{ github.event_name }} 
-          # Action: ${{ github.event.action }}
-          # pull_request-Event
-          # PR: ${{ github.event.number }}
+          # Event Name: ${{ github.event_name }}
+          # Branch: ${{ github.ref_name }}
           # Event Triggered by: ${{ github.event.sender.login }}
           # workflow_dispatch-Event
           # Inputs:
           cat > /dev/null <<ENDOFINPUTS
           ${{ toJSON(inputs) }}
           ENDOFINPUTS
-          
+
           gh_header=(-H "Accept: application/vnd.github+json"
                      -H "X-GitHub-Api-Version: 2022-11-28")
           # collected in variables and written once at the end, so that a later decision cannot
@@ -134,38 +131,45 @@ jobs:
           # as passed without it having tested anything.
           continue_tests="false"
           docker_image="build-cached"
-          if [[ "${{ github.event_name }}" == "pull_request" ]]
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]
           then
-            if [[ "${{ github.event.pull_request.head.repo.full_name }}" != "${{ github.repository }}" ]]
-            then
-              # not reachable: the condition on this job skips a fork, so that such a run reads as
-              # skipped. Kept as a guard, because the license is in the job this decides for, and a
-              # condition that stops holding should be loud rather than silent.
-              echo "Refusing to run: pull request ${{ github.event.number }} comes from"
-              echo "  '${{ github.event.pull_request.head.repo.full_name }}', so its code would run in a"
-              echo "  job that holds the FreeSurfer license. The condition on this job should have"
-              echo "  skipped the run, which means that condition no longer holds."
-              exit 1
-            else
-              continue_tests="true"
-            fi
-          elif [[ "${{ github.event_name }}" == "workflow_dispatch" ]]
-          then
-            # the inputs context is only useful/set in the workflow dispatch event case
+            # only a dispatch carries inputs, and only write access can start one, so there is
+            # nothing further to check here
             continue_tests="true"
             if [[ -n "${{ inputs.docker-image }}" ]] ; then docker_image="${{ inputs.docker-image }}" ; fi
+          elif [[ "${{ github.event_name }}" == "schedule" ]]
+          then
+            # Nightly only pays for itself when there is something new to test, so most nights stop
+            # here. Sunday runs whatever happened: an unchanged branch that produces a changed
+            # result is the base image, the runner or a dependency moving under us, and a run gated
+            # purely on our own commits can never see that.
+            #
+            # 25 rather than 24 hours, so a commit landing near the cron time is not missed by a run
+            # that starts a minute late. The cost of the overlap is at most one extra run.
+            since="$(date -u -d '25 hours ago' +%Y-%m-%dT%H:%M:%SZ)"
+            # fail open: the gate is an optimisation, and an api that is down or rate limited must
+            # not quietly turn the nightly test off for as long as it stays down
+            if ! new_commits="$(gh api "${gh_header[@]}" \
+                                "/repos/${{ github.repository }}/commits?sha=${{ github.ref_name }}&since=$since" \
+                                --jq "length")"
+            then
+              echo "Could not list recent commits, so running rather than skipping on a guess."
+              new_commits=1
+            fi
+            if [[ "$(date -u +%u)" == "7" ]]
+            then
+              echo "Weekly baseline run, testing ${{ github.ref_name }} whether or not it moved."
+              continue_tests="true"
+            elif [[ "$new_commits" -gt 0 ]]
+            then
+              echo "$new_commits commit(s) on ${{ github.ref_name }} since $since."
+              continue_tests="true"
+            else
+              echo "Nothing new on ${{ github.ref_name }} since $since and this is not the weekly"
+              echo "  baseline run, so there is nothing to test."
+            fi
           else #  this event has no specific rules (invalid)
             echo "This workflow is not defined for the event ${{ github.event_name }}!"
-            exit 1
-          fi
-          # a failure rather than a skip, unlike the cases the job condition covers: whether the
-          # sender is a collaborator takes an api call, which a job condition cannot make, so the job
-          # is already running by the time we know. Being refused is an error, not a run that does
-          # not apply. Quoted, because a bot login such as dependabot[bot] is a glob unquoted.
-          if [[ "$continue_tests" == "true" ]] \
-             && ! gh api "${gh_header[@]}" "/repos/${{ github.repository }}/collaborators/${{ github.event.sender.login }}"
-          then
-            echo "Only collaborators explicitly listed as collaborators can trigger this workflow!"
             exit 1
           fi
           {
@@ -309,7 +313,7 @@ jobs:
     # !cancelled() rather than always(): this still reports when the tests ran and failed, which is
     # the point, but a run cancelled by hand skips it and stays grey instead of going red for work
     # nobody asked it to finish. The continue clause skips it for a run that was never going to
-    # test anything, such as a pull request without the label.
+    # test anything, such as a scheduled night on which nothing was committed.
     if: ${{ !cancelled() && needs.build-docker.outputs.continue == 'true' }}
     steps:
       - name: Retrieve test JUnit files
