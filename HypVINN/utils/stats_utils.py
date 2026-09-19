@@ -18,7 +18,7 @@ from pathlib import Path
 def compute_stats(
         orig_path: Path,
         prediction_path: Path,
-        stats_dir: Path,
+        stats_file: Path,
 ) -> int | str:
     """
     Compute statistics for the segmentation results.
@@ -29,8 +29,8 @@ def compute_stats(
         The path to the original image.
     prediction_path : Path
         The path to the predicted segmentation.
-    stats_dir : Path
-        The directory for storing the statistics.
+    stats_file : Path
+        The file to write the statistics to.
 
     Returns
     -------
@@ -52,7 +52,6 @@ def compute_stats(
 
     from FastSurferCNN.segstats import main
     from FastSurferCNN.utils.checkpoint import FASTSURFER_ROOT
-    from HypVINN.config.hypvinn_files import HYPVINN_STATS_NAME
     from HypVINN.config.hypvinn_global_var import FS_CLASS_NAMES
 
     args = namedtuple(
@@ -64,7 +63,7 @@ def compute_stats(
 
     args.normfile = orig_path
     args.segfile = prediction_path
-    args.segstatsfile = stats_dir / HYPVINN_STATS_NAME
+    args.segstatsfile = stats_file
     args.excludeid = [0]
     args.ids = labels
     args.merged_labels = []

@@ -1531,9 +1531,11 @@ then
   then
     echo "MODULE: HypVINN hypothalamus segmentation" >> "$exec_time_log"
     # currently, the order of the T2 preprocessing only is registration to T1w
+    # before --t1, which takes the value appended below
     cmd=($python "$hypvinndir/run_prediction.py" --sd "${sd}" --sid "${subject}" --reg_mode "$hypvinn_regmode"
          "${hypvinn_flags[@]}" --threads "$threads_seg" --async_io --batch_size "$batch_size" --seg_log "$seg_log"
-         --device "$device" --viewagg_device "$viewagg" --t1)
+         --device "$device" --viewagg_device "$viewagg"
+         --hypo_segfile "$hypo_segfile" --hypo_statsfile "$hypo_statsfile" --t1)
     if [[ "$run_biasfield" == "true" ]]
     then
       cmd+=("$norm_name")
