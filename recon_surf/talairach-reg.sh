@@ -139,6 +139,29 @@ else
   if [[ "$long" == "true" ]] ; then
     # longitudinal processing
 
+    # A time point takes the transforms from the base rather than computing its own, so the base
+    # has to have them already. Checked together and up front, because a bare cp failure here reads
+    # as a missing file rather than as a missing step.
+    missing_tal=()
+    for tal_from_base in talairach.lta talairach.auto.xfm talairach.xfm.lta ; do
+      if [[ ! -f "$basedir/mri/transforms/$tal_from_base" ]] ; then
+        missing_tal+=("$tal_from_base")
+      fi
+    done
+    if [[ "${#missing_tal[@]}" -gt 0 ]] ; then
+      # kept word for word the same as the earlier check in run_fastsurfer.sh, so the two do not
+      # drift into describing the same problem differently
+      baseid="$(basename "$basedir")"
+      {
+        echo "ERROR: The base $baseid has no talairach registration, missing ${missing_tal[*]}"
+        echo "  in $basedir/mri/transforms. A longitudinal time point copies these from the"
+        echo "  base, so the base has to be segmented with --tal_reg first. With"
+        echo "  long_fastsurfer.sh that is the template_seg stage, or directly:"
+        echo "    run_fastsurfer.sh --sid $baseid --base --seg_only --tal_reg ..."
+      } | tee -a "$LF"
+      exit 1
+    fi
+
     # copy all talairach transforms from base (as we are in same space)
     # this also fixes eTIV across time (if FreeSurfer scaling method is used)
     cmd=(cp "$basedir/mri/transforms/talairach.lta" "$tal_file.lta")

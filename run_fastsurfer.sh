@@ -925,6 +925,49 @@ then
   fi
   # this is the default longitudinal input from base directory:
   t1="$sd/$baseid/long-inputs/$subject/long_conform.nii.gz"
+  # Both pipelines can reach the talairach step, and there a time point copies the transforms from
+  # the base instead of computing its own. Checked here rather than only in talairach-reg.sh,
+  # because that point comes after hours of work, and for the surface pipeline after
+  # aparc.DKTatlas+aseg.orig.mgz is written, which recon-surf.sh then refuses to start on top of.
+  # So the late failure also blocks its own restart.
+  #
+  # The segmentation reaches the step with --tal_reg. The surface pipeline reaches it whenever the
+  # time point does not already have both transforms, see the condition in recon-surf.sh. Neither
+  # applies in --edits mode, which keeps an existing manual registration and never reads the base.
+  needs_base_tal="false"
+  if [[ "$edits" != "true" ]]
+  then
+    if [[ "$run_seg_pipeline" == "true" ]] && [[ "$run_talairach_registration" == "true" ]]
+    then needs_base_tal="true"
+    fi
+    if [[ "$run_surf_pipeline" == "true" ]] &&
+       { [[ ! -f "$subject_dir/mri/transforms/talairach.lta" ]] ||
+         [[ ! -f "$subject_dir/mri/transforms/talairach_with_skull.lta" ]] ; }
+    then needs_base_tal="true"
+    fi
+  fi
+  if [[ "$needs_base_tal" == "true" ]]
+  then
+    # the same three files talairach-reg.sh copies, so this does not pass a base it would reject
+    missing_tal=()
+    for tal_from_base in talairach.lta talairach.auto.xfm talairach.xfm.lta ; do
+      if [[ ! -f "$sd/$baseid/mri/transforms/$tal_from_base" ]] ; then
+        missing_tal+=("$tal_from_base")
+      fi
+    done
+    if [[ "${#missing_tal[@]}" -gt 0 ]] ; then
+      {
+        # kept word for word the same as the check in talairach-reg.sh, so the two do not drift
+        # into describing the same problem differently
+        echo "ERROR: The base $baseid has no talairach registration, missing ${missing_tal[*]}"
+        echo "  in $sd/$baseid/mri/transforms. A longitudinal time point copies these from the"
+        echo "  base, so the base has to be segmented with --tal_reg first. With"
+        echo "  long_fastsurfer.sh that is the template_seg stage, or directly:"
+        echo "    run_fastsurfer.sh --sid $baseid --base --seg_only --tal_reg ..."
+      } | tee -a "$tmpLF"
+      exit 1
+    fi
+  fi
 fi
 
 if [[ "$run_seg_pipeline" == "true" ]] && { [[ -z "$t1" ]] || [[ ! -f "$t1" ]]; }

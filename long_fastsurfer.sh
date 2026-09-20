@@ -162,8 +162,11 @@ POSITIONAL_FASTSURFER=()
 i=0
 while [[ $# -gt 0 ]]
 do
-# make key lowercase
-key=$(echo "$1" | tr '[:upper:]' '[:lower:]')
+# make key lowercase, but keep arg, which is what gets passed on: a flag this script does not know
+# reaches the default branch twice, once as the flag and once as its value, so lowercasing there
+# would rewrite paths such as --fs_license /opt/FreeSurfer/license.txt
+arg="$1"
+key=$(echo "$arg" | tr '[:upper:]' '[:lower:]')
 
 shift # past argument
 case $key in
@@ -220,8 +223,8 @@ case $key in
     exit 1
     ;;
   --allow_root|--debug) brun_flags+=("$key") ;;  # --allow_root must be passed to brun
-  *)    # unknown option
-    POSITIONAL_FASTSURFER[i]=$key
+  *)    # unknown option/run_fastsurfer.sh option, pass on arg (to keep the case)
+    POSITIONAL_FASTSURFER[i]="$arg"
     i=$((i + 1))
     ;;
 esac
