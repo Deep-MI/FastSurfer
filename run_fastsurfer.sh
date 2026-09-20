@@ -224,6 +224,10 @@ SEGMENTATION PIPELINE:
   MODULES:
   By default, all modules are run.
 
+  The options below that name an output file are for expert use. Later modules
+  and follow-up tools look for the default names, so renaming an output can
+  break a later step.
+
   ASEGDKT MODULE:
   --no_asegdkt            Skip the asegdkt segmentation (aseg+aparc/DKT segmentation)
   --asegdkt_segfile <filename>
@@ -252,6 +256,11 @@ SEGMENTATION PIPELINE:
                             with an additional file suffix of ".1mm".
                             Requires an ABSOLUTE Path! Default location:
                             \$SUBJECTS_DIR/\$sid/mri/cerebellum.CerebNet.nii.gz
+  --cereb_statsfile <stats_output>
+                          Name of the statistics file of the cerebellum
+                            segmentation. Requires an ABSOLUTE Path!
+                            Default location:
+                            \$SUBJECTS_DIR/\$sid/stats/cerebellum.CerebNet.stats
   --no_biasfield          Skip the partial volume-corrected statistics, unless a
                             biasfield corrected image already exists.
 
@@ -541,6 +550,7 @@ case $key in
     fi
     run_asegdkt_module="false"
     ;;
+  # names the VINN statsfile; $asegdkt_statsfile is the older name linked to it
   --asegdkt_statsfile) asegdkt_vinn_statsfile="$1" ; shift ;;
   --aseg_statsfile) aseg_vinn_statsfile="$1" ; shift ;;
   --aseg_segfile) aseg_segfile="$1" ; shift ;;
