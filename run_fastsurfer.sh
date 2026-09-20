@@ -191,8 +191,10 @@ SEGMENTATION PIPELINE:
                             image will be saved. Requires an ABSOLUTE Path!
                             Default location:
                             \$SUBJECTS_DIR/\$sid/mri/orig.mgz.
-  --no_biasfield          Deactivate bias field correction and the calculation of
-                            partial volume-corrected stats-files.
+  --no_biasfield          Deactivate bias field correction. The stats files are
+                            partial volume-corrected, so they are only written if
+                            a biasfield corrected image already exists, for
+                            example from an earlier run.
   --norm_name <nu.mgz>    Name of the biasfield corrected image
                             Default location:
                             \$SUBJECTS_DIR/\$sid/mri/orig_nu.mgz
@@ -200,6 +202,20 @@ SEGMENTATION PIPELINE:
                             in --seg_only stream and stats files (is affected by
                             the --3T flag, see below). Manual talairach
                             registrations are not replaced in --edits mode.
+                            To add eTIV to a subject that is already segmented,
+                            switch off everything that already ran, so only the
+                            registration and the stats files are redone:
+                              --seg_only --tal_reg --no_asegdkt --no_biasfield
+                              --no_cereb --no_hypothal --no_cc
+                            The stats are rewritten from the files on disk, so
+                            nothing is re-segmented. Leaving any of these out
+                            recomputes that module and overwrites its output.
+                            This works on a subject whose segmentation has run
+                            but not its surfaces. The surface pipeline always
+                            computes a talairach registration, so on a fully
+                            processed subject the above stops rather than
+                            replace it: delete mri/transforms/talairach.xfm
+                            first, or add --edits to keep the existing one.
   --native_image OR       Output all images and segmentations in the native image space
   --keepgeom                with its image geometry (voxel size, dimensions, orientation).
                             This setting is not compatible with the surface pipeline and
@@ -215,8 +231,8 @@ SEGMENTATION PIPELINE:
                             aseg+aparc/DKTatlas segmentations.
                             Requires an ABSOLUTE Path! Default location:
                             \$SUBJECTS_DIR/\$sid/mri/aparc.DKTatlas+aseg.deep.mgz
-  --no_biasfield          Deactivate the calculation of partial volume-corrected
-                            statistics.
+  --no_biasfield          Skip the partial volume-corrected statistics, unless a
+                            biasfield corrected image already exists.
 
   CEREBELLUM MODULE:
   --no_cereb              Skip the cerebellum segmentation (CerebNet segmentation)
@@ -236,8 +252,8 @@ SEGMENTATION PIPELINE:
                             with an additional file suffix of ".1mm".
                             Requires an ABSOLUTE Path! Default location:
                             \$SUBJECTS_DIR/\$sid/mri/cerebellum.CerebNet.nii.gz
-  --no_biasfield          Deactivate the calculation of partial volume-corrected
-                            statistics.
+  --no_biasfield          Skip the partial volume-corrected statistics, unless a
+                            biasfield corrected image already exists.
 
   CORPUS CALLOSUM MODULE:
   --no_cc                Skip the segmentation and analysis of the corpus callosum.
@@ -676,6 +692,11 @@ if [[ -z "$callosum_seg" ]] ; then callosum_seg="$subject_dir/mri/callosum.CC.or
 if [[ -z "$asegdkt_statsfile" ]] ; then asegdkt_statsfile="$subject_dir/stats/aseg+DKT.stats" ; fi
 if [[ -z "$asegdkt_vinn_statsfile" ]] ; then asegdkt_vinn_statsfile="$subject_dir/stats/aseg+DKT.VINN.stats" ; fi
 if [[ -z "$aseg_vinn_statsfile" ]] ; then aseg_vinn_statsfile="$subject_dir/stats/aseg.VINN.stats" ; fi
+# derived from the three above, and here rather than in the corpus callosum module because the stats
+# that read them run from their inputs, whether or not that module runs in this call
+asegdkt_withcc_segfile="$(add_file_suffix "$asegdkt_segfile" "withCC")"
+asegdkt_withcc_vinn_statsfile="$(add_file_suffix "$asegdkt_vinn_statsfile" "withCC")"
+aseg_auto_statsfile="$(add_file_suffix "$aseg_vinn_statsfile" "withCC")"
 if [[ -z "$cereb_segfile" ]] ; then cereb_segfile="$subject_dir/mri/cerebellum.CerebNet.nii.gz" ; fi
 if [[ -z "$cereb_statsfile" ]] ; then cereb_statsfile="$subject_dir/stats/cerebellum.CerebNet.stats" ; fi
 if [[ -z "$hypo_segfile" ]] ; then hypo_segfile="$subject_dir/mri/hypothalamus.HypVINN.nii.gz" ; fi
@@ -873,7 +894,9 @@ fi
 what_needs_license=""
 if [[ "$run_surf_pipeline" == "true" ]] ; then what_needs_license+=" and the surface pipeline" ; fi
 if [[ "$run_seg_pipeline" == "true" ]] ; then
-  if [[ "$run_biasfield" == "true" ]] && [[ "$run_talairach_registration" == "true" ]] ; then
+  # not conditional on run_biasfield: the registration also runs when --no_biasfield reuses an
+  # existing biasfield corrected image
+  if [[ "$run_talairach_registration" == "true" ]] ; then
     what_needs_license+=" and the talairach-registration in the segmentation pipeline"
   fi
   if [[ -n "$t2" ]] && [[ "$hypvinn_regmode" != "none" ]] ; then
@@ -1275,91 +1298,107 @@ then
       echo "ERROR: Biasfield correction failed!" | tee -a "$seg_log"
       exit 1
     fi
+  fi
 
+  # Outside the biasfield block: the registration reads the biasfield corrected image, but does
+  # not need a freshly computed one, so --no_biasfield can reuse what an earlier run wrote.
+  if [[ "$run_talairach_registration" == "true" ]]
+  then
+    if [[ ! -f "$norm_name" ]]
+    then
+      {
+        echo "ERROR: --tal_reg needs the biasfield corrected image, but $norm_name does not exist."
+        echo "  Drop --no_biasfield to compute it, or pass --norm_name to point at an existing one."
+      } | tee -a "$seg_log"
+      exit 1
+    fi
+    cmd=("$reconsurfdir/talairach-reg.sh" "$seg_log" --py "$python" --asegdkt_segfile "$asegdkt_segfile"
+         --dir "$subject_dir/mri" --conformed_name "$conformed_name" --norm_name "$norm_name")
+    # $sd/$baseid, not $basedir: this script only ever sets baseid (from --long), while basedir
+    # belongs to recon-surf.sh, so it expanded empty here and talairach-reg.sh got `--long ""`,
+    # which it rejects with "ERROR: Argument (--long) must be a dir". Built as recon-surf.sh:275
+    # does. Only reachable with --tal_reg and --long together, which is why it went unnoticed.
+    if [[ "$long" == "true" ]] ; then cmd+=(--long "$sd/$baseid") ; fi
+    if [[ "$edits" == "true" ]] ; then cmd+=(--edits) ; fi
+    if [[ "$atlas3T" == "true" ]] ; then cmd+=(--3T) ; fi
+    {
+      echo "INFO: Running talairach registration..."
+      echo_quoted "${cmd[@]}"
+    } | tee -a "$seg_log"
+    "${wrap[@]}" "${cmd[@]}"
+    if [[ "${PIPESTATUS[0]}" != 0 ]]
+    then
+      echo "ERROR: Talairach registration failed!" | tee -a "$seg_log"
+      exit 1
+    fi
+  fi
+
+  # Keyed on the files they are computed from, not on whether the segmentation module ran in
+  # this call, so --tal_reg can be added to a finished subject and the eTIV measures are written
+  # without recomputing the segmentation. Partial volume correction needs the biasfield image.
+  if [[ -f "$norm_name" ]] && [[ -f "$asegdkt_segfile" ]] && [[ -f "$aseg_segfile" ]] &&
+     [[ -f "$mask_name" ]]
+  then
+    # a local, not mask_name itself: that one is handed to recon-surf.sh further down, and which
+    # mask the surfaces are built from is not this block's decision to make
+    mask_for_measure="$mask_name"
+    mask_name_manedit=$(add_file_suffix "$mask_name" "manedit")
+    if [[ -e "$mask_name_manedit" ]] ; then mask_for_measure="$mask_name_manedit" ; fi
+    cmd=($python "${fastsurfercnndir}/segstats.py" --segfile "$asegdkt_segfile" --normfile "$norm_name"
+         --lut "$fastsurfercnndir/config/FreeSurferColorLUT.txt" --sd "${sd}" --sid "${subject}"
+         --threads "$threads_seg" --empty --excludeid 0
+         --ids 2 4 5 7 8 10 11 12 13 14 15 16 17 18 24 26 28 31 41 43 44 46 47 49 50 51 52 53 54 58 60 63 77
+               251 252 253 254 255
+               1002 1003 1005 1006 1007 1008 1009 1010 1011 1012 1013 1014 1015 1016 1017 1018 1019 1020
+               1021 1022 1023 1024 1025 1026 1027 1028 1029 1030 1031 1034 1035
+               2002 2003 2005 2006 2007 2008 2009 2010 2011 2012 2013 2014 2015 2016 2017 2018 2019 2020
+               2021 2022 2023 2024 2025 2026 2027 2028 2029 2030 2031 2034 2035
+         --segstatsfile "$asegdkt_vinn_statsfile"
+         measures --compute "Mask($mask_for_measure)" "BrainSeg" "BrainSegNotVent" "SupraTentorial" "SupraTentorialNotVent"
+                            "SubCortGray" "rhCerebralWhiteMatter" "lhCerebralWhiteMatter" "CerebralWhiteMatter"
+    )
     if [[ "$run_talairach_registration" == "true" ]]
     then
-      cmd=("$reconsurfdir/talairach-reg.sh" "$seg_log" --py "$python" --asegdkt_segfile "$asegdkt_segfile"
-           --dir "$subject_dir/mri" --conformed_name "$conformed_name" --norm_name "$norm_name")
-      # $sd/$baseid, not $basedir: this script only ever sets baseid (from --long), while basedir
-      # belongs to recon-surf.sh, so it expanded empty here and talairach-reg.sh got `--long ""`,
-      # which it rejects with "ERROR: Argument (--long) must be a dir". Built as recon-surf.sh:275
-      # does. Only reachable with --tal_reg and --long together, which is why it went unnoticed.
-      if [[ "$long" == "true" ]] ; then cmd+=(--long "$sd/$baseid") ; fi
-      if [[ "$edits" == "true" ]] ; then cmd+=(--edits) ; fi
-      if [[ "$atlas3T" == "true" ]] ; then cmd+=(--3T) ; fi
-      {
-        echo "INFO: Running talairach registration..."
-        echo_quoted "${cmd[@]}"
-      } | tee -a "$seg_log"
-      "${wrap[@]}" "${cmd[@]}"
-      if [[ "${PIPESTATUS[0]}" != 0 ]]
-      then
-        echo "ERROR: Talairach registration failed!" | tee -a "$seg_log"
-        exit 1
-      fi
+      cmd+=("EstimatedTotalIntraCranialVol" "BrainSegVol-to-eTIV" "MaskVol-to-eTIV")
     fi
-
-    if [[ "$run_asegdkt_module" == "true" ]]
+    {
+      echo_quoted "${cmd[@]}"
+      "${wrap[@]}" "${cmd[@]}" 2>&1
+      exit $?  # this will only terminate the subshell
+    } | tee -a "$seg_log"
+    if [[ "${PIPESTATUS[0]}" != 0 ]]
     then
-      mask_name_manedit=$(add_file_suffix "$mask_name" "manedit")
-      if [[ -e "$mask_name_manedit" ]] ; then mask_name="$mask_name_manedit" ; fi
-      cmd=($python "${fastsurfercnndir}/segstats.py" --segfile "$asegdkt_segfile" --normfile "$norm_name"
-           --lut "$fastsurfercnndir/config/FreeSurferColorLUT.txt" --sd "${sd}" --sid "${subject}"
-           --threads "$threads_seg" --empty --excludeid 0
-           --ids 2 4 5 7 8 10 11 12 13 14 15 16 17 18 24 26 28 31 41 43 44 46 47 49 50 51 52 53 54 58 60 63 77
-                 251 252 253 254 255
-                 1002 1003 1005 1006 1007 1008 1009 1010 1011 1012 1013 1014 1015 1016 1017 1018 1019 1020
-                 1021 1022 1023 1024 1025 1026 1027 1028 1029 1030 1031 1034 1035
-                 2002 2003 2005 2006 2007 2008 2009 2010 2011 2012 2013 2014 2015 2016 2017 2018 2019 2020
-                 2021 2022 2023 2024 2025 2026 2027 2028 2029 2030 2031 2034 2035
-           --segstatsfile "$asegdkt_vinn_statsfile"
-           measures --compute "Mask($mask_name)" "BrainSeg" "BrainSegNotVent" "SupraTentorial" "SupraTentorialNotVent"
-                              "SubCortGray" "rhCerebralWhiteMatter" "lhCerebralWhiteMatter" "CerebralWhiteMatter"
-      )
-      if [[ "$run_talairach_registration" == "true" ]]
-      then
-        cmd+=("EstimatedTotalIntraCranialVol" "BrainSegVol-to-eTIV" "MaskVol-to-eTIV")
-      fi
-      {
-        echo_quoted "${cmd[@]}"
-        "${wrap[@]}" "${cmd[@]}" 2>&1
-        exit $?  # this will only terminate the subshell
-      } | tee -a "$seg_log"
-      if [[ "${PIPESTATUS[0]}" != 0 ]]
-      then
-        echo "ERROR: asegdkt statsfile generation failed!" | tee -a "$seg_log"
-        exit 1
-      fi
-      # create a symlink of the stats file for the old file name
-      # at this point, $asegdkt_vinn_statsfile might be an absolute path, which causes problems in containers, so make
-      # the path relative, if both statsfiles are in $subject_dir (which will be almost always).
-      if [[ "$asegdkt_vinn_statsfile" == "$subject_dir/"* ]] && [[ "$asegdkt_statsfile" == "$subject_dir/"* ]]
-      then asegdkt_vinn_statsfile_=$(relative_to "$python" "$asegdkt_statsfile" "$asegdkt_vinn_statsfile")
-      else asegdkt_vinn_statsfile_=$asegdkt_vinn_statsfile
-      fi
-      softlink_or_copy "$asegdkt_vinn_statsfile_" "$asegdkt_statsfile" "$seg_log"
-      # create the aseg only statsfile
-      mask_name_manedit=$(add_file_suffix "$mask_name" "manedit")
-      if [[ -e "$mask_name_manedit" ]] ; then mask_name="$mask_name_manedit" ; fi
-      cmd=($python "${fastsurfercnndir}/segstats.py" --segfile "$aseg_segfile" --normfile "$norm_name"
-           --lut "$fastsurfercnndir/config/FreeSurferColorLUT.txt" --sd "${sd}" --sid "${subject}"
-           --threads "$threads_seg" --empty --excludeid 0
-           --ids 2 4 3 5 7 8 10 11 12 13 14 15 16 17 18 24 26 28 31 41 42 43 44 46 47 49 50 51 52 53 54 58 60 63 77
-           --segstatsfile "$aseg_vinn_statsfile"
-           measures --import "all" --file "$asegdkt_vinn_statsfile"
-      )
-      {
-        echo_quoted "${cmd[@]}"
-        "${wrap[@]}" "${cmd[@]}" 2>&1
-        exit $?  # this will only terminate the subshell
-      } | tee -a "$seg_log"
-      if [[ "${PIPESTATUS[0]}" != 0 ]]
-      then
-        echo "ERROR: asegdkt statsfile generation failed!" | tee -a "$seg_log"
-        exit 1
-      fi
+      echo "ERROR: asegdkt statsfile generation failed!" | tee -a "$seg_log"
+      exit 1
     fi
-  fi  # [[ "$run_biasfield" == "true" ]]
+    # create a symlink of the stats file for the old file name
+    # at this point, $asegdkt_vinn_statsfile might be an absolute path, which causes problems in containers, so make
+    # the path relative, if both statsfiles are in $subject_dir (which will be almost always).
+    if [[ "$asegdkt_vinn_statsfile" == "$subject_dir/"* ]] && [[ "$asegdkt_statsfile" == "$subject_dir/"* ]]
+    then asegdkt_vinn_statsfile_=$(relative_to "$python" "$asegdkt_statsfile" "$asegdkt_vinn_statsfile")
+    else asegdkt_vinn_statsfile_=$asegdkt_vinn_statsfile
+    fi
+    softlink_or_copy "$asegdkt_vinn_statsfile_" "$asegdkt_statsfile" "$seg_log"
+    # create the aseg only statsfile. No mask here: it imports every measure from the file above,
+    # including Mask, so it needs no mask of its own
+    cmd=($python "${fastsurfercnndir}/segstats.py" --segfile "$aseg_segfile" --normfile "$norm_name"
+         --lut "$fastsurfercnndir/config/FreeSurferColorLUT.txt" --sd "${sd}" --sid "${subject}"
+         --threads "$threads_seg" --empty --excludeid 0
+         --ids 2 4 3 5 7 8 10 11 12 13 14 15 16 17 18 24 26 28 31 41 42 43 44 46 47 49 50 51 52 53 54 58 60 63 77
+         --segstatsfile "$aseg_vinn_statsfile"
+         measures --import "all" --file "$asegdkt_vinn_statsfile"
+    )
+    {
+      echo_quoted "${cmd[@]}"
+      "${wrap[@]}" "${cmd[@]}" 2>&1
+      exit $?  # this will only terminate the subshell
+    } | tee -a "$seg_log"
+    if [[ "${PIPESTATUS[0]}" != 0 ]]
+    then
+      echo "ERROR: asegdkt statsfile generation failed!" | tee -a "$seg_log"
+      exit 1
+    fi
+  fi
 
   if [[ -n "$t2" ]]
   then
@@ -1416,9 +1455,6 @@ then
 
     echo "MODULE: FastSurfer-CC Corpus Callosum processing" >> "$exec_time_log"
     # generate file names of for the analysis
-    asegdkt_withcc_segfile="$(add_file_suffix "$asegdkt_segfile" "withCC")"
-    asegdkt_withcc_vinn_statsfile="$(add_file_suffix "$asegdkt_vinn_statsfile" "withCC")"
-    aseg_auto_statsfile="$(add_file_suffix "$aseg_vinn_statsfile" "withCC")"
     callosum_upright_seg="$subject_dir/mri/callosum.CC.upright.mgz"
     callosum_upright_seg_manedit="$(add_file_suffix "$callosum_upright_seg" "manedit")"
     callosum_seg_manedit="$(add_file_suffix "$callosum_seg" "manedit")"
@@ -1483,85 +1519,96 @@ then
       echo_quoted "${cmd[@]}"
       "${wrap[@]}" "${cmd[@]}"
       if [[ "${PIPESTATUS[0]}" != 0 ]] ; then echo "ERROR: asegdkt cc inpainting failed!" ; exit 1 ; fi
-
-      if [[ "$run_biasfield" == "true" ]]
-      then
-        cmd=($python "${fastsurfercnndir}/segstats.py" --segfile "$asegdkt_withcc_segfile" --normfile "$norm_name"
-             --lut "$fastsurfercnndir/config/FreeSurferColorLUT.txt" --sd "${sd}" --sid "${subject}"
-             --ids 2 4 5 7 8 10 11 12 13 14 15 16 17 18 24 26 28 31 41 43 44 46 47 49 50 51 52 53
-                   54 58 60 63 77 251 252 253 254 255
-                   1002 1003 1005 1006 1007 1008 1009 1010 1011 1012 1013 1014 1015 1016 1017 1018
-                   1019 1020 1021 1022 1023 1024 1025 1026 1027 1028 1029 1030 1031 1034 1035
-                   2002 2003 2005 2006 2007 2008 2009 2010 2011 2012 2013 2014 2015 2016 2017 2018
-                   2019 2020 2021 2022 2023 2024 2025 2026 2027 2028 2029 2030 2031 2034 2035
-             --threads "$threads_seg" --empty --excludeid 0
-             --segstatsfile "$asegdkt_withcc_vinn_statsfile"
-             measures
-             # the following measures are unaffected by CC and do not need to be recomputed
-             --import SubCortGray Mask
-        )
-        if [[ "$run_talairach_registration" == "true" ]]
-        then
-          # eTIV comes from the talairach transform and Mask is imported above, so neither they nor
-          # their ratio change with the corpus callosum
-          cmd+=("EstimatedTotalIntraCranialVol" "MaskVol-to-eTIV")
-        fi
-        cmd+=(--file "$asegdkt_vinn_statsfile"
-              # recompute the measures changes coming from CC inpainting (only SubCortGray does not change)
-              --compute BrainSeg BrainSegNotVent SupraTentorial SupraTentorialNotVent
-                        rhCerebralWhiteMatter lhCerebralWhiteMatter CerebralWhiteMatter
-        )
-        if [[ "$run_talairach_registration" == "true" ]]
-        then
-          # computed, not imported: BrainSeg changes with the corpus callosum, so the ratio has to
-          # follow the value recomputed above rather than be copied from the file without it
-          cmd+=("BrainSegVol-to-eTIV")
-        fi
-        echo_quoted "${cmd[@]}"
-        "${wrap[@]}" "${cmd[@]}"
-        exit_code=${PIPESTATUS[0]}
-        if [[ "$exit_code" != 0 ]] ; then
-          echo "ERROR: asegdkt statsfile ($asegdkt_withcc_segfile) generation failed!"
-          exit "$exit_code"
-          # this will only terminate the subshell
-        fi
-      fi
     } 2>&1 | tee -a "$seg_log"
     # forward the subshell exit to the main script. Capture first: the [[ ]] below overwrites
     # PIPESTATUS, so re-reading it inside the branch exited 0 and the failure was reported as success
     exit_code="${PIPESTATUS[0]}"
     if [[ "$exit_code" != 0 ]]; then exit "$exit_code"; fi
+  fi
 
-    if [[ "$run_biasfield" == "true" ]]
-    then
-      {
-        cmd=($python "${fastsurfercnndir}/segstats.py" --segfile "$aseg_auto_segfile" --normfile "$norm_name"
-             --lut "$fastsurfercnndir/config/FreeSurferColorLUT.txt" --sd "${sd}" --sid "${subject}"
-             --threads "$threads_seg" --empty --excludeid 0
-             --ids 2 4 3 5 7 8 10 11 12 13 14 15 16 17 18 24 26 28 31 41 42 43 44 46 47 49 50 51 52 53 54 58 60 63 77
-                   251 252 253 254 255
-             --segstatsfile "$aseg_auto_statsfile"
-             measures --import "all" --file "$asegdkt_withcc_vinn_statsfile"
-        )
-        echo_quoted "${cmd[@]}"
-        "${wrap[@]}" "${cmd[@]}" 2>&1
-        if [[ "${PIPESTATUS[0]}" != 0 ]] ; then echo "ERROR: aseg statsfile ($aseg_auto_segfile) failed!" ; exit 1 ; fi
-      } | tee -a "$seg_log"
-      if [[ "${PIPESTATUS[0]}" != 0 ]] ; then exit 1; fi # forward subshell exit to main script
+  # Keyed on the files they read rather than on run_cc_module, like the asegdkt and aseg stats
+  # above and for the same reason: both carry eTIV, so adding --tal_reg to a subject that is
+  # already processed has to rewrite them without the corpus callosum being segmented again. The
+  # normfile is needed because they are partial volume corrected, and the asegdkt statsfile
+  # because the first of the two imports its measures; the block above writes it in a full run,
+  # but these two are guarded separately now and should not assume what ran before them.
+  if [[ -f "$norm_name" ]] && [[ -f "$asegdkt_withcc_segfile" ]] && [[ -f "$aseg_auto_segfile" ]] &&
+     [[ -f "$asegdkt_vinn_statsfile" ]]
+  then
+    {
+      cmd=($python "${fastsurfercnndir}/segstats.py" --segfile "$asegdkt_withcc_segfile" --normfile "$norm_name"
+           --lut "$fastsurfercnndir/config/FreeSurferColorLUT.txt" --sd "${sd}" --sid "${subject}"
+           --ids 2 4 5 7 8 10 11 12 13 14 15 16 17 18 24 26 28 31 41 43 44 46 47 49 50 51 52 53
+                 54 58 60 63 77 251 252 253 254 255
+                 1002 1003 1005 1006 1007 1008 1009 1010 1011 1012 1013 1014 1015 1016 1017 1018
+                 1019 1020 1021 1022 1023 1024 1025 1026 1027 1028 1029 1030 1031 1034 1035
+                 2002 2003 2005 2006 2007 2008 2009 2010 2011 2012 2013 2014 2015 2016 2017 2018
+                 2019 2020 2021 2022 2023 2024 2025 2026 2027 2028 2029 2030 2031 2034 2035
+           --threads "$threads_seg" --empty --excludeid 0
+           --segstatsfile "$asegdkt_withcc_vinn_statsfile"
+           measures
+           # the following measures are unaffected by CC and do not need to be recomputed
+           --import SubCortGray Mask
+      )
+      if [[ "$run_talairach_registration" == "true" ]]
+      then
+        # eTIV comes from the talairach transform and Mask is imported above, so neither they nor
+        # their ratio change with the corpus callosum
+        cmd+=("EstimatedTotalIntraCranialVol" "MaskVol-to-eTIV")
+      fi
+      cmd+=(--file "$asegdkt_vinn_statsfile"
+            # recompute the measures changes coming from CC inpainting (only SubCortGray does not change)
+            --compute BrainSeg BrainSegNotVent SupraTentorial SupraTentorialNotVent
+                      rhCerebralWhiteMatter lhCerebralWhiteMatter CerebralWhiteMatter
+      )
+      if [[ "$run_talairach_registration" == "true" ]]
+      then
+        # computed, not imported: BrainSeg changes with the corpus callosum, so the ratio has to
+        # follow the value recomputed above rather than be copied from the file without it
+        cmd+=("BrainSegVol-to-eTIV")
+      fi
+      echo_quoted "${cmd[@]}"
+      "${wrap[@]}" "${cmd[@]}"
+      exit_code=${PIPESTATUS[0]}
+      if [[ "$exit_code" != 0 ]] ; then
+        echo "ERROR: asegdkt statsfile ($asegdkt_withcc_segfile) generation failed!"
+        exit "$exit_code"
+        # this will only terminate the subshell
+      fi
+    } 2>&1 | tee -a "$seg_log"
+    # forward the subshell exit to the main script. Capture first: the [[ ]] below overwrites
+    # PIPESTATUS, so re-reading it inside the branch exited 0 and the failure read as success
+    exit_code="${PIPESTATUS[0]}"
+    if [[ "$exit_code" != 0 ]]; then exit "$exit_code"; fi
 
-    fi
+    {
+      cmd=($python "${fastsurfercnndir}/segstats.py" --segfile "$aseg_auto_segfile" --normfile "$norm_name"
+           --lut "$fastsurfercnndir/config/FreeSurferColorLUT.txt" --sd "${sd}" --sid "${subject}"
+           --threads "$threads_seg" --empty --excludeid 0
+           --ids 2 4 3 5 7 8 10 11 12 13 14 15 16 17 18 24 26 28 31 41 42 43 44 46 47 49 50 51 52 53 54 58 60 63 77
+                 251 252 253 254 255
+           --segstatsfile "$aseg_auto_statsfile"
+           measures --import "all" --file "$asegdkt_withcc_vinn_statsfile"
+      )
+      echo_quoted "${cmd[@]}"
+      "${wrap[@]}" "${cmd[@]}" 2>&1
+      if [[ "${PIPESTATUS[0]}" != 0 ]] ; then echo "ERROR: aseg statsfile ($aseg_auto_segfile) failed!" ; exit 1 ; fi
+    } | tee -a "$seg_log"
+    if [[ "${PIPESTATUS[0]}" != 0 ]] ; then exit 1; fi # forward subshell exit to main script
   fi
 
   if [[ "$run_cereb_module" == "true" ]]
   then
     echo "MODULE: CerebNet cerebellum segmentation" >> "$exec_time_log"
-    if [[ "$run_biasfield" == "true" ]]
+    # the normfile, not run_biasfield: it is only read for the partial volume corrected statistics,
+    # and the image an earlier run wrote serves as well as one computed here
+    if [[ -f "$norm_name" ]]
     then
       cereb_flags+=(--norm_name "$norm_name" --cereb_statsfile "$cereb_statsfile")
     else
       {
-        echo "INFO: Running CerebNet without generating a statsfile, since biasfield"
-        echo "  correction deactivated '--no_biasfield'..."
+        echo "INFO: Running CerebNet without generating a statsfile, since the biasfield"
+        echo "  corrected image ($norm_name) does not exist..."
       } | tee -a "$seg_log"
     fi
 
