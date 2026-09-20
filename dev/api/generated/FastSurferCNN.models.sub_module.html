@@ -463,7 +463,7 @@
 <span id="fastsurfercnn-models-sub-module"></span><h1>FastSurferCNN.models.sub_module<a class="headerlink" href="#module-FastSurferCNN.models.sub_module" title="Link to this heading">¶</a></h1>
 <dl class="py class">
 <dt class="sig sig-object py" id="FastSurferCNN.models.sub_module.ClassifierBlock">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">FastSurferCNN.models.sub_module.</span></span><span class="sig-name descname"><span class="pre">ClassifierBlock</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/6b0fc42/FastSurferCNN/models/sub_module.py#L781-L819"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.models.sub_module.ClassifierBlock" title="Link to this definition">¶</a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">FastSurferCNN.models.sub_module.</span></span><span class="sig-name descname"><span class="pre">ClassifierBlock</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/02b689d/FastSurferCNN/models/sub_module.py#L781-L819"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.models.sub_module.ClassifierBlock" title="Link to this definition">¶</a></dt>
 <dd><p>Classification Block.</p>
 <p class="rubric">Methods</p>
 <div class="table-wrapper autosummary longtable docutils container">
@@ -633,7 +633,7 @@
 </div>
 <dl class="py method">
 <dt class="sig sig-object py" id="FastSurferCNN.models.sub_module.ClassifierBlock.forward">
-<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/6b0fc42/FastSurferCNN/models/sub_module.py#L803-L819"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.models.sub_module.ClassifierBlock.forward" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/02b689d/FastSurferCNN/models/sub_module.py#L803-L819"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.models.sub_module.ClassifierBlock.forward" title="Link to this definition">¶</a></dt>
 <dd><p>Feed forward through classifier.</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -655,7 +655,7 @@
 
 <dl class="py class">
 <dt class="sig sig-object py" id="FastSurferCNN.models.sub_module.CompetitiveDecoderBlock">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">FastSurferCNN.models.sub_module.</span></span><span class="sig-name descname"><span class="pre">CompetitiveDecoderBlock</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">outblock</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/6b0fc42/FastSurferCNN/models/sub_module.py#L597-L645"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.models.sub_module.CompetitiveDecoderBlock" title="Link to this definition">¶</a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">FastSurferCNN.models.sub_module.</span></span><span class="sig-name descname"><span class="pre">CompetitiveDecoderBlock</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">outblock</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/02b689d/FastSurferCNN/models/sub_module.py#L597-L645"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.models.sub_module.CompetitiveDecoderBlock" title="Link to this definition">¶</a></dt>
 <dd><p>Decoder Block = (Unpooling + Skip Connection) –&gt; Dense Block.</p>
 <p class="rubric">Methods</p>
 <div class="table-wrapper autosummary longtable docutils container">
@@ -825,7 +825,7 @@
 </div>
 <dl class="py method">
 <dt class="sig sig-object py" id="FastSurferCNN.models.sub_module.CompetitiveDecoderBlock.forward">
-<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">out_block</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">indices</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/6b0fc42/FastSurferCNN/models/sub_module.py#L619-L645"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.models.sub_module.CompetitiveDecoderBlock.forward" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">out_block</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">indices</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/02b689d/FastSurferCNN/models/sub_module.py#L619-L645"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.models.sub_module.CompetitiveDecoderBlock.forward" title="Link to this definition">¶</a></dt>
 <dd><p>Feed forward through Decoder block.</p>
 <ul class="simple">
 <li><p>Unpooling of feature maps from lower block</p></li>
@@ -856,7 +856,7 @@
 
 <dl class="py class">
 <dt class="sig sig-object py" id="FastSurferCNN.models.sub_module.CompetitiveDenseBlock">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">FastSurferCNN.models.sub_module.</span></span><span class="sig-name descname"><span class="pre">CompetitiveDenseBlock</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">outblock</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/6b0fc42/FastSurferCNN/models/sub_module.py#L155-L299"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.models.sub_module.CompetitiveDenseBlock" title="Link to this definition">¶</a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">FastSurferCNN.models.sub_module.</span></span><span class="sig-name descname"><span class="pre">CompetitiveDenseBlock</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">outblock</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/02b689d/FastSurferCNN/models/sub_module.py#L155-L299"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.models.sub_module.CompetitiveDenseBlock" title="Link to this definition">¶</a></dt>
 <dd><p>Define a competitive dense block comprising 3 convolutional layers, with BN/ReLU.</p>
 <p class="rubric">Attributes</p>
 <div class="table-wrapper docutils container">
@@ -880,7 +880,7 @@
 </div>
 <dl class="py method">
 <dt class="sig sig-object py" id="FastSurferCNN.models.sub_module.CompetitiveDenseBlock.forward">
-<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/6b0fc42/FastSurferCNN/models/sub_module.py#L249-L299"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.models.sub_module.CompetitiveDenseBlock.forward" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/02b689d/FastSurferCNN/models/sub_module.py#L249-L299"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.models.sub_module.CompetitiveDenseBlock.forward" title="Link to this definition">¶</a></dt>
 <dd><p>Feedforward through CompetitiveDenseBlock.</p>
 <p>{in (Conv - BN from prev. block) -&gt; PReLU} -&gt; {Conv -&gt; BN -&gt; Maxout -&gt; PReLU} x 2 -&gt; {Conv -&gt; BN} -&gt; out
 end with batch-normed output to allow maxout across skip-connections.</p>
@@ -904,7 +904,7 @@ end with batch-normed output to allow maxout across skip-connections.</p>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="FastSurferCNN.models.sub_module.CompetitiveDenseBlockInput">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">FastSurferCNN.models.sub_module.</span></span><span class="sig-name descname"><span class="pre">CompetitiveDenseBlockInput</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/6b0fc42/FastSurferCNN/models/sub_module.py#L302-L430"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.models.sub_module.CompetitiveDenseBlockInput" title="Link to this definition">¶</a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">FastSurferCNN.models.sub_module.</span></span><span class="sig-name descname"><span class="pre">CompetitiveDenseBlockInput</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/02b689d/FastSurferCNN/models/sub_module.py#L302-L430"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.models.sub_module.CompetitiveDenseBlockInput" title="Link to this definition">¶</a></dt>
 <dd><p>Define a competitive dense block comprising 3 convolutional layers, with BN/ReLU for input.</p>
 <p class="rubric">Attributes</p>
 <div class="table-wrapper autosummary longtable docutils container">
@@ -1099,7 +1099,7 @@ end with batch-normed output to allow maxout across skip-connections.</p>
 </div>
 <dl class="py method">
 <dt class="sig sig-object py" id="FastSurferCNN.models.sub_module.CompetitiveDenseBlockInput.forward">
-<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/6b0fc42/FastSurferCNN/models/sub_module.py#L386-L430"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.models.sub_module.CompetitiveDenseBlockInput.forward" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/02b689d/FastSurferCNN/models/sub_module.py#L386-L430"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.models.sub_module.CompetitiveDenseBlockInput.forward" title="Link to this definition">¶</a></dt>
 <dd><p>Feed forward through CompetitiveDenseBlockInput.</p>
 <p>in -&gt; BN -&gt; {Conv -&gt; BN -&gt; PReLU} -&gt; {Conv -&gt; BN -&gt; Maxout -&gt; PReLU} -&gt; {Conv -&gt; BN} -&gt; out</p>
 <dl class="field-list">
@@ -1122,7 +1122,7 @@ end with batch-normed output to allow maxout across skip-connections.</p>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="FastSurferCNN.models.sub_module.CompetitiveEncoderBlock">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">FastSurferCNN.models.sub_module.</span></span><span class="sig-name descname"><span class="pre">CompetitiveEncoderBlock</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/6b0fc42/FastSurferCNN/models/sub_module.py#L483-L541"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.models.sub_module.CompetitiveEncoderBlock" title="Link to this definition">¶</a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">FastSurferCNN.models.sub_module.</span></span><span class="sig-name descname"><span class="pre">CompetitiveEncoderBlock</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/02b689d/FastSurferCNN/models/sub_module.py#L483-L541"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.models.sub_module.CompetitiveEncoderBlock" title="Link to this definition">¶</a></dt>
 <dd><p>Encoder Block = CompetitiveDenseBlock + Max Pooling.</p>
 <p class="rubric">Attributes</p>
 <div class="table-wrapper docutils container">
@@ -1146,7 +1146,7 @@ end with batch-normed output to allow maxout across skip-connections.</p>
 </div>
 <dl class="py method">
 <dt class="sig sig-object py" id="FastSurferCNN.models.sub_module.CompetitiveEncoderBlock.forward">
-<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/6b0fc42/FastSurferCNN/models/sub_module.py#L514-L541"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.models.sub_module.CompetitiveEncoderBlock.forward" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/02b689d/FastSurferCNN/models/sub_module.py#L514-L541"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.models.sub_module.CompetitiveEncoderBlock.forward" title="Link to this definition">¶</a></dt>
 <dd><p>Feed forward through Encoder Block.</p>
 <ul class="simple">
 <li><p>CompetitiveDenseBlock</p></li>
@@ -1176,7 +1176,7 @@ end with batch-normed output to allow maxout across skip-connections.</p>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="FastSurferCNN.models.sub_module.CompetitiveEncoderBlockInput">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">FastSurferCNN.models.sub_module.</span></span><span class="sig-name descname"><span class="pre">CompetitiveEncoderBlockInput</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/6b0fc42/FastSurferCNN/models/sub_module.py#L544-L594"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.models.sub_module.CompetitiveEncoderBlockInput" title="Link to this definition">¶</a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">FastSurferCNN.models.sub_module.</span></span><span class="sig-name descname"><span class="pre">CompetitiveEncoderBlockInput</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/02b689d/FastSurferCNN/models/sub_module.py#L544-L594"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.models.sub_module.CompetitiveEncoderBlockInput" title="Link to this definition">¶</a></dt>
 <dd><p>Encoder Block = CompetitiveDenseBlockInput + Max Pooling.</p>
 <p class="rubric">Methods</p>
 <div class="table-wrapper autosummary longtable docutils container">
@@ -1346,7 +1346,7 @@ end with batch-normed output to allow maxout across skip-connections.</p>
 </div>
 <dl class="py method">
 <dt class="sig sig-object py" id="FastSurferCNN.models.sub_module.CompetitiveEncoderBlockInput.forward">
-<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/6b0fc42/FastSurferCNN/models/sub_module.py#L567-L594"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.models.sub_module.CompetitiveEncoderBlockInput.forward" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/02b689d/FastSurferCNN/models/sub_module.py#L567-L594"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.models.sub_module.CompetitiveEncoderBlockInput.forward" title="Link to this definition">¶</a></dt>
 <dd><p>Feed forward through Encoder Block.</p>
 <ul class="simple">
 <li><p>CompetitiveDenseBlockInput</p></li>
@@ -1376,7 +1376,7 @@ end with batch-normed output to allow maxout across skip-connections.</p>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="FastSurferCNN.models.sub_module.GaussianNoise">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">FastSurferCNN.models.sub_module.</span></span><span class="sig-name descname"><span class="pre">GaussianNoise</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sigma</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'cuda'</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/6b0fc42/FastSurferCNN/models/sub_module.py#L433-L477"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.models.sub_module.GaussianNoise" title="Link to this definition">¶</a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">FastSurferCNN.models.sub_module.</span></span><span class="sig-name descname"><span class="pre">GaussianNoise</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sigma</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'cuda'</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/02b689d/FastSurferCNN/models/sub_module.py#L433-L477"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.models.sub_module.GaussianNoise" title="Link to this definition">¶</a></dt>
 <dd><p>Define a Gaussian Noise Block.</p>
 <p class="rubric">Methods</p>
 <div class="table-wrapper autosummary longtable docutils container">
@@ -1390,7 +1390,7 @@ end with batch-normed output to allow maxout across skip-connections.</p>
 </div>
 <dl class="py method">
 <dt class="sig sig-object py" id="FastSurferCNN.models.sub_module.GaussianNoise.forward">
-<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/6b0fc42/FastSurferCNN/models/sub_module.py#L459-L477"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.models.sub_module.GaussianNoise.forward" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/02b689d/FastSurferCNN/models/sub_module.py#L459-L477"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.models.sub_module.GaussianNoise.forward" title="Link to this definition">¶</a></dt>
 <dd><p>Feedforward through graph.</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -1412,7 +1412,7 @@ end with batch-normed output to allow maxout across skip-connections.</p>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="FastSurferCNN.models.sub_module.InputDenseBlock">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">FastSurferCNN.models.sub_module.</span></span><span class="sig-name descname"><span class="pre">InputDenseBlock</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/6b0fc42/FastSurferCNN/models/sub_module.py#L21-L152"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.models.sub_module.InputDenseBlock" title="Link to this definition">¶</a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">FastSurferCNN.models.sub_module.</span></span><span class="sig-name descname"><span class="pre">InputDenseBlock</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/02b689d/FastSurferCNN/models/sub_module.py#L21-L152"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.models.sub_module.InputDenseBlock" title="Link to this definition">¶</a></dt>
 <dd><p>Input Dense Block.</p>
 <p class="rubric">Attributes</p>
 <div class="table-wrapper docutils container">
@@ -1445,7 +1445,7 @@ end with batch-normed output to allow maxout across skip-connections.</p>
 </div>
 <dl class="py method">
 <dt class="sig sig-object py" id="FastSurferCNN.models.sub_module.InputDenseBlock.forward">
-<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/6b0fc42/FastSurferCNN/models/sub_module.py#L109-L152"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.models.sub_module.InputDenseBlock.forward" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/02b689d/FastSurferCNN/models/sub_module.py#L109-L152"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.models.sub_module.InputDenseBlock.forward" title="Link to this definition">¶</a></dt>
 <dd><p>Feedforward through graph.</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -1467,7 +1467,7 @@ end with batch-normed output to allow maxout across skip-connections.</p>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="FastSurferCNN.models.sub_module.OutputDenseBlock">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">FastSurferCNN.models.sub_module.</span></span><span class="sig-name descname"><span class="pre">OutputDenseBlock</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/6b0fc42/FastSurferCNN/models/sub_module.py#L648-L778"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.models.sub_module.OutputDenseBlock" title="Link to this definition">¶</a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">FastSurferCNN.models.sub_module.</span></span><span class="sig-name descname"><span class="pre">OutputDenseBlock</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/02b689d/FastSurferCNN/models/sub_module.py#L648-L778"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.models.sub_module.OutputDenseBlock" title="Link to this definition">¶</a></dt>
 <dd><p>Dense Output Block = (Upinterpolated + Skip Connection) –&gt; Semi Competitive Dense Block.</p>
 <p class="rubric">Attributes</p>
 <div class="table-wrapper docutils container">
@@ -1497,7 +1497,7 @@ end with batch-normed output to allow maxout across skip-connections.</p>
 </div>
 <dl class="py method">
 <dt class="sig sig-object py" id="FastSurferCNN.models.sub_module.OutputDenseBlock.forward">
-<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">out_block</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/6b0fc42/FastSurferCNN/models/sub_module.py#L728-L778"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.models.sub_module.OutputDenseBlock.forward" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">out_block</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/02b689d/FastSurferCNN/models/sub_module.py#L728-L778"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.models.sub_module.OutputDenseBlock.forward" title="Link to this definition">¶</a></dt>
 <dd><p>Feed forward through Output block.</p>
 <ul class="simple">
 <li><p>Maxout combination of unpooled map from previous block + skip connection</p></li>

@@ -503,7 +503,7 @@ Here, we have also added the <code class="docutils literal notranslate"><span cl
 <li><p><code class="docutils literal notranslate"><span class="pre">--no_hypothal</span></code>: Skip the hypothalamus segmentation.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">--no_cc</span></code>: Skip the segmentation and analysis of the corpus callosum.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">--lesion_mask</span> <span class="pre">&lt;path</span> <span class="pre">to</span> <span class="pre">file&gt;</span></code>: Path to a binary lesion mask in the same space as the T1 input. If provided, FastSurfer will wrap the segmentation and surface pipelines with lesion inpainting using LIT. This experimental feature is useful for images with tumors or other large lesions; review LIT-modified outputs before downstream use.</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">--cereb_segfile</span></code>: Name of the cerebellum segmentation file. If not provided, this intermediate DL-based segmentation will not be stored, but only the merged segmentation will be stored (see –main_segfile <filename>). Requires an ABSOLUTE Path! Default location: $SUBJECTS_DIR/$sid/mri/cerebellum.CerebNet.nii.gz</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--cereb_segfile</span></code>: Name of the cerebellum segmentation file. Requires an ABSOLUTE Path! Default location: $SUBJECTS_DIR/$sid/mri/cerebellum.CerebNet.nii.gz</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">--no_biasfield</span></code>: Deactivate the biasfield correction and calculation of partial volume-corrected statistics in the segmentation modules. HypVINN does run but expects that biasfields are corrected externally.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">--native_image</span></code> or <code class="docutils literal notranslate"><span class="pre">--keepgeom</span></code>: <strong>Only supported for <code class="docutils literal notranslate"><span class="pre">--seg_only</span></code></strong>. Preserve the native image geometry (orientation, image size, and voxel size) for saved outputs. Internally, FastSurfer may temporarily reorder/flip the image to a soft-LIA layout so the 2D networks still see the expected plane ordering, but written outputs stay in native geometry; only intensity scaling and dtype conversion are applied as needed. This also includes experimental support for anisotropic images (no extreme anisotropy).</p></li>
 </ul>
@@ -717,6 +717,10 @@ SEGMENTATION PIPELINE:
   MODULES:
   By default, all modules are run.
 
+  The options below that name an output file are for expert use. Later modules
+  and follow-up tools look for the default names, so renaming an output can
+  break a later step.
+
   ASEGDKT MODULE:
   --no_asegdkt            Skip the asegdkt segmentation (aseg+aparc/DKT segmentation)
   --asegdkt_segfile &lt;filename&gt;
@@ -745,6 +749,11 @@ SEGMENTATION PIPELINE:
                             with an additional file suffix of ".1mm".
                             Requires an ABSOLUTE Path! Default location:
                             $SUBJECTS_DIR/$sid/mri/cerebellum.CerebNet.nii.gz
+  --cereb_statsfile &lt;stats_output&gt;
+                          Name of the statistics file of the cerebellum
+                            segmentation. Requires an ABSOLUTE Path!
+                            Default location:
+                            $SUBJECTS_DIR/$sid/stats/cerebellum.CerebNet.stats
   --no_biasfield          Skip the partial volume-corrected statistics, unless a
                             biasfield corrected image already exists.
 
