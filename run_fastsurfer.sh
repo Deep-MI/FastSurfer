@@ -1523,8 +1523,11 @@ then
   # Keyed on the files they read rather than on run_cc_module, like the asegdkt and aseg stats
   # above and for the same reason: both carry eTIV, so adding --tal_reg to a subject that is
   # already processed has to rewrite them without the corpus callosum being segmented again. The
-  # normfile is needed because they are partial volume corrected.
-  if [[ -f "$norm_name" ]] && [[ -f "$asegdkt_withcc_segfile" ]] && [[ -f "$aseg_auto_segfile" ]]
+  # normfile is needed because they are partial volume corrected, and the asegdkt statsfile
+  # because the first of the two imports its measures; the block above writes it in a full run,
+  # but these two are guarded separately now and should not assume what ran before them.
+  if [[ -f "$norm_name" ]] && [[ -f "$asegdkt_withcc_segfile" ]] && [[ -f "$aseg_auto_segfile" ]] &&
+     [[ -f "$asegdkt_vinn_statsfile" ]]
   then
     {
       cmd=($python "${fastsurfercnndir}/segstats.py" --segfile "$asegdkt_withcc_segfile" --normfile "$norm_name"
