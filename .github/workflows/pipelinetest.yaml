@@ -303,6 +303,14 @@ jobs:
     timeout-minutes: 180
     if: needs.build-docker.outputs.continue == 'true'
     strategy:
+      # The subjects are independent test cases, not stages of one thing, so a failure in either
+      # says nothing about the other and both results are wanted. The default would cancel the
+      # sibling on the first failure, which made which subject we hear about a race: on two
+      # consecutive nights the survivor was a different resolution each time. They run
+      # concurrently, so this costs the remainder of an already-running job rather than doubling
+      # anything, and it also keeps the JUnit of both, which the annotation needs to report a whole
+      # run instead of whichever half finished.
+      fail-fast: false
       # the following matrix strategy will result in one run per subject as matrix is "one-dimensional".
       # Additional parameters under "include" are then added as additional (dependent) information
       matrix:
