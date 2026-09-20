@@ -149,11 +149,14 @@ else
       fi
     done
     if [[ "${#missing_tal[@]}" -gt 0 ]] ; then
+      # kept word for word the same as the earlier check in run_fastsurfer.sh, so the two do not
+      # drift into describing the same problem differently
+      baseid="$(basename "$basedir")"
       {
-        echo "ERROR: The base $basedir has no talairach registration, missing"
-        echo "  ${missing_tal[*]} in $basedir/mri/transforms."
-        echo "  A longitudinal time point copies these from the base instead of computing its own,"
-        echo "  so run the base with --tal_reg first, then this time point."
+        echo "ERROR: The base $baseid has no talairach registration, missing ${missing_tal[*]}"
+        echo "  in $basedir/mri/transforms. A longitudinal time point copies these from the"
+        echo "  base, so run the base first:"
+        echo "    run_fastsurfer.sh --sid $baseid --base --seg_only --tal_reg ..."
       } | tee -a "$LF"
       exit 1
     fi
