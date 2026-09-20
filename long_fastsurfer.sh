@@ -103,6 +103,12 @@ Stage control:
                               - long_seg: prepare
                               - long_surf: prepare, template_seg, template_surf, long_seg
 
+                            These take the place of --seg_only and --surf_only:
+                              segmentation only: prepare, template_seg, long_seg
+                              surfaces only:     template_surf, long_surf
+                            A dependency that already exists on disk does not have
+                              to be listed again, so drop prepare on a re-run.
+
 Parallelization options:
   All of the following options will activate parallel processing of the template and the longitudinal time-point images
   where possible. Additionally, the number of different processes for segmentation and surface reconstructionis set.
@@ -111,8 +117,9 @@ Parallelization options:
   --parallel_surf <n>|max   See above, only sets the size of the processing pool for surface reconstruction (default: 1)
 
 
-With the exception of --t1, --t2, --sid, --seg_only and --surf_only, all
-run_fastsurfer.sh options are supported, see 'run_fastsurfer.sh --help'.
+--t1, --t2 and --sid are not accepted here, they are populated from --t1s, --tid and --tpids.
+--seg_only and --surf_only are not accepted either, pick the stages above instead. Every other
+run_fastsurfer.sh option is supported, see 'run_fastsurfer.sh --help'.
 
 
 REFERENCES:
@@ -218,8 +225,13 @@ case $key in
     exit 1
     ;;
   --seg_only|--surf_only)
-    echo "ERROR: --seg_only and --surf_only are not supported by long_fastsurfer.sh, only a full"
-    echo "  pipeline run is a valid longitudinal run!"
+    # the halves of the pipeline are selected by stage here, not by these flags: the longitudinal
+    # run has five steps rather than two, and prepare belongs to neither half
+    echo "ERROR: $key is not a flag of long_fastsurfer.sh. Pick the stages instead:"
+    echo "    --stage prepare --stage template_seg --stage long_seg   (segmentation only)"
+    echo "    --stage template_surf --stage long_surf                 (surfaces only)"
+    echo "  Drop --stage prepare from the first if the template already exists. See --help for"
+    echo "  the stage list and what each one depends on."
     exit 1
     ;;
   --allow_root|--debug) brun_flags+=("$key") ;;  # --allow_root must be passed to brun
