@@ -475,6 +475,7 @@ situations, it will be called from <code class="xref py py-obj docutils literal 
                                  <span class="p">[</span><span class="o">--</span><span class="n">t2</span> <span class="n">T2</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">qc_snap</span><span class="p">]</span>
                                  <span class="p">[</span><span class="o">--</span><span class="n">reg_mode</span> <span class="p">{</span><span class="n">none</span><span class="p">,</span><span class="n">coreg</span><span class="p">,</span><span class="n">robust</span><span class="p">}]</span>
                                  <span class="p">[</span><span class="o">--</span><span class="n">hypo_segfile</span> <span class="n">HYPO_SEGFILE</span><span class="p">]</span>
+                                 <span class="p">[</span><span class="o">--</span><span class="n">hypo_statsfile</span> <span class="n">HYPO_STATSFILE</span><span class="p">]</span>
                                  <span class="p">[</span><span class="o">--</span><span class="n">device</span> <span class="n">DEVICE</span><span class="p">]</span>
                                  <span class="p">[</span><span class="o">--</span><span class="n">viewagg_device</span> <span class="n">VIEWAGG_DEVICE</span><span class="p">]</span>
                                  <span class="p">[</span><span class="o">--</span><span class="n">threads</span> <span class="n">THREADS</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">batch_size</span> <span class="n">BATCH_SIZE</span><span class="p">]</span>
@@ -516,6 +517,10 @@ situations, it will be called from <code class="xref py py-obj docutils literal 
 <dt><kbd>--hypo_segfile</kbd></dt>
 <dd><p>File pattern on where to save the hypothalamus segmentation file (default: hypothalamus.HypVINN.nii.gz).</p>
 <p>Default: <code class="docutils literal notranslate"><span class="pre">'hypothalamus.HypVINN.nii.gz'</span></code></p>
+</dd>
+<dt><kbd>--hypo_statsfile</kbd></dt>
+<dd><p>File name under &lt;sd&gt;/&lt;sid&gt;/stats, or an absolute path, to save the hypothalamus statistics to (default: hypothalamus.HypVINN.stats).</p>
+<p>Default: <code class="docutils literal notranslate"><span class="pre">'hypothalamus.HypVINN.stats'</span></code></p>
 </dd>
 </dl>
 </section>
