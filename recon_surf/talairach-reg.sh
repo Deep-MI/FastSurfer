@@ -139,6 +139,25 @@ else
   if [[ "$long" == "true" ]] ; then
     # longitudinal processing
 
+    # A time point takes the transforms from the base rather than computing its own, so the base
+    # has to have them already. Checked together and up front, because a bare cp failure here reads
+    # as a missing file rather than as a missing step.
+    missing_tal=()
+    for tal_from_base in talairach.lta talairach.auto.xfm talairach.xfm.lta ; do
+      if [[ ! -f "$basedir/mri/transforms/$tal_from_base" ]] ; then
+        missing_tal+=("$tal_from_base")
+      fi
+    done
+    if [[ "${#missing_tal[@]}" -gt 0 ]] ; then
+      {
+        echo "ERROR: The base $basedir has no talairach registration, missing"
+        echo "  ${missing_tal[*]} in $basedir/mri/transforms."
+        echo "  A longitudinal time point copies these from the base instead of computing its own,"
+        echo "  so run the base with --tal_reg first, then this time point."
+      } | tee -a "$LF"
+      exit 1
+    fi
+
     # copy all talairach transforms from base (as we are in same space)
     # this also fixes eTIV across time (if FreeSurfer scaling method is used)
     cmd=(cp "$basedir/mri/transforms/talairach.lta" "$tal_file.lta")
