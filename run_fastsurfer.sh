@@ -1330,10 +1330,14 @@ then
   # Keyed on the files they are computed from, not on whether the segmentation module ran in
   # this call, so --tal_reg can be added to a finished subject and the eTIV measures are written
   # without recomputing the segmentation. Partial volume correction needs the biasfield image.
-  if [[ -f "$norm_name" ]] && [[ -f "$asegdkt_segfile" ]] && [[ -f "$aseg_segfile" ]]
+  if [[ -f "$norm_name" ]] && [[ -f "$asegdkt_segfile" ]] && [[ -f "$aseg_segfile" ]] &&
+     [[ -f "$mask_name" ]]
   then
+    # a local, not mask_name itself: that one is handed to recon-surf.sh further down, and which
+    # mask the surfaces are built from is not this block's decision to make
+    mask_for_measure="$mask_name"
     mask_name_manedit=$(add_file_suffix "$mask_name" "manedit")
-    if [[ -e "$mask_name_manedit" ]] ; then mask_name="$mask_name_manedit" ; fi
+    if [[ -e "$mask_name_manedit" ]] ; then mask_for_measure="$mask_name_manedit" ; fi
     cmd=($python "${fastsurfercnndir}/segstats.py" --segfile "$asegdkt_segfile" --normfile "$norm_name"
          --lut "$fastsurfercnndir/config/FreeSurferColorLUT.txt" --sd "${sd}" --sid "${subject}"
          --threads "$threads_seg" --empty --excludeid 0
@@ -1344,7 +1348,7 @@ then
                2002 2003 2005 2006 2007 2008 2009 2010 2011 2012 2013 2014 2015 2016 2017 2018 2019 2020
                2021 2022 2023 2024 2025 2026 2027 2028 2029 2030 2031 2034 2035
          --segstatsfile "$asegdkt_vinn_statsfile"
-         measures --compute "Mask($mask_name)" "BrainSeg" "BrainSegNotVent" "SupraTentorial" "SupraTentorialNotVent"
+         measures --compute "Mask($mask_for_measure)" "BrainSeg" "BrainSegNotVent" "SupraTentorial" "SupraTentorialNotVent"
                             "SubCortGray" "rhCerebralWhiteMatter" "lhCerebralWhiteMatter" "CerebralWhiteMatter"
     )
     if [[ "$run_talairach_registration" == "true" ]]
@@ -1369,9 +1373,8 @@ then
     else asegdkt_vinn_statsfile_=$asegdkt_vinn_statsfile
     fi
     softlink_or_copy "$asegdkt_vinn_statsfile_" "$asegdkt_statsfile" "$seg_log"
-    # create the aseg only statsfile
-    mask_name_manedit=$(add_file_suffix "$mask_name" "manedit")
-    if [[ -e "$mask_name_manedit" ]] ; then mask_name="$mask_name_manedit" ; fi
+    # create the aseg only statsfile. No mask here: it imports every measure from the file above,
+    # including Mask, so it needs no mask of its own
     cmd=($python "${fastsurfercnndir}/segstats.py" --segfile "$aseg_segfile" --normfile "$norm_name"
          --lut "$fastsurfercnndir/config/FreeSurferColorLUT.txt" --sd "${sd}" --sid "${subject}"
          --threads "$threads_seg" --empty --excludeid 0
@@ -1564,6 +1567,8 @@ then
         # this will only terminate the subshell
       fi
     } 2>&1 | tee -a "$seg_log"
+    # forward the subshell exit to the main script. Capture first: the [[ ]] below overwrites
+    # PIPESTATUS, so re-reading it inside the branch exited 0 and the failure read as success
     exit_code="${PIPESTATUS[0]}"
     if [[ "$exit_code" != 0 ]]; then exit "$exit_code"; fi
 
