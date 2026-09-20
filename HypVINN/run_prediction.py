@@ -130,8 +130,8 @@ def option_parse() -> argparse.ArgumentParser:
         type=str,
         default=HYPVINN_STATS_NAME,
         dest="hypo_statsfile",
-        help=f"File pattern on where to save the hypothalamus statistics file "
-             f"(default: {HYPVINN_STATS_NAME})."
+        help=f"File name under <sd>/<sid>/stats, or an absolute path, to save the hypothalamus "
+             f"statistics to (default: {HYPVINN_STATS_NAME})."
     )
 
     # 4. Options for advanced, technical parameters
@@ -206,7 +206,7 @@ def main(
     hypo_maskfile : str, default="{HYPVINN_MASK_NAME}"
         The name of the hypothalamus mask file.
     hypo_statsfile : str, default="{HYPVINN_STATS_NAME}"
-        The name of the hypothalamus statistics file.
+        The hypothalamus statistics file, a name under <sd>/<sid>/stats or an absolute path.
     qc_snapshots : bool, default=False
         Whether to create QC snapshots.
     threads : int, optional

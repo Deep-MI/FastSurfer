@@ -247,6 +247,16 @@ SEGMENTATION PIPELINE:
 
   HYPOTHALAMUS MODULE (HypVINN):
   --no_hypothal           Skip the hypothalamus segmentation.
+  --hypo_segfile <seg_output>
+                          Name of the DL-based segmentation file of the
+                            hypothalamus. Requires an ABSOLUTE Path!
+                            Default location:
+                            \$SUBJECTS_DIR/\$sid/mri/hypothalamus.HypVINN.nii.gz
+  --hypo_statsfile <stats_output>
+                          Name of the statistics file of the hypothalamus
+                            segmentation. Requires an ABSOLUTE Path!
+                            Default location:
+                            \$SUBJECTS_DIR/\$sid/stats/hypothalamus.HypVINN.stats
   --no_biasfield          Biasfield-corrected inputs are recommended for the
                             hypothalamus sub-segmentation. This option implies images
                             were corrected externally.
