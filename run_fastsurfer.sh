@@ -47,7 +47,6 @@ sd="$SUBJECTS_DIR"
 t1=""
 t2=""
 lesion_mask=""
-merged_segfile=""
 cereb_segfile=""
 asegdkt_segfile=""
 asegdkt_segfile_default="\$SUBJECTS_DIR/\$SID/mri/aparc.DKTatlas+aseg.deep.mgz"
@@ -100,19 +99,6 @@ baseid=""             # baseid for logitudinal time point run
 
 function usage()
 {
-#  --merged_segfile <filename>
-#                          Name of the segmentation file, which includes all labels
-#                            (currently similar to aparc+aseg). When using
-#                            FastSurfer, this segmentation is already conformed,
-#                            since inference is always based on a conformed image.
-#                            Currently, this is the same as the aparc+aseg and just
-#                            a symlink to the asegdkt_segfile.
-#                            Requires an ABSOLUTE Path! Default location:
-#                            \$SUBJECTS_DIR/\$sid/mri/fastsurfer.merged.mgz
-# --asegdkt_segfile <name> If not provided,
-#                            this intermediate DL-based segmentation will not be
-#                            stored, but only the merged segmentation will be stored
-#                            (see --merged_segfile <filename>).
 cat << EOF
 
 Usage: run_fastsurfer.sh --sid <sid> --sd <sdir> --t1 <t1_input> [OPTIONS]
@@ -555,7 +541,6 @@ case $key in
   --aseg_statsfile) aseg_vinn_statsfile="$1" ; shift ;;
   --aseg_segfile) aseg_segfile="$1" ; shift ;;
   --mask_name) mask_name="$1" ; warn_seg_only+=("$key" "$1") ; warn_base+=("$key" "$1") ; shift ;;
-  --merged_segfile) merged_segfile="$1" ; shift ;;
 
   # corupus callosum module options
   #=============================================================
@@ -694,7 +679,6 @@ then
 fi
 
 # DEFAULT FILE NAMES
-if [[ -z "$merged_segfile" ]] ; then merged_segfile="$subject_dir/mri/fastsurfer.merged.mgz" ; fi
 if [[ -z "$asegdkt_segfile" ]] ; then asegdkt_segfile="$subject_dir/mri/aparc.DKTatlas+aseg.deep.mgz" ; fi
 if [[ -z "$aseg_segfile" ]] ; then aseg_segfile="$subject_dir/mri/aseg.auto_noCCseg.mgz"; fi
 if [[ -z "$aseg_auto_segfile" ]] ; then aseg_auto_segfile="$subject_dir/mri/aseg.auto.mgz"; fi
@@ -769,15 +753,6 @@ then
   echo "ERROR: Invalid option '$vox_size' for --vox_size, only a number, 'min', or 'keep' are valid."
   exit 1
 fi
-
-#if [[ "${asegdkt_segfile: -3}" != "${merged_segfile: -3}" ]]
-#  then
-#    # This is because we currently only do a symlink
-#    echo "ERROR: Specified segmentation outputs do not have same file type."
-#    echo "You passed --asegdkt_segfile ${asegdkt_segfile} and --merged_segfile ${merged_segfile}."
-#    echo "Make sure these have the same file-format and adjust the names passed to the flags accordingly!"
-#    exit 1
-#fi
 
 if [[ "${asegdkt_segfile: -3}" != "${conformed_name: -3}" ]]
 then
@@ -1667,10 +1642,6 @@ then
     fi
   fi
 
-#    if [[ ! -f "$merged_segfile" ]]
-#      then
-#        ln -s -r "$asegdkt_segfile" "$merged_segfile"
-#    fi
 else # not running segmentation pipeline
   # Replace asegdkt_segfile and aseg_segfile variables with manedit file here,
   # if the manedit exists, so recon-surf uses the manedit file.
