@@ -218,8 +218,13 @@ case $key in
     exit 1
     ;;
   --seg_only|--surf_only)
-    echo "ERROR: --seg_only and --surf_only are not supported by long_fastsurfer.sh, only a full"
-    echo "  pipeline run is a valid longitudinal run!"
+    # the halves of the pipeline are selected by stage here, not by these flags: the longitudinal
+    # run has five steps rather than two, and prepare belongs to neither half
+    echo "ERROR: $key is not a flag of long_fastsurfer.sh. Pick the stages instead:"
+    echo "    --stage prepare --stage template_seg --stage long_seg   (segmentation only)"
+    echo "    --stage template_surf --stage long_surf                 (surfaces only)"
+    echo "  Drop --stage prepare from the first if the template already exists. See --help for"
+    echo "  the stage list and what each one depends on."
     exit 1
     ;;
   --allow_root|--debug) brun_flags+=("$key") ;;  # --allow_root must be passed to brun
