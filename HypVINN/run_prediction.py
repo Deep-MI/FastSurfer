@@ -32,7 +32,7 @@ from FastSurferCNN.utils.checkpoint import (
 )
 from FastSurferCNN.utils.common import update_docstring
 from FastSurferCNN.utils.parallel import get_num_threads, set_num_threads, thread_executor
-from HypVINN.config.hypvinn_files import HYPVINN_MASK_NAME, HYPVINN_SEG_NAME
+from HypVINN.config.hypvinn_files import HYPVINN_MASK_NAME, HYPVINN_SEG_NAME, HYPVINN_STATS_NAME
 from HypVINN.data_loader.data_utils import hypo_map_label2subseg, rescale_image
 from HypVINN.inference import Inference
 from HypVINN.utils import ModalityDict, ModalityMode, ViewOperationDefinition, ViewOperations
@@ -125,6 +125,15 @@ def option_parse() -> argparse.ArgumentParser:
              f"(default: {HYPVINN_SEG_NAME})."
     )
 
+    parser.add_argument(
+        "--hypo_statsfile",
+        type=str,
+        default=HYPVINN_STATS_NAME,
+        dest="hypo_statsfile",
+        help=f"File name under <sd>/<sid>/stats, or an absolute path, to save the hypothalamus "
+             f"statistics to (default: {HYPVINN_STATS_NAME})."
+    )
+
     # 4. Options for advanced, technical parameters
     advanced = parser.add_argument_group(title="Advanced options")
     parser_defaults.add_arguments(advanced, ["device", "viewagg_device", "threads", "batch_size", "async_io"])
@@ -140,7 +149,11 @@ def option_parse() -> argparse.ArgumentParser:
     return parser
 
 
-@update_docstring(HYPVINN_SEG_NAME=HYPVINN_SEG_NAME, HYPVINN_MASK_NAME=HYPVINN_MASK_NAME)
+@update_docstring(
+    HYPVINN_SEG_NAME=HYPVINN_SEG_NAME,
+    HYPVINN_MASK_NAME=HYPVINN_MASK_NAME,
+    HYPVINN_STATS_NAME=HYPVINN_STATS_NAME,
+)
 def main(
         out_dir: Path,
         t2: Path | None,
@@ -154,6 +167,7 @@ def main(
         cfg_sag: Path,
         hypo_segfile: str = HYPVINN_SEG_NAME,
         hypo_maskfile: str = HYPVINN_MASK_NAME,
+        hypo_statsfile: str = HYPVINN_STATS_NAME,
         qc_snapshots: bool = False,
         threads: int | None = None,
         reg_mode: Literal["coreg", "robust", "none"] = "coreg",
@@ -191,6 +205,8 @@ def main(
         The name of the hypothalamus segmentation file.
     hypo_maskfile : str, default="{HYPVINN_MASK_NAME}"
         The name of the hypothalamus mask file.
+    hypo_statsfile : str, default="{HYPVINN_STATS_NAME}"
+        The hypothalamus statistics file, a name under <sd>/<sid>/stats or an absolute path.
     qc_snapshots : bool, default=False
         Whether to create QC snapshots.
     threads : int, optional
@@ -355,7 +371,7 @@ def main(
         return_value = compute_stats(
             orig_path=orig_path,
             prediction_path=subject_dir / "mri" / hypo_segfile,
-            stats_dir=subject_dir / "stats",
+            stats_file=subject_dir / "stats" / hypo_statsfile,
         )
         if return_value != 0:
             # if not 0, return_value is a string describing the error

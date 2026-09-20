@@ -1313,7 +1313,10 @@ def write_statsfile(
     if exclude is not None and not isinstance(exclude, Sequence):
         raise RuntimeError("exclude must be a sequence of ints or None!")
 
-    segstatsfile.parent.mkdir(exist_ok=True)
+    # parents, so an output path below a directory that does not exist yet works: the default
+    # target is $SUBJECTS_DIR/$sid/stats, which the caller has usually made, but the statsfile is
+    # settable and then nothing guarantees its parent chain
+    segstatsfile.parent.mkdir(parents=True, exist_ok=True)
     with open(segstatsfile, "w") as fp:
         _title(fp)
         _system_info(fp)
