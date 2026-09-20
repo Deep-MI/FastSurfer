@@ -155,7 +155,8 @@ else
       {
         echo "ERROR: The base $baseid has no talairach registration, missing ${missing_tal[*]}"
         echo "  in $basedir/mri/transforms. A longitudinal time point copies these from the"
-        echo "  base, so run the base first:"
+        echo "  base, so the base has to be segmented with --tal_reg first. With"
+        echo "  long_fastsurfer.sh that is the template_seg stage, or directly:"
         echo "    run_fastsurfer.sh --sid $baseid --base --seg_only --tal_reg ..."
       } | tee -a "$LF"
       exit 1
