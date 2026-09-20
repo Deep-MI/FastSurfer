@@ -505,6 +505,12 @@ Stage control:
                               - long_seg: prepare
                               - long_surf: prepare, template_seg, template_surf, long_seg
 
+                            These take the place of --seg_only and --surf_only:
+                              segmentation only: prepare, template_seg, long_seg
+                              surfaces only:     template_surf, long_surf
+                            A dependency that already exists on disk does not have
+                              to be listed again, so drop prepare on a re-run.
+
 Parallelization options:
   All of the following options will activate parallel processing of the template and the longitudinal time-point images
   where possible. Additionally, the number of different processes for segmentation and surface reconstructionis set.
@@ -513,8 +519,9 @@ Parallelization options:
   --parallel_surf &lt;n&gt;|max   See above, only sets the size of the processing pool for surface reconstruction (default: 1)
 
 
-With the exception of --t1, --t2, --sid, --seg_only and --surf_only, all
-run_fastsurfer.sh options are supported, see 'run_fastsurfer.sh --help'.
+--t1, --t2 and --sid are not accepted here, they are populated from --t1s, --tid and --tpids.
+--seg_only and --surf_only are not accepted either, pick the stages above instead. Every other
+run_fastsurfer.sh option is supported, see 'run_fastsurfer.sh --help'.
 
 
 REFERENCES:
