@@ -927,18 +927,28 @@ then
   t1="$sd/$baseid/long-inputs/$subject/long_conform.nii.gz"
   # Here rather than only in talairach-reg.sh, which is where the copy happens: that point is
   # reached after the segmentation, so without this the run spends hours before reporting that a
-  # step preceding it was never done.
-  if [[ "$run_seg_pipeline" == "true" ]] && [[ "$run_talairach_registration" == "true" ]] &&
-     [[ ! -f "$sd/$baseid/mri/transforms/talairach.lta" ]]
+  # step preceding it was never done. The same three files that script copies, so this does not
+  # pass a base it would then reject. Not in --edits mode: there it keeps an existing manual
+  # registration and never reads the base, and only that script can tell whether it will.
+  if [[ "$edits" != "true" ]] && [[ "$run_seg_pipeline" == "true" ]] &&
+     [[ "$run_talairach_registration" == "true" ]]
   then
-    {
-      echo "ERROR: --tal_reg was passed, but the base $baseid has no talairach registration"
-      echo "  ($sd/$baseid/mri/transforms/talairach.lta does not exist). A longitudinal time point"
-      echo "  copies the transforms from the base rather than computing its own, so run the base"
-      echo "  with --tal_reg first:"
-      echo "    run_fastsurfer.sh --sid $baseid --base --seg_only --tal_reg ..."
-    } | tee -a "$tmpLF"
-    exit 1
+    missing_tal=()
+    for tal_from_base in talairach.lta talairach.auto.xfm talairach.xfm.lta ; do
+      if [[ ! -f "$sd/$baseid/mri/transforms/$tal_from_base" ]] ; then
+        missing_tal+=("$tal_from_base")
+      fi
+    done
+    if [[ "${#missing_tal[@]}" -gt 0 ]] ; then
+      {
+        echo "ERROR: --tal_reg was passed, but the base $baseid has no talairach registration,"
+        echo "  missing ${missing_tal[*]} in $sd/$baseid/mri/transforms."
+        echo "  A longitudinal time point copies the transforms from the base rather than computing"
+        echo "  its own, so run the base with --tal_reg first:"
+        echo "    run_fastsurfer.sh --sid $baseid --base --seg_only --tal_reg ..."
+      } | tee -a "$tmpLF"
+      exit 1
+    fi
   fi
 fi
 
