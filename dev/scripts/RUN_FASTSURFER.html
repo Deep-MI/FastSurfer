@@ -684,8 +684,10 @@ SEGMENTATION PIPELINE:
                             image will be saved. Requires an ABSOLUTE Path!
                             Default location:
                             $SUBJECTS_DIR/$sid/mri/orig.mgz.
-  --no_biasfield          Deactivate bias field correction and the calculation of
-                            partial volume-corrected stats-files.
+  --no_biasfield          Deactivate bias field correction. The stats files are
+                            partial volume-corrected, so they are only written if
+                            a biasfield corrected image already exists, for
+                            example from an earlier run.
   --norm_name &lt;nu.mgz&gt;    Name of the biasfield corrected image
                             Default location:
                             $SUBJECTS_DIR/$sid/mri/orig_nu.mgz
@@ -693,6 +695,20 @@ SEGMENTATION PIPELINE:
                             in --seg_only stream and stats files (is affected by
                             the --3T flag, see below). Manual talairach
                             registrations are not replaced in --edits mode.
+                            To add eTIV to a subject that is already segmented,
+                            switch off everything that already ran, so only the
+                            registration and the stats files are redone:
+                              --seg_only --tal_reg --no_asegdkt --no_biasfield
+                              --no_cereb --no_hypothal --no_cc
+                            The stats are rewritten from the files on disk, so
+                            nothing is re-segmented. Leaving any of these out
+                            recomputes that module and overwrites its output.
+                            This works on a subject whose segmentation has run
+                            but not its surfaces. The surface pipeline always
+                            computes a talairach registration, so on a fully
+                            processed subject the above stops rather than
+                            replace it: delete mri/transforms/talairach.xfm
+                            first, or add --edits to keep the existing one.
   --native_image OR       Output all images and segmentations in the native image space
   --keepgeom                with its image geometry (voxel size, dimensions, orientation).
                             This setting is not compatible with the surface pipeline and
@@ -708,8 +724,8 @@ SEGMENTATION PIPELINE:
                             aseg+aparc/DKTatlas segmentations.
                             Requires an ABSOLUTE Path! Default location:
                             $SUBJECTS_DIR/$sid/mri/aparc.DKTatlas+aseg.deep.mgz
-  --no_biasfield          Deactivate the calculation of partial volume-corrected
-                            statistics.
+  --no_biasfield          Skip the partial volume-corrected statistics, unless a
+                            biasfield corrected image already exists.
 
   CEREBELLUM MODULE:
   --no_cereb              Skip the cerebellum segmentation (CerebNet segmentation)
@@ -729,8 +745,8 @@ SEGMENTATION PIPELINE:
                             with an additional file suffix of ".1mm".
                             Requires an ABSOLUTE Path! Default location:
                             $SUBJECTS_DIR/$sid/mri/cerebellum.CerebNet.nii.gz
-  --no_biasfield          Deactivate the calculation of partial volume-corrected
-                            statistics.
+  --no_biasfield          Skip the partial volume-corrected statistics, unless a
+                            biasfield corrected image already exists.
 
   CORPUS CALLOSUM MODULE:
   --no_cc                Skip the segmentation and analysis of the corpus callosum.
