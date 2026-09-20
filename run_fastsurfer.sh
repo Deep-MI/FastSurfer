@@ -202,7 +202,7 @@ SEGMENTATION PIPELINE:
                             in --seg_only stream and stats files (is affected by
                             the --3T flag, see below). Manual talairach
                             registrations are not replaced in --edits mode.
-                            To add eTIV to a subject that is already processed,
+                            To add eTIV to a subject that is already segmented,
                             switch off everything that already ran, so only the
                             registration and the stats files are redone:
                               --seg_only --tal_reg --no_asegdkt --no_biasfield
@@ -210,6 +210,12 @@ SEGMENTATION PIPELINE:
                             The stats are rewritten from the files on disk, so
                             nothing is re-segmented. Leaving any of these out
                             recomputes that module and overwrites its output.
+                            This works on a subject whose segmentation has run
+                            but not its surfaces. The surface pipeline always
+                            computes a talairach registration, so on a fully
+                            processed subject the above stops rather than
+                            replace it: delete mri/transforms/talairach.xfm
+                            first, or add --edits to keep the existing one.
   --native_image OR       Output all images and segmentations in the native image space
   --keepgeom                with its image geometry (voxel size, dimensions, orientation).
                             This setting is not compatible with the surface pipeline and

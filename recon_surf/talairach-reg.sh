@@ -124,6 +124,8 @@ then
   {
     echo "ERROR: Running talairach registration on top of an existing registration file, but edits is false."
     echo "  Either delete $tal_file.xfm or add the --edits flag."
+    echo "  The usual reason this file is here is that the surface pipeline already ran, which"
+    echo "  always computes a talairach registration, so adding --tal_reg afterwards finds one."
   } | tee -a "$LF"
   exit 1
 else
