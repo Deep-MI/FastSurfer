@@ -85,3 +85,6 @@ Dry run
 `--dry` prints the subject list and the command that would be executed, and writes nothing, which is the cheap way to
 check what was discovered before committing to a full run. The flag is spelled as in `srun_fastsurfer.sh`, which also
 accepts `--dry_run`.
+
+`test/integration/openneuro_check.sh` does the same against real data: it fetches two sessions of a randomly drawn
+subject from a public OpenNeuro dataset, runs them, and checks the outputs. It is run by hand, not by CI.
