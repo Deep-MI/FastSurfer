@@ -40,6 +40,9 @@ if TYPE_CHECKING:
 FASTSURFER_HOME = Path(__file__).resolve().parent
 LOGGER = logging.getLogger(__name__)
 
+# set from bids_dir and output_dir, so a second one after the -- would silently win instead
+RESERVED_PASSTHROUGH = ("--subject_list", "--subjects_list", "--sd", "--sid", "--t1")
+
 
 def make_parser() -> argparse.ArgumentParser:
     """
@@ -175,6 +178,15 @@ def main(argv: list[str] | None = None) -> int:
         LOGGER.info("analysis_level 'group' is a no-op for FastSurfer, nothing to do.")
         return 0
 
+    reserved = [flag for flag in RESERVED_PASSTHROUGH if flag in passthrough]
+    if reserved:
+        LOGGER.error(
+            "%s after the '--' would override what this script sets from bids_dir and "
+            "output_dir. Remove it and use the positional arguments instead.",
+            ", ".join(reserved),
+        )
+        return 1
+
     from FastSurferCNN.utils import bids
     from FastSurferCNN.version import read_and_close_version
 
@@ -203,7 +215,9 @@ def main(argv: list[str] | None = None) -> int:
         return 1
 
     lines = subject_list_lines(sessions)
-    subject_list = output_dir / "scripts" / "bids_subjects.txt"
+    # top level rather than in a scripts/ directory: scripts/ is what FreeSurfer calls the
+    # per-subject log directory, and this sits beside the subjects rather than inside one
+    subject_list = output_dir / "bids_subjects.txt"
     script = "srun_fastsurfer.sh" if args.slurm else "brun_fastsurfer.sh"
     cmd = [
         str(FASTSURFER_HOME / script),

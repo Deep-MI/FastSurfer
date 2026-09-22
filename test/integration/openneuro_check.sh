@@ -147,11 +147,18 @@ done
 # ----------------------------------------------------------------------------------------------
 # 2. discovery and routing, before committing to a run that takes hours
 
+# an array rather than ${var:+...}: that form is unquoted, so any argument holding a space is
+# split again on the way into the command
+run_bids() { # $@: arguments to add before the passthrough
+  local args=("$bids_dir" "$out_dir" participant --skip_bids_validator "$@")
+  if [[ -n "$fs_license" ]] ; then args+=(--fs_license "$fs_license") ; fi
+  if [[ "${#passthrough[@]}" -gt 0 ]] ; then args+=(-- "${passthrough[@]}") ; fi
+  "$FASTSURFER_HOME/run_fastsurfer_bids.py" "${args[@]}"
+}
+
 echo ""
 echo "== what the entry point discovers and would run"
-"$FASTSURFER_HOME/run_fastsurfer_bids.py" "$bids_dir" "$out_dir" participant \
-  --skip_bids_validator --dry ${fs_license:+--fs_license "$fs_license"} \
-  ${passthrough:+-- "${passthrough[@]}"}
+run_bids --dry
 
 if [[ "$dry" == "true" ]] ; then
   echo ""
@@ -175,9 +182,7 @@ fi
 echo ""
 echo "== running (this is the slow part)"
 start=$SECONDS
-"$FASTSURFER_HOME/run_fastsurfer_bids.py" "$bids_dir" "$out_dir" participant \
-  --skip_bids_validator ${fs_license:+--fs_license "$fs_license"} \
-  ${passthrough:+-- "${passthrough[@]}"}
+run_bids
 echo "== run finished in $(( (SECONDS - start) / 60 )) minutes"
 
 # ----------------------------------------------------------------------------------------------
@@ -203,7 +208,7 @@ check() { # $1: description, rest: the command whose success is the check
 check "BIDS derivatives dataset_description.json" test -f "$out_dir/dataset_description.json"
 check "  and it is valid json" \
   python3 -c "import json,sys; json.load(open(sys.argv[1]))" "$out_dir/dataset_description.json"
-check "generated subject list kept" test -f "$out_dir/scripts/bids_subjects.txt"
+check "generated subject list kept" test -f "$out_dir/bids_subjects.txt"
 
 for ses in $SESSIONS ; do
   subject_dir="$out_dir/${SUBJECT}_${ses}"
@@ -214,8 +219,9 @@ for ses in $SESSIONS ; do
   source_t1="$bids_dir/$SUBJECT/$ses/anat/${SUBJECT}_${ses}_acq-mprage_T1w.nii.gz"
   archived=("$subject_dir"/mri/orig/001.*)
   if [[ -f "${archived[0]}" ]] && [[ "${archived[0]}" == *.nii.gz ]] ; then
+    # cmp rather than md5sum, which macOS does not ship
     check "  mri/orig/001.nii.gz is this session's input" \
-      test "$(md5sum < "$source_t1")" = "$(md5sum < "${archived[0]}")"
+      cmp -s "$source_t1" "${archived[0]}"
   else
     echo "  info  mri/orig/001 is ${archived[0]##*/}, not a byte copy, checksum not compared"
   fi

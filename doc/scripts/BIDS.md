@@ -42,7 +42,7 @@ Output naming
 ```
 fastsurfer_output/
 ├── dataset_description.json
-├── scripts/bids_subjects.txt
+├── bids_subjects.txt
 ├── sub-01_ses-1/
 ├── sub-01_ses-2/
 └── sub-02_ses-1/
@@ -53,8 +53,9 @@ so every downstream FreeSurfer or FastSurfer command works on the output directo
 naming the longitudinal pipeline uses for its timepoints. A dataset with no session level keeps the plain `sub-<label>`
 as the directory name.
 
-A minimal BIDS-derivatives `dataset_description.json` is written into `output_dir`, and the generated subject list is
-kept as `output_dir/scripts/bids_subjects.txt`, so a run can be repeated or amended with `brun_fastsurfer.sh` directly.
+A minimal BIDS-derivatives `dataset_description.json` is written into `output_dir` if there is not one there already,
+and the generated subject list is kept as `output_dir/bids_subjects.txt`, so a run can be repeated or amended with
+`brun_fastsurfer.sh` directly.
 
 Sessions
 --------
