@@ -38,6 +38,12 @@ LOGGER = logging.getLogger(__name__)
 # BIDS permits both, and the nifti suffix is what separates an image from its json sidecar
 NIFTI_EXTENSIONS = (".nii", ".nii.gz")
 
+# Recorded in dataset_description.json and checked on a later run. A cross-sectional session and
+# a longitudinal timepoint of the same session claim the same directory name but hold results of
+# different methods, so one output directory holds one of them.
+CROSS_SECTIONAL = "cross-sectional"
+LONGITUDINAL = "longitudinal"
+
 
 @dataclass
 class BidsSession:
@@ -65,16 +71,26 @@ class BidsSession:
 
 
 def _find_image(anat_dir: Path, suffix: str) -> Path | None:
-    """Return the anatomical image with this suffix in anat_dir, or None if there is none."""
+    """
+    Return the anatomical image with this suffix in anat_dir, or None if there is none.
+
+    Raises
+    ------
+    ValueError
+        If the directory holds more than one, since which to process is then a choice about
+        the data rather than something a sort order should settle. It matters most for the
+        longitudinal pipeline, whose within-subject template is built from the images picked
+        here, so an inconsistent choice across sessions would silently mix acquisitions.
+    """
     images = sorted(
         path for path in anat_dir.glob(f"*_{suffix}.nii*")
         if path.name.endswith(NIFTI_EXTENSIONS)
     )
     if len(images) > 1:
-        LOGGER.warning(
-            "%s holds %d %s images, using %s. Pick one explicitly with run_fastsurfer.sh if that "
-            "is the wrong one: %s",
-            anat_dir, len(images), suffix, images[0].name, [p.name for p in images],
+        raise ValueError(
+            f"{anat_dir} holds {len(images)} {suffix} images, so which one to process is "
+            f"ambiguous: {[path.name for path in images]}. Process one explicitly with "
+            f"run_fastsurfer.sh, or restrict the dataset to the acquisition you want."
         )
     return images[0] if images else None
 
@@ -90,6 +106,7 @@ def find_sessions(
     bids_dir: Path,
     participant_labels: list[str] | None = None,
     session_labels: list[str] | None = None,
+    with_t2: bool = False,
 ) -> list[BidsSession]:
     """
     Discover every session with a T1w image in a BIDS dataset.
@@ -102,6 +119,10 @@ def find_sessions(
         If given, only these subjects, with or without the ``sub-`` prefix.
     session_labels : list[str], optional
         If given, only these sessions, with or without the ``ses-`` prefix.
+    with_t2 : bool, default=False
+        Whether to look for a T2w image beside each T1w. Off by default, because using a T2
+        changes what the hypothalamus module computes, so it is the caller's choice rather
+        than something the presence of a file decides.
 
     Returns
     -------
@@ -172,7 +193,7 @@ def find_sessions(
                     subject_id=subject_dir.name,
                     session_id=session_id,
                     t1w=t1w,
-                    t2w=_find_image(anat_dir, "T2w"),
+                    t2w=_find_image(anat_dir, "T2w") if with_t2 else None,
                 )
             )
             found += 1
@@ -210,7 +231,37 @@ def validate_dataset(bids_dir: Path) -> None:
     subprocess.run([validator, str(bids_dir)], check=True)
 
 
-def write_derivatives_dataset_description(output_dir: Path, fastsurfer_version: str) -> None:
+def read_processing_mode(output_dir: Path) -> str | None:
+    """
+    Return the processing mode a previous run recorded in output_dir, if it recorded one.
+
+    Parameters
+    ----------
+    output_dir : Path
+        The directory used as SUBJECTS_DIR.
+
+    Returns
+    -------
+    str or None
+        ``CROSS_SECTIONAL``, ``LONGITUDINAL``, or None where the directory is new, holds no
+        description, or holds one that FastSurfer did not write.
+    """
+    description_file = output_dir / "dataset_description.json"
+    if not description_file.is_file():
+        return None
+    try:
+        description = json.loads(description_file.read_text())
+    except (json.JSONDecodeError, OSError):
+        return None
+    for entry in description.get("GeneratedBy", []):
+        if isinstance(entry, dict) and entry.get("Name") == "FastSurfer":
+            return entry.get("Description")
+    return None
+
+
+def write_derivatives_dataset_description(
+    output_dir: Path, fastsurfer_version: str, mode: str = CROSS_SECTIONAL
+) -> None:
     """
     Write a minimal BIDS-derivatives dataset_description.json into output_dir.
 
@@ -222,6 +273,9 @@ def write_derivatives_dataset_description(output_dir: Path, fastsurfer_version: 
         adding subjects to.
     fastsurfer_version : str
         FastSurfer version string to record as GeneratedBy.Version.
+    mode : str, default=CROSS_SECTIONAL
+        The processing mode, recorded as GeneratedBy.Description so that a later run can tell
+        what the directory already holds. See read_processing_mode.
     """
     output_dir.mkdir(parents=True, exist_ok=True)
     description_file = output_dir / "dataset_description.json"
@@ -232,7 +286,9 @@ def write_derivatives_dataset_description(output_dir: Path, fastsurfer_version: 
         "Name": "FastSurfer Output",
         "BIDSVersion": "1.8.0",
         "DatasetType": "derivative",
-        "GeneratedBy": [{"Name": "FastSurfer", "Version": fastsurfer_version}],
+        "GeneratedBy": [
+            {"Name": "FastSurfer", "Version": fastsurfer_version, "Description": mode}
+        ],
     }
     with open(description_file, "w") as file:
         json.dump(description, file, indent=2)

@@ -83,6 +83,13 @@ def make_parser() -> argparse.ArgumentParser:
              "Default: process all sessions found.",
     )
     parser.add_argument(
+        "--use_t2", action="store_true",
+        help="Also pass the T2w image of each session, which switches the hypothalamus module "
+             "to its multimodal mode. Off by default, because whether a T2 is used changes the "
+             "result, so it is a choice for the whole study rather than something the presence "
+             "of a file decides. Sessions without a T2w are still processed, without one.",
+    )
+    parser.add_argument(
         "--skip_bids_validator", action="store_true",
         help="Skip validation of the input dataset against the BIDS specification. Validation "
              "uses the external bids-validator tool and is skipped with a warning if it is not "
@@ -206,12 +213,35 @@ def main(argv: list[str] | None = None) -> int:
             bids_dir,
             participant_labels=args.participant_label,
             session_labels=args.session_label,
+            with_t2=args.use_t2,
         )
     except (ValueError, subprocess.CalledProcessError) as error:
         LOGGER.error("%s", error)
         return 1
     if not sessions:
         LOGGER.error("No session with a T1w image found in %s.", bids_dir)
+        return 1
+
+    # the hypothalamus module computes something different with a T2 than without one, so a run
+    # where only some sessions have one holds two methods side by side
+    if args.use_t2:
+        without = [session.output_id for session in sessions if session.t2w is None]
+        if without:
+            LOGGER.warning(
+                "--use_t2 was given, but %d of %d sessions have no T2w image and will be "
+                "processed without one, so the hypothalamus results will not be comparable "
+                "across the study: %s",
+                len(without), len(sessions), without,
+            )
+
+    recorded = bids.read_processing_mode(output_dir)
+    if recorded is not None and recorded != bids.CROSS_SECTIONAL:
+        LOGGER.error(
+            "%s already holds %s results. A session and a timepoint of that session claim the "
+            "same directory name but are results of different methods, so pick another "
+            "output_dir rather than mixing them.",
+            output_dir, recorded,
+        )
         return 1
 
     lines = subject_list_lines(sessions)
@@ -235,7 +265,9 @@ def main(argv: list[str] | None = None) -> int:
         print("+ " + shlex.join(cmd))
         return 0
 
-    bids.write_derivatives_dataset_description(output_dir, read_and_close_version())
+    bids.write_derivatives_dataset_description(
+        output_dir, read_and_close_version(), bids.CROSS_SECTIONAL
+    )
     subject_list.parent.mkdir(parents=True, exist_ok=True)
     subject_list.write_text("\n".join(lines) + "\n")
     print("+ " + shlex.join(cmd))
