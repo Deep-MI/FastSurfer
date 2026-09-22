@@ -209,10 +209,11 @@ def test_dry_run_routes_every_session_to_brun(bids_dataset: Path, tmp_path: Path
 
 
 def test_dry_run_with_slurm_routes_to_srun(bids_dataset: Path, tmp_path: Path) -> None:
-    """--slurm swaps the script and nothing else; both parse the same subject list."""
+    """--slurm swaps the script, and adds the --data srun rewrites the listed paths against."""
     stdout = _dry_run(bids_dataset, tmp_path, "--slurm")
     assert "srun_fastsurfer.sh" in stdout
     assert "brun_fastsurfer.sh" not in stdout
+    assert f"--data {bids_dataset}" in stdout
 
 
 def test_passthrough_options_reach_the_batch_script(bids_dataset: Path, tmp_path: Path) -> None:

@@ -101,9 +101,10 @@ def make_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--slurm", action="store_true",
-        help="Submit the cases to slurm via srun_fastsurfer.sh instead of running them locally "
-             "via brun_fastsurfer.sh. Cluster options such as --partition or --work are passed "
-             "through after the literal '--'.",
+        help="EXPERIMENTAL, not yet run on a cluster. Submit the cases to slurm via "
+             "srun_fastsurfer.sh instead of running them locally via brun_fastsurfer.sh. Cluster "
+             "options such as --partition or --work are passed through after the literal '--'. "
+             "Check the output of --dry before relying on it.",
     )
     parser.add_argument(
         "--dry", "--dry_run", dest="dry", action="store_true",
@@ -133,7 +134,7 @@ def split_passthrough(argv: list[str]) -> tuple[list[str], list[str]]:
     return argv, []
 
 
-def subject_list_lines(sessions: "list[BidsSession]") -> list[str]:
+def subject_list_lines(sessions: "list[BidsSession]", quote: bool = True) -> list[str]:
     """
     Format discovered sessions as brun_fastsurfer.sh/srun_fastsurfer.sh subject list lines.
 
@@ -141,24 +142,32 @@ def subject_list_lines(sessions: "list[BidsSession]") -> list[str]:
     ----------
     sessions : list[FastSurferCNN.utils.bids.BidsSession]
         The sessions to process.
+    quote : bool, default=True
+        Whether to shell-quote the paths. True for brun_fastsurfer.sh, False for
+        srun_fastsurfer.sh, see the notes.
 
     Returns
     -------
     list[str]
-        One ``<subject_id>=<t1 path>[ --t2 <t2 path>]`` line per session. Both scripts parse this
-        same format, so the list works for the local and the slurm route alike.
+        One ``<subject_id>=<t1 path>[ --t2 <t2 path>]`` line per session. Both scripts read this
+        same format, though they do not read it the same way.
 
     Notes
     -----
-    The paths are shell-quoted. brun_fastsurfer.sh tokenizes the part after the ``=`` shell-style,
-    so an unquoted path holding a space would be read as the image plus a stray argument. BIDS
-    labels cannot contain one, but the directory the dataset sits in can.
+    brun_fastsurfer.sh tokenizes the part after the ``=`` shell-style, so a path holding a space
+    has to be quoted or it is read as the image plus a stray argument. BIDS labels cannot hold a
+    space, but the directory the dataset sits in can.
+
+    srun_fastsurfer.sh instead rewrites each path with awk, to point at the bind mount inside the
+    container, and a leading quote stops that rewrite from matching. Its lines are therefore
+    unquoted, and a path with a space is refused before it reaches this point.
     """
+    escape = shlex.quote if quote else str
     lines = []
     for session in sessions:
-        line = f"{session.output_id}={shlex.quote(str(session.t1w))}"
+        line = f"{session.output_id}={escape(str(session.t1w))}"
         if session.t2w is not None:
-            line += f" --t2 {shlex.quote(str(session.t2w))}"
+            line += f" --t2 {escape(str(session.t2w))}"
         lines.append(line)
     return lines
 
@@ -185,7 +194,9 @@ def main(argv: list[str] | None = None) -> int:
         LOGGER.info("analysis_level 'group' is a no-op for FastSurfer, nothing to do.")
         return 0
 
-    reserved = [flag for flag in RESERVED_PASSTHROUGH if flag in passthrough]
+    # --data only for slurm, where this script sets it from bids_dir; brun does not take it
+    candidates = RESERVED_PASSTHROUGH + (("--data",) if args.slurm else ())
+    reserved = [flag for flag in candidates if flag in passthrough]
     if reserved:
         LOGGER.error(
             "%s after the '--' would override what this script sets from bids_dir and "
@@ -244,7 +255,22 @@ def main(argv: list[str] | None = None) -> int:
         )
         return 1
 
-    lines = subject_list_lines(sessions)
+    if args.slurm:
+        spaced = sorted(
+            session.output_id for session in sessions
+            if any(ch.isspace() for ch in str(session.t1w))
+            or (session.t2w is not None and any(ch.isspace() for ch in str(session.t2w)))
+        )
+        if spaced:
+            LOGGER.error(
+                "srun_fastsurfer.sh rewrites the image paths with awk, which has no notion of "
+                "shell quoting, so until it does --slurm cannot take a path holding a space. "
+                "Move the dataset, or run these without --slurm: %s",
+                spaced,
+            )
+            return 1
+
+    lines = subject_list_lines(sessions, quote=not args.slurm)
     # top level rather than in a scripts/ directory: scripts/ is what FreeSurfer calls the
     # per-subject log directory, and this sits beside the subjects rather than inside one
     subject_list = output_dir / "bids_subjects.txt"
@@ -253,8 +279,12 @@ def main(argv: list[str] | None = None) -> int:
         str(FASTSURFER_HOME / script),
         "--subject_list", str(subject_list),
         "--sd", str(output_dir),
-        *passthrough,
     ]
+    if args.slurm:
+        # srun rewrites every path in the list relative to --data before binding it into the
+        # container, and its default is the working directory, which BIDS paths need not sit under
+        cmd += ["--data", str(bids_dir)]
+    cmd += passthrough
     if args.fs_license is not None:
         cmd += ["--fs_license", str(args.fs_license)]
     if args.dry:
