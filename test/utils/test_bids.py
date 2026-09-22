@@ -70,9 +70,25 @@ def test_every_session_with_a_t1w_is_found(bids_dataset: Path) -> None:
     by_id = {s.output_id: s for s in sessions}
     assert by_id["sub-01"].session_id is None
     assert by_id["sub-01"].t1w.name == "sub-01_T1w.nii.gz"
-    assert by_id["sub-01"].t2w is None
-    assert by_id["sub-02_ses-01"].t2w.name == "sub-02_ses-01_T2w.nii.gz"
-    assert by_id["sub-02_ses-02"].t2w is None
+
+
+def test_a_t2w_is_only_picked_up_when_it_is_asked_for(bids_dataset: Path) -> None:
+    """Using a T2 changes what HypVINN computes, so a file being there must not decide it."""
+    without = {s.output_id: s.t2w for s in bids.find_sessions(bids_dataset)}
+    assert without["sub-02_ses-01"] is None
+
+    with_t2 = {s.output_id: s.t2w for s in bids.find_sessions(bids_dataset, with_t2=True)}
+    assert with_t2["sub-02_ses-01"].name == "sub-02_ses-01_T2w.nii.gz"
+    assert with_t2["sub-02_ses-02"] is None
+
+
+def test_several_t1w_images_in_one_session_is_an_error(tmp_path: Path) -> None:
+    """Which acquisition to process is a statement about the data, not a sort order."""
+    anat = tmp_path / "bids" / "sub-01" / "anat"
+    _touch(anat / "sub-01_run-1_T1w.nii.gz")
+    _touch(anat / "sub-01_run-2_T1w.nii.gz")
+    with pytest.raises(ValueError, match="ambiguous"):
+        bids.find_sessions(tmp_path / "bids")
 
 
 def test_a_json_sidecar_is_not_mistaken_for_an_image(tmp_path: Path) -> None:
@@ -123,7 +139,8 @@ def test_a_path_with_a_space_is_quoted_for_the_subject_list(tmp_path: Path) -> N
     root = tmp_path / "a study" / "bids"
     _touch(root / "sub-01" / "anat" / "sub-01_T1w.nii.gz")
     _touch(root / "sub-01" / "anat" / "sub-01_T2w.nii.gz")
-    (line,) = run_fastsurfer_bids.subject_list_lines(bids.find_sessions(root))
+    sessions = bids.find_sessions(root, with_t2=True)
+    (line,) = run_fastsurfer_bids.subject_list_lines(sessions)
 
     subject_id, _, image_parameters = line.partition("=")
     assert subject_id == "sub-01"
@@ -159,12 +176,15 @@ def test_a_missing_bids_dir_is_an_error(tmp_path: Path) -> None:
     assert "not a directory" in result.stderr
 
 
-def test_derivatives_description_records_the_version(tmp_path: Path) -> None:
-    """Downstream BIDS tooling reads this file to learn what produced the outputs."""
+def test_derivatives_description_records_the_version_and_the_model(tmp_path: Path) -> None:
+    """Downstream tooling reads this to learn what produced the outputs, and by which model."""
     bids.write_derivatives_dataset_description(tmp_path / "out", "2.6.0-dev0")
     description = json.loads((tmp_path / "out" / "dataset_description.json").read_text())
     assert description["DatasetType"] == "derivative"
-    assert description["GeneratedBy"] == [{"Name": "FastSurfer", "Version": "2.6.0-dev0"}]
+    assert description["GeneratedBy"] == [
+        {"Name": "FastSurfer", "Version": "2.6.0-dev0", "Description": bids.CROSS_SECTIONAL}
+    ]
+    assert bids.read_processing_mode(tmp_path / "out") == bids.CROSS_SECTIONAL
 
 
 def _dry_run(bids_dataset: Path, tmp_path: Path, *extra: str) -> str:
@@ -182,7 +202,8 @@ def test_dry_run_routes_every_session_to_brun(bids_dataset: Path, tmp_path: Path
     """One subject list, one brun call, and nothing written."""
     stdout = _dry_run(bids_dataset, tmp_path)
     assert "sub-01=" in stdout and "sub-02_ses-01=" in stdout and "sub-02_ses-02=" in stdout
-    assert "--t2 " in stdout  # the T2w of sub-02_ses-01 reaches HypVINN
+    assert "--t2 " not in stdout  # not without --use_t2
+    assert "--t2 " in _dry_run(bids_dataset, tmp_path, "--use_t2")
     assert "brun_fastsurfer.sh" in stdout
     assert not (tmp_path / "out").exists(), "--dry wrote to the output directory"
 
@@ -210,6 +231,19 @@ def test_a_passthrough_option_this_script_sets_is_refused(bids_dataset: Path, tm
     )
     assert result.returncode == 1
     assert "--sd" in result.stderr
+
+
+def test_a_directory_holding_the_other_model_is_refused(bids_dataset: Path, tmp_path: Path) -> None:
+    """A timepoint and a session claim one directory name, so the two models cannot be mixed."""
+    output_dir = tmp_path / "out"
+    bids.write_derivatives_dataset_description(output_dir, "2.6.0-dev0", bids.LONGITUDINAL)
+    result = subprocess.run(
+        [sys.executable, str(FASTSURFER_HOME / "run_fastsurfer_bids.py"),
+         str(bids_dataset), str(output_dir), "participant", "--skip_bids_validator", "--dry"],
+        capture_output=True, text=True,
+    )
+    assert result.returncode == 1
+    assert bids.LONGITUDINAL in result.stderr
 
 
 def test_an_existing_dataset_description_is_kept(tmp_path: Path) -> None:

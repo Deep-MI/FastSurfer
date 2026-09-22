@@ -49,12 +49,18 @@ fastsurfer_output/
 ```
 
 Flat, not nested under `sub-<label>/ses-<label>/`. This is the layout FreeSurfer tooling expects of a `SUBJECTS_DIR`,
-so every downstream FreeSurfer or FastSurfer command works on the output directory unchanged, and it is the same
-naming the longitudinal pipeline uses for its timepoints. A dataset with no session level keeps the plain `sub-<label>`
-as the directory name.
+so every downstream FreeSurfer or FastSurfer command works on the output directory unchanged. A dataset with no
+session level keeps the plain `sub-<label>` as the directory name. Note this means `output_dir` is a FreeSurfer
+subjects directory that carries a `dataset_description.json` for provenance, not a valid BIDS-derivatives dataset,
+which would require the nested layout.
 
-A minimal BIDS-derivatives `dataset_description.json` is written into `output_dir` if there is not one there already,
-and the generated subject list is kept as `output_dir/bids_subjects.txt`, so a run can be repeated or amended with
+`dataset_description.json` is written if there is not one there already, and records which of the two processing
+models produced the directory. The longitudinal pipeline names its timepoints the same way this names its sessions,
+so `sub-01_ses-1` from a cross-sectional run and `sub-01_ses-1` from a longitudinal run are the same directory name
+holding results of different methods. **One output directory therefore holds one model**, and a run into a directory
+recorded as the other one is refused rather than silently mixed.
+
+The generated subject list is kept as `output_dir/bids_subjects.txt`, so a run can be repeated or amended with
 `brun_fastsurfer.sh` directly.
 
 Sessions
@@ -66,10 +72,17 @@ you.
 
 T1w and T2w input
 ------------------
-Only `*_T1w.nii[.gz]` and `*_T2w.nii[.gz]` are considered. Where a session has a T2w image, it is passed as `--t2`,
-which enables the [HypVINN](../overview/OUTPUT_FILES.md#hypvinn-module) hypothalamus module. A session with several
-T1w images (for example several `run-` or `acq-` entities) uses the first in alphabetical order and says so; process
-the other one with `run_fastsurfer.sh` directly if that is the wrong choice.
+Only `*_T1w.nii[.gz]` and `*_T2w.nii[.gz]` are considered.
+
+A T2w image is used only with `--use_t2`, which passes it as `--t2` and switches the
+[HypVINN](../overview/OUTPUT_FILES.md#hypvinn-module) hypothalamus module to its multimodal mode. That changes what
+the module computes, so it is a choice for the whole study rather than something the presence of a file decides:
+using a T2 where one happens to exist and not where it does not would put two methods in one set of results. Where
+`--use_t2` is given and some sessions have no T2w, those sessions are processed without one and a warning names them.
+
+A session with several T1w images (for example several `run-` or `acq-` entities) is an error rather than a silent
+pick of the first, since which image to process is a statement about the data. Restrict the dataset, or process that
+session with `run_fastsurfer.sh` directly.
 
 `--participant_label` and `--session_label` restrict what is processed and accept the labels with or without their
 `sub-`/`ses-` prefix. A label that the dataset does not hold is an error rather than an empty run, and where
