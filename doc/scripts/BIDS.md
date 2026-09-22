@@ -34,6 +34,15 @@ On a cluster, `--slurm` submits the same cases through `srun_fastsurfer.sh` inst
     --fs_license /data/license.txt -- --partition gpu --work /scratch/fastsurfer
 ```
 
+```{warning}
+`--slurm` is experimental and has not yet been run on a cluster. Check the output of `--dry` before relying on it.
+Two things differ from the local route, both handled here but neither yet exercised end to end: `--data` is set to
+`bids_dir`, because `srun_fastsurfer.sh` rewrites every path in the subject list relative to it before binding it into
+the container, and the paths are written unquoted, because that rewrite is done with awk and a quote stops it from
+matching. A dataset whose path holds a space is therefore refused with `--slurm`, which is a limitation of
+`srun_fastsurfer.sh` rather than of BIDS input: neither of its input routes handles a space today.
+```
+
 Output naming
 -------------
 `output_dir` is used directly as FastSurfer's `SUBJECTS_DIR`, and every session becomes one directory in it, named
