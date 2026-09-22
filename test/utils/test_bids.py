@@ -200,5 +200,27 @@ def test_passthrough_options_reach_the_batch_script(bids_dataset: Path, tmp_path
     assert "--seg_only --3T" in stdout
 
 
+def test_a_passthrough_option_this_script_sets_is_refused(bids_dataset: Path, tmp_path: Path) -> None:
+    """A second --sd would decide the output directory, silently overriding the positional one."""
+    result = subprocess.run(
+        [sys.executable, str(FASTSURFER_HOME / "run_fastsurfer_bids.py"),
+         str(bids_dataset), str(tmp_path / "out"), "participant",
+         "--skip_bids_validator", "--dry", "--", "--sd", "/somewhere/else"],
+        capture_output=True, text=True,
+    )
+    assert result.returncode == 1
+    assert "--sd" in result.stderr
+
+
+def test_an_existing_dataset_description_is_kept(tmp_path: Path) -> None:
+    """output_dir may be a dataset this run only adds subjects to, so its description stands."""
+    output_dir = tmp_path / "out"
+    output_dir.mkdir()
+    (output_dir / "dataset_description.json").write_text(json.dumps({"Name": "Mine"}))
+    bids.write_derivatives_dataset_description(output_dir, "2.6.0-dev0")
+    description = json.loads((output_dir / "dataset_description.json").read_text())
+    assert description == {"Name": "Mine"}
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

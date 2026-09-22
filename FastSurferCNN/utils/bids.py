@@ -217,16 +217,22 @@ def write_derivatives_dataset_description(output_dir: Path, fastsurfer_version: 
     Parameters
     ----------
     output_dir : Path
-        Directory to write dataset_description.json into. Created if it does not exist.
+        Directory to write dataset_description.json into. Created if it does not exist. An
+        existing description is left alone, since it may describe a dataset this run is only
+        adding subjects to.
     fastsurfer_version : str
         FastSurfer version string to record as GeneratedBy.Version.
     """
     output_dir.mkdir(parents=True, exist_ok=True)
+    description_file = output_dir / "dataset_description.json"
+    if description_file.exists():
+        LOGGER.info("%s exists already, keeping it.", description_file)
+        return
     description = {
         "Name": "FastSurfer Output",
         "BIDSVersion": "1.8.0",
         "DatasetType": "derivative",
         "GeneratedBy": [{"Name": "FastSurfer", "Version": fastsurfer_version}],
     }
-    with open(output_dir / "dataset_description.json", "w") as file:
+    with open(description_file, "w") as file:
         json.dump(description, file, indent=2)
