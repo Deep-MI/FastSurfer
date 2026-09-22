@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright 2026 Image Analysis Lab, German Center for Neurodegenerative Diseases (DZNE), Bonn
+# Copyright 2026 DeepMI Lab, German Center for Neurodegenerative Diseases (DZNE), Bonn
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -32,8 +32,13 @@ import shlex
 import subprocess
 import sys
 from pathlib import Path
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from FastSurferCNN.utils.bids import BidsSession
 
 FASTSURFER_HOME = Path(__file__).resolve().parent
+LOGGER = logging.getLogger(__name__)
 
 
 def make_parser() -> argparse.ArgumentParser:
@@ -118,7 +123,7 @@ def split_passthrough(argv: list[str]) -> tuple[list[str], list[str]]:
     return argv, []
 
 
-def subject_list_lines(sessions: list) -> list[str]:
+def subject_list_lines(sessions: "list[BidsSession]") -> list[str]:
     """
     Format discovered sessions as brun_fastsurfer.sh/srun_fastsurfer.sh subject list lines.
 
@@ -167,7 +172,7 @@ def main(argv: list[str] | None = None) -> int:
     args = make_parser().parse_args(own_args)
 
     if args.analysis_level == "group":
-        print("analysis_level 'group' is a no-op for FastSurfer; nothing to do.")
+        LOGGER.info("analysis_level 'group' is a no-op for FastSurfer, nothing to do.")
         return 0
 
     from FastSurferCNN.utils import bids
@@ -177,7 +182,7 @@ def main(argv: list[str] | None = None) -> int:
     output_dir: Path = args.output_dir.resolve()
 
     if not bids_dir.is_dir():
-        print(f"ERROR: {bids_dir} is not a directory.", file=sys.stderr)
+        LOGGER.error("%s is not a directory.", bids_dir)
         return 1
 
     # a mistyped label and an invalid dataset are both the user's input being wrong, which is
@@ -191,10 +196,10 @@ def main(argv: list[str] | None = None) -> int:
             session_labels=args.session_label,
         )
     except (ValueError, subprocess.CalledProcessError) as error:
-        print(f"ERROR: {error}", file=sys.stderr)
+        LOGGER.error("%s", error)
         return 1
     if not sessions:
-        print(f"ERROR: No session with a T1w image found in {bids_dir}.", file=sys.stderr)
+        LOGGER.error("No session with a T1w image found in %s.", bids_dir)
         return 1
 
     lines = subject_list_lines(sessions)
