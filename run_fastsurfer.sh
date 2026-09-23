@@ -1440,8 +1440,8 @@ then
     hypvinn_t2="$norm_name_t2"
     # In a longitudinal time point, --reg_mode none says the T2 is co-registered with the T1 passed
     # for this time point, but HypVINN gets that T1 resampled into template space. So the T2 gets the
-    # same transform and the same command long_prepare_template.sh used for the T1, after which the
-    # two share a grid and there is nothing left for HypVINN to register.
+    # transform long_prepare_template.sh used for the T1, resliced onto exactly the T1 the HypVINN
+    # call below reads, after which the two share a grid and there is nothing left to register.
     if [[ "$long" == "true" ]] && [[ "$hypvinn_regmode" == "none" ]]
     then
       tp_to_base_lta="$sd/$baseid/mri/transforms/${subject}_to_${baseid}.lta"
@@ -1451,8 +1451,9 @@ then
         echo "  which long_prepare_template.sh writes, but it does not exist." | tee -a "$seg_log"
         exit 1
       fi
-      hypvinn_t2="$(add_file_suffix "$norm_name_t2" "base")"
-      cmd=(mri_convert -at "$tp_to_base_lta" -rt cubic "$norm_name_t2" "$hypvinn_t2")
+      if [[ "$run_biasfield" == "true" ]] ; then hypvinn_t1="$norm_name" ; else hypvinn_t1="$t1" ; fi
+      hypvinn_t2="$subject_dir/mri/T2_nu.base.mgz"
+      cmd=(mri_convert -at "$tp_to_base_lta" --reslice_like "$hypvinn_t1" -rt cubic "$norm_name_t2" "$hypvinn_t2")
       {
         echo "INFO: Mapping the T2 into template space with the transform of this time point's T1..."
         echo_quoted "${cmd[@]}"
