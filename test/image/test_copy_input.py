@@ -130,6 +130,18 @@ def test_rawavg_only_writes_no_archive(tmp_path):
     assert not (mri / "orig").exists()
 
 
+def test_rawavg_only_still_archives_a_t2(tmp_path):
+    """A longitudinal time point's T1 is built by the pipeline, but its T2 is the user's input."""
+    t1 = scaled_nifti(tmp_path / "t1.nii.gz")
+    t2 = scaled_nifti(tmp_path / "t2.nii.gz")
+
+    assert main(t1=t1, sd=tmp_path, sid="sub", t2=t2, rawavg_only=True) == 0
+
+    orig_dir = tmp_path / "sub" / "mri" / "orig"
+    assert sorted(p.name for p in orig_dir.iterdir()) == ["T2raw.mgz", "T2raw.nii.gz"]
+    assert filecmp.cmp(t2, orig_dir / "T2raw.nii.gz", shallow=False)
+
+
 def test_every_part_of_a_multi_file_image_is_copied(tmp_path):
     """An Analyze .hdr without its .img is not an image, so both are copied and both keep the stem."""
     data = np.arange(np.prod(SHAPE), dtype=np.int16).reshape(SHAPE)

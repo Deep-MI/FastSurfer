@@ -42,6 +42,8 @@ Here `<templateID>` is a name you assign to this individual person and will be u
 
 Note, with a few exceptions, you can add additional flags that can be understood by `run_fastsurfer.sh`, which will be passed through, e.g. the `--3T` when working with 3T images.
 
+If you have T2-weighted images, pass them with `--t2s <T2_1> <T2_2> ...`, one per time point in the same order as `--tpids`. They are used by the hypothalamus module (HypVINN) in the segmentation of each time point, where each T2 is registered directly to that time point's T1 in template space. The template itself does not need them, as the hypothalamus module does not run on it. Either every time point gets a T2 or none does: a T2 changes what the hypothalamus module computes, so a series where only some time points had one would not be comparable over time. `--reg_mode` selects the registration method, as for `run_fastsurfer.sh`.
+
 The above command will, of course, be slightly different when using your preferred installation in Singularity or Docker. For example, for Singularity:
 
 ```bash
