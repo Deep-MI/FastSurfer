@@ -41,7 +41,7 @@ FASTSURFER_HOME = Path(__file__).resolve().parent
 LOGGER = logging.getLogger(__name__)
 
 # set from bids_dir and output_dir, so a second one after the -- would silently win instead
-RESERVED_PASSTHROUGH = ("--subject_list", "--subjects_list", "--sd", "--sid", "--t1")
+RESERVED_PASSTHROUGH = ("--subject_list", "--subjects_list", "--sd", "--sid", "--t1", "--t2")
 
 
 def make_parser() -> argparse.ArgumentParser:

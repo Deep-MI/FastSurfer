@@ -234,6 +234,24 @@ def test_a_passthrough_option_this_script_sets_is_refused(bids_dataset: Path, tm
     assert "--sd" in result.stderr
 
 
+def test_a_passthrough_t2_is_refused(bids_dataset: Path, tmp_path: Path) -> None:
+    """One T2 for every session is some other session's image, whichever way --use_t2 is set.
+
+    brun_fastsurfer.sh puts the passthrough options before each line's own, so a --t2 after the --
+    reaches every case: with --use_t2 those that have no T2w of their own, without it all of them.
+    """
+    def run(*extra: str) -> subprocess.CompletedProcess:
+        return subprocess.run(
+            [sys.executable, str(FASTSURFER_HOME / "run_fastsurfer_bids.py"),
+             str(bids_dataset), str(tmp_path / "out"), "participant",
+             "--skip_bids_validator", "--dry", *extra, "--", "--t2", "/elsewhere/t2.nii.gz"],
+            capture_output=True, text=True,
+        )
+    for result in (run(), run("--use_t2")):
+        assert result.returncode == 1
+        assert "--t2" in result.stderr
+
+
 def test_a_directory_holding_the_other_model_is_refused(bids_dataset: Path, tmp_path: Path) -> None:
     """A timepoint and a session claim one directory name, so the two models cannot be mixed."""
     output_dir = tmp_path / "out"
