@@ -26,6 +26,22 @@ This processes `sub-01` and `sub-02` from the dataset at `/data/my_bids_dataset`
 are passed through unchanged to `brun_fastsurfer.sh` or `srun_fastsurfer.sh` (see [RUN_FASTSURFER.md](RUN_FASTSURFER.md),
 [BATCH.md](BATCH.md) and [SLURM.md](SLURM.md) for the full set).
 
+In Docker
+---------
+The image's entrypoint is `run_fastsurfer.sh`, so a BIDS run overrides it. Override it with
+`tools/Docker/entrypoint.sh` rather than with the script itself: that is what activates the virtual environment the
+pipeline runs in, and it takes the script to run as its first argument.
+
+```bash
+docker run --gpus all -v $HOME/my_bids_dataset:/data:ro -v $HOME/my_fastsurfer_analysis:/output \
+           -v $HOME/my_fs_license.txt:/fs_license/license.txt \
+           --entrypoint "/fastsurfer/tools/Docker/entrypoint.sh" \
+           --rm --user $(id -u):$(id -g) deepmi/fastsurfer:latest \
+           /fastsurfer/run_fastsurfer_bids.py \
+           /data /output participant --fs_license /fs_license/license.txt \
+           -- --3T --threads 4
+```
+
 On a cluster, `--slurm` submits the same cases through `srun_fastsurfer.sh` instead, with its options given after the
 `--` as well:
 
