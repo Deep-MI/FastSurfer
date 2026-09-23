@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Copyright 2024 AI in Medical Imaging, German Center for Neurodegenerative Diseases (DZNE), Bonn
+# Copyright 2024 DeepMI Lab, German Center for Neurodegenerative Diseases (DZNE), Bonn
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -89,8 +89,10 @@ FLAGS:
                               the order of --tpids, for the hypothalamus module.
                               Every time point needs one, or none does. Each is
                               registered to its time point's T1 in template space,
-                              and only the long_seg stage uses them.
-                              Requires ABSOLUTE paths!
+                              or with --reg_mode none, taken as co-registered with
+                              the T1 given in --t1s and mapped into template space
+                              with that T1's transform. Only the long_seg stage
+                              uses them. Requires ABSOLUTE paths!
   --sd  <subjects_dir>      Output directory \$SUBJECTS_DIR (or pass via env var)
   --py <python_cmd>         Command for python, used in both pipelines.
                               Default: "$python"
