@@ -83,7 +83,7 @@ FLAGS:
                               \$SUBJECTS_DIR to be created"
   --t1s <T1_1> <T1_2> ..    T1 full head inputs for each time point (do not need
                               to be bias corrected). Requires ABSOLUTE paths!
-  --tpids <tID1> >tID2> ..  IDs for future time points directories inside
+  --tpids <tID1> <tID2> ..  IDs for future time points directories inside
                               \$SUBJECTS_DIR to be created later (during --long)
   --t2s <T2_1> <T2_2> ..    *Optional* T2 full head inputs, one per time point in
                               the order of --tpids, for the hypothalamus module.
