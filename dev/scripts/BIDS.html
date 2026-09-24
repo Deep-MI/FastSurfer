@@ -3,10 +3,10 @@
   <head><meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
-<link rel="index" title="Index" href="../genindex.html"><link rel="search" title="Search" href="../search.html"><link rel="next" title="CerebNet: run_prediction.py" href="cerebnet.html"><link rel="prev" title="Advanced scripts" href="advanced.html">
+<link rel="index" title="Index" href="../genindex.html"><link rel="search" title="Search" href="../search.html"><link rel="next" title="SLURM: srun_fastsurfer.sh" href="SLURM.html"><link rel="prev" title="BATCH: brun_fastsurfer.sh" href="BATCH.html">
 
     <!-- Generated with Sphinx 7.4.7 and Furo 2025.12.19 -->
-        <title>FastSurferCNN: run_prediction.py - FastSurfer</title>
+        <title>BIDS: run_fastsurfer_bids.py - FastSurfer</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
@@ -220,10 +220,10 @@
 <li class="toctree-l2"><a class="reference internal" href="RUN_FASTSURFER.html">run_fastsurfer.sh</a></li>
 <li class="toctree-l2"><a class="reference internal" href="long_fastsurfer.html">LONG: long_fastsurfer.sh</a></li>
 <li class="toctree-l2"><a class="reference internal" href="BATCH.html">BATCH: brun_fastsurfer.sh</a></li>
-<li class="toctree-l2"><a class="reference internal" href="BIDS.html">BIDS: run_fastsurfer_bids.py</a></li>
+<li class="toctree-l2 current current-page"><a class="current reference internal" href="#">BIDS: run_fastsurfer_bids.py</a></li>
 <li class="toctree-l2"><a class="reference internal" href="SLURM.html">SLURM: srun_fastsurfer.sh</a></li>
-<li class="toctree-l2 current has-children"><a class="reference internal" href="advanced.html">Advanced scripts</a><input aria-label="Toggle navigation of Advanced scripts" checked="" class="toctree-checkbox" id="toctree-checkbox-4" name="toctree-checkbox-4" role="switch" type="checkbox"/><label for="toctree-checkbox-4"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul class="current">
-<li class="toctree-l3 current current-page"><a class="current reference internal" href="#">FastSurferCNN: run_prediction.py</a></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="advanced.html">Advanced scripts</a><input aria-label="Toggle navigation of Advanced scripts" class="toctree-checkbox" id="toctree-checkbox-4" name="toctree-checkbox-4" role="switch" type="checkbox"/><label for="toctree-checkbox-4"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="fastsurfercnn.html">FastSurferCNN: run_prediction.py</a></li>
 <li class="toctree-l3"><a class="reference internal" href="cerebnet.html">CerebNet: run_prediction.py</a></li>
 <li class="toctree-l3"><a class="reference internal" href="hypvinn.html">HypVINN: run_prediction.py</a></li>
 <li class="toctree-l3"><a class="reference internal" href="fastsurfer_cc.html">CorpusCallosum: fastsurfer_cc.py</a></li>
@@ -442,7 +442,7 @@
         </a>
         <div class="content-icon-container">
           <div class="view-this-page">
-  <a class="muted-link" href="../_sources/scripts/fastsurfercnn.rst.txt" title="View this page">
+  <a class="muted-link" href="../_sources/scripts/BIDS.md.txt" title="View this page">
     <svg><use href="#svg-eye"></use></svg>
     <span class="visually-hidden">View this page</span>
   </a>
@@ -460,243 +460,185 @@
           </label>
         </div>
         <article role="main" id="furo-main-content">
-          <section id="fastsurfercnn-run-prediction-py">
-<h1>FastSurferCNN: run_prediction.py<a class="headerlink" href="#fastsurfercnn-run-prediction-py" title="Link to this heading">¶</a></h1>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>We recommend running the segmentation with the standard <code class="xref py py-obj docutils literal notranslate"><span class="pre">run_fastsurfer.sh</span></code> interface!</p>
-</div>
-<p>The <em>FastSurferCNN</em> directory contains all the source code and modules needed to run the scripts. A list of python
-libraries used within the code can be found in <code class="docutils literal notranslate"><span class="pre">requirements.txt</span></code>. The main script is called <code class="docutils literal notranslate"><span class="pre">run_prediction.py</span></code> within
-which certain options can be selected and set via the command line:</p>
-<section id="general">
-<h2>General<a class="headerlink" href="#general" title="Link to this heading">¶</a></h2>
-<ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">--in_dir</span></code>: Path to the input volume directory (e.g <code class="docutils literal notranslate"><span class="pre">/your/path/to/ADNI/fs60</span></code>) or</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">--csv_file</span></code>: Path to csv-file listing input volume directories</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">--t1</span></code>: name of the T1-weighted MRI_volume (like <code class="docutils literal notranslate"><span class="pre">mri_volume.mgz</span></code>, default: <code class="docutils literal notranslate"><span class="pre">orig.mgz</span></code>)</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">--conformed_name</span></code>: name of the conformed MRI_volume (the input volume is prepared for inference first and the
-result is saved under the given name, default: <code class="docutils literal notranslate"><span class="pre">orig.mgz</span></code>). In the standard path this is the FastSurfer conform
-image; for native/keepgeom-style processing the saved image stays in native geometry, with only intensity scaling
-and dtype conversion as needed, while any soft reordering is temporary and only used internally for inference.</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">--t</span></code>: search tag limits processing to subjects matching the pattern (e.g. sub-* or 1030*…)</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">--sd</span></code>: Path to output directory (where should predictions be saved). Will be created if it does not already exist.</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">--seg_log</span></code>: name of log-file (information about processing is stored here; If not set, logs will not be saved). Saved
-in the same directory as the predictions.</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">--strip</span></code>: strip suffix from path definition of input file to yield correct subject name (optional, if full path is
-defined for <code class="docutils literal notranslate"><span class="pre">--t1</span></code>).</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">--lut</span></code>: FreeSurfer-style Color Lookup Table with labels to use in final prediction. Default:
-<code class="docutils literal notranslate"><span class="pre">./config/FastSurfer_ColorLUT.tsv</span></code></p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">--seg</span></code>: Name of intermediate DL-based segmentation file (similar to aparc+aseg).</p></li>
-</ul>
-</section>
-<section id="checkpoints-and-configs">
-<h2>Checkpoints and configs<a class="headerlink" href="#checkpoints-and-configs" title="Link to this heading">¶</a></h2>
-<ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">--ckpt_sag</span></code>: path to sagittal network checkpoint</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">--ckpt_cor</span></code>: path to coronal network checkpoint</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">--ckpt_ax</span></code>: path to axial network checkpoint</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">--cfg_cor</span></code>: Path to the coronal config file</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">--cfg_sag</span></code>: Path to the axial config file</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">--cfg_ax</span></code>: Path to the sagittal config file</p></li>
-</ul>
-</section>
-<section id="optional-commands">
-<h2>Optional commands<a class="headerlink" href="#optional-commands" title="Link to this heading">¶</a></h2>
-<ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">--clean</span></code>: clean up segmentation after running it (optional)</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">--device</span> <span class="pre">&lt;str&gt;</span></code>:Device for processing (<em>auto</em>, <em>cpu</em>, <em>cuda</em>, <em>cuda:&lt;device_num&gt;</em>), where cuda means Nvidia GPU; you
-can select which one e.g. “cuda:1”. Default: “auto”, check GPU and then CPU</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">--viewagg_device</span> <span class="pre">&lt;str&gt;</span></code>: Define where the view aggregation should be run on.
-Can be <em>auto</em> or a device (see –device).
-By default (<em>auto</em>), the program checks if you have enough memory to run the view aggregation on the gpu.
-The total memory is considered for this decision.
-If this fails, or you actively overwrote the check with setting <code class="docutils literal notranslate"><span class="pre">--viewagg_device</span> <span class="pre">cpu</span></code>, view agg is run on the cpu.
-Equivalently, if you define <code class="docutils literal notranslate"><span class="pre">--viewagg_device</span> <span class="pre">gpu</span></code>, view agg will be run on the gpu (no memory check will be done).</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">--batch_size</span></code>: Batch size for inference. Default=1</p></li>
-</ul>
-</section>
-<section id="example-command-evaluation-single-subject">
-<h2>Example Command: Evaluation Single Subject<a class="headerlink" href="#example-command-evaluation-single-subject" title="Link to this heading">¶</a></h2>
-<p>To run the network on MRI-volumes of subjectX in <code class="docutils literal notranslate"><span class="pre">./data</span></code> (specified by <code class="docutils literal notranslate"><span class="pre">--t1</span></code> flag; e.g.
-<code class="docutils literal notranslate"><span class="pre">./data/subjectX/t1-weighted.nii.gz</span></code>), change into the <em>FastSurferCNN</em> directory and run the following commands:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python3<span class="w"> </span>run_prediction.py<span class="w"> </span><span class="se">\</span>
-<span class="w">          </span>--t1<span class="w"> </span>../data/subjectX/t1-weighted.nii.gz<span class="w"> </span><span class="se">\</span>
-<span class="w">          </span>--sd<span class="w"> </span>../output<span class="w"> </span><span class="se">\</span>
-<span class="w">          </span>--t<span class="w"> </span>subjectX<span class="w"> </span><span class="se">\</span>
-<span class="w">          </span>--seg_log<span class="w"> </span>../output/temp_Competitive.log
+          <section id="bids-run-fastsurfer-bids-py">
+<h1>BIDS: run_fastsurfer_bids.py<a class="headerlink" href="#bids-run-fastsurfer-bids-py" title="Link to this heading">¶</a></h1>
+<p><code class="docutils literal notranslate"><span class="pre">run_fastsurfer_bids.py</span></code> is a <a class="reference external" href="https://bids-apps.neuroimaging.io/about/">BIDS-App</a>-style entrypoint for FastSurfer.
+It discovers subjects and sessions in a BIDS dataset and hands them to the existing entrypoints: it writes a subject
+list and calls <a class="reference internal" href="BATCH.html"><span class="std std-doc"><code class="docutils literal notranslate"><span class="pre">brun_fastsurfer.sh</span></code></span></a>, or <a class="reference internal" href="SLURM.html"><span class="std std-doc"><code class="docutils literal notranslate"><span class="pre">srun_fastsurfer.sh</span></code></span></a> with <code class="docutils literal notranslate"><span class="pre">--slurm</span></code>. No part of the
+pipeline is reimplemented here, and every option it does not define itself is passed through unchanged.</p>
+<p>It needs no additional dependencies. What it reads from a dataset (subject, session, T1w/T2w) is spelled out by the
+BIDS directory layout itself, so discovery is a glob over <code class="docutils literal notranslate"><span class="pre">sub-&lt;label&gt;/[ses-&lt;label&gt;/]anat/</span></code>.</p>
+<section id="usage">
+<h2>Usage<a class="headerlink" href="#usage" title="Link to this heading">¶</a></h2>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>$ ./run_fastsurfer_bids.py --help
+usage: run_fastsurfer_bids.py [-h] [--participant_label LABEL [LABEL ...]]
+                              [--session_label LABEL [LABEL ...]] [--use_t2]
+                              [--skip_bids_validator]
+                              [--fs_license FS_LICENSE] [--slurm] [--dry]
+                              bids_dir output_dir {participant,group}
+
+BIDS-App entrypoint for FastSurfer.
+
+Discovers subjects and sessions in a BIDS dataset and hands them to the existing FastSurfer
+entrypoints: it writes a subject list and calls brun_fastsurfer.sh, or srun_fastsurfer.sh with
+--slurm. It does not reimplement any part of the pipeline, and every option it does not define
+itself is passed through unchanged.
+
+Each session is processed on its own, as one cross-sectional case. Longitudinal processing, where
+the timepoints of a subject are conditioned on a person-specific template, is a different
+scientific method rather than a different spelling of this one, and is run with long_fastsurfer.sh.
+
+positional arguments:
+  bids_dir              Path to the BIDS-valid input dataset.
+  output_dir            Output directory, used as FastSurfer's SUBJECTS_DIR.
+                        Each session becomes the directory
+                        &lt;output_dir&gt;/sub-&lt;label&gt;_ses-&lt;label&gt;.
+  {participant,group}   Level of analysis. Only 'participant' performs
+                        processing; 'group' is a no-op.
+
+options:
+  -h, --help            show this help message and exit
+  --participant_label LABEL [LABEL ...], --participant-label LABEL [LABEL ...]
+                        Restrict processing to these participant labels (with
+                        or without 'sub-' prefix). Default: process all
+                        subjects found.
+  --session_label LABEL [LABEL ...], --session-label LABEL [LABEL ...]
+                        Restrict processing to these session labels (with or
+                        without 'ses-' prefix). Default: process all sessions
+                        found.
+  --use_t2              Also pass the T2w image of each session, which
+                        switches the hypothalamus module to its multimodal
+                        mode. Off by default, because whether a T2 is used
+                        changes the result, so it is a choice for the whole
+                        study rather than something the presence of a file
+                        decides. Sessions without a T2w are still processed,
+                        without one.
+  --skip_bids_validator
+                        Skip validation of the input dataset against the BIDS
+                        specification. Validation uses the external bids-
+                        validator tool and is skipped with a warning if it is
+                        not installed.
+  --fs_license FS_LICENSE
+                        Path to the FreeSurfer license file (passed through to
+                        run_fastsurfer.sh).
+  --slurm               EXPERIMENTAL. Submit the cases to slurm via
+                        srun_fastsurfer.sh instead of running them locally via
+                        brun_fastsurfer.sh. Cluster options such as
+                        --partition or --work are passed through after the
+                        literal '--'. Check the output of --dry before relying
+                        on it.
+  --dry, --dry_run      Print the commands that would be run, without
+                        executing them (same spelling as srun_fastsurfer.sh).
+
+Any options after a literal '--' are passed through unchanged to brun_fastsurfer.sh (or srun_fastsurfer.sh), e.g.:
+  run_fastsurfer_bids.py /bids /out participant -- --seg_only --3T
 </pre></div>
 </div>
-<p>The output will be stored in:</p>
-<ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">../output/subjectX/mri/aparc.DKTatlas+aseg.deep.mgz</span></code> (large segmentation)</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">../output/subjectX/mri/mask.mgz</span></code> (brain mask)</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">../output/subjectX/mri/aseg_noCC.mgz</span></code> (reduced segmentation)</p></li>
-</ul>
-<p>Here the logfile “temp_Competitive.log” will include the logfiles of all subjects. If left out, the logs will be written to stdout</p>
 </section>
-<section id="example-command-evaluation-whole-directory">
-<h2>Example Command: Evaluation whole directory<a class="headerlink" href="#example-command-evaluation-whole-directory" title="Link to this heading">¶</a></h2>
-<p>To run the network on all subjects MRI-volumes in ./data, change into the <em>FastSurferCNN</em> directory and run the following command:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python3<span class="w"> </span>run_prediction.py<span class="w"> </span><span class="se">\</span>
-<span class="w">          </span>--in_dir<span class="w"> </span>../data<span class="w"> </span><span class="se">\</span>
-<span class="w">          </span>--sd<span class="w"> </span>../output<span class="w"> </span><span class="se">\</span>
-<span class="w">          </span>--seg_log<span class="w"> </span>../output/temp_Competitive.log
+<section id="basic-example">
+<h2>Basic example<a class="headerlink" href="#basic-example" title="Link to this heading">¶</a></h2>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">./</span><span class="n">run_fastsurfer_bids</span><span class="o">.</span><span class="n">py</span> <span class="o">/</span><span class="n">data</span><span class="o">/</span><span class="n">my_bids_dataset</span> <span class="o">/</span><span class="n">data</span><span class="o">/</span><span class="n">fastsurfer_output</span> <span class="n">participant</span> \
+    <span class="o">--</span><span class="n">participant_label</span> <span class="mi">01</span> <span class="mi">02</span> <span class="o">--</span><span class="n">fs_license</span> <span class="o">/</span><span class="n">data</span><span class="o">/</span><span class="n">license</span><span class="o">.</span><span class="n">txt</span> <span class="o">--</span> <span class="o">--</span><span class="n">threads</span> <span class="mi">4</span>
 </pre></div>
 </div>
-<p>The output will be stored in:</p>
-<ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">../output/subjectX/mri/aparc.DKTatlas+aseg.deep.mgz</span></code> (large segmentation)</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">../output/subjectX/mri/mask.mgz</span></code> (brain mask)</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">../output/subjectX/mri/aseg_noCC.mgz</span></code> (reduced segmentation)</p></li>
-<li><p>and the log in <code class="docutils literal notranslate"><span class="pre">../output/temp_Competitive.log</span></code></p></li>
-</ul>
+<p>This processes <code class="docutils literal notranslate"><span class="pre">sub-01</span></code> and <code class="docutils literal notranslate"><span class="pre">sub-02</span></code> from the dataset at <code class="docutils literal notranslate"><span class="pre">/data/my_bids_dataset</span></code>. Any options after a literal <code class="docutils literal notranslate"><span class="pre">--</span></code>
+are passed through unchanged to <code class="docutils literal notranslate"><span class="pre">brun_fastsurfer.sh</span></code> or <code class="docutils literal notranslate"><span class="pre">srun_fastsurfer.sh</span></code> (see <a class="reference internal" href="RUN_FASTSURFER.html"><span class="std std-doc">RUN_FASTSURFER.md</span></a>,
+<a class="reference internal" href="BATCH.html"><span class="std std-doc">BATCH.md</span></a> and <a class="reference internal" href="SLURM.html"><span class="std std-doc">SLURM.md</span></a> for the full set).</p>
 </section>
-<section id="full-commandline-interface-of-fastsurfercnn-run-prediction-py">
-<h2>Full commandline interface of FastSurferCNN/run_prediction.py<a class="headerlink" href="#full-commandline-interface-of-fastsurfercnn-run-prediction-py" title="Link to this heading">¶</a></h2>
-<p><p>Evaluation metrics</p>
-</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">usage</span><span class="p">:</span> <span class="n">FastSurferCNN</span><span class="o">/</span><span class="n">run_prediction</span><span class="o">.</span><span class="n">py</span> <span class="p">[</span><span class="o">-</span><span class="n">h</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">t1</span> <span class="n">ORIG_NAME</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">sid</span> <span class="n">SID</span><span class="p">]</span>
-                                       <span class="p">[</span><span class="o">--</span><span class="n">in_dir</span> <span class="n">IN_DIR</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">tag</span> <span class="n">SEARCH_TAG</span><span class="p">]</span>
-                                       <span class="p">[</span><span class="o">--</span><span class="n">csv_file</span> <span class="n">CSV_FILE</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">lut</span> <span class="n">LUT</span><span class="p">]</span>
-                                       <span class="p">[</span><span class="o">--</span><span class="n">remove_suffix</span> <span class="n">REMOVE_SUFFIX</span><span class="p">]</span>
-                                       <span class="p">[</span><span class="o">--</span><span class="n">asegdkt_segfile</span> <span class="n">PRED_NAME</span><span class="p">]</span>
-                                       <span class="p">[</span><span class="o">--</span><span class="n">conformed_name</span> <span class="n">CONF_NAME</span><span class="p">]</span>
-                                       <span class="p">[</span><span class="o">--</span><span class="n">brainmask_name</span> <span class="n">BRAINMASK_NAME</span><span class="p">]</span>
-                                       <span class="p">[</span><span class="o">--</span><span class="n">aseg_name</span> <span class="n">ASEG_NAME</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">sd</span> <span class="n">OUT_DIR</span><span class="p">]</span>
-                                       <span class="p">[</span><span class="o">--</span><span class="n">seg_log</span> <span class="n">LOG_NAME</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">qc_log</span> <span class="n">QC_LOG</span><span class="p">]</span>
-                                       <span class="p">[</span><span class="o">--</span><span class="n">ckpt_ax</span> <span class="n">CKPT_AX</span><span class="p">]</span>
-                                       <span class="p">[</span><span class="o">--</span><span class="n">ckpt_cor</span> <span class="n">CKPT_COR</span><span class="p">]</span>
-                                       <span class="p">[</span><span class="o">--</span><span class="n">ckpt_sag</span> <span class="n">CKPT_SAG</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">cfg_ax</span> <span class="n">CFG_AX</span><span class="p">]</span>
-                                       <span class="p">[</span><span class="o">--</span><span class="n">cfg_cor</span> <span class="n">CFG_COR</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">cfg_sag</span> <span class="n">CFG_SAG</span><span class="p">]</span>
-                                       <span class="p">[</span><span class="o">--</span><span class="n">vox_size</span> <span class="n">VOX_SIZE</span><span class="p">]</span>
-                                       <span class="p">[</span><span class="o">--</span><span class="n">conform_to_1mm_threshold</span> <span class="n">CONFORM_TO_1MM_THRESHOLD</span><span class="p">]</span>
-                                       <span class="p">[</span><span class="o">--</span><span class="n">orientation</span> <span class="p">{</span><span class="n">native</span><span class="p">,</span><span class="n">XXX</span><span class="p">,</span><span class="n">soft</span><span class="o">-</span><span class="n">XXX</span><span class="p">}]</span>
-                                       <span class="p">[</span><span class="o">--</span><span class="n">image_size</span> <span class="n">IMAGE_SIZE</span><span class="p">]</span>
-                                       <span class="p">[</span><span class="o">--</span><span class="n">device</span> <span class="n">DEVICE</span><span class="p">]</span>
-                                       <span class="p">[</span><span class="o">--</span><span class="n">viewagg_device</span> <span class="n">VIEWAGG_DEVICE</span><span class="p">]</span>
-                                       <span class="p">[</span><span class="o">--</span><span class="n">batch_size</span> <span class="n">BATCH_SIZE</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">async_io</span><span class="p">]</span>
-                                       <span class="p">[</span><span class="o">--</span><span class="n">threads</span> <span class="n">THREADS</span><span class="p">]</span>
+<section id="in-docker">
+<h2>In Docker<a class="headerlink" href="#in-docker" title="Link to this heading">¶</a></h2>
+<p>The image’s entrypoint is <code class="docutils literal notranslate"><span class="pre">run_fastsurfer.sh</span></code>, so a BIDS run overrides it. Override it with
+<code class="docutils literal notranslate"><span class="pre">tools/Docker/entrypoint.sh</span></code> rather than with the script itself: that is what activates the virtual environment the
+pipeline runs in, and it takes the script to run as its first argument.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>docker<span class="w"> </span>run<span class="w"> </span>--gpus<span class="w"> </span>all<span class="w"> </span>-v<span class="w"> </span><span class="nv">$HOME</span>/my_bids_dataset:/data:ro<span class="w"> </span>-v<span class="w"> </span><span class="nv">$HOME</span>/my_fastsurfer_analysis:/output<span class="w"> </span><span class="se">\</span>
+<span class="w">           </span>-v<span class="w"> </span><span class="nv">$HOME</span>/my_fs_license.txt:/fs_license/license.txt<span class="w"> </span><span class="se">\</span>
+<span class="w">           </span>--entrypoint<span class="w"> </span><span class="s2">"/fastsurfer/tools/Docker/entrypoint.sh"</span><span class="w"> </span><span class="se">\</span>
+<span class="w">           </span>--rm<span class="w"> </span>--user<span class="w"> </span><span class="k">$(</span>id<span class="w"> </span>-u<span class="k">)</span>:<span class="k">$(</span>id<span class="w"> </span>-g<span class="k">)</span><span class="w"> </span>deepmi/fastsurfer:latest<span class="w"> </span><span class="se">\</span>
+<span class="w">           </span>/fastsurfer/run_fastsurfer_bids.py<span class="w"> </span><span class="se">\</span>
+<span class="w">           </span>/data<span class="w"> </span>/output<span class="w"> </span>participant<span class="w"> </span>--fs_license<span class="w"> </span>/fs_license/license.txt<span class="w"> </span><span class="se">\</span>
+<span class="w">           </span>--<span class="w"> </span>--3T<span class="w"> </span>--threads<span class="w"> </span><span class="m">4</span>
 </pre></div>
 </div>
-<section id="FastSurferCNN.run_prediction-make_parser-named-arguments">
-<h3>Named Arguments<a class="headerlink" href="#FastSurferCNN.run_prediction-make_parser-named-arguments" title="Link to this heading">¶</a></h3>
-<dl class="option-list">
-<dt><kbd>--t1</kbd></dt>
-<dd><p>Name of T1 full head MRI. Absolute path if single image else common image name. Default: <code class="xref py py-obj docutils literal notranslate"><span class="pre">mri/orig.mgz</span></code>.</p>
-<p>Default: <code class="docutils literal notranslate"><span class="pre">'mri/orig.mgz'</span></code></p>
-</dd>
-<dt><kbd>--sid</kbd></dt>
-<dd><p>The subject id to use, if not passed we try to extract the subject id from the path passed to –t1. For multi-subject processing, use –remove_suffix if sid is not the second to last element of input file passed to –t1.</p>
-</dd>
-<dt><kbd>--in_dir</kbd></dt>
-<dd><p>Directory in which input volume(s) are located. Optional, if full path is defined for –t1.</p>
-</dd>
-<dt><kbd>--tag</kbd></dt>
-<dd><p>Search tag to process only certain subjects. If a single image should be analyzed, set the tag with its id. Default: processes all.</p>
-<p>Default: <code class="docutils literal notranslate"><span class="pre">*</span></code></p>
-</dd>
-<dt><kbd>--csv_file</kbd></dt>
-<dd><p>Csv-file with subjects to analyze (alternative to –tag)</p>
-</dd>
-<dt><kbd>--lut</kbd></dt>
-<dd><p>Path and name of LUT to use.</p>
-<p>Default: <code class="docutils literal notranslate"><span class="pre">/home/runner/work/FastSurfer/FastSurfer/src/FastSurferCNN/config/FastSurfer_ColorLUT.tsv</span></code></p>
-</dd>
-<dt><kbd>--remove_suffix</kbd></dt>
-<dd><p>Optional: remove suffix from path definition of input file to yield correct subject name (e.g. /ses-x/anat/ for BIDS or /mri/ for FreeSurfer input). Default: do not remove anything.</p>
-<p>Default: <code class="docutils literal notranslate"><span class="pre">''</span></code></p>
-</dd>
-<dt><kbd>--asegdkt_segfile, --aparc_aseg_segfile</kbd></dt>
-<dd><p>Name of intermediate DL-based segmentation file (similar to aparc+aseg). When using FastSurfer, this segmentation is already conformed, since inference is always based on a conformed image. Absolute path if single image else common image name. Default: mri/aparc.DKTatlas+aseg.deep.mgz</p>
-<p>Default: <code class="docutils literal notranslate"><span class="pre">'mri/aparc.DKTatlas+aseg.deep.mgz'</span></code></p>
-</dd>
-<dt><kbd>--conformed_name</kbd></dt>
-<dd><p>Name under which the conformed input image will be saved, in the same directory as the segmentation (the input image is always conformed first, if it is not already conformed). Default: mri/orig.mgz.</p>
-<p>Default: <code class="docutils literal notranslate"><span class="pre">'mri/orig.mgz'</span></code></p>
-</dd>
-<dt><kbd>--brainmask_name</kbd></dt>
-<dd><p>Name under which the brainmask image will be saved, in the same directory as the segmentation. The brainmask is created from the aparc_aseg segmentation (dilate 5, erode 4, largest component). Default: <cite>mri/mask.mgz</cite>.</p>
-<p>Default: <code class="docutils literal notranslate"><span class="pre">'mri/mask.mgz'</span></code></p>
-</dd>
-<dt><kbd>--aseg_name</kbd></dt>
-<dd><p>Name under which the reduced aseg segmentation will be saved, in the same directory as the aparc-aseg segmentation (labels of full aparc segmentation are reduced to aseg). Default: mri/aseg.auto_noCCseg.mgz.</p>
-<p>Default: <code class="docutils literal notranslate"><span class="pre">'mri/aseg.auto_noCCseg.mgz'</span></code></p>
-</dd>
-<dt><kbd>--sd</kbd></dt>
-<dd><p>Directory in which evaluation results should be written. Will be created if it does not exist. Optional if full path is defined for –pred_name.</p>
-</dd>
-<dt><kbd>--seg_log</kbd></dt>
-<dd><p>Absolute path to file in which run logs will be saved. If not set, logs will not be saved.</p>
-<p>Default: <code class="docutils literal notranslate"><span class="pre">''</span></code></p>
-</dd>
-<dt><kbd>--qc_log</kbd></dt>
-<dd><p>Absolute path to file in which a list of subjects that failed QC check (when processing multiple subjects) will be saved. If not set, the file will not be saved.</p>
-<p>Default: <code class="docutils literal notranslate"><span class="pre">''</span></code></p>
-</dd>
-<dt><kbd>--ckpt_ax</kbd></dt>
-<dd><p>axial checkpoint to load.</p>
-<p>Default: <code class="docutils literal notranslate"><span class="pre">/home/runner/work/FastSurfer/FastSurfer/src/checkpoints/aparc_vinn_axial_v2.0.0.pkl</span></code></p>
-</dd>
-<dt><kbd>--ckpt_cor</kbd></dt>
-<dd><p>coronal checkpoint to load.</p>
-<p>Default: <code class="docutils literal notranslate"><span class="pre">/home/runner/work/FastSurfer/FastSurfer/src/checkpoints/aparc_vinn_coronal_v2.0.0.pkl</span></code></p>
-</dd>
-<dt><kbd>--ckpt_sag</kbd></dt>
-<dd><p>sagittal checkpoint to load.</p>
-<p>Default: <code class="docutils literal notranslate"><span class="pre">/home/runner/work/FastSurfer/FastSurfer/src/checkpoints/aparc_vinn_sagittal_v2.0.0.pkl</span></code></p>
-</dd>
-<dt><kbd>--cfg_ax</kbd></dt>
-<dd><p>Path to the axial config file (‘none’ deactivates the view).</p>
-<p>Default: <code class="docutils literal notranslate"><span class="pre">/home/runner/work/FastSurfer/FastSurfer/src/FastSurferCNN/config/FastSurferVINN_axial.yaml</span></code></p>
-</dd>
-<dt><kbd>--cfg_cor</kbd></dt>
-<dd><p>Path to the coronal config file (‘none’ deactivates the view).</p>
-<p>Default: <code class="docutils literal notranslate"><span class="pre">/home/runner/work/FastSurfer/FastSurfer/src/FastSurferCNN/config/FastSurferVINN_coronal.yaml</span></code></p>
-</dd>
-<dt><kbd>--cfg_sag</kbd></dt>
-<dd><p>Path to the sagittal config file (‘none’ deactivates the view).</p>
-<p>Default: <code class="docutils literal notranslate"><span class="pre">/home/runner/work/FastSurfer/FastSurfer/src/FastSurferCNN/config/FastSurferVINN_sagittal.yaml</span></code></p>
-</dd>
-<dt><kbd>--vox_size</kbd></dt>
-<dd><p>Choose the primary voxelsize to process, must be either a number between 0 and 1 (below 0.7 is experimental) or ‘min’ (default). A number forces processing at that specific voxel size, ‘min’ determines the voxel size from the image itself (conforming to the minimum voxel size, or 1 if the minimum voxel size is above 0.95mm). ‘any’ will try to keep the voxel size unchanged (even anisotropic, which is experimental).</p>
-<p>Default: <code class="docutils literal notranslate"><span class="pre">min</span></code></p>
-</dd>
-<dt><kbd>--conform_to_1mm_threshold</kbd></dt>
-<dd><p>The voxelsize threshold, above which images will be conformed to 1mm isotropic, if the –vox_size argument is also ‘min’ (the –vox_size default setting). Contrary to conform.py, the default behavior of FastSurferCNN/run_prediction.py is to resample all images above 0.95mm to 1mm.</p>
-<p>Default: <code class="docutils literal notranslate"><span class="pre">0.95</span></code></p>
-</dd>
-<dt><kbd>--orientation</kbd></dt>
-<dd><p>Possible choices: native, soft-ras, soft-rai, soft-rps, soft-rpi, soft-las, soft-lai, soft-lps, soft-lpi, soft-rsa, soft-rsp, soft-ria, soft-rip, soft-lsa, soft-lsp, soft-lia, soft-lip, soft-ars, soft-ari, soft-als, soft-ali, soft-prs, soft-pri, soft-pls, soft-pli, soft-asr, soft-asl, soft-air, soft-ail, soft-psr, soft-psl, soft-pir, soft-pil, soft-sra, soft-srp, soft-sla, soft-slp, soft-ira, soft-irp, soft-ila, soft-ilp, soft-sar, soft-sal, soft-spr, soft-spl, soft-iar, soft-ial, soft-ipr, soft-ipl, ras, rai, rps, rpi, las, lai, lps, lpi, rsa, rsp, ria, rip, lsa, lsp, lia, lip, ars, ari, als, ali, prs, pri, pls, pli, asr, asl, air, ail, psr, psl, pir, pil, sra, srp, sla, slp, ira, irp, ila, ilp, sar, sal, spr, spl, iar, ial, ipr, ipl</p>
-<p>Select the target affine format for output, native: input defined by input image, soft-XXX (e.g. soft-lia): store as XXX, but do not interpolate, XXX (e.g. lia): force XXX, affine is only 0 or +-1. Default: lia (required by the surface pipeline).</p>
-<p>Default: <code class="docutils literal notranslate"><span class="pre">lia</span></code></p>
-</dd>
-<dt><kbd>--image_size</kbd></dt>
-<dd><p>Select how the image should be conformed. A positive integer yields a cube of that size, ‘fov’ yields dimensions, so the field of view stays consistent, ‘auto’ yields a cube of dimensions fully containing the field of view (default).</p>
-<p>Default: <code class="docutils literal notranslate"><span class="pre">auto</span></code></p>
-</dd>
-<dt><kbd>--device</kbd></dt>
-<dd><p>Select device to run inference on: cpu, or cuda (= Nvidia gpu) or specify a certain gpu (e.g. cuda:1)</p>
-<p>Default: <code class="docutils literal notranslate"><span class="pre">'auto'</span></code></p>
-</dd>
-<dt><kbd>--viewagg_device</kbd></dt>
-<dd><p>Define the device, where the view aggregation should be run. By default, the program checks if you have enough memory to run the view aggregation on the gpu (cuda). The total memory is considered for this decision. If this fails, or you actively overwrote the check with setting &gt; –viewagg_device cpu &lt;, view agg is run on the cpu. Equivalently, if you define &gt; –viewagg_device cuda &lt;, view agg will be run on the gpu (no memory check will be done).</p>
-<p>Default: <code class="docutils literal notranslate"><span class="pre">'auto'</span></code></p>
-</dd>
-<dt><kbd>--batch_size</kbd></dt>
-<dd><p>Batch size for inference. Default=1</p>
-<p>Default: <code class="docutils literal notranslate"><span class="pre">1</span></code></p>
-</dd>
-<dt><kbd>--async_io</kbd></dt>
-<dd><p>Allow asynchronous file operations (default: off). Note, this may impact the order of messages in the log, but speed up the segmentation specifically for slow file systems.</p>
-<p>Default: <code class="docutils literal notranslate"><span class="pre">False</span></code></p>
-</dd>
-<dt><kbd>--threads</kbd></dt>
-<dd><p>Number of threads to use (defaults to number of hardware threads: 4)</p>
-<p>Default: <code class="docutils literal notranslate"><span class="pre">4</span></code></p>
-</dd>
-</dl>
+<p>On a cluster, <code class="docutils literal notranslate"><span class="pre">--slurm</span></code> submits the same cases through <code class="docutils literal notranslate"><span class="pre">srun_fastsurfer.sh</span></code> instead, with its options given after the
+<code class="docutils literal notranslate"><span class="pre">--</span></code> as well:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">./</span><span class="n">run_fastsurfer_bids</span><span class="o">.</span><span class="n">py</span> <span class="o">/</span><span class="n">data</span><span class="o">/</span><span class="n">my_bids_dataset</span> <span class="o">/</span><span class="n">data</span><span class="o">/</span><span class="n">fastsurfer_output</span> <span class="n">participant</span> <span class="o">--</span><span class="n">slurm</span> \
+    <span class="o">--</span><span class="n">fs_license</span> <span class="o">/</span><span class="n">data</span><span class="o">/</span><span class="n">license</span><span class="o">.</span><span class="n">txt</span> <span class="o">--</span> <span class="o">--</span><span class="n">partition</span> <span class="n">gpu</span> <span class="o">--</span><span class="n">work</span> <span class="o">/</span><span class="n">scratch</span><span class="o">/</span><span class="n">fastsurfer</span>
+</pre></div>
+</div>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p><code class="docutils literal notranslate"><span class="pre">--slurm</span></code> is experimental. Check the output of <code class="docutils literal notranslate"><span class="pre">--dry</span></code> before relying on it. Two things differ from the local route:
+<code class="docutils literal notranslate"><span class="pre">--data</span></code> is set to <code class="docutils literal notranslate"><span class="pre">bids_dir</span></code>, because <code class="docutils literal notranslate"><span class="pre">srun_fastsurfer.sh</span></code> rewrites every path in the subject list relative to it
+before binding it into the container, and the paths are written unquoted, because that rewrite is done with awk and a
+quote stops it from matching. A dataset whose path holds a space is therefore refused with <code class="docutils literal notranslate"><span class="pre">--slurm</span></code>, which is a
+limitation of <code class="docutils literal notranslate"><span class="pre">srun_fastsurfer.sh</span></code> rather than of BIDS input: neither of its input routes handles a space.</p>
+</div>
 </section>
+<section id="output-naming">
+<h2>Output naming<a class="headerlink" href="#output-naming" title="Link to this heading">¶</a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">output_dir</span></code> is used directly as FastSurfer’s <code class="docutils literal notranslate"><span class="pre">SUBJECTS_DIR</span></code>, and every session becomes one directory in it, named
+<code class="docutils literal notranslate"><span class="pre">sub-&lt;label&gt;_ses-&lt;label&gt;</span></code>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>fastsurfer_output/
+├── dataset_description.json
+├── bids_subjects.txt
+├── sub-01_ses-1/
+├── sub-01_ses-2/
+└── sub-02_ses-1/
+</pre></div>
+</div>
+<p>Flat, not nested under <code class="docutils literal notranslate"><span class="pre">sub-&lt;label&gt;/ses-&lt;label&gt;/</span></code>. This is the layout FreeSurfer tooling expects of a <code class="docutils literal notranslate"><span class="pre">SUBJECTS_DIR</span></code>,
+so every downstream FreeSurfer or FastSurfer command works on the output directory unchanged. A dataset with no
+session level keeps the plain <code class="docutils literal notranslate"><span class="pre">sub-&lt;label&gt;</span></code> as the directory name. Note this means <code class="docutils literal notranslate"><span class="pre">output_dir</span></code> is a FreeSurfer
+subjects directory that carries a <code class="docutils literal notranslate"><span class="pre">dataset_description.json</span></code> for provenance, not a valid BIDS-derivatives dataset,
+which would require the nested layout.</p>
+<p><code class="docutils literal notranslate"><span class="pre">dataset_description.json</span></code> is written if there is not one there already, and records which of the two processing
+models produced the directory. The longitudinal pipeline names its timepoints the same way this names its sessions,
+so <code class="docutils literal notranslate"><span class="pre">sub-01_ses-1</span></code> from a cross-sectional run and <code class="docutils literal notranslate"><span class="pre">sub-01_ses-1</span></code> from a longitudinal run are the same directory name
+holding results of different methods. <strong>One output directory therefore holds one model</strong>, and a run into a directory
+recorded as the other one is refused rather than silently mixed.</p>
+<p>The generated subject list is kept as <code class="docutils literal notranslate"><span class="pre">output_dir/bids_subjects.txt</span></code>, so a run can be repeated or amended with
+<code class="docutils literal notranslate"><span class="pre">brun_fastsurfer.sh</span></code> directly.</p>
+<p><code class="docutils literal notranslate"><span class="pre">output_dir</span></code> must not be the dataset itself or lie inside one of its subjects, since the output would then be found as
+input by the next run. <code class="docutils literal notranslate"><span class="pre">&lt;bids_dir&gt;/derivatives/fastsurfer</span></code> is the usual place inside a dataset.</p>
+</section>
+<section id="sessions">
+<h2>Sessions<a class="headerlink" href="#sessions" title="Link to this heading">¶</a></h2>
+<p>Every session is processed on its own, as one cross-sectional case. Longitudinal processing, where the timepoints of a
+subject are conditioned on a person-specific template, is run with <a class="reference internal" href="long_fastsurfer.html"><span class="std std-doc"><code class="docutils literal notranslate"><span class="pre">long_fastsurfer.sh</span></code></span></a>; it is a
+different scientific method rather than a different spelling of this one, and this entrypoint does not choose it for
+you.</p>
+</section>
+<section id="t1w-and-t2w-input">
+<h2>T1w and T2w input<a class="headerlink" href="#t1w-and-t2w-input" title="Link to this heading">¶</a></h2>
+<p>Only <code class="docutils literal notranslate"><span class="pre">*_T1w.nii[.gz]</span></code> and <code class="docutils literal notranslate"><span class="pre">*_T2w.nii[.gz]</span></code> are considered.</p>
+<p>A T2w image is used only with <code class="docutils literal notranslate"><span class="pre">--use_t2</span></code>, which passes it as <code class="docutils literal notranslate"><span class="pre">--t2</span></code> and switches the
+<a class="reference internal" href="../overview/OUTPUT_FILES.html#hypvinn-module"><span class="std std-ref">HypVINN</span></a> hypothalamus module to its multimodal mode. That changes what
+the module computes, so it is a choice for the whole study rather than something the presence of a file decides:
+using a T2 where one happens to exist and not where it does not would put two methods in one set of results. Where
+<code class="docutils literal notranslate"><span class="pre">--use_t2</span></code> is given and some sessions have no T2w, those sessions are processed without one and a warning names them.</p>
+<p>A session with several T1w images (for example several <code class="docutils literal notranslate"><span class="pre">run-</span></code> or <code class="docutils literal notranslate"><span class="pre">acq-</span></code> entities) is an error rather than a silent
+pick of the first, since which image to process is a statement about the data. Restrict the dataset, or process that
+session with <code class="docutils literal notranslate"><span class="pre">run_fastsurfer.sh</span></code> directly. An image that is a link to content that is not there, as in a DataLad
+dataset before <code class="docutils literal notranslate"><span class="pre">datalad</span> <span class="pre">get</span></code>, is an error too.</p>
+<p><code class="docutils literal notranslate"><span class="pre">--participant_label</span></code> and <code class="docutils literal notranslate"><span class="pre">--session_label</span></code> restrict what is processed and accept the labels with or without their
+<code class="docutils literal notranslate"><span class="pre">sub-</span></code>/<code class="docutils literal notranslate"><span class="pre">ses-</span></code> prefix. A label that the dataset does not hold is an error rather than an empty run, and where
+<code class="docutils literal notranslate"><span class="pre">--session_label</span></code> is given, a subject with no session level is skipped, since none of its data can be the session that
+was asked for.</p>
+</section>
+<section id="validation">
+<h2>Validation<a class="headerlink" href="#validation" title="Link to this heading">¶</a></h2>
+<p>The dataset is validated with the <a class="reference external" href="https://github.com/bids-standard/bids-validator">bids-validator</a> command line tool
+if it is installed, and skipped with a warning if it is not. <code class="docutils literal notranslate"><span class="pre">--skip_bids_validator</span></code> says that this is intended.</p>
+</section>
+<section id="dry-run">
+<h2>Dry run<a class="headerlink" href="#dry-run" title="Link to this heading">¶</a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">--dry</span></code> prints the subject list and the command that would be executed, and writes nothing, which is the cheap way to
+check what was discovered before committing to a full run. The flag is spelled as in <code class="docutils literal notranslate"><span class="pre">srun_fastsurfer.sh</span></code>, which also
+accepts <code class="docutils literal notranslate"><span class="pre">--dry_run</span></code>.</p>
+<p><code class="docutils literal notranslate"><span class="pre">test/integration/openneuro_check.sh</span></code> does the same against real data. It fetches public OpenNeuro data for a few BIDS
+layouts (several sessions of one subject, a T2w in only some sessions, no session level), runs them to a chosen depth
+(dry, segmentation or full), and checks the outputs. With <code class="docutils literal notranslate"><span class="pre">--slurm</span></code> it submits the cases instead, and a later call
+with <code class="docutils literal notranslate"><span class="pre">--check_only</span></code> checks the output once the jobs are done. It is run by hand, not by CI.</p>
 </section>
 </section>
 
@@ -705,23 +647,23 @@ Equivalently, if you define <code class="docutils literal notranslate"><span cla
       <footer>
         
         <div class="related-pages">
-          <a class="next-page" href="cerebnet.html">
+          <a class="next-page" href="SLURM.html">
               <div class="page-info">
                 <div class="context">
                   <span>Next</span>
                 </div>
-                <div class="title">CerebNet: run_prediction.py</div>
+                <div class="title">SLURM: srun_fastsurfer.sh</div>
               </div>
               <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
             </a>
-          <a class="prev-page" href="advanced.html">
+          <a class="prev-page" href="BATCH.html">
               <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
               <div class="page-info">
                 <div class="context">
                   <span>Previous</span>
                 </div>
                 
-                <div class="title">Advanced scripts</div>
+                <div class="title">BATCH: brun_fastsurfer.sh</div>
                 
               </div>
             </a>
@@ -761,16 +703,15 @@ Equivalently, if you define <code class="docutils literal notranslate"><span cla
         <div class="toc-tree-container">
           <div class="toc-tree">
             <ul>
-<li><a class="reference internal" href="#">FastSurferCNN: run_prediction.py</a><ul>
-<li><a class="reference internal" href="#general">General</a></li>
-<li><a class="reference internal" href="#checkpoints-and-configs">Checkpoints and configs</a></li>
-<li><a class="reference internal" href="#optional-commands">Optional commands</a></li>
-<li><a class="reference internal" href="#example-command-evaluation-single-subject">Example Command: Evaluation Single Subject</a></li>
-<li><a class="reference internal" href="#example-command-evaluation-whole-directory">Example Command: Evaluation whole directory</a></li>
-<li><a class="reference internal" href="#full-commandline-interface-of-fastsurfercnn-run-prediction-py">Full commandline interface of FastSurferCNN/run_prediction.py</a><ul>
-<li><a class="reference internal" href="#FastSurferCNN.run_prediction-make_parser-named-arguments">Named Arguments</a></li>
-</ul>
-</li>
+<li><a class="reference internal" href="#">BIDS: run_fastsurfer_bids.py</a><ul>
+<li><a class="reference internal" href="#usage">Usage</a></li>
+<li><a class="reference internal" href="#basic-example">Basic example</a></li>
+<li><a class="reference internal" href="#in-docker">In Docker</a></li>
+<li><a class="reference internal" href="#output-naming">Output naming</a></li>
+<li><a class="reference internal" href="#sessions">Sessions</a></li>
+<li><a class="reference internal" href="#t1w-and-t2w-input">T1w and T2w input</a></li>
+<li><a class="reference internal" href="#validation">Validation</a></li>
+<li><a class="reference internal" href="#dry-run">Dry run</a></li>
 </ul>
 </li>
 </ul>

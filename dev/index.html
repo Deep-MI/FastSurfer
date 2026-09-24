@@ -220,6 +220,7 @@
 <li class="toctree-l2"><a class="reference internal" href="scripts/RUN_FASTSURFER.html">run_fastsurfer.sh</a></li>
 <li class="toctree-l2"><a class="reference internal" href="scripts/long_fastsurfer.html">LONG: long_fastsurfer.sh</a></li>
 <li class="toctree-l2"><a class="reference internal" href="scripts/BATCH.html">BATCH: brun_fastsurfer.sh</a></li>
+<li class="toctree-l2"><a class="reference internal" href="scripts/BIDS.html">BIDS: run_fastsurfer_bids.py</a></li>
 <li class="toctree-l2"><a class="reference internal" href="scripts/SLURM.html">SLURM: srun_fastsurfer.sh</a></li>
 <li class="toctree-l2 has-children"><a class="reference internal" href="scripts/advanced.html">Advanced scripts</a><input aria-label="Toggle navigation of Advanced scripts" class="toctree-checkbox" id="toctree-checkbox-4" name="toctree-checkbox-4" role="switch" type="checkbox"/><label for="toctree-checkbox-4"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l3"><a class="reference internal" href="scripts/fastsurfercnn.html">FastSurferCNN: run_prediction.py</a></li>
@@ -478,7 +479,7 @@ FastSurfer is transitioning to sub-millimeter resolution support throughout the 
 </ul>
 <p>Modules (all run by default):</p>
 <ol class="arabic simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">asegdkt:</span></code> <a class="reference internal" href="scripts/fastsurfercnn.html"><span class="doc std std-ref">FastSurferVINN</span></a> for whole brain segmentation (deactivate with <code class="docutils literal notranslate"><span class="pre">--no_asegdkt</span></code>)</p>
+<li><p><code class="docutils literal notranslate"><span class="pre">asegdkt:</span></code> <a class="reference internal" href="scripts/fastsurfercnn.run_model.html"><span class="doc std std-ref">FastSurferVINN</span></a> for whole brain segmentation (deactivate with <code class="docutils literal notranslate"><span class="pre">--no_asegdkt</span></code>)</p>
 <ul class="simple">
 <li><p>the core, outputs anatomical segmentation and cortical parcellation and statistics of 95 classes, mimics FreeSurfer’s DKTatlas.</p></li>
 <li><p>requires a T1w image (<a class="reference internal" href="overview/intro.html"><span class="doc std std-ref">notes on input images</span></a>), supports high-res (up to 0.7mm, experimental beyond that).</p></li>
