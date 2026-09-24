@@ -150,10 +150,20 @@ function check_cases_in_out_dir ()
     then
       echo "This list does not filter for the --slurm_jobarray argument!"
     fi
-    read -r -p "Continue AND OVERWRITE those results? [y/N]" -n 1 retval
-    echo ""
-    if [[ "$retval" == "y" ]] || [[ "$retval" == "Y" ]] ; then export cleanup_mode="cp";
-    else exit 1; fi
+    # read returns non-zero at EOF, which is a different situation from a declined prompt, so the
+    # answer and the absence of one are handled apart. The test is read's exit status rather than
+    # whether stdin is a terminal, so an answer piped in is still an answer.
+    if read -r -p "Continue AND OVERWRITE those results? [y/N]" -n 1 retval ; then
+      echo ""
+      if [[ "$retval" == "y" ]] || [[ "$retval" == "Y" ]] ; then export cleanup_mode="cp";
+      else exit 1; fi
+    else
+      echo "" >&2
+      echo "ERROR: no input to answer that question with (not an interactive shell)." >&2
+      echo "       Remove the existing cases, restrict the run with --slurm_jobarray, or pipe" >&2
+      echo "       'y' in to overwrite them." >&2
+      exit 1
+    fi
   fi
 }
 
@@ -319,9 +329,9 @@ function make_cleanup_job ()
       echo "  rm -R $hpc_work"
     else
       echo "  rm -R $hpc_work/images"
-      echo "  rm $hpc_work/scripts"
-      echo "  rm $hpc_work/cases"
-      echo "  rm $hpc_work/logs"
+      echo "  rm -R $hpc_work/scripts"
+      echo "  rm -R $hpc_work/cases"
+      echo "  rm -R $hpc_work/logs"
     fi
     echo "else"
     echo "  echo \"Cleanup finished with errors!\""
@@ -339,7 +349,7 @@ function make_cleanup_job ()
     echo "Not submitting the Cleanup Jobs to slurm (--dry)." | tee -a "$logfile"
     export clean_jobid=CLEAN_JOB_ID
   else
-    clean_jobid=$(sbatch --parsable "${clean_slurm_sched[*]}")
+    clean_jobid=$(sbatch --parsable "${clean_slurm_sched[@]}")
     export clean_jobid
     echo "Submitted Cleanup Jobs $clean_jobid" | tee -a "$logfile"
   fi
@@ -401,7 +411,7 @@ function make_copy_job ()
     echo "Not submitting the Copyseg Job to slurm (--dry)." | tee -a "$logfile"
     export copy_jobid=COPY_JOB_ID
   else
-    copy_jobid=$(sbatch --parsable "${copy_slurm_sched[*]}")
+    copy_jobid=$(sbatch --parsable "${copy_slurm_sched[@]}")
     export copy_jobid
     echo "Submitted Copyseg Job $copy_jobid" | tee -a "$logfile"
   fi
