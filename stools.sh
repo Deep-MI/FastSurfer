@@ -150,10 +150,19 @@ function check_cases_in_out_dir ()
     then
       echo "This list does not filter for the --slurm_jobarray argument!"
     fi
-    read -r -p "Continue AND OVERWRITE those results? [y/N]" -n 1 retval
-    echo ""
-    if [[ "$retval" == "y" ]] || [[ "$retval" == "Y" ]] ; then export cleanup_mode="cp";
-    else exit 1; fi
+    # read returns non-zero at EOF, which is a different situation from a declined prompt, so the
+    # answer and the absence of one are handled apart. The test is read's exit status rather than
+    # whether stdin is a terminal, so an answer piped in is still an answer.
+    if read -r -p "Continue AND OVERWRITE those results? [y/N]" -n 1 retval ; then
+      echo ""
+      if [[ "$retval" == "y" ]] || [[ "$retval" == "Y" ]] ; then export cleanup_mode="cp";
+      else exit 1; fi
+    else
+      echo "" >&2
+      echo "ERROR: no input to answer that question with (not an interactive shell)." >&2
+      echo "       Remove the existing cases, or pipe 'y' in to overwrite them." >&2
+      exit 1
+    fi
   fi
 }
 
@@ -308,8 +317,7 @@ function make_cleanup_job ()
     echo "success=true"
     echo "for p in \${pids[@]};"
     echo "do"
-    echo "  wait \$p"
-    echo "  if [[ \"\$?\" != 0 ]] ; then success=false; fi"
+    echo "  wait \$p || success=false"
     echo "done"
     echo "if [[ \$success == true ]]"
     echo "then"
@@ -319,12 +327,13 @@ function make_cleanup_job ()
       echo "  rm -R $hpc_work"
     else
       echo "  rm -R $hpc_work/images"
-      echo "  rm $hpc_work/scripts"
-      echo "  rm $hpc_work/cases"
-      echo "  rm $hpc_work/logs"
+      echo "  rm -R $hpc_work/scripts"
+      echo "  rm -R $hpc_work/cases"
+      echo "  rm -R $hpc_work/logs"
     fi
     echo "else"
     echo "  echo \"Cleanup finished with errors!\""
+    echo "  exit 1"
     echo "fi"
   } > "$clean_cmd_file"
 
@@ -339,7 +348,7 @@ function make_cleanup_job ()
     echo "Not submitting the Cleanup Jobs to slurm (--dry)." | tee -a "$logfile"
     export clean_jobid=CLEAN_JOB_ID
   else
-    clean_jobid=$(sbatch --parsable "${clean_slurm_sched[*]}")
+    clean_jobid=$(sbatch --parsable "${clean_slurm_sched[@]}")
     export clean_jobid
     echo "Submitted Cleanup Jobs $clean_jobid" | tee -a "$logfile"
   fi
@@ -380,13 +389,17 @@ function make_copy_job ()
     echo "#!/bin/bash"
     echo "IFS=''"
     echo "mkdir -p $hpc_work/cases"
+    echo "pids=()"
     echo "while read subject; do"
     echo "  subject_id=\$(echo \"\$subject\" | cut -d= -f1)"
     echo "  echo \"cp -R -t \\\"$hpc_work/cases/\\\" \\\"$out_dir/\$subject_id\\\" &\""
     echo "  cp -R -t \"$hpc_work/cases/\" \"$out_dir/\$subject_id\" &"
+    echo "  pids+=(\$!)"
     echo "done < $subject_list"
     echo "echo \"Waiting to copy data... (will be confirmed by 'Finished!')\""
-    echo "wait"
+    echo "success=true"
+    echo "for p in \"\${pids[@]}\" ; do wait \"\$p\" || success=false ; done"
+    echo "if [[ \$success != true ]] ; then echo \"ERROR: Copying the cases failed!\" ; exit 1 ; fi"
     echo "echo \"Finished!\""
   } > "$copy_cmd_file"
 
@@ -396,12 +409,14 @@ function make_copy_job ()
   cat "$copy_cmd_file"
   echo "--- end of script ---"
 
-  if [[ "$#" -gt 3 ]] && [[ "$4" == "false" ]]
+  if [[ "$#" -gt 4 ]] && [[ "$5" == "false" ]]
   then
     echo "Not submitting the Copyseg Job to slurm (--dry)." | tee -a "$logfile"
     export copy_jobid=COPY_JOB_ID
   else
-    copy_jobid=$(sbatch --parsable "${copy_slurm_sched[*]}")
+    # slurm fails a job whose log directory does not exist
+    mkdir -p "$out_dir/slurm/logs"
+    copy_jobid=$(sbatch --parsable "${copy_slurm_sched[@]}")
     export copy_jobid
     echo "Submitted Copyseg Job $copy_jobid" | tee -a "$logfile"
   fi
