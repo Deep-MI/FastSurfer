@@ -100,6 +100,15 @@ def test_a_json_sidecar_is_not_mistaken_for_an_image(tmp_path: Path) -> None:
     assert [s.t1w.name for s in sessions] == ["sub-01_T1w.nii.gz"]
 
 
+def test_a_link_to_missing_content_is_an_error(tmp_path: Path) -> None:
+    """A DataLad dataset links to content that may not be fetched yet, so say so at discovery."""
+    anat = tmp_path / "bids" / "sub-01" / "anat"
+    anat.mkdir(parents=True)
+    (anat / "sub-01_T1w.nii.gz").symlink_to(tmp_path / "annex" / "not-fetched")
+    with pytest.raises(ValueError, match="datalad get"):
+        bids.find_sessions(tmp_path / "bids")
+
+
 @pytest.mark.parametrize("label", ["01", "sub-01"])
 def test_participant_label_works_with_and_without_the_prefix(bids_dataset: Path, label: str) -> None:
     """Both spellings are in use, and the BIDS-App contract does not say which."""
@@ -232,6 +241,20 @@ def test_a_passthrough_option_this_script_sets_is_refused(bids_dataset: Path, tm
     )
     assert result.returncode == 1
     assert "--sd" in result.stderr
+
+
+def test_an_output_dir_inside_the_dataset_is_refused(bids_dataset: Path) -> None:
+    """The output would land in the input dataset, where a later run finds it as a subject."""
+    for output_dir in (bids_dataset, bids_dataset / "sub-01" / "fastsurfer"):
+        result = subprocess.run(
+            [sys.executable, str(FASTSURFER_HOME / "run_fastsurfer_bids.py"),
+             str(bids_dataset), str(output_dir), "participant", "--skip_bids_validator", "--dry"],
+            capture_output=True, text=True,
+        )
+        assert result.returncode == 1
+        assert "inside one of its subjects" in result.stderr
+    # derivatives/ is where BIDS keeps derived data, so it stays allowed
+    _dry_run(bids_dataset, bids_dataset / "derivatives")  # writes to derivatives/out
 
 
 def test_a_passthrough_t2_is_refused(bids_dataset: Path, tmp_path: Path) -> None:
