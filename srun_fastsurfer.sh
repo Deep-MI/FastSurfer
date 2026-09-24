@@ -493,7 +493,12 @@ then
 fi
 
 cleanup_mode="mv"
-if [[ "$do_cleanup" == "true" ]]
+if [[ "$do_cleanup" == "true" ]] && [[ "$surf_only" == "true" ]]
+then
+  # the cases in --sd are the input of --surf_only, so the results can only be copied back over them
+  cleanup_mode="cp"
+  log "Copying the surface results back into the existing cases in $out_dir."
+elif [[ "$do_cleanup" == "true" ]]
 then
   if [[ -n "$jobarray" ]]; then jobarray_defined="true"
   else jobarray_defined="false"
