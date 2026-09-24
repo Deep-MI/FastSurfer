@@ -160,8 +160,7 @@ function check_cases_in_out_dir ()
     else
       echo "" >&2
       echo "ERROR: no input to answer that question with (not an interactive shell)." >&2
-      echo "       Remove the existing cases, restrict the run with --slurm_jobarray, or pipe" >&2
-      echo "       'y' in to overwrite them." >&2
+      echo "       Remove the existing cases, or pipe 'y' in to overwrite them." >&2
       exit 1
     fi
   fi
@@ -318,8 +317,7 @@ function make_cleanup_job ()
     echo "success=true"
     echo "for p in \${pids[@]};"
     echo "do"
-    echo "  wait \$p"
-    echo "  if [[ \"\$?\" != 0 ]] ; then success=false; fi"
+    echo "  wait \$p || success=false"
     echo "done"
     echo "if [[ \$success == true ]]"
     echo "then"
@@ -335,6 +333,7 @@ function make_cleanup_job ()
     fi
     echo "else"
     echo "  echo \"Cleanup finished with errors!\""
+    echo "  exit 1"
     echo "fi"
   } > "$clean_cmd_file"
 
@@ -390,13 +389,17 @@ function make_copy_job ()
     echo "#!/bin/bash"
     echo "IFS=''"
     echo "mkdir -p $hpc_work/cases"
+    echo "pids=()"
     echo "while read subject; do"
     echo "  subject_id=\$(echo \"\$subject\" | cut -d= -f1)"
     echo "  echo \"cp -R -t \\\"$hpc_work/cases/\\\" \\\"$out_dir/\$subject_id\\\" &\""
     echo "  cp -R -t \"$hpc_work/cases/\" \"$out_dir/\$subject_id\" &"
+    echo "  pids+=(\$!)"
     echo "done < $subject_list"
     echo "echo \"Waiting to copy data... (will be confirmed by 'Finished!')\""
-    echo "wait"
+    echo "success=true"
+    echo "for p in \"\${pids[@]}\" ; do wait \"\$p\" || success=false ; done"
+    echo "if [[ \$success != true ]] ; then echo \"ERROR: Copying the cases failed!\" ; exit 1 ; fi"
     echo "echo \"Finished!\""
   } > "$copy_cmd_file"
 
@@ -406,11 +409,13 @@ function make_copy_job ()
   cat "$copy_cmd_file"
   echo "--- end of script ---"
 
-  if [[ "$#" -gt 3 ]] && [[ "$4" == "false" ]]
+  if [[ "$#" -gt 4 ]] && [[ "$5" == "false" ]]
   then
     echo "Not submitting the Copyseg Job to slurm (--dry)." | tee -a "$logfile"
     export copy_jobid=COPY_JOB_ID
   else
+    # slurm fails a job whose log directory does not exist
+    mkdir -p "$out_dir/slurm/logs"
     copy_jobid=$(sbatch --parsable "${copy_slurm_sched[@]}")
     export copy_jobid
     echo "Submitted Copyseg Job $copy_jobid" | tee -a "$logfile"
