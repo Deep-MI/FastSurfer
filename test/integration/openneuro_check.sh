@@ -187,8 +187,10 @@ case "$depth" in
 esac
 
 # not with --slurm: there the processing happens in the container srun binds on the compute node,
-# so the torch of the submitting shell says nothing
-if [[ "$depth" != "dry" ]] && [[ "$slurm" == "false" ]] && ! python3 -c "import torch" 2>/dev/null ; then
+# so the torch of the submitting shell says nothing. Nor with --check_only, which globs and
+# compares files that are already written and never runs the pipeline at all.
+if [[ "$depth" != "dry" ]] && [[ "$slurm" == "false" ]] && [[ "$check_only" == "false" ]] &&
+   ! python3 -c "import torch" 2>/dev/null ; then
   echo "ERROR: no torch in the python3 on PATH. Activate the FastSurfer environment first, so" >&2
   echo "       this fails now rather than several minutes into the run." >&2
   exit 1
@@ -313,7 +315,9 @@ check() { # $1: description, rest: the command whose success is the check
 
 check_case() { # $1: out_dir
   local subject_list="$1/bids_subjects.txt" line output_id source_t1 subject_dir
-  local archived missing present pattern
+  local archived missing present pattern i j
+  # for the fallback provenance check, see below
+  local conformed_ids=() conformed_sums=() conformed_sources=()
 
   echo ""
   echo "== checking $1"
@@ -338,6 +342,15 @@ check_case() { # $1: out_dir
     if [[ -f "${archived[0]}" ]] && [[ "${archived[0]}" == *.nii.gz ]] ; then
       # cmp rather than md5sum, which macOS does not ship
       check "  mri/orig/001.nii.gz is this session's input" cmp -s "$source_t1" "${archived[0]}"
+    elif [[ -f "$subject_dir/mri/orig.mgz" ]] ; then
+      # --seg_only writes no mri/orig/, so there is no byte copy of the input to compare against.
+      # The conformed volume is written at every depth, and two cases built from different images
+      # have to differ in it, which is the cross-session mix-up this case is here to catch.
+      # cksum rather than md5sum, which macOS does not ship.
+      conformed_ids+=("$output_id")
+      conformed_sums+=("$(cksum < "$subject_dir/mri/orig.mgz")")
+      conformed_sources+=("$source_t1")
+      echo "  info  no mri/orig/001.*, comparing the conformed mri/orig.mgz instead"
     else
       echo "  info  mri/orig/001 is ${archived[0]##*/}, not a byte copy, checksum not compared"
     fi
@@ -352,6 +365,16 @@ check_case() { # $1: out_dir
     done < <(sed -nE 's/^[[:space:]]*-[[:space:]]*"(.*)"[[:space:]]*$/\1/p' "$EXPECTED_FILES")
     echo "  info  $output_id: $present of $((present + missing)) expected outputs present"
   done < "$subject_list"
+
+  # Every pair built from a different source image has to differ. Only cases whose inputs really
+  # are different images are compared, so a dataset that legitimately repeats one is not a FAIL.
+  for ((i = 0; i < ${#conformed_ids[@]}; i++)) ; do
+    for ((j = i + 1; j < ${#conformed_ids[@]}; j++)) ; do
+      [[ "${conformed_sources[i]}" != "${conformed_sources[j]}" ]] || continue
+      check "  ${conformed_ids[i]} and ${conformed_ids[j]} have their own mri/orig.mgz" \
+        [ "${conformed_sums[i]}" != "${conformed_sums[j]}" ]
+    done
+  done
 }
 
 # ----------------------------------------------------------------------------------------------
