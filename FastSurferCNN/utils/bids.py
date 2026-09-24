@@ -81,6 +81,8 @@ def _find_image(anat_dir: Path, suffix: str) -> Path | None:
         the data rather than something a sort order should settle. It matters most for the
         longitudinal pipeline, whose within-subject template is built from the images picked
         here, so an inconsistent choice across sessions would silently mix acquisitions.
+        Also if the image is a link to content that is not there, or its path holds a line
+        break, since neither can be processed.
     """
     images = sorted(
         path for path in anat_dir.glob(f"*_{suffix}.nii*")
@@ -92,7 +94,19 @@ def _find_image(anat_dir: Path, suffix: str) -> Path | None:
             f"ambiguous: {[path.name for path in images]}. Process one explicitly with "
             f"run_fastsurfer.sh, or restrict the dataset to the acquisition you want."
         )
-    return images[0] if images else None
+    if not images:
+        return None
+    image = images[0]
+    # DataLad and git-annex datasets hold links to content that may not have been fetched yet
+    if not image.exists():
+        raise ValueError(
+            f"{image} is a link to content that is not there. In a DataLad dataset, fetch it "
+            f"with 'datalad get' first."
+        )
+    # the subject list holds one case per line
+    if any(char in str(image) for char in "\n\r"):
+        raise ValueError(f"The path of {image!r} holds a line break, which cannot be processed.")
+    return image
 
 
 def _labels(labels: list[str] | None, prefix: str) -> set[str] | None:
