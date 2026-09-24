@@ -788,7 +788,10 @@ SEGMENTATION PIPELINE:
                             and T2 images. Options are 'coreg' (default) for
                             mri_coreg, 'robust' for mri_robust_register, and 'none'
                             to skip registration (this requires T1 and T2 are
-                            externally co-registered).
+                            externally co-registered). With --long, 'none' means
+                            the T2 is co-registered with the T1 this time point
+                            was built from, and it is mapped into template space
+                            with the same transform as that T1.
   --qc_snap               Create QC snapshots in $SUBJECTS_DIR/$sid/qc_snapshots
                             to simplify the QC process.
 

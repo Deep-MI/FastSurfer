@@ -485,8 +485,16 @@ FLAGS:
                               $SUBJECTS_DIR to be created"
   --t1s &lt;T1_1&gt; &lt;T1_2&gt; ..    T1 full head inputs for each time point (do not need
                               to be bias corrected). Requires ABSOLUTE paths!
-  --tpids &lt;tID1&gt; &gt;tID2&gt; ..  IDs for future time points directories inside
+  --tpids &lt;tID1&gt; &lt;tID2&gt; ..  IDs for future time points directories inside
                               $SUBJECTS_DIR to be created later (during --long)
+  --t2s &lt;T2_1&gt; &lt;T2_2&gt; ..    *Optional* T2 full head inputs, one per time point in
+                              the order of --tpids, for the hypothalamus module.
+                              Every time point needs one, or none does. Each is
+                              registered to its time point's T1 in template space,
+                              or with --reg_mode none, taken as co-registered with
+                              the T1 given in --t1s and mapped into template space
+                              with that T1's transform. Only the long_seg stage
+                              uses them. Requires ABSOLUTE paths!
   --sd  &lt;subjects_dir&gt;      Output directory $SUBJECTS_DIR (or pass via env var)
   --py &lt;python_cmd&gt;         Command for python, used in both pipelines.
                               Default: "python3 -s"
@@ -520,7 +528,8 @@ Parallelization options:
   --parallel_surf &lt;n&gt;|max   See above, only sets the size of the processing pool for surface reconstruction (default: 1)
 
 
---t1, --t2 and --sid are not accepted here, they are populated from --t1s, --tid and --tpids.
+--t1, --t2 and --sid are not accepted here, they are populated per time point from --t1s, --t2s
+and --tpids.
 --seg_only and --surf_only are not accepted either, pick the stages above instead. Every other
 run_fastsurfer.sh option is supported, see 'run_fastsurfer.sh --help'.
 
