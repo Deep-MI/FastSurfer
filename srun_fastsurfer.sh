@@ -577,6 +577,12 @@ then
     echo "module load singularity"
     echo "singularity exec --nv -B \"$hpc_work:/data,$in_dir:/source:ro\" --no-mount home,cwd\\"
     echo "  --cleanenv --env TQDM_DISABLE=1 \\"
+    if [[ "$cpu_only" != "true" ]] ; then
+      # slurm names the allocated GPU in CUDA_VISIBLE_DEVICES and --cleanenv drops it, so the
+      # assignment is passed back in explicitly. cuda then exposes that GPU alone, renumbered to
+      # index 0, and the job computes on the card it was given.
+      echo "  --env CUDA_VISIBLE_DEVICES=\"\$CUDA_VISIBLE_DEVICES\" \\"
+    fi
     if [[ -n "$extra_singularity_options" ]] || [[ -n "$extra_singularity_options_seg" ]] ; then
       echo "  $extra_singularity_options $extra_singularity_options_seg \\"
     fi
@@ -600,7 +606,7 @@ then
                    "${slurm_partition[@]}" "${slurm_email[@]}" "${jobarray_option[@]}"
                    -o "$hpc_work/logs/seg_%A_%a.log")
   if [[ "$cpu_only" == "true" ]] ; then debug "Schedule SLURM job without gpu"
-  else seg_slurm_sched+=(--gpus-per-task=1)
+  else seg_slurm_sched+=(--ntasks=1 --gpus-per-task=1)
   fi
   # append slurm_extra_seg arguments after the (optional) GPU request, then the script to execute
   seg_slurm_sched+=("${slurm_extra_seg[@]}" "$seg_cmd_filename")
