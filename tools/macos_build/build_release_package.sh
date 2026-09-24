@@ -395,20 +395,15 @@ sed -e "s|<fastsurfer>|FastSurfer${VERSION}|g" \
 osacompile -o "$APPLET" "$build_dir/FastSurfer.applescript"
 rm "$build_dir/FastSurfer.applescript"
 
-# the icon, from the logo: iconutil takes square images only, and sips pads transparently
+# the icon, every size scaled from the 1024 px fastsurfer-icon.png (see make_icon.py)
 ICONSET="$build_dir/FastSurfer.iconset"
 rm -rf "$ICONSET"
 mkdir -p "$ICONSET"
-logo="$FASTSURFER_HOME/doc/images/fastsurfer.png"
-logo_side=$(sips -g pixelWidth -g pixelHeight "$logo" | awk '/pixel(Width|Height)/ { if ($2 > side) side = $2 } END { print side }')
-sips --padToHeightWidth "$logo_side" "$logo_side" "$logo" --out "$ICONSET/logo.png" > /dev/null
-for size in 16 32 128 256 ; do
-  sips -z "$size" "$size" "$ICONSET/logo.png" --out "$ICONSET/icon_${size}x${size}.png" > /dev/null
-  if [[ "$size" -lt 256 ]] ; then
-    sips -z $((size * 2)) $((size * 2)) "$ICONSET/logo.png" --out "$ICONSET/icon_${size}x${size}@2x.png" > /dev/null
-  fi
+for size in 16 32 128 256 512 ; do
+  sips -z "$size" "$size" "$build_dir/fastsurfer-icon.png" --out "$ICONSET/icon_${size}x${size}.png" > /dev/null
+  sips -z $((size * 2)) $((size * 2)) "$build_dir/fastsurfer-icon.png" \
+    --out "$ICONSET/icon_${size}x${size}@2x.png" > /dev/null
 done
-rm "$ICONSET/logo.png"
 iconutil -c icns "$ICONSET" -o "$APPLET/Contents/Resources/applet.icns"
 rm -rf "$ICONSET"
 # some osacompile versions also write an asset catalog with the default icon, which macOS prefers

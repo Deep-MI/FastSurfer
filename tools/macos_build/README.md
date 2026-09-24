@@ -18,8 +18,9 @@ options (cache directories for the FreeSurfer download, the pruned install, uv a
 [uv](https://docs.astral.sh/uv/) (`brew install uv`), which fetches the relocatable standalone Python
 and the dependencies that get bundled into the package.
 
-The FastSurfer applet is an AppleScript compiled with `osacompile`, and its icon is made with `sips`
-and `iconutil`. All three ship with macOS, so the applet needs nothing installed.
+The FastSurfer applet is an AppleScript compiled with `osacompile`, and its icon is scaled from
+`fastsurfer-icon.png` with `sips` and `iconutil`. All three ship with macOS, so the applet needs
+nothing installed. `make_icon.py` regenerates that PNG from the logo, which needs Pillow.
 
 ### Running the package
 
