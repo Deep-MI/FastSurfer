@@ -1,18 +1,13 @@
-from subprocess import run
-
-proc = run(["/usr/bin/osascript", 
-"-e",
-"tell app \"Terminal\"", 
-"-e",
+# Opens Terminal with the FastSurfer console. build_release_package.sh compiles this into the
+# FastSurfer applet with osacompile.
+#
 # `do script` runs this text in whatever shell Terminal is configured to start, which need not
 # understand the setup script, so exec an explicit bash and give it the script as its init file.
 # `exec` and `env` are spelled the same way in sh, bash, zsh, tcsh and fish, so this works from any
 # of them. FASTSURFER_CONSOLE tells the script that ~/.bashrc has not been read;
 # BASH_SILENCE_DEPRECATION_WARNING suppresses Apple's "zsh is the default now" notice, which is
 # noise for a console that is bash on purpose. Both must be set before bash starts, hence `env`.
-"do script \"exec /usr/bin/env FASTSURFER_CONSOLE=1 BASH_SILENCE_DEPRECATION_WARNING=1 /bin/bash --init-file '/Applications/<fastsurfer>/macos_setup_fastsurfer.sh'\"",
-"-e",
-"activate",
-"-e",
-"end tell"
-])
+tell application "Terminal"
+	do script "exec /usr/bin/env FASTSURFER_CONSOLE=1 BASH_SILENCE_DEPRECATION_WARNING=1 /bin/bash --init-file '/Applications/<fastsurfer>/macos_setup_fastsurfer.sh'"
+	activate
+end tell

@@ -18,9 +18,8 @@ options (cache directories for the FreeSurfer download, the pruned install, uv a
 [uv](https://docs.astral.sh/uv/) (`brew install uv`), which fetches the relocatable standalone Python
 and the dependencies that get bundled into the package.
 
-py2app needs no manual install: the script creates and caches a venv of its own for it
-(`--py2app-venv`). That isolation is deliberate, since py2app's dependency scanner walks the whole
-environment it runs in and fails over unrelated packages that happen to be installed there.
+The FastSurfer applet is an AppleScript compiled with `osacompile`, and its icon is made with `sips`
+and `iconutil`. All three ship with macOS, so the applet needs nothing installed.
 
 ### Running the package
 

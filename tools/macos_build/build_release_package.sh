@@ -17,8 +17,7 @@ fi
 if [[ "$#" -lt 1 ]] || [[ "$1" != "arm" ]] ; then
   echo
   echo "Usage:  build_release_package.sh arm [--fs-download-cache path] [--fs-pruned-cache-dir dir]"
-  echo "                                     [--py2app-venv dir] [--uv-cache-dir dir]"
-  echo "                                     [--checkpoints-dir dir]"
+  echo "                                     [--uv-cache-dir dir] [--checkpoints-dir dir]"
   echo
   echo "--fs-download-cache points at a file path for the raw FreeSurfer tarball: if it already"
   echo "  exists there (e.g. from a prior, interrupted local run), it is reused instead of"
@@ -27,10 +26,6 @@ if [[ "$#" -lt 1 ]] || [[ "$1" != "arm" ]] ; then
   echo "--fs-pruned-cache-dir points at a directory for the pruned FreeSurfer install: if a valid"
   echo "  one is already there, the whole download+prune step is skipped."
   echo "  (default: \$FS_PRUNED_CACHE_DIR, if set)"
-  echo "--py2app-venv points at a venv to create (if missing) and reuse for the py2app packaging"
-  echo "  step, isolated from your normal dev venv, whose extra installed packages (matplotlib,"
-  echo "  etc.) py2app's dependency scanner can otherwise trip over."
-  echo "  (default: \$PY2APP_VENV, or tools/macos_build/.venv-py2app)"
   echo "--uv-cache-dir points at a directory for uv's download cache (the standalone python"
   echo "  distribution and the dependency wheels), so repeated builds and CI do not re-download"
   echo "  several hundred MB."
@@ -47,14 +42,12 @@ shift
 
 fs_download_cache="$FS_DOWNLOAD_CACHE"
 fs_pruned_cache_dir="$FS_PRUNED_CACHE_DIR"
-py2app_venv="$PY2APP_VENV"
 uv_cache_dir="$UV_CACHE_DIR"
 checkpoints_dir="$FASTSURFER_CHECKPOINTS_DIR"
 while [[ "$#" -ge 1 ]] ; do
   case "$1" in
   --fs-download-cache) fs_download_cache=$2 ; shift ; shift ;;
   --fs-pruned-cache-dir) fs_pruned_cache_dir=$2 ; shift ; shift ;;
-  --py2app-venv) py2app_venv=$2 ; shift ; shift ;;
   --uv-cache-dir) uv_cache_dir=$2 ; shift ; shift ;;
   --checkpoints-dir) checkpoints_dir=$2 ; shift ; shift ;;
   *) echo "Invalid argument $1" ; exit 1 ;;
@@ -64,12 +57,8 @@ done
 if [[ -z "${BASH_SOURCE[0]}" ]]; then THIS_SCRIPT="$0"
 else THIS_SCRIPT="${BASH_SOURCE[0]}"
 fi
-# resolve to an absolute path: the py2app step below runs inside a pushd, where a relative
-# script/venv path (e.g. from `tools/macos_build/build_release_package.sh`) no longer resolves
 build_dir=$(cd "$(dirname "$THIS_SCRIPT")" && pwd)
 tools_dir=$(dirname "$build_dir")
-py2app_venv="${py2app_venv:-$build_dir/.venv-py2app}"
-case "$py2app_venv" in /*) ;; *) py2app_venv="$PWD/$py2app_venv" ;; esac
 
 FASTSURFER_HOME=$(dirname "$tools_dir") # directory to fastsurfer
 # version of the project
@@ -390,11 +379,6 @@ sed -e "s|<fastsurfer>|FastSurfer${VERSION}|g" \
     < "$build_dir/conclusion.html.template" \
     > "$RESOURCES_DIR/conclusion.html"
 
-# create fastsurfer applet
-sed -e "s|<fastsurfer>|FastSurfer${VERSION}|g" \
-    < "$build_dir/FastSurfer.py.template" \
-    > "$build_dir/FastSurfer.py"
-
 sed -e "s|<fastsurfer>|FastSurfer${VERSION}|g" \
     -e "s|<python_version>|${PYTHON_VERSION}|g" \
     < "$build_dir/macos_setup_fastsurfer.sh.template" \
@@ -402,30 +386,54 @@ sed -e "s|<fastsurfer>|FastSurfer${VERSION}|g" \
 
 mv "$build_dir/macos_setup_fastsurfer.sh" "$FASTSURFER_TO_PACKAGE/"
 
-# isolated venv for py2app, kept separate from any dev venv: py2app's dependency scanner walks the
-# whole environment it runs in, and unrelated packages there (e.g. matplotlib) can make it fail
-if [[ ! -x "$py2app_venv/bin/python3" ]]
-then
-  echo "Creating isolated venv for py2app at $py2app_venv ..."
-  python3 -m venv "$py2app_venv" || exit 1
-fi
-# checked separately from the venv itself, which may pre-exist (--py2app-venv) or be a leftover
-# from an interrupted pip install, so its presence alone does not mean py2app is installed
-if ! "$py2app_venv/bin/python3" -c "import py2app" > /dev/null 2>&1
-then
-  echo "Installing py2app into $py2app_venv ..."
-  "$py2app_venv/bin/python3" -m pip install --upgrade pip || exit 1
-  "$py2app_venv/bin/python3" -m pip install py2app || exit 1
-fi
+# the FastSurfer applet, an AppleScript that opens Terminal with the FastSurfer console. osacompile
+# ships with macOS, so building it needs no Python and the applet bundles none.
+APPLET="$STAGED_DIR/FastSurfer$VERSION.app"
+sed -e "s|<fastsurfer>|FastSurfer${VERSION}|g" \
+    < "$build_dir/FastSurfer.applescript.template" \
+    > "$build_dir/FastSurfer.applescript"
+osacompile -o "$APPLET" "$build_dir/FastSurfer.applescript"
+rm "$build_dir/FastSurfer.applescript"
 
-pushd "$build_dir" || exit 1
-# FASTSURFER_VERSION gives the applet a version-unique CFBundleIdentifier (see setup.py)
-FASTSURFER_VERSION="$VERSION" \
-    "$py2app_venv/bin/python3" "setup.py" py2app --iconfile "${RESOURCES_DIR:$((${#build_dir} + 1))}/fastsurfer.png"
-popd || exit 1
-mv "$build_dir/dist/FastSurfer.app" "$STAGED_DIR/FastSurfer$VERSION.app"
+# the icon, from the logo: iconutil takes square images only, and sips pads transparently
+ICONSET="$build_dir/FastSurfer.iconset"
+rm -rf "$ICONSET"
+mkdir -p "$ICONSET"
+logo="$FASTSURFER_HOME/doc/images/fastsurfer.png"
+logo_side=$(sips -g pixelWidth -g pixelHeight "$logo" | awk '/pixel(Width|Height)/ { if ($2 > side) side = $2 } END { print side }')
+sips --padToHeightWidth "$logo_side" "$logo_side" "$logo" --out "$ICONSET/logo.png" > /dev/null
+for size in 16 32 128 256 ; do
+  sips -z "$size" "$size" "$ICONSET/logo.png" --out "$ICONSET/icon_${size}x${size}.png" > /dev/null
+  if [[ "$size" -lt 256 ]] ; then
+    sips -z $((size * 2)) $((size * 2)) "$ICONSET/logo.png" --out "$ICONSET/icon_${size}x${size}@2x.png" > /dev/null
+  fi
+done
+rm "$ICONSET/logo.png"
+iconutil -c icns "$ICONSET" -o "$APPLET/Contents/Resources/applet.icns"
+rm -rf "$ICONSET"
+# osacompile also writes an asset catalog with the default icon, which macOS prefers over the icns
+rm -f "$APPLET/Contents/Resources/Assets.car"
 
-rm -f "$build_dir/FastSurfer.py"
+APPLET_PLIST="$APPLET/Contents/Info.plist"
+# The identifier has to be unique per version: the Installer places a bundle by its identifier, and
+# given a match it installs over the older applet instead of at the packaged path.
+plutil -replace CFBundleIdentifier -string "org.deep-mi.FastSurfer.applet.$VERSION" "$APPLET_PLIST"
+# The version keys accept only one to three dot-separated integers, which a development version like
+# 2.6.0-dev0 is not. Such a version becomes 0.0.0 rather than claiming a release that does not exist;
+# the full version is still in the identifier, the installer title and the install directory name.
+short_version_re='^[0-9]+(\.[0-9]+){0,2}$'
+if [[ "$VERSION" =~ $short_version_re ]] ; then short_version="$VERSION" ; else short_version="0.0.0" ; fi
+plutil -replace CFBundleShortVersionString -string "$short_version" "$APPLET_PLIST"
+plutil -replace CFBundleVersion -string "$short_version" "$APPLET_PLIST"
+plutil -remove CFBundleIconName "$APPLET_PLIST"
+# osacompile names the bundle after the file, version included; the menu bar and the prompt below
+# show this name
+plutil -replace CFBundleName -string "FastSurfer" "$APPLET_PLIST"
+# shown when macOS asks whether the applet may control Terminal
+plutil -replace NSAppleEventsUsageDescription -string "FastSurfer opens Terminal to start the FastSurfer console." "$APPLET_PLIST"
+# editing the bundle invalidates the ad-hoc signature osacompile made, and arm64 runs no unsigned code
+codesign --force --sign - "$APPLET"
+
 chmod -R 755 "$STAGED_DIR"/*
 
 # create raw package
@@ -433,9 +441,9 @@ mkdir -p "$build_dir/raw_package"
 
 # Pin bundles to the location they are packaged for. pkgbuild marks a .app as relocatable by
 # default, so the Installer overwrites any existing bundle with the same CFBundleIdentifier instead
-# of installing at the packaged path -- which silently replaced an older applet and left none at the
-# new one's path. setup.py also makes the identifier unique per version, but that only avoids the
-# collision; this removes the mechanism.
+# of installing at the packaged path, which silently replaced an older applet and left none at the
+# new one's path. The applet's identifier is also unique per version (see above), but that only
+# avoids the collision; this removes the mechanism.
 COMPONENT_PLIST="$build_dir/component.plist"
 pkgbuild --analyze --root "$STAGED_DIR" "$COMPONENT_PLIST"
 python3 - "$COMPONENT_PLIST" <<'PYTHON'
@@ -480,5 +488,4 @@ productbuild \
 
 # get rid of temporary folders. PKG_SCRIPTS_DIR and .uv-pythons are build-local, so nothing has to
 # be cleaned out of the tracked source tree any more.
-rm -rf "$STAGED_DIR" "$RESOURCES_DIR" "$build_dir/dist" "$build_dir/build" "$PKG_SCRIPTS_DIR" \
-       "$COMPONENT_PLIST"
+rm -rf "$STAGED_DIR" "$RESOURCES_DIR" "$PKG_SCRIPTS_DIR" "$COMPONENT_PLIST"
