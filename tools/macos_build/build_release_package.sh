@@ -411,7 +411,8 @@ done
 rm "$ICONSET/logo.png"
 iconutil -c icns "$ICONSET" -o "$APPLET/Contents/Resources/applet.icns"
 rm -rf "$ICONSET"
-# osacompile also writes an asset catalog with the default icon, which macOS prefers over the icns
+# some osacompile versions also write an asset catalog with the default icon, which macOS prefers
+# over the icns
 rm -f "$APPLET/Contents/Resources/Assets.car"
 
 APPLET_PLIST="$APPLET/Contents/Info.plist"
@@ -425,7 +426,10 @@ short_version_re='^[0-9]+(\.[0-9]+){0,2}$'
 if [[ "$VERSION" =~ $short_version_re ]] ; then short_version="$VERSION" ; else short_version="0.0.0" ; fi
 plutil -replace CFBundleShortVersionString -string "$short_version" "$APPLET_PLIST"
 plutil -replace CFBundleVersion -string "$short_version" "$APPLET_PLIST"
-plutil -remove CFBundleIconName "$APPLET_PLIST"
+# the icon name points at the asset catalog removed above; not every osacompile writes it
+if plutil -extract CFBundleIconName raw "$APPLET_PLIST" > /dev/null 2>&1 ; then
+  plutil -remove CFBundleIconName "$APPLET_PLIST"
+fi
 # osacompile names the bundle after the file, version included; the menu bar and the prompt below
 # show this name
 plutil -replace CFBundleName -string "FastSurfer" "$APPLET_PLIST"
