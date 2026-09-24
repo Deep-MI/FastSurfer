@@ -101,7 +101,7 @@ def make_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--slurm", action="store_true",
-        help="EXPERIMENTAL, not yet run on a cluster. Submit the cases to slurm via "
+        help="EXPERIMENTAL. Submit the cases to slurm via "
              "srun_fastsurfer.sh instead of running them locally via brun_fastsurfer.sh. Cluster "
              "options such as --partition or --work are passed through after the literal '--'. "
              "Check the output of --dry before relying on it.",
@@ -213,6 +213,17 @@ def main(argv: list[str] | None = None) -> int:
 
     if not bids_dir.is_dir():
         LOGGER.error("%s is not a directory.", bids_dir)
+        return 1
+    # the output would land in the input dataset, where the next run also finds it as a subject
+    if output_dir == bids_dir or (
+        output_dir.is_relative_to(bids_dir)
+        and output_dir.relative_to(bids_dir).parts[0].startswith("sub-")
+    ):
+        LOGGER.error(
+            "output_dir %s is the BIDS dataset or inside one of its subjects. Use a directory "
+            "outside of it, or %s.",
+            output_dir, bids_dir / "derivatives" / "fastsurfer",
+        )
         return 1
 
     # a mistyped label and an invalid dataset are both the user's input being wrong, which is
