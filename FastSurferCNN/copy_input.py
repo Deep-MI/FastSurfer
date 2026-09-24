@@ -217,8 +217,9 @@ def make_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--rawavg_only",
         action="store_true",
-        help="write rawavg but no archival copy, for an input the pipeline built itself rather than "
-             "one the user passed, such as a longitudinal time point resampled into base space",
+        help="write the T1 rawavg but no archival copy of the T1, for a T1 the pipeline built itself "
+             "rather than one the user passed, such as a longitudinal time point resampled into base "
+             "space. A T2 is archived either way, since it is always the user's own input",
     )
     return parser
 
@@ -244,7 +245,7 @@ def main(
     t2 : Path, optional
         The T2 image, if one was passed.
     rawavg_only : bool, default=False
-        Write rawavg but no archival copy.
+        Write the T1 rawavg but no archival copy of the T1. A T2 is archived either way.
 
     Returns
     -------
@@ -263,9 +264,10 @@ def main(
             return 1
         inputs.append(("T2", t2, "T2raw", T2_RAWAVG_PATH))
 
-    for _modality, source, stem, rawavg in inputs:
+    for modality, source, stem, rawavg in inputs:
         archive = None
-        if not rawavg_only:
+        # only a T1 can be one the pipeline built, a T2 is always the user's own
+        if not (rawavg_only and modality == "T1"):
             try:
                 archive = archive_input(
                     source, mri_dir / "orig", stem=stem, derived=mri_dir / rawavg,

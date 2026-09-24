@@ -280,7 +280,10 @@ SEGMENTATION PIPELINE:
                             and T2 images. Options are 'coreg' (default) for
                             mri_coreg, 'robust' for mri_robust_register, and 'none'
                             to skip registration (this requires T1 and T2 are
-                            externally co-registered).
+                            externally co-registered). With --long, 'none' means
+                            the T2 is co-registered with the T1 this time point
+                            was built from, and it is mapped into template space
+                            with the same transform as that T1.
   --qc_snap               Create QC snapshots in \$SUBJECTS_DIR/\$sid/qc_snapshots
                             to simplify the QC process.
 
@@ -1148,8 +1151,9 @@ asegdkt_segfile_manedit=$(add_file_suffix "$asegdkt_segfile" "manedit")
 # feeds the gray/white contrast, and measuring that on inpainted voxels would report synthetic
 # tissue. Sampling the original is the better of the two; masking the lesion out of the contrast
 # computation would be better still and is not done here.
-# --base and --long archive nothing: their $t1 is not a user input but an image the pipeline built
+# --base and --long archive no T1: their $t1 is not a user input but an image the pipeline built
 # itself, and long_prepare_template.sh already archived the time point inputs it was built from.
+# A --long T2 is the user's own image, so copy_input.py archives it all the same.
 # --base needs no rawavg either, since it skips pctsurfcon, the one consumer.
 if [[ -n "$t1" ]] && [[ -f "$t1" ]] && [[ "$base" != "true" ]]
 then
@@ -1432,6 +1436,36 @@ then
         exit 1
       fi
     fi
+
+    hypvinn_t2="$norm_name_t2"
+    # In a longitudinal time point, --reg_mode none says the T2 is co-registered with the T1 passed
+    # for this time point, but HypVINN gets that T1 resampled into template space. So the T2 gets the
+    # transform long_prepare_template.sh used for the T1, resliced onto exactly the T1 the HypVINN
+    # call below reads, after which the two share a grid and there is nothing left to register.
+    if [[ "$long" == "true" ]] && [[ "$hypvinn_regmode" == "none" ]]
+    then
+      tp_to_base_lta="$sd/$baseid/mri/transforms/${subject}_to_${baseid}.lta"
+      if [[ ! -f "$tp_to_base_lta" ]]
+      then
+        echo "ERROR: With --reg_mode none, the T2 is mapped into template space by $tp_to_base_lta," | tee -a "$seg_log"
+        echo "  which long_prepare_template.sh writes, but it does not exist." | tee -a "$seg_log"
+        exit 1
+      fi
+      if [[ "$run_biasfield" == "true" ]] ; then hypvinn_t1="$norm_name" ; else hypvinn_t1="$t1" ; fi
+      hypvinn_t2="$subject_dir/mri/T2_nu.base.mgz"
+      cmd=(mri_convert -at "$tp_to_base_lta" --reslice_like "$hypvinn_t1" -rt cubic "$norm_name_t2" "$hypvinn_t2")
+      {
+        echo "INFO: Mapping the T2 into template space with the transform of this time point's T1..."
+        echo_quoted "${cmd[@]}"
+        "${wrap[@]}" "${cmd[@]}" 2>&1
+        exit $?  # this will only terminate the subshell
+      } | tee -a "$seg_log"
+      if [[ "${PIPESTATUS[0]}" != 0 ]]
+      then
+        echo "ERROR: Mapping the T2 into template space failed!" | tee -a "$seg_log"
+        exit 1
+      fi
+    fi
   fi
 
   if [[ "$run_cc_module" == "true" ]]
@@ -1624,14 +1658,14 @@ then
     if [[ "$run_biasfield" == "true" ]]
     then
       cmd+=("$norm_name")
-      if [[ -n "$t2" ]] ; then cmd+=(--t2 "$norm_name_t2") ; fi
+      if [[ -n "$t2" ]] ; then cmd+=(--t2 "$hypvinn_t2") ; fi
     else
       {
         echo "WARNING: We strongly recommend to *not* exclude the biasfield (--no_biasfield)"
         echo "  with the hypothal module!"
       } | tee -a "$seg_log"
       cmd+=("$t1")
-      if [[ -n "$t2" ]] ; then cmd+=(--t2 "$norm_name_t2") ; fi
+      if [[ -n "$t2" ]] ; then cmd+=(--t2 "$hypvinn_t2") ; fi
     fi
     echo_quoted "${cmd[@]}" | tee -a "$seg_log"
     "${wrap[@]}" "${cmd[@]}" # no tee, directly logging to $seg_log

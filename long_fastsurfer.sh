@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Copyright 2024 AI in Medical Imaging, German Center for Neurodegenerative Diseases (DZNE), Bonn
+# Copyright 2024 DeepMI Lab, German Center for Neurodegenerative Diseases (DZNE), Bonn
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -54,6 +54,7 @@ tid=""
 sd="$SUBJECTS_DIR"
 tpids=()
 t1s=()
+t2s=()
 parallel="false"
 LF=""
 brun_flags=()
@@ -82,8 +83,16 @@ FLAGS:
                               \$SUBJECTS_DIR to be created"
   --t1s <T1_1> <T1_2> ..    T1 full head inputs for each time point (do not need
                               to be bias corrected). Requires ABSOLUTE paths!
-  --tpids <tID1> >tID2> ..  IDs for future time points directories inside
+  --tpids <tID1> <tID2> ..  IDs for future time points directories inside
                               \$SUBJECTS_DIR to be created later (during --long)
+  --t2s <T2_1> <T2_2> ..    *Optional* T2 full head inputs, one per time point in
+                              the order of --tpids, for the hypothalamus module.
+                              Every time point needs one, or none does. Each is
+                              registered to its time point's T1 in template space,
+                              or with --reg_mode none, taken as co-registered with
+                              the T1 given in --t1s and mapped into template space
+                              with that T1's transform. Only the long_seg stage
+                              uses them. Requires ABSOLUTE paths!
   --sd  <subjects_dir>      Output directory \$SUBJECTS_DIR (or pass via env var)
   --py <python_cmd>         Command for python, used in both pipelines.
                               Default: "$python"
@@ -117,7 +126,8 @@ Parallelization options:
   --parallel_surf <n>|max   See above, only sets the size of the processing pool for surface reconstruction (default: 1)
 
 
---t1, --t2 and --sid are not accepted here, they are populated from --t1s, --tid and --tpids.
+--t1, --t2 and --sid are not accepted here, they are populated per time point from --t1s, --t2s
+and --tpids.
 --seg_only and --surf_only are not accepted either, pick the stages above instead. Every other
 run_fastsurfer.sh option is supported, see 'run_fastsurfer.sh --help'.
 
@@ -214,6 +224,13 @@ case $key in
       shift  # past value
     done
     ;;
+  --t2s)
+    while [[ $# -gt 0 ]] && [[ $1 != -* ]]
+    do
+      t2s+=("$1")
+      shift  # past value
+    done
+    ;;
   --sd) sd="$1" ; export SUBJECTS_DIR="$1" ; shift  ;;
   --parallel|--parallel_seg|--parallel_surf) parallel="true" ; brun_flags+=("$key" "$1") ; shift ;;
   --py) python="$1" ; shift ;;
@@ -221,7 +238,7 @@ case $key in
   --remove_suffix) echo "ERROR: The --remove_suffix option is not supported by long_prepare_template.sh" ; exit 1 ;;
   --sid|--t1|--t2)
     echo "ERROR: --sid, --t1 and --t2 are not valid for long_fastsurfer.sh, these values are"
-    echo "  populated via --tpids, --tid and --t1s, respectively."
+    echo "  populated per time point from --tpids, --t1s and --t2s, respectively."
     exit 1
     ;;
   --seg_only|--surf_only)
@@ -364,6 +381,29 @@ if should_run_stage "prepare"; then
   fi
 fi
 
+# t2s only reach the time point segmentations, so check them where that stage runs
+if [[ "${#t2s[@]}" -gt 0 ]]
+then
+  if ! should_run_stage "long_seg"
+  then
+    echo "WARNING: --t2s is only used by the long_seg stage, which is not run here, so it is ignored."
+  else
+    # all or none: the hypothalamus module computes something different with a T2, so a series
+    # that is multimodal at only some time points would not be comparable over time
+    if [ "${#t2s[@]}" -ne "${#tpids[@]}" ]
+    then
+      echo "ERROR: --t2s needs one T2 per time point, ${#tpids[@]}, but got ${#t2s[@]}. Every time"
+      echo "  point needs a T2 or none does, since a series where only some are multimodal would"
+      echo "  not be comparable over time."
+      exit 1
+    fi
+    for t2 in "${t2s[@]}"
+    do
+      if [[ ! -f "$t2" ]] ; then echo "ERROR: The T2 input $t2 does not exist." ; exit 1 ; fi
+    done
+  fi
+fi
+
 # check that SUBJECTS_DIR exists
 check_create_subjects_dir_properties "$sd"
 
@@ -454,7 +494,21 @@ if should_run_stage "long_seg" || should_run_stage "long_surf"; then
 fi
 
 if should_run_stage "long_seg"; then
-  cmda=("$FASTSURFER_HOME/brun_fastsurfer.sh" --subjects "${time_points[@]}" --sd "$sd" --seg_only --long "$tid"
+  if [[ "${#t2s[@]}" -gt 0 ]]
+  then
+    # brun takes a per-subject option such as --t2 only from a subject list, not from --subjects.
+    # Each path is single-quoted for brun's tokenizer, a ' inside it closed, escaped and reopened.
+    long_seg_list="$sd/$tid/scripts/long_seg_subjects.txt"
+    mkdir -p "$(dirname "$long_seg_list")"
+    sq="'"
+    for ((i=0;i<${#tpids[@]};++i)); do
+      echo "${tpids[$i]}=from-base --t2 '${t2s[$i]//$sq/$sq\\$sq$sq}'"
+    done > "$long_seg_list"
+    long_seg_subjects=(--subject_list "$long_seg_list")
+  else
+    long_seg_subjects=(--subjects "${time_points[@]}")
+  fi
+  cmda=("$FASTSURFER_HOME/brun_fastsurfer.sh" "${long_seg_subjects[@]}" --sd "$sd" --seg_only --long "$tid"
         "${brun_flags[@]}" "${POSITIONAL_FASTSURFER[@]}")
 
   # Only background long_seg when long_surf will also run (so it can wait for completion)
