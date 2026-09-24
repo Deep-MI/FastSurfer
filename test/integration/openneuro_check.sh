@@ -343,10 +343,10 @@ check_case() { # $1: out_dir
       # cmp rather than md5sum, which macOS does not ship
       check "  mri/orig/001.nii.gz is this session's input" cmp -s "$source_t1" "${archived[0]}"
     elif [[ -f "$subject_dir/mri/orig.mgz" ]] ; then
-      # --seg_only writes no mri/orig/, so there is no byte copy of the input to compare against.
-      # The conformed volume is written at every depth, and two cases built from different images
-      # have to differ in it, which is the cross-session mix-up this case is here to catch.
-      # cksum rather than md5sum, which macOS does not ship.
+      # images older than the input archive write no mri/orig/, so there is no byte copy of the
+      # input to compare against. Two cases built from different images have to differ in the
+      # conformed volume instead, which catches two sessions landing on one image, but not two
+      # sessions swapping theirs. cksum rather than md5sum, which macOS does not ship.
       conformed_ids+=("$output_id")
       conformed_sums+=("$(cksum < "$subject_dir/mri/orig.mgz")")
       conformed_sources+=("$source_t1")

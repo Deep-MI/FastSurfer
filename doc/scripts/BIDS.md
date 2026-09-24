@@ -51,12 +51,11 @@ On a cluster, `--slurm` submits the same cases through `srun_fastsurfer.sh` inst
 ```
 
 ```{warning}
-`--slurm` is experimental and has not yet been run on a cluster. Check the output of `--dry` before relying on it.
-Two things differ from the local route, both handled here but neither yet exercised end to end: `--data` is set to
-`bids_dir`, because `srun_fastsurfer.sh` rewrites every path in the subject list relative to it before binding it into
-the container, and the paths are written unquoted, because that rewrite is done with awk and a quote stops it from
-matching. A dataset whose path holds a space is therefore refused with `--slurm`, which is a limitation of
-`srun_fastsurfer.sh` rather than of BIDS input: neither of its input routes handles a space today.
+`--slurm` is experimental. Check the output of `--dry` before relying on it. Two things differ from the local route:
+`--data` is set to `bids_dir`, because `srun_fastsurfer.sh` rewrites every path in the subject list relative to it
+before binding it into the container, and the paths are written unquoted, because that rewrite is done with awk and a
+quote stops it from matching. A dataset whose path holds a space is therefore refused with `--slurm`, which is a
+limitation of `srun_fastsurfer.sh` rather than of BIDS input: neither of its input routes handles a space.
 ```
 
 Output naming
@@ -88,6 +87,9 @@ recorded as the other one is refused rather than silently mixed.
 The generated subject list is kept as `output_dir/bids_subjects.txt`, so a run can be repeated or amended with
 `brun_fastsurfer.sh` directly.
 
+`output_dir` must not be the dataset itself or lie inside one of its subjects, since the output would then be found as
+input by the next run. `<bids_dir>/derivatives/fastsurfer` is the usual place inside a dataset.
+
 Sessions
 --------
 Every session is processed on its own, as one cross-sectional case. Longitudinal processing, where the timepoints of a
@@ -107,7 +109,8 @@ using a T2 where one happens to exist and not where it does not would put two me
 
 A session with several T1w images (for example several `run-` or `acq-` entities) is an error rather than a silent
 pick of the first, since which image to process is a statement about the data. Restrict the dataset, or process that
-session with `run_fastsurfer.sh` directly.
+session with `run_fastsurfer.sh` directly. An image that is a link to content that is not there, as in a DataLad
+dataset before `datalad get`, is an error too.
 
 `--participant_label` and `--session_label` restrict what is processed and accept the labels with or without their
 `sub-`/`ses-` prefix. A label that the dataset does not hold is an error rather than an empty run, and where
@@ -125,5 +128,7 @@ Dry run
 check what was discovered before committing to a full run. The flag is spelled as in `srun_fastsurfer.sh`, which also
 accepts `--dry_run`.
 
-`test/integration/openneuro_check.sh` does the same against real data: it fetches two sessions of a randomly drawn
-subject from a public OpenNeuro dataset, runs them, and checks the outputs. It is run by hand, not by CI.
+`test/integration/openneuro_check.sh` does the same against real data. It fetches public OpenNeuro data for a few BIDS
+layouts (several sessions of one subject, a T2w in only some sessions, no session level), runs them to a chosen depth
+(dry, segmentation or full), and checks the outputs. With `--slurm` it submits the cases instead, and a later call
+with `--check_only` checks the output once the jobs are done. It is run by hand, not by CI.
