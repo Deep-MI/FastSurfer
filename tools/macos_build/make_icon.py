@@ -33,6 +33,10 @@ RADIUS = 185
 BACKGROUND = (58, 58, 60, 255)
 # the share of the tile's width the logo spans
 LOGO_SHARE = 0.90
+# logo pixels more opaque than this count as visible, fainter ones as halo
+VISIBLE_ALPHA = 20
+# visible logo pixels whose brightest channel is at most this are its drop shadow
+SHADOW_VALUE = 60
 # drawn larger and scaled down, for smooth corners
 SUPERSAMPLE = 4
 
@@ -52,7 +56,7 @@ def main() -> None:
     logo = Image.open(LOGO).convert("RGBA")
     # the visible logo, so the empty margin and the faint halo in the file neither shrink nor
     # off-centre it
-    logo = logo.crop(logo.getchannel("A").point(lambda alpha: 255 if alpha > 20 else 0).getbbox())
+    logo = logo.crop(_visible(logo).getbbox())
     width = round(TILE * LOGO_SHARE)
     logo = logo.resize((width, round(width * logo.height / logo.width)), Image.LANCZOS)
     # centred on its coloured part: the drop shadow extends to the lower right and would pull the
@@ -64,12 +68,19 @@ def main() -> None:
     icon.save(OUT, optimize=True)
 
 
+def _visible(image: Image.Image) -> Image.Image:
+    """Return a mask of the pixels of image that are more than a faint halo."""
+    return image.getchannel("A").point(lambda alpha: 255 if alpha > VISIBLE_ALPHA else 0)
+
+
 def _coloured_bbox(image: Image.Image) -> tuple[int, int, int, int]:
     """Return the bounding box of the visible pixels that are not the dark shadow."""
-    visible = image.getchannel("A").point(lambda alpha: 255 if alpha > 20 else 0)
     # the brightest channel rather than luminance, which would count the dark red as shadow
-    bright = image.convert("HSV").getchannel("V").point(lambda value: 255 if value > 60 else 0)
-    return Image.composite(bright, Image.new("L", image.size, 0), visible).getbbox()
+    bright = image.convert("HSV").getchannel("V").point(lambda value: 255 if value > SHADOW_VALUE else 0)
+    bbox = Image.composite(bright, Image.new("L", image.size, 0), _visible(image)).getbbox()
+    if bbox is None:
+        raise ValueError(f"{LOGO} has no pixels brighter than its shadow to centre the icon on.")
+    return bbox
 
 
 if __name__ == "__main__":
