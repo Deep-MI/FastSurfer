@@ -569,7 +569,9 @@ SLURM-related options:
   nested quotes and are split on whitespace to separate parameters. Does not affect cleanup and copy jobs.
 --time_seg &lt;timelimit&gt;, and
 --time_surf &lt;timelimit&gt;: a per-image time limit for individual the segmentation and surface reconstruction steps,
-  respectively. &lt;timelimit&gt; must be a number in minutes, default seg: 15min, surf: 240min.
+  respectively. &lt;timelimit&gt; must be a number in minutes, default seg: 15min on gpu and
+  30min on cpu, surf: 240min.
+  The cpu default assumes the default --num_cpus_per_task, raise --time_seg when requesting fewer cpus.
 --mem_seg &lt;number (GB)&gt;, and
 --mem_surf &lt;number (GB)&gt;: the memory to allocate for GPU/CPU-based segmentation (default: 10/7 GB),
   and surface reconstruction (default: 6).
