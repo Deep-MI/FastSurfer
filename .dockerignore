@@ -19,7 +19,7 @@
 /venv
 /tools/debug-helpers
 /tools/Docker/Dockerfile*
-/tools/export_pip-r.sh
+/tools/update_requirements.sh
 /tools/git-hooks
 /tools/macos_build
 /srun_fastsurfer.sh

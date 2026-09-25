@@ -39,14 +39,16 @@ def _recon_surf_shell_scripts() -> list[str]:
 
 
 # Everything that runs under a *macOS* bash: the pipeline entry points, the recon_surf scripts they
-# call, the macOS build, and the scripts that run at install time or ship inside the package.
-# Deliberately excluded: tools/Docker/entrypoint.sh, tools/export_pip-r.sh and tools/build/fspython
-# (all run inside the linux image, the last one activating /venv) and
+# call, the macOS build and the requirements update, and the scripts that run at install time or
+# ship inside the package.
+# Deliberately excluded: tools/Docker/entrypoint.sh and tools/build/fspython (both run inside the
+# linux image, the second one activating /venv) and
 # CerebNet/datasets/realistic_deformations.sh (a training helper), none of which macOS ever executes.
 SHIPPED_SCRIPTS = (
     ["run_fastsurfer.sh", "brun_fastsurfer.sh", "srun_fastsurfer.sh", "long_fastsurfer.sh", "stools.sh"]
     + _recon_surf_shell_scripts()
     + ["tools/build/install_fs_pruned.sh", "tools/build/link_fs.sh", "tools/macos_build/build_release_package.sh"]
+    + ["tools/update_requirements.sh"]
     # rendered by the build into the installed package, so they run on the user's machine
     + [
         "tools/macos_build/macos_setup_fastsurfer.sh.template",
