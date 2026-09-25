@@ -240,6 +240,11 @@ To launch a configured FastSurfer terminal session, start the FastSurfer applet 
 - reads your `~/.bashrc` first, if you have one, so your own aliases and settings are still there, and
 - reminds you to set `FS_LICENSE` if it is not already set (see "FreeSurfer license" below).
 
+The first time you start the applet, macOS asks whether FastSurfer may control Terminal, since that
+is how it opens the console window. Allow it. If you declined, the applet cannot open the console
+until you allow it under **System Settings > Privacy & Security > Automation**, by switching on
+**Terminal** below **FastSurfer**.
+
 In this console, you can run the full FastSurfer pipeline by typing and executing `run_fastsurfer.sh <fastsurfer-flags>`, where you replace `<fastsurfer-flags>` with the appropriate [commandline flags of FastSurfer](../../README.md#usage), for example:
 
 ```sh

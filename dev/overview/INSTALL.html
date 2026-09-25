@@ -671,6 +671,10 @@ double-click the <code class="docutils literal notranslate"><span class="pre">.p
 <li><p>reads your <code class="docutils literal notranslate"><span class="pre">~/.bashrc</span></code> first, if you have one, so your own aliases and settings are still there, and</p></li>
 <li><p>reminds you to set <code class="docutils literal notranslate"><span class="pre">FS_LICENSE</span></code> if it is not already set (see “FreeSurfer license” below).</p></li>
 </ul>
+<p>The first time you start the applet, macOS asks whether FastSurfer may control Terminal, since that
+is how it opens the console window. Allow it. If you declined, the applet cannot open the console
+until you allow it under <strong>System Settings &gt; Privacy &amp; Security &gt; Automation</strong>, by switching on
+<strong>Terminal</strong> below <strong>FastSurfer</strong>.</p>
 <p>In this console, you can run the full FastSurfer pipeline by typing and executing <code class="docutils literal notranslate"><span class="pre">run_fastsurfer.sh</span> <span class="pre">&lt;fastsurfer-flags&gt;</span></code>, where you replace <code class="docutils literal notranslate"><span class="pre">&lt;fastsurfer-flags&gt;</span></code> with the appropriate <a class="reference internal" href="intro.html"><span class="doc std std-ref">commandline flags of FastSurfer</span></a>, for example:</p>
 <div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>run_fastsurfer.sh<span class="w"> </span>--seg_only<span class="w"> </span>--sd<span class="w"> </span>&lt;path/to/output/dir&gt;<span class="w"> </span>--sid<span class="w"> </span>&lt;subject_id&gt;<span class="w"> </span>--t1<span class="w"> </span>&lt;path/to/subjects/t1/image&gt;
 </pre></div>
