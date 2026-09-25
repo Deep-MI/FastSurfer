@@ -15,10 +15,10 @@
 # DOCUMENTATION FOR BUILD ARGS (use '--build-arg DEVICE=<VALUE>'):
 # - BUILD_BASE_IMAGE:
 #   The base image to build the venv and freesurfer build images from
-#   - default: ubuntu:22.04
+#   - default: ubuntu, version set by the ARG below
 # - RUNTIME_BASE_IMAGE:
 #   The base image to build the runtime image on.
-#   - default: ubuntu:22.04
+#   - default: ubuntu, version set by the ARG below
 # - FREESURFER_BUILD_IMAGE:
 #   Image to use to install freesurfer binaries from, the freesurfer binaries should be located in /opt/freesurfer in
 #   the image.
