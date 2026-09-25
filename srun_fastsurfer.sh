@@ -46,7 +46,10 @@ subject_list_awk_code_sid="\$1"
 subject_list_awk_code_args="\$2"
 subject_list_delim="="
 jobarray=""
-timelimit_seg=15
+timelimit_seg=""  # empty means take the default for the device the segmentation runs on
+# segmentation is much slower without a GPU
+timelimit_seg_gpu=15
+timelimit_seg_cpu=30
 # 1mm can take 1h per hemi plus 1h extra on a single core (depending on cpu speed)
 timelimit_surf=$((4 * 60))
 # the memory required for the surface and the segmentation pipeline depends on the
@@ -163,7 +166,9 @@ SLURM-related options:
   nested quotes and are split on whitespace to separate parameters. Does not affect cleanup and copy jobs.
 --time_seg <timelimit>, and
 --time_surf <timelimit>: a per-image time limit for individual the segmentation and surface reconstruction steps,
-  respectively. <timelimit> must be a number in minutes, default seg: ${timelimit_seg}min, surf: ${timelimit_surf}min.
+  respectively. <timelimit> must be a number in minutes, default seg: ${timelimit_seg_gpu}min on gpu and
+  ${timelimit_seg_cpu}min on cpu, surf: ${timelimit_surf}min.
+  The cpu default assumes the default --num_cpus_per_task, raise --time_seg when requesting fewer cpus.
 --mem_seg <number (GB)>, and
 --mem_surf <number (GB)>: the memory to allocate for GPU/CPU-based segmentation (default: $mem_seg_cpu/$mem_seg_gpu GB),
   and surface reconstruction (default: $mem_surf).
@@ -415,13 +420,25 @@ check_fs_license "$fs_license"
 check_seg_surf_only "$seg_only" "$surf_only"
 check_out_dir "$out_dir"
 
-if [[ "$cpu_only" == "true" ]] && [[ "$timelimit_seg" -lt 11 ]]
+if [[ -n "$timelimit_seg" ]] && [[ ! "$timelimit_seg" =~ ^[0-9]+$ ]]
+then
+  echo "ERROR: The segmentation time limit must be a number of minutes, got '$timelimit_seg'."
+  exit 1
+elif [[ -z "$timelimit_seg" ]]
+then
+  if [[ "$cpu_only" == "true" ]] ; then timelimit_seg="$timelimit_seg_cpu"
+  else timelimit_seg="$timelimit_seg_gpu"
+  fi
+fi
+
+# a time limit sized for the gpu is too short on the cpu
+if [[ "$cpu_only" == "true" ]] && [[ "$timelimit_seg" -le "$timelimit_seg_gpu" ]]
 then
   log "WARNING!!!"
   log "------------------------------------------------------------------------"
   log "You specified the segmentation shall be performed on the cpu, but the"
-  log "time limit per segmentation is less than 11 minutes (default is optimized "
-  log "for GPU acceleration @ 10 minutes). This is very likely insufficient!"
+  log "time limit per segmentation is $timelimit_seg minutes, which is sized for a gpu (cpu"
+  log "default: ${timelimit_seg_cpu}min). This is very likely insufficient!"
   log "------------------------------------------------------------------------"
 fi
 
