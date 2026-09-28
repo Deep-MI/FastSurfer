@@ -34,7 +34,7 @@
 #   - default: true
 # - UV_VERSION:
 #   The version of uv to use to build the python environment.
-#   - default: 0.9.22
+#   - default: 0.12.22
 # - PYTHON_VERSION:
 #   The python version to use for the virtual environment. build.py always passes this explicitly
 #   from tool.python.version in pyproject.toml, which is the single source of truth; the ARG
@@ -71,9 +71,9 @@
 #   The author string to include in image labels.
 #   - default: "FastSurfer Developers <https://github.com/Deep-MI/FastSurfer>"
 # - DEVICE:
-#   The device type to build the python environment for, this affects the installed torch packages.
-#   Supported values are what is supported by uv, e.g.: cu128, xpu, rocm6.2.4, etc.
-#   - default: cu128
+#   The device type to build the python environment for, build.py must pass this value! This
+#   affects the installed torch packages with supported values defined by torch and uv of
+#   the format: cpu, cuXXX, xpu, rocmX.YY, etc.
 # - DEBUG:
 #   If set to "true", retains build debug output during build.
 #   - default: false
@@ -96,8 +96,8 @@ ARG BUILD_BASE_IMAGE="ubuntu:24.04"
 ARG RUNTIME_BASE_IMAGE="ubuntu:24.04"
 ARG VENV_BUILD_IMAGE="build_venv"
 ARG FREESURFER_BUILD_IMAGE="build_freesurfer"
-ARG UV_VERSION="0.9.22"
-ARG PYTHON_VERSION="3.12"
+ARG UV_VERSION="0.12.22"
+ARG PYTHON_VERSION="invalid-must-be-passed"
 ARG FREESURFER_VERSION="8.2.0"
 ARG FREESURFER_URL="not set"
 ARG FASTSURFER_VERSION="dev"
@@ -108,7 +108,7 @@ ARG DOC_URL="https://deep-mi.org/FastSurfer/dev"
 ARG VENDOR="DeepMI Lab, DZNE https://deep-mi.org/"
 ARG AUTHOR="FastSurfer Developers <https://github.com/Deep-MI/FastSurfer>"
 ARG BUILDKIT_SBOM_SCAN_CONTEXT="true"
-ARG DEVICE="cu128"
+ARG DEVICE="invalid-must-be-passed"
 ARG DEBUG="false"
 ARG INSECURE_FLAG=""
 
@@ -448,7 +448,6 @@ LABEL org.opencontainers.image.authors="$AUTHOR" \
 
 FROM runtime AS runtime_cuda
 # parse DEVICE to extract the CUDA version, this is needed to correctly initialize NVIDIA_REQUIRE_CUDA below
-# Note, here 'cuda' defaults to 12.8
 # DEVICE is redeclared, because arg scope does not cross stages: without it the substitutions
 # below all start from an empty string and NVIDIA_REQUIRE_CUDA ends up as "cuda>=".
 ARG DEVICE
@@ -456,11 +455,10 @@ ARG CUDA_VERSION__0=${DEVICE/cu11/11.}
 ARG CUDA_VERSION__1=${CUDA_VERSION__0/cu12/12.}
 ARG CUDA_VERSION__2=${CUDA_VERSION__1/cu13/13.}
 ARG CUDA_VERSION__3=${CUDA_VERSION__2/cu14/14.}
-ARG CUDA_VERSION__4=${CUDA_VERSION__3/cuda/12.8}
 
 # to support AWS docker images, see Issue #352
 # https://sarus.readthedocs.io/en/stable/user/custom-cuda-images.html#controlling-the-nvidia-container-runtime
 
 ENV NVIDIA_VISIBLE_DEVICES=all \
     NVIDIA_DRIVER_CAPABILITIES=all \
-    NVIDIA_REQUIRE_CUDA="cuda>=${CUDA_VERSION__4}"
+    NVIDIA_REQUIRE_CUDA="cuda>=${CUDA_VERSION__3}"
