@@ -85,7 +85,7 @@ The build script `build.py` supports additional args, targets and options, see `
 Note, that the build script's main function is to select parameters for build args, but also create the FastSurfer-root/BUILD.info file, which will be used by FastSurfer to document the version (including git hash of the docker container). This BUILD.info file must exist for the docker build to be successful.
 In general, if you specify `--dry_run` the command will not be executed but sent to stdout, so you can run `python build.py --device cuda --dry_run | bash` as well.
 
-By default, the build script will tag your image as `"fastsurfer:[{device}-]{version_tag}"`, where `{version_tag}` is `{version-identifer from pyproject.toml}_{current git-hash}` and `{device}` is the value to `--device` (omitted for `cuda`), but a custom tag can be specified by `--tag {tag_name}`. 
+By default, the build script will tag your image as `"fastsurfer:{device}-v{version_tag}"`, where `{version_tag}` is `{version-identifer from pyproject.toml}_{current git-hash}` and `{device}` is the value to `--device` with `cuda` and `rocm` resolved to default versions (see `build.py --help`, e.g. `{{ CUDA_STRING }}` for `cuda`), but a custom tag can be specified by `--tag {tag_name}`.
 
 By default, the Python environment is resolved from `pyproject.toml`, which allows the latest compatible dependency versions. To build from the backend-neutral pinned `requirements.txt` instead, add `--pinned_requirements`. The selected `--device` is still passed to `uv --torch-backend`, so the same pinned requirements file can be used for CPU and supported CUDA variants while PyTorch backend wheels are selected during the build.
 
@@ -223,28 +223,29 @@ Make sure, you are building on a machine that has [containerd-storage and Buildk
 build_dir=$HOME/FastSurfer-build
 img=deepmi/fastsurfer
 # the version can be identified with: $build_dir/run_fastsurfer.sh --version
-version=2.5.0
-# the cuda and rocm version can be identified with: python $build_dir/tools/Docker/build.py --help | grep -E ^[[:space:]]+--device
-cuda=128
-cudas=("cuda118" "cuda126" "cuda$cuda")
-rocm=6.3
-rocms=("rocm$rocm")
+version={{ FASTSURFER_VERSION }}
+cuda={{ CUDA_STRING }}
 # end of config
 
 # code
-git clone --branch stable --single-branch github.com/Deep-MI/FastSurfer $build_dir
+git clone --branch stable --single-branch \
+    https://github.com/Deep-MI/FastSurfer $build_dir
 cd $build_dir
-all_tags=("latest" "gpu-latest" "cuda-v$version" "rocm-v$version" "cpu-latest")
+# supported cuda and rocm versions of this checkout's build.py
+cudas=($(python3 tools/Docker/build.py --print_supported cuda))
+rocms=($(python3 tools/Docker/build.py --print_supported rocm))
+all_tags=("latest" "cpu-latest")
 # build all distinct images
 for dev in cpu xpu "${rocms[@]}" "${cudas[@]}"
 do
-  python3 tools/Docker/build.py --tag $img:$dev-v$version --freesurfer_build_image $img-build:freesurfer741 --attest --device $dev
+  python3 tools/Docker/build.py --tag $img:$dev-v$version \
+      --freesurfer_build_image $img-build:freesurfer741 --attest \
+      --device $dev --pinned_requirements
   all_tags+=("$dev-v$version")
 done
 # labels that are just references
-docker tag $img:rocm$rocm-v$version $img:rocm-v$version
 docker tag $img:cpu-v$version $img:cpu-latest
-for tag in cuda-v$version gpu-latest latest; do docker tag $img:cu$cuda-v$version $img:$tag ; done
+docker tag $img:$cuda-v$version $img:latest
 # push all labels
 for tag in "${all_tags[@]}" ; do docker push $img:$tag ; done
 ```

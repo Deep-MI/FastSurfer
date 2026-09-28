@@ -40,8 +40,8 @@ logger = logging.getLogger(__name__)
 
 Target = Literal["runtime", "build_common", "build_venv", "build_freesurfer", "build_base", "runtime_cuda"]
 CacheType = Literal["inline", "registry", "local", "gha", "s3", "azblob"]
-AllDeviceType = Literal["cpu", "cuda", "cu118", "cu126", "cu128", "rocm", "rocm6.3", "xpu"]
-DeviceType = Literal["cpu", "cu118", "cu126", "cu128", "rocm6.3"]
+AllDeviceType = Literal["cpu", "cuda", "cu126", "cu130", "cu132", "rocm", "rocm7.14", "xpu"]
+DeviceType = Literal["cpu", "cu126", "cu130", "cu132", "rocm7.14", "xpu"]
 
 CREATE_BUILDER = "Create builder with 'docker buildx create --name fastsurfer'."
 CONTAINERD_MESSAGE = (
@@ -66,14 +66,10 @@ __import_cache = {}
 class DEFAULTS:
     # Here (and in the Literals at the top of the document), we need to update the cuda
     # and rocm versions, if pytorch comes with new versions.
-    # torch 1.12.0 comes compiled with cu113, cu116, rocm5.0 and rocm5.1.1
-    # torch 2.0.1 comes compiled with cu117, cu118, and rocm5.4.2
-    # torch 2.4 comes compiled with cu118, cu121, cu124 and rocm6.1
-    # torch 2.6 comes compiled with cu118, cu124, cu126 and rocm6.2.4
-    # torch 2.7.1 comes compiled with cu118, cu126, cu128, rocm6.3, and xpu (intel)
-    CUDA="cu128"
-    CUDA_VERSION="12.8"
-    ROCM="rocm6.3"
+    # torch 2.14.1 comes compiled with cu126, cu130, cu132, rocm7.14, and xpu (intel)
+    CUDA="cu132"
+    CUDA_VERSION="13.2"
+    ROCM="rocm7.14"
     MapDeviceType: dict[AllDeviceType, DeviceType] = dict(
         ((d, d) for d in get_args(DeviceType)),
         rocm=ROCM,
@@ -121,6 +117,40 @@ def target(arg) -> Target:
         raise argparse.ArgumentTypeError(
             f"target must be one of {', '.join(get_args(Target))}, but was {arg}."
         )
+
+
+def device(arg) -> DeviceType:
+    """Returns the device to build for, resolving the aliases cuda and rocm to DEFAULTS.CUDA and DEFAULTS.ROCM.
+
+    Raises
+    ======
+    ArgumentTypeError
+        if not valid."""
+    if isinstance(arg, str) and arg in DEFAULTS.MapDeviceType:
+        return DEFAULTS.MapDeviceType[arg]
+    else:
+        raise argparse.ArgumentTypeError(
+            f"device must be one of {', '.join(get_args(AllDeviceType))}, but was {arg}."
+        )
+
+
+class PrintSupportedAction(argparse.Action):
+    """Print the versions of a device backend (cuda or rocm) this script can build for and exit.
+
+    Like the builtin 'version' action, this exits while parsing, so required arguments like --device
+    are not needed.
+    """
+
+    def __init__(self, option_strings, dest, default=argparse.SUPPRESS, **kwargs):
+        super().__init__(option_strings, dest, default=default, **kwargs)
+
+    def __call__(self, parser, namespace, values, option_string=None):
+        # versions start with the first letters of the backend: cuda -> cuXXX, ...; rocm -> rocmX.YY
+        prefix = {"cuda": "cu"}.get(values, values)
+        for version in get_args(DeviceType):
+            if version.startswith(prefix):
+                print(f"  {version}")
+        parser.exit()
 
 
 class CacheSpec:
@@ -200,6 +230,7 @@ def make_parser() -> argparse.ArgumentParser:
 
     parser.add_argument(
         "--device",
+        type=device,
         choices=list(get_args(AllDeviceType)),
         required=True,
         help=f"""selection of internal build stages to build for a specific platform.<br>
@@ -348,6 +379,12 @@ def make_parser() -> argparse.ArgumentParser:
         "--insecure",
         action="store_true",
         help="disables certificate check for downloads, e.g. freesurfer.",
+    )
+    expert.add_argument(
+        "--print_supported",
+        action=PrintSupportedAction,
+        choices=["cuda", "rocm"],
+        help="print the supported CUDA/ROCm versions and exit.",
     )
     expert.add_argument(
         "--debug",
@@ -687,9 +724,8 @@ def main(
 
     if target not in get_args(Target):
         raise ValueError(f"Invalid target: {target}")
-    if device not in get_args(AllDeviceType):
-        raise ValueError(f"Invalid device: {device}")
-    mapped_device = DEFAULTS.MapDeviceType.get(device, "cpu")
+    if device not in get_args(DeviceType):
+        raise ValueError(f"Invalid device: {device}, must be one of {', '.join(get_args(DeviceType))}.")
     if keywords.get("action", "load") == "push":
         kwargs["action"] = "push"
     # special case to add extra environment variables to better support AWS and ROCm
@@ -697,7 +733,7 @@ def main(
         target = "runtime_cuda"
     kwargs["target"] = target
     kwargs["build_arg"] = [
-        f"DEVICE={mapped_device}",
+        f"DEVICE={device}",
         f"FREESURFER_URL={pyproject_freesurfer['urls']['linux'].format(version=pyproject_freesurfer['version'])}",
         f"FREESURFER_VERSION={pyproject_freesurfer['version']}",
         f"INSECURE_FLAG={'--insecure' if insecure else ''}",
@@ -775,17 +811,14 @@ def main(
         f"SOURCE_URL={source_url}",
     ])
     version_tag = build_info["version_tag"]
-    image_prefix = ""
-    if device != "cuda":
-        image_prefix = f"{device}-"
     # image_tag is None or ""
     if not bool(image_tag):
-        image_tag = f"fastsurfer:{image_prefix}v{version_tag}".replace("+", "_")
+        image_tag = f"fastsurfer:{device}-v{version_tag}".replace("+", "_")
         logger.info(f"No image name/tag provided, auto-generated tag: {image_tag}")
 
     attestation = bool(keywords.get("attest"))
     if tag_dev:
-        kwargs["tag"] = f"fastsurfer:{image_prefix}dev"
+        kwargs["tag"] = "fastsurfer:dev" if device == DEFAULTS.CUDA else f"fastsurfer:{device}-dev"
     if keywords.get("image_path", False):
         kwargs["image_path"] = keywords["image_path"]
 

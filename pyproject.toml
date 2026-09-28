@@ -53,9 +53,9 @@ dependencies = [
     'scipy>=1.10.1,!=1.13.0',
     'simpleitk>=2.2.1',
     'tensorboard>=2.12.1',
-    'torch==2.7.*', # pinned to 2.7, so compatibility to CUDA 11 is ensured for same torch version
+    'torch==2.14.*', # pinned to 2.14
     'torchio>=0.18.83',
-    'torchvision>=0.22.1,<0.23',
+    'torchvision>=0.29.0,<0.30.0',
     'tqdm>=4.65',
     'yacs>=0.1.8',
 ]
