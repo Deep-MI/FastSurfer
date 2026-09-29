@@ -160,18 +160,22 @@ SHELL ["/bin/bash", "--login", "-e", "-c"]
 RUN --mount=type=cache,target=/root/.cache/uv \
     --mount=type=bind,source=pyproject.toml,target=/install/pyproject.toml \
     --mount=type=bind,source=requirements.txt,target=/install/requirements.txt <<EOF
-uv venv --python ${PYTHON_VERSION} --relocatable /venv --prompt fastsurfer
+function error() { echo "ERROR: $1" >&2; exit 1; }
+if ! uv venv --python ${PYTHON_VERSION} --relocatable /venv --prompt fastsurfer; then
+    error "uv venv failed, check uv."
+fi
 # activate the virtual environment
 source /venv/bin/activate
 # uv pip sync only installs "exactly" the packages in the lockfile, but does not resolve dependencies
 # therefore, we first compile the environment to resolve dependencies, and then sync to install both directly and
 # indirectly required packages
-# pipefail: fail the build if uv pip compile fails, uv pip sync succeeds on the resulting empty input
-set -o pipefail
-if [[ "$PINNED_REQUIREMENTS" == "true" ]]; then
-    uv pip compile --torch-backend=${DEVICE} /install/requirements.txt | uv pip sync --torch-backend=${DEVICE} -
-else
-    uv pip compile --torch-backend=${DEVICE} --extra container /install/pyproject.toml | uv pip sync --torch-backend=${DEVICE} -
+if [[ "$PINNED_REQUIREMENTS" == "true" ]]; then uv_compile_args=(/install/requirements.txt)
+else uv_compile_args=(--extra container /install/pyproject.toml)
+fi
+# avoid silent failures of uv compile/pip sync
+if ! uv pip compile --torch-backend=${DEVICE} "${uv_compile_args[@]}" -o /install/requirements.lock \
+  || ! uv pip sync --torch-backend=${DEVICE} /install/requirements.lock; then
+    error "uv compile/pip sync failed, check/fix ${uv_compile_args[-1]/\/install\//}."
 fi
 EOF
 
