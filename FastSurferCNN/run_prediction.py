@@ -562,7 +562,8 @@ def make_parser():
     )
 
     def _add_sd_help(action: argparse.Action) -> None:
-        action.help += " Optional if full path is defined for --pred_name."
+        assert isinstance(action.help, str), "action.help must be a string for _add_sd_help."
+        action.help += " Optional if full path is defined for --asegdkt_segfile."
     parser_defaults.modify_argument(parser, "--sd", _add_sd_help)
 
     # 3. Checkpoint to load

@@ -6,10 +6,12 @@
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
 
+import ast
 import importlib
 import io
 import os
 import re
+import subprocess
 import sys
 from pathlib import Path
 
@@ -36,6 +38,65 @@ _version_dict = parse_build_file(_streambuf)
 # hash is optional in the version line, so fall back to a ref that exists rather than to nothing.
 commit = _version_dict["git_hash"] or "dev"
 version = _version_dict["version"]
+
+# doc.yml publishes each build to gh-pages under the ref it was built from, so that ref is what
+# says whether this tree documents a release. It is read from the environment rather than from git,
+# because actions/checkout leaves a detached HEAD and `git branch --show-current` is empty there.
+# The tag pattern matches the release tags this project actually uses, all of them X.Y.Z. A tag
+# with a suffix falls through to the development wording, which is the safe way round. doc.yml
+# publishes no tags today, so only "stable" reaches this in practice.
+publish_ref = os.environ.get("GITHUB_REF_NAME", "")
+documents_a_release = publish_ref == "stable" or re.fullmatch(r"v\d+\.\d+\.\d+", publish_ref) is not None
+
+
+def _latest_release() -> str:
+    """Return the version of the newest release tag (vX.Y.Z) of the repository."""
+    tags = subprocess.run(
+        ["git", "tag", "--list", "v*"], cwd=Path(__file__).parents[1], capture_output=True, text=True, check=True,
+    ).stdout.split()
+    releases = [tuple(map(int, m.groups())) for m in map(re.compile(r"v(\d+)\.(\d+)\.(\d+)").fullmatch, tags) if m]
+    if not releases:
+        raise RuntimeError(
+            "The documentation of a development version refers to the newest release, but the repository has no "
+            "release tags (vX.Y.Z), fetch them with `git fetch --tags`."
+        )
+    return ".".join(map(str, max(releases)))
+
+
+# Official Docker images only exist for releases, so commands in the documentation (e.g. docker image tags) use the
+# version from pyproject.toml if this tree documents a release, and the newest release otherwise.
+image_version = version if documents_a_release else _latest_release()
+
+
+def _default_cuda(ref: str | None) -> tuple[str, str]:
+    """Return DEFAULTS.CUDA and DEFAULTS.CUDA_VERSION of tools/Docker/build.py, in the working tree or at ref.
+
+    These are the device of the `latest` image (e.g. cu128) and the CUDA version it ships (e.g. 12.8).
+    """
+    root = Path(__file__).parents[1]
+    if ref is None:
+        source = (root / "tools/Docker/build.py").read_text()
+    else:
+        source = subprocess.run(
+            ["git", "show", f"{ref}:tools/Docker/build.py"], cwd=root, capture_output=True, text=True, check=True,
+        ).stdout
+    for node in ast.walk(ast.parse(source)):
+        if isinstance(node, ast.ClassDef) and node.name == "DEFAULTS":
+            values = {
+                target.id: stmt.value
+                for stmt in node.body if isinstance(stmt, ast.Assign)
+                for target in stmt.targets if isinstance(target, ast.Name)
+            }
+            if "CUDA" in values and "CUDA_VERSION" in values:
+                return ast.literal_eval(values["CUDA"]), ast.literal_eval(values["CUDA_VERSION"])
+    raise RuntimeError(
+        f"tools/Docker/build.py ({ref or 'working tree'}) does not define both DEFAULTS.CUDA and DEFAULTS.CUDA_VERSION."
+    )
+
+
+# the CUDA device (e.g. cu128) and CUDA version (e.g. 12.8) of the images named by image_version, from the same tree
+# as image_version
+image_cuda, version_cuda = _default_cuda(None if documents_a_release else f"v{image_version}")
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
@@ -90,10 +151,11 @@ myst_enable_extensions = {
     "substitution",
 }
 
-# configure substitutions
+# configure substitutions, fix_links also replaces string substitutions inside code, which MyST does not
 myst_substitutions = {
-    # for now, the FASTSURFER_VERSION is hard-coded to 2.4.0
-    "FASTSURFER_VERSION": version,
+    "FASTSURFER_VERSION": image_version,
+    "CUDA_STRING": image_cuda,
+    "CUDA_VERSION": version_cuda,
 }
 
 templates_path = ["_templates"]
@@ -102,6 +164,9 @@ exclude_patterns = [
     "Thumbs.db",
     ".DS_Store",
     "**.ipynb_checkpoints",
+    # instructions for writing the documentation, not part of it
+    "AGENTS.md",
+    "CONVENTIONS.md",
 ]
 
 
@@ -198,6 +263,14 @@ intersphinx_timeout = 5
 
 # -- sphinx-issues -----------------------------------------------------------
 issues_github_path = gh_url.split("https://github.com/")[-1]
+
+# -- sphinx-copybutton -------------------------------------------------------
+# ```text fences are explanations with placeholders (see CONVENTIONS.md), so only other code gets a copy button
+copybutton_selector = "div:not(.highlight-text) > div.highlight > pre"
+
+# -- sphinxcontrib-programoutput ---------------------------------------------
+# command-output shows the command above its output; output blocks have no `$` prompt (see CONVENTIONS.md)
+programoutput_prompt_template = "{command}\n{output}"
 
 # -- autosectionlabels -------------------------------------------------------
 autosectionlabel_prefix_document = True
@@ -296,4 +369,42 @@ fix_links_alternative_targets = {
     "/overview/intro": ("/index.rst", "/overview/index.rst"),
 }
 fix_links_project_root = Path("..")
+# set of substitution names => text (one MyST markdown paragraph) of the note fix_links renders on top of each fenced
+# code block that uses exactly these of the names used here as `{{ name }}`, sets without an entry get no note
+# the commands use the official images, which may not match this tree's version (FastSurfer, default CUDA version)
+_docker_hub = f"[Docker Hub](https://hub.docker.com/r/deepmi/fastsurfer/tags?name=v{image_version})"
+_torch_docs_url = f"(https://pytorch.org/docs)"
+if documents_a_release:
+    fix_links_substitution_banners = {
+        frozenset({"CUDA_STRING"}): (
+            f"The commands below use {image_cuda}, which references the default CUDA version ({version_cuda}) of "
+            f"FastSurfer {image_version}. Other CUDA versions are supported by [PyTorch]({_torch_docs_url}), but "
+            f"depend on the PyTorch version. If you use `uv`, then `--torch-backend auto` automatically lets `uv` "
+            f"decide."
+        ),
+        frozenset({"FASTSURFER_VERSION", "CUDA_STRING"}): (
+            f"The commands below use the tagged FastSurfer image `:{image_cuda}-v{image_version}`. CUDA {version_cuda} "
+            f"is the default CUDA version bundled in both `:latest` and that image. Images of {image_version} for "
+            f"other CUDA versions, ROCm and CPU are available on {_docker_hub}."
+        ),
+    }
+else:
+    _latest_release_str = (
+        f"This documents the development version {version}. Official Docker images only exist for releases, so the "
+        f"commands below use the latest release, {image_version}"
+    )
+    _build_image = "To run the development version, {doc}`build your own image </overview/docker>`."
+    fix_links_substitution_banners = {
+        frozenset({"FASTSURFER_VERSION"}): f"{_latest_release_str}. {_build_image}",
+        frozenset({"CUDA_STRING"}): (
+            f"{_latest_release_str}. The commands below use {image_cuda}, which references the default CUDA version "
+            f"({version_cuda}) of FastSurfer {image_version}. The default PyTorch and CUDA versions might be different "
+            f"for this development version (see supported [PyTorch's documentation]({_torch_docs_url}). If you use "
+            f"`uv`, then `--torch-backend auto` automatically lets `uv` decide."
+        ),
+        frozenset({"FASTSURFER_VERSION", "CUDA_STRING"}): (
+            f"{_latest_release_str}, for its default CUDA version, {version_cuda}. Images of {image_version} for other "
+            f"CUDA versions, ROCm and CPU are available on {_docker_hub}. {_build_image}"
+        ),
+    }
 

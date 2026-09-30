@@ -40,26 +40,27 @@ function usage()
 {
 cat << EOF
 
-Usage: recon-surfreg.sh --sid <sid> --sd <sdir> [OPTIONS]
+Usage: recon-surfreg.sh --sid <subject_id> --sd <subjects_dir> [OPTIONS]
 
 recon-surfreg.sh creates the ?h.sphere and ?h.sphere.reg from an existing
 subject directory, if this step was skipped in recon-surf.sh with --no_surfreg
 
 FLAGS:
-  --sid <subjectID>       Subject ID to create directory inside \$SUBJECTS_DIR
+  --sid <subject_id>      Subject ID to create directory inside \$SUBJECTS_DIR
   --sd  <subjects_dir>    Output directory \$SUBJECTS_DIR (or pass via env var)
   --threads <int>         Total thread budget, default 2. With 2 or more the two
                             hemispheres run at the same time and split it, so 2
-                            gives one thread each and 8 gives four each. Use 1 to
-                            keep every binary single threaded, which is what to
-                            use for reproducible results.
+                            gives one thread each and 8 gives four each. Use 1
+                            to keep every binary single threaded, which is what
+                            to use for reproducible results.
   --parallel              Run the hemispheres at the same time with one thread
                             each, even at --threads 1. That keeps every binary
                             single threaded, and so reproducible, while still
                             using two cores. No effect at --threads 2 or more,
                             where the hemispheres already run at the same time.
   --py <python_cmd>       Command for python, default $python
-  --fs_license <license>  Path to FreeSurfer license key file. Register at
+  --fs_license <license_file>
+                          Path to FreeSurfer license key file. Register at
                             https://surfer.nmr.mgh.harvard.edu/registration.html
                             for free to obtain it if you do not have FreeSurfer
 			    installed already

@@ -100,7 +100,7 @@ The primary output files are pial, white, and inflated surface files, the thickn
 
 Lesion Inpainting Tool (LIT, optional)
 --------------------------------------
-When `--lesion_mask <path to file>` is provided, FastSurfer wraps the segmentation and surface
+When `--lesion_mask <lesion_mask_file>` is provided, FastSurfer wraps the segmentation and surface
 pipelines with lesion inpainting using LIT. The extension is currently experimental. It inpaints
 the lesion region, runs the requested FastSurfer modules on the inpainted image, and then maps the
 lesion back into the resulting outputs. The current LIT postprocessing workflow updates the primary
@@ -168,4 +168,4 @@ surface stats remain in the corresponding `.mapped.stats` files.
 
 Longitudinal Processing
 -----------------------
-When running the [longitudinal pipeline](LONG.md) the output will be as above for the individual time point directories. Note that the templateID directory for the within-subject template will not contain all files and usually is not looked at or analyzed, as it represents an intermediate step in the longitudinal pipeline. 
+When running the [longitudinal pipeline](LONG.md) the output will be as above for the individual time point directories. Note that the `<template_id>` directory for the within-subject template will not contain all files and usually is not looked at or analyzed, as it represents an intermediate step in the longitudinal pipeline.

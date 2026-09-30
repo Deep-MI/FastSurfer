@@ -103,7 +103,7 @@ def option_parse() -> argparse.ArgumentParser:
         "--qc_snap",
         action='store_true',
         dest="qc_snapshots",
-        help="Create qc snapshots in <sd>/<sid>/qc_snapshots.",
+        help="Create qc snapshots in <subject_dir>/qc_snapshots.",
     )
     parser.add_argument(
         "--reg_mode",
@@ -130,7 +130,7 @@ def option_parse() -> argparse.ArgumentParser:
         type=str,
         default=HYPVINN_STATS_NAME,
         dest="hypo_statsfile",
-        help=f"File name under <sd>/<sid>/stats, or an absolute path, to save the hypothalamus "
+        help=f"File name under <subject_dir>/stats, or an absolute path, to save the hypothalamus "
              f"statistics to (default: {HYPVINN_STATS_NAME})."
     )
 

@@ -13,25 +13,25 @@ The input files and options may be specified in three ways:
 
 1. By writing them into the console (or by piping them in) (default) (one case per line),
 2. by passing a subject list file `--subject_list <filename>` (one case per line), or
-3. by passing them on the command line `--subjects "<subject_id>=<t1 file>" [more cases]` (no additional options
+3. by passing them on the command line `--subjects "<subject_id>=<t1_file>" [more cases]` (no additional options
    supported).
 
-These files/input options will usually be in the format `<subject_id>=<t1 file> [additional options]`, where additional
+These files/input options will usually be in the format `<subject_id>=<t1_file> [additional options]`, where additional
 options are optional and enable passing options different to the "general options" given on the command line to
 `brun_fastsurfer.sh`. One example for such a case-specific option is an optional T2w image (e.g. for the
 [HypVINN](../overview/OUTPUT_FILES.md#hypvinn-module)). An example subject list file might look like this:
 
-```
-001=/data/study/raw/T1w-001.nii.gz --t2 /data/study/raw/T2w-001.nii.gz
-002=/data/study/raw/T1w-002.nii.gz --t2 /data/study/raw/T2w-002.nii.gz
-002=/data/study/raw/T1w-003-alt.nii.gz --t2 /data/study/raw/T2w-003.nii.gz
+```text
+001=/home/user/my_mri_data/001/t1_weighted.nii.gz --t2 /home/user/my_mri_data/001/t2_weighted.nii.gz
+002=/home/user/my_mri_data/002/t1_weighted.nii.gz --t2 /home/user/my_mri_data/002/t2_weighted.nii.gz
+003=/home/user/my_mri_data/003/t1_weighted_alt.nii.gz --t2 /home/user/my_mri_data/003/t2_weighted.nii.gz
 ...
 ```
 
 Parallelization with `brun_fastsurfer.sh`
 -----------------------------------------
 `brun_fastsurfer.sh` has powerful builtin parallel processing capabilities. These are hidden underneath the
-`--parallel* <n>|max` and the `--device <device>` as well as `--viewagg_device <device>` flags.
+`--parallel* <n>|max` and the `--device <torch_device>` as well as `--viewagg_device <torch_device>` flags.
 One of the core properties of FastSurfer is the split into the segmentation (which uses Deep Learning and therefore
 benefits from GPUs) and the surface pipeline (which does not benefit from GPUs). For ideal batch processing, we want
 different resource scheduling.
@@ -47,6 +47,7 @@ This mode is ideal for CPU-based processing for segmentation. It will process se
 in the same process, but multiple cases are processed at the same time.
 
 ```bash
+export FASTSURFER_HOME=$HOME/FastSurfer
 $FASTSURFER_HOME/brun_fastsurfer.sh --parallel 4 --threads 2
 ```
 will start 4 segmentations (and surface reconstructions) at the same time, and will start a fifth, when the surface
@@ -60,8 +61,9 @@ This is ideal for GPU-based processing for segmentation. It will process segment
 pipelines, which is useful for optimized GPU loading. Multiple cases may be processed at the same time.
 
 ```bash
-$FASTSURFER_HOME/brun_fastsurfer.sh --device cuda:0-1 --parallel_seg 2 --parallel_surf max \
-  --threads_seg 8 --threads_surf 4
+export FASTSURFER_HOME=$HOME/FastSurfer
+$FASTSURFER_HOME/brun_fastsurfer.sh --device cuda:0-1 --parallel_seg 2 \
+  --parallel_surf max --threads_seg 8 --threads_surf 4
 ```
 will start 2 parallel segmentations (`--parallel_seg 2`) using GPU 0 for case 1 and GPU 1 for case 2
 (`--device cuda:0-1` -- same as `--device cuda:0,1`). After one of these segmentations is finished, the segmentation of
@@ -82,5 +84,5 @@ Can I disable the progress bars in the output?
 >
 > For docker, this can be done with the flag `-e`, e.g. `docker run -e TQDM_DISABLE=1 ...`, for singularity with the
 > flag `--env`, e.g. `singularity exec --env TQDM_DISABLE=1 ...` and for native installations by prepending, e.g.
-> `TQDM_DISABLE=1 ./run_fastsurfer.sh ...`.
+> `TQDM_DISABLE=1 $FASTSURFER_HOME/run_fastsurfer.sh ...`.
 

@@ -52,9 +52,10 @@ For example:
 
 .. code-block:: bash
 
-    python3 CorpusCallosum/fastsurfer_cc.py \
-        --sd /data/subjects \
-        --sid sub001 \
+    export FASTSURFER_HOME=$HOME/FastSurfer
+    python3 $FASTSURFER_HOME/CorpusCallosum/fastsurfer_cc.py \
+        --sd $HOME/my_fastsurfer_analysis \
+        --sid subjectX \
         --ac_coords 127.4 126.8 128.1 \
         --pc_coords 127.9 103.6 128.7 \
         --upright_volume mri/upright_volume.mgz
@@ -79,18 +80,19 @@ To reprocess a manual CC correction, first copy the automatic upright segmentati
 
 .. code-block:: bash
 
-    SUBJECT_DIR=/data/subjects/sub001
-    cp "$SUBJECT_DIR/mri/callosum.CC.upright.mgz" \
-       "$SUBJECT_DIR/mri/callosum.CC.upright.manedit.mgz"
+    subject_dir=$HOME/my_fastsurfer_analysis/subjectX
+    cp "$subject_dir/mri/callosum.CC.upright.mgz" \
+       "$subject_dir/mri/callosum.CC.upright.manedit.mgz"
 
 Edit label 192 in ``mri/callosum.CC.upright.manedit.mgz`` using ``mri/upright_volume.mgz`` as the anatomical reference.
 The manual file may also contain fornix label 250. Then rerun the expert command with the manual input:
 
 .. code-block:: bash
 
-    python3 CorpusCallosum/fastsurfer_cc.py \
-        --sd /data/subjects \
-        --sid sub001 \
+    export FASTSURFER_HOME=$HOME/FastSurfer
+    python3 $FASTSURFER_HOME/CorpusCallosum/fastsurfer_cc.py \
+        --sd $HOME/my_fastsurfer_analysis \
+        --sid subjectX \
         --segmentation_manedit mri/callosum.CC.upright.manedit.mgz \
         --upright_volume mri/upright_volume.mgz \
         --qc_image qc_snapshots/callosum.png \
@@ -113,55 +115,57 @@ The complete Docker edit rerun is:
 
 .. code-block:: bash
 
-    SUBJECTS_DIR=/data/fastsurfer
-    SID=sub001
+    export SUBJECTS_DIR=$HOME/my_fastsurfer_analysis
+    subject_id=subjectX
 
     docker run --gpus all --rm \
         --user "$(id -u):$(id -g)" \
-        --volume "$SUBJECTS_DIR:/output" \
+        --volume "$SUBJECTS_DIR:$SUBJECTS_DIR" \
         --entrypoint /fastsurfer/tools/Docker/entrypoint.sh \
         deepmi/fastsurfer:latest \
         python3 /fastsurfer/CorpusCallosum/fastsurfer_cc.py \
-        --sd /output \
-        --sid "$SID" \
+        --sd "$SUBJECTS_DIR" \
+        --sid "$subject_id" \
         --segmentation_manedit mri/callosum.CC.upright.manedit.mgz \
         --upright_volume mri/upright_volume.mgz \
         --qc_image qc_snapshots/callosum.png \
         --thickness_image qc_snapshots/callosum.thickness.png
 
-The example above resolves the relative manual path inside ``/output/$SID``. A manual segmentation stored elsewhere
-on the host can instead be mounted read-only and passed by its absolute container path:
+The example above resolves the relative manual path inside ``$SUBJECTS_DIR/$subject_id``. A manual segmentation stored
+elsewhere on the host can instead be mounted read-only at the same path and passed by its absolute path:
 
 .. code-block:: bash
 
-    MANUAL_EDIT=/data/annotations/sub001_cc_manedit.mgz
+    export SUBJECTS_DIR=$HOME/my_fastsurfer_analysis
+    subject_id=subjectX
+    manual_edit=$HOME/my_mri_data/subjectX/cc_manedit.mgz
 
     docker run --gpus all --rm \
         --user "$(id -u):$(id -g)" \
-        --volume "$SUBJECTS_DIR:/output" \
-        --volume "$MANUAL_EDIT:/manual-edit.mgz:ro" \
+        --volume "$SUBJECTS_DIR:$SUBJECTS_DIR" \
+        --volume "$manual_edit:$manual_edit:ro" \
         --entrypoint /fastsurfer/tools/Docker/entrypoint.sh \
         deepmi/fastsurfer:latest \
         python3 /fastsurfer/CorpusCallosum/fastsurfer_cc.py \
-        --sd /output \
-        --sid "$SID" \
-        --segmentation_manedit /manual-edit.mgz \
+        --sd "$SUBJECTS_DIR" \
+        --sid "$subject_id" \
+        --segmentation_manedit "$manual_edit" \
         --qc_image qc_snapshots/callosum.png
 
 The complete Singularity edit rerun is:
 
 .. code-block:: bash
 
-    SUBJECTS_DIR=/data/fastsurfer
-    SID=sub001
-    FASTSURFER_SIF=/containers/fastsurfer-gpu.sif
+    export SUBJECTS_DIR=$HOME/my_fastsurfer_analysis
+    subject_id=subjectX
+    fastsurfer_sif=$HOME/my_singularity_images/fastsurfer-latest.sif
 
     singularity exec --nv --no-mount home,cwd -e \
-        --bind "$SUBJECTS_DIR:/output" \
-        "$FASTSURFER_SIF" \
+        --bind "$SUBJECTS_DIR" \
+        "$fastsurfer_sif" \
         python3 /fastsurfer/CorpusCallosum/fastsurfer_cc.py \
-        --sd /output \
-        --sid "$SID" \
+        --sd "$SUBJECTS_DIR" \
+        --sid "$subject_id" \
         --segmentation_manedit mri/callosum.CC.upright.manedit.mgz \
         --upright_volume mri/upright_volume.mgz \
         --qc_image qc_snapshots/callosum.png \
@@ -182,12 +186,15 @@ Finally, to confirm the alignment of the CC on the mid-sagittal plane, we can ou
 In this image the mid-sagittal plane is at voxel coordinate 128 in the LR direction.
 
 An example call with all quality control outputs is:
+
 .. code-block:: bash
 
-    python3 fastsurfer_cc.py --sd /data/subjects --sid sub001 \
-        --qc_image /data/qc/sub001/qc_snapshots/callosum.png \
-        --thickness_image /data/qc/sub001/qc_snapshots/callosum.thickness.png \
-        --upright_volume /data/qc/sub001/mri/upright_volume.mgz
+    export FASTSURFER_HOME=$HOME/FastSurfer
+    python3 $FASTSURFER_HOME/CorpusCallosum/fastsurfer_cc.py \
+        --sd $HOME/my_fastsurfer_analysis --sid subjectX \
+        --qc_image qc_snapshots/callosum.png \
+        --thickness_image qc_snapshots/callosum.thickness.png \
+        --upright_volume mri/upright_volume.mgz
 
 Custom Subdivision Schemes
 --------------------------
@@ -199,7 +206,9 @@ We can, for example divide the CC into 4 equal parts with the shape-based subdiv
 
 .. code-block:: bash
 
-    python3 fastsurfer_cc.py --sd /data/subjects --sid sub001 \
+    export FASTSURFER_HOME=$HOME/FastSurfer
+    python3 $FASTSURFER_HOME/CorpusCallosum/fastsurfer_cc.py \
+        --sd $HOME/my_fastsurfer_analysis --sid subjectX \
         --subdivision_method shape \
         --subdivisions 0.25 0.5 0.75
 
@@ -214,9 +223,11 @@ When running the main pipeline with ``--slice_selection all`` and ``--save_templ
 .. code-block:: bash
 
     # Generate 3D template data
-    python3 fastsurfer_cc.py --sd /data/subjects --sid sub001 \
+    export FASTSURFER_HOME=$HOME/FastSurfer
+    python3 $FASTSURFER_HOME/CorpusCallosum/fastsurfer_cc.py \
+        --sd $HOME/my_fastsurfer_analysis --sid subjectX \
         --slice_selection all \
-        --save_template_dir /data/templates/sub001
+        --save_template_dir $HOME/my_fastsurfer_analysis/subjectX/cc_template
 
 The template files can be used to visualize the corpus callosum in 3D with the :doc:`cc_visualization` script.
 
@@ -233,9 +244,11 @@ When using ``--slice_selection middle`` or a specific slice number with ``--save
 .. code-block:: bash
 
     # Generate 2D template data (middle slice)
-    python3 fastsurfer_cc.py --sd /data/subjects --sid sub001 \
+    export FASTSURFER_HOME=$HOME/FastSurfer
+    python3 $FASTSURFER_HOME/CorpusCallosum/fastsurfer_cc.py \
+        --sd $HOME/my_fastsurfer_analysis --sid subjectX \
         --slice_selection middle \
-        --save_template_dir /data/templates/sub001
+        --save_template_dir $HOME/my_fastsurfer_analysis/subjectX/cc_template
 
 **Benefits:**
 - Faster processing for single-slice analysis

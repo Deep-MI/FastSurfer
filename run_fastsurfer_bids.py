@@ -56,9 +56,9 @@ def make_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description=__doc__,
         formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog="Any options after a literal '--' are passed through unchanged to "
+        epilog="Any options after a literal '--' are passed through unchanged to\n"
                "brun_fastsurfer.sh (or srun_fastsurfer.sh), e.g.:\n"
-               "  run_fastsurfer_bids.py /bids /out participant -- --seg_only --3T",
+               "  run_fastsurfer_bids.py <bids_dir> <output_dir> participant -- --seg_only --3T",
     )
     parser.add_argument("bids_dir", type=Path, help="Path to the BIDS-valid input dataset.")
     parser.add_argument(

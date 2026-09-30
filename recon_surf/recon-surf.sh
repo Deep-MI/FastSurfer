@@ -65,68 +65,73 @@ function usage()
 {
 cat << EOF
 
-Usage: recon-surf.sh --sid <sid> --sd <sdir> --t1 <t1> --asegdkt_segfile <asegdkt_segfile> [OPTIONS]
+Usage: recon-surf.sh --sid <subject_id> --sd <subjects_dir> --t1 <t1_file> \\
+                     --asegdkt_segfile <asegdkt_segfile> [OPTIONS]
 
 recon-surf.sh takes a segmentation and T1 full head image and creates surfaces,
 thickness etc as a FS subject dir.
 
 FLAGS:
-  --sid <subjectID>       Subject ID to create directory inside \$SUBJECTS_DIR 
+  --sid <subject_id>      Subject ID to create directory inside \$SUBJECTS_DIR
   --sd  <subjects_dir>    Output directory \$SUBJECTS_DIR (or pass via env var)
-  --t1  <T1_input>        T1 full head input (not bias corrected). This must be
+  --t1  <t1_file>         T1 full head input (not bias corrected). This must be
                             a conformed image (dimensions: 256x256x256, voxel
                             size: 1x1x1, LIA orientation, and data type UCHAR).
                             Images can be conformed using FastSurferCNN's
                             conform.py script (usage example: python3
-                            FastSurferCNN/data_loader/conform.py -i <T1_input>
-                            -o <conformed_T1_output>). Requires an ABSOLUTE Path!
+                            FastSurferCNN/data_loader/conform.py -i <t1_file>
+                            -o <conformed_file>). Requires an ABSOLUTE Path!
   --asegdkt_segfile <asegdkt_segfile>
                           Name of intermediate DL-based segmentation file
                             (similar to aparc+aseg). This must be conformed
-                            (voxel size: isotropic, LIA orientation, and, if voxel
-                            size 1mm, dimensions: 256x256x256). FastSurferCNN's
-                            segmentations are conformed by default; please ensure
-                            that segmentations produced otherwise are conformed.
+                            (voxel size: isotropic, LIA orientation, and, if
+                            voxel size 1mm, dimensions: 256x256x256).
+                            FastSurferCNN's segmentations are conformed by
+                            default; please ensure that segmentations produced
+                            otherwise are conformed.
                             Requires an ABSOLUTE Path! Default location:
                             \$SUBJECTS_DIR/\$sid/mri/aparc.DKTatlas+aseg.deep.mgz
   --mask_name <mask_file> Path to the brain mask file to use. Default location:
                             \$SUBJECTS_DIR/\$sid/mri/mask.mgz
-  --edits                 Disable the check for existing recon-surf.sh run, replace
-                            <asegdkt_segfile> by its manedit-suffixed version,
-                            includes wm.mgz and brain.finalsurfs.mgz edits,
-                            and enables FreeSurfer-style WM control points.
-  --fstess                Revert to FreeSurfer mri_tesselate for surface creation
-                            (default: mri_mc)
+  --edits                 Disable the check for existing recon-surf.sh run,
+                            replace <asegdkt_segfile> by its manedit-suffixed
+                            version, includes wm.mgz and brain.finalsurfs.mgz
+                            edits, and enables FreeSurfer-style WM control
+                            points.
+  --fstess                Revert to FreeSurfer mri_tesselate for surface
+                            creation (default: mri_mc)
   --fsqsphere             Revert to FreeSurfer iterative inflation for qsphere
                             (default: spectral spherical projection)
   --fsaparc               Additionally create FS aparc segmentations and ribbon.
                             Skipped by default (--> DL prediction is used which
                             is faster, and usually these mapped ones are fine).
-                            Note, if you switch this on it will create all cortical
-                            parcellations with FreeSurfer's spherical atlases and
-                            also map these into the aparc+aseg file instead of
-                            the FastSurfer ones. FastSurfer's cortical DKT atlas
-                            results can still be found in:
+                            Note, if you switch this on it will create all
+                            cortical parcellations with FreeSurfer's spherical
+                            atlases and also map these into the aparc+aseg file
+                            instead of the FastSurfer ones. FastSurfer's
+                            cortical DKT atlas results can still be found in:
                             <hemi>.aparc.DKTatlas.mapped.stats
-  --3T                    Use the 3T atlas for talairach registration (gives better
-                            eTIV estimates for 3T MR images, default: 1.5T atlas).
+  --3T                    Use the 3T atlas for talairach registration (gives
+                            better eTIV estimates for 3T MR images, default:
+                            1.5T atlas).
   --threads <int>         Total thread budget, default 2. With 2 or more the two
                             hemispheres run at the same time and split it, so 2
-                            gives one thread each and 8 gives four each. Use 1 to
-                            keep every binary single threaded, which is what to
-                            use for reproducible results.
+                            gives one thread each and 8 gives four each. Use 1
+                            to keep every binary single threaded, which is what
+                            to use for reproducible results.
   --parallel              Run the hemispheres at the same time with one thread
                             each, even at --threads 1. That keeps every binary
                             single threaded, and so reproducible, while still
                             using two cores. No effect at --threads 2 or more,
                             where the hemispheres already run at the same time.
   --py <python_cmd>       Command for python, default ${python}
-  --fs_license <license>  Path to FreeSurfer license key file. Register at
+  --fs_license <license_file>
+                          Path to FreeSurfer license key file. Register at
                             https://surfer.nmr.mgh.harvard.edu/registration.html
                             for free to obtain it if you do not have FreeSurfer
                             installed already.
   --base                  For longitudinal template (base) creation.
-  --long <baseid>         For longitudinal time point creation, pass the ID of
+  --long <template_id>    For longitudinal time point creation, pass the ID of
                             the base (template) which needs to exist already in
                             the same subjects_dir.
   -h --help               Print Help

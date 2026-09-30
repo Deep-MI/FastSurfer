@@ -65,21 +65,27 @@ cat << EOF
 Script to orchestrate resource-optimized FastSurfer runs on SLURM clusters.
 
 Usage:
-srun_fastsurfer.sh [--data <directory to search images>]
-    [--sd <output directory>] [--work <work directory>]
-    (--pattern <search pattern for images>|--subject_list <path to subject_list file>
-                                           [--subject_list_delim <delimiter>]
-                                           [--subject_list_awk_code_sid <subject_id code>]
-                                           [--subject_list_awk_code_t1 <image_path code>])
-    [--singularity_image <path to fastsurfer singularity image>] [--extra_singularity_options <singularity options>]
-    [--extra_singularity_options_seg <singularity options>] [--extra_singularity_options_surf <singularity options>]
-    [--num_cases_per_task <number>] [--cpu_only] [--num_cpus_per_task <number of cpus to allocate for seg>]
-    [--time_seg <timelimit>] [--time_surf <timelimit>] [--mem_seg <number (GB)>] [--mem_surf <number (GB)>]
-    [--partition <slurm partition>] [--partition_seg <slurm partition>] [--partition_surf <slurm partition>]
-    [--extra_slurm_options <sbatch options>] [--extra_slurm_options_seg <sbatch options>]
-    [--extra_slurm_options_surf <sbatch options>]
-    [--slurm_jobarray <jobarray specification>] [--skip_cleanup] [--email <email address>] [--debug] [--dry] [--help]
-    [<additional fastsurfer options>]
+srun_fastsurfer.sh [--data <input_image_data_dir>]
+    [--sd <subjects_dir>] [--work <work_dir>]
+    (--pattern <search_pattern>|--subject_list <subject_list_file>
+                                [--subject_list_delim <delimiter>]
+                                [--subject_list_awk_code_sid <subject_id_code>]
+                                [--subject_list_awk_code_args <args_code>])
+    [--singularity_image <sif_file>]
+    [--extra_singularity_options <singularity_flags>]
+    [--extra_singularity_options_seg <singularity_flags>]
+    [--extra_singularity_options_surf <singularity_flags>]
+    [--num_cases_per_task <number>] [--cpu_only]
+    [--num_cpus_per_task <num_cpus>] [--time_seg <timelimit>]
+    [--time_surf <timelimit>] [--mem_seg <memory_gb>] [--mem_surf <memory_gb>]
+    [--partition <partition_list>] [--partition_seg <partition_list>]
+    [--partition_surf <partition_list>]
+    [--extra_slurm_options <sbatch_flags>]
+    [--extra_slurm_options_seg <sbatch_flags>]
+    [--extra_slurm_options_surf <sbatch_flags>]
+    [--slurm_jobarray <jobarray_spec>] [--skip_cleanup]
+    [--email <email_address>] [--debug] [--dry] [--help]
+    [<fastsurfer_flags>]
 
 License:  Apache License, Version 2.0
 
@@ -100,99 +106,122 @@ Data- and subject-related options:
 --work: directory with fast filesystem on cluster
   (default: \$HPCWORK/fastsurfer-processing/<date as YYMMDD-HHMMSS>)
   NOTE: THIS SCRIPT considers this directory to be owned by this script and job!
-  No modifications should be made to the directory after the job is started until it is
-  finished (if the job fails, cleanup of this directory may be necessary) and it should be
-  empty!
+  No modifications should be made to the directory after the job is started
+  until it is finished (if the job fails, cleanup of this directory may be
+  necessary) and it should be empty!
 --data: (root) directory to search in for t1 files (default: current work directory).
---pattern: glob string to find image files in 'data directory' (default: *.{nii,nii.gz,mgz}),
-   for example '--data /data/ --pattern "*/*/mri/t1.nii.gz"'
-   will find all images of format /data/<somefolder>/<otherfolder>/mri/t1.nii.gz
+--pattern: glob string to find image files in 'data directory' (default:
+   *.{nii,nii.gz,mgz}), for example '--data /data/ --pattern "*/*/mri/t1.nii.gz"'
+    will find all images of format /data/<some_folder>/<other_folder>/mri/t1.nii.gz
 --subject_list: alternative way to define cases to process, files are of format:
-  subject_id1=/path/to/t1.mgz
+  ---
+  <subject_id>=<t1_file>
   ...
+  ---
   This option invalidates the --pattern option.
   May also add additional parameters like:
-  subject_id1=/path/to/t1.mgz --vox_size 1.0
---subject_list_delim: alternative delimiter in the file (default: "="). For example, if you
-  pass --subject_list_delim "," the subject_list file is parsed as a comma-delimited csv file.
---subject_list_awk_code_sid <subject_id code>: alternative way to construct the subject_id
-  from the row in the subject_list (default: '\$1').
---subject_list_awk_code_args <t1_path code>: alternative way to construct the image_path and
-  additional parameters from the row in the subject_list (default: '\$2'), other examples:
-  '\$2/\$1/mri/orig.mgz', where the first field (of the subject_list file) is the subject_id
-  and the second field is the containing folder, e.g. the study.
+  ---
+  <subject_id>=<t1_file> --vox_size 1.0
+  ---
+--subject_list_delim: alternative delimiter in the file (default: "="). For
+  example, if you pass --subject_list_delim "," the subject_list file is parsed
+  as a comma-delimited csv file.
+--subject_list_awk_code_sid <subject_id_code>: alternative way to construct the
+  subject_id from the row in the subject_list (default: '\$1').
+--subject_list_awk_code_args <args_code>: alternative way to construct the
+  image_path and additional parameters from the row in the subject_list
+  (default: '\$2'), other examples: '\$2/\$1/mri/orig.mgz', where the first
+  field (of the subject_list file) is the subject_id and the second field is the
+  containing folder, e.g. the study.
   Example for additional parameters:
-  --subject_list_delim "," --subject_list_awk_code_args '\$2 " --vox_size " \$4'
+--subject_list_delim "," --subject_list_awk_code_args '\$2 " --vox_size " \$4'
   to implement from the subject_list line
+  ---
   subject-101,raw/T1w-101A.nii.gz,study-1,0.9
-  to (additional arguments must be comma-separated)
-  --sid subject-101 --t1 <data-path>/raw/T1w-101A.nii.gz --vox_size 0.9
+  ---
+  to in effect (additional arguments must be comma-separated)
+  --sid subject-101 --t1 <data_dir>/raw/T1w-101A.nii.gz --vox_size 0.9
 
 FastSurfer options:
---fs_license: path to the freesurfer license (either absolute path or relative to pwd, for surfaces & registration(s))
+--fs_license: path to the freesurfer license (either absolute path or relative
+  to pwd, for surfaces & registration(s))
 --seg_only: only run the segmentation pipeline
---surf_only: only run the surface pipeline (--sd must contain previous --seg_only processing)
+--surf_only: only run the surface pipeline (--sd must contain previous
+  --seg_only processing)
 --***: also standard FastSurfer options can be passed, like --3T, --no_cereb, etc.
 
 Singularity-related options:
---singularity_image: Path to the singularity image to use for segmentation and surface
-  reconstruction (default: \$HOME/singularity-images/fastsurfer.sif).
---extra_singularity_options <extra-options>,
---extra_singularity_options_seg <extra-options>, and
---extra_singularity_options_surf <extra-option>: Extra options to the Singularity exec call, needs to be double quoted
-  to allow quoted strings, e.g. --extra_singularity_options "-B /\$(echo \"/path-to-weights\"):/fastsurfer/checkpoints".
+--singularity_image: Path to the singularity image to use for segmentation and
+  surface reconstruction (default: \$HOME/singularity-images/fastsurfer.sif).
+--extra_singularity_options <singularity_flags>,
+--extra_singularity_options_seg <singularity_flags>, and
+--extra_singularity_options_surf <singularity_flags>: Extra options to the
+  Singularity exec call, needs to be double quoted to allow quoted strings, e.g.
+  --extra_singularity_options "-B /\$(echo \"<weights_dir>\"):/fastsurfer/checkpoints".
 
 SLURM-related options:
---cpu_only: Do not request gpus for segmentation (only affects segmentation, default: request gpus).
---num_cpus_per_task: number of cpus to request for segmentation pipeline of FastSurfer (--seg_only),
-  (default: 16).
---num_cpus_per_case_surf: number of cpus to request for surface pipeline of FastSurfer (--surf_only),
-  (default: 2).
---num_cases_per_task: number of cases batched into one job (slurm jobarray), will process cases
-  in parallel, if num_cases_per_task is smaller than the total number of cases (default: 16).
---skip_cleanup: Do not schedule step 3, cleanup (which moves the data from --work to --sd, etc.,
-  default: do the cleanup).
---slurm_jobarray: a slurm-compatible list of jobs to run, this can be used to rerun segmentation cases
-  that have failed, for example '--slurm_jobarray 4,7' would only run the cases associated with a
-  (previous) run of srun_fastsurfer.sh, where log files '<sd>/logs/seg_*_{4,7}.log' indicate failure.
---partition <comma-separated-list-of-partitions>,
---partition_seg <comma-separated-list-of-partitions>, and
---partition_surf <...list>: partition(s) to schedule all or only segmentation or surface reconstruction, respectively:
-  It is recommended to select nodes/partitions with GPUs for segmentation. default: slurm default partition
---extra_slurm_options <sbatch options>,
---extra_slurm_options_seg <sbatch options>, and
---extra_slurm_options_surf <sbatch options>: Extra options passed to the sbatch call; value needs to be double-quoted
-  for multiple arguments, e.g. --extra_slurm_options_seg "--reservation=my_res --qos=high". These options do not support
-  nested quotes and are split on whitespace to separate parameters. Does not affect cleanup and copy jobs.
+--cpu_only: Do not request gpus for segmentation (only affects segmentation,
+  default: request gpus).
+--num_cpus_per_task: number of cpus to request for segmentation pipeline of
+  FastSurfer (--seg_only), (default: 16).
+--num_cpus_per_case_surf: number of cpus to request for surface pipeline of
+  FastSurfer (--surf_only), (default: 2).
+--num_cases_per_task: number of cases batched into one job (slurm jobarray),
+  will process cases in parallel, if num_cases_per_task is smaller than the
+  total number of cases (default: 16).
+--skip_cleanup: Do not schedule step 3, cleanup (which moves the data from
+  --work to --sd, etc., default: do the cleanup).
+--slurm_jobarray: a slurm-compatible list of jobs to run, this can be used to
+  rerun segmentation cases that have failed, for example '--slurm_jobarray 4,7'
+  would only run the cases associated with a (previous) run of
+  srun_fastsurfer.sh, where log files '<subjects_dir>/logs/seg_*_{4,7}.log'
+  indicate failure.
+--partition <partition_list>,
+--partition_seg <partition_list>, and
+--partition_surf <partition_list>: partition(s) to schedule all or only
+  segmentation or surface reconstruction, respectively:
+  It is recommended to select nodes/partitions with GPUs for segmentation.
+  default: slurm default partition
+--extra_slurm_options <sbatch_flags>,
+--extra_slurm_options_seg <sbatch_flags>, and
+--extra_slurm_options_surf <sbatch_flags>: Extra options passed to the sbatch
+  call; value needs to be double-quoted for multiple arguments, e.g.
+  --extra_slurm_options_seg "--reservation=my_res --qos=high". These options do
+  not support nested quotes and are split on whitespace to separate parameters.
+  Does not affect cleanup and copy jobs.
 --time_seg <timelimit>, and
---time_surf <timelimit>: a per-image time limit for individual the segmentation and surface reconstruction steps,
-  respectively. <timelimit> must be a number in minutes, default seg: ${timelimit_seg_gpu}min on gpu and
-  ${timelimit_seg_cpu}min on cpu, surf: ${timelimit_surf}min.
-  The cpu default assumes the default --num_cpus_per_task, raise --time_seg when requesting fewer cpus.
---mem_seg <number (GB)>, and
---mem_surf <number (GB)>: the memory to allocate for GPU/CPU-based segmentation (default: $mem_seg_cpu/$mem_seg_gpu GB),
-  and surface reconstruction (default: $mem_surf).
+--time_surf <timelimit>: a per-image time limit for individual the segmentation
+  and surface reconstruction steps, respectively. <timelimit> must be a number
+  in minutes, default seg: ${timelimit_seg_gpu}min on gpu and
+   ${timelimit_seg_cpu}min on cpu, surf: ${timelimit_surf}min.
+  The cpu default assumes the default --num_cpus_per_task, raise --time_seg when
+  requesting fewer cpus.
+--mem_seg <memory_gb>, and
+--mem_surf <memory_gb>: the memory to allocate for GPU/CPU-based segmentation
+  (default: $mem_seg_cpu/$mem_seg_gpu GB), and surface reconstruction (default: $mem_surf).
 --email: email address to send slurm status updates.
 
-Accepts additional FastSurfer options, such as --seg_only and --surf_only and only performs the
-respective pipeline.
+Accepts additional FastSurfer options, such as --seg_only and --surf_only and
+only performs the respective pipeline.
 This script will start three slurm jobs:
-1. a segmentation job (alternatively, if --surf_only, this copies previous segmentation data from
-  the subject directory (--sd)
+1. a segmentation job (alternatively, if --surf_only, this copies previous
+  segmentation data from the subject directory (--sd)
 2. a surface reconstruction job (skipped, if --seg_only)
-3. a cleanup job, that moves the data from the work directory (--work) to the subject directory
-  (--sd).
+3. a cleanup job, that moves the data from the work directory (--work) to the
+  subject directory (--sd).
 
-Jobs will be grouped into slurm job_arrays with serial segmentation and parallel surface
-reconstruction (via job arrays and job steps). This way, segmentation can be scheduled on machines
-with GPUs and surface reconstruction on machines without, while efficiently assigning cpus and gpus,
-see --partition flag.
-Note, that a surface reconstruction job will request up to a total of '<num_cases_per_task> * 2'
-cpus and '<num_cases_per_task> * 10G' memory per job. However, these can be distributed across
-'<num_cases_per_task>' nodes in parallel job steps.
+Jobs will be grouped into slurm job_arrays with serial segmentation and parallel
+surface reconstruction (via job arrays and job steps). This way, segmentation
+can be scheduled on machines with GPUs and surface reconstruction on machines
+without, while efficiently assigning cpus and gpus, see --partition flag.
+Note, that a surface reconstruction job will request up to a total of
+'<num_cases_per_task> * 2' cpus and '<num_cases_per_task> * 10G' memory per job.
+However, these can be distributed across '<num_cases_per_task>' nodes in
+parallel job steps.
 
-This tool requires functions in stools.sh and the brun_fastsurfer.sh scripts (expected in same
-folder as this script) in addition to the fastsurfer singularity image.
+This tool requires functions in stools.sh and the brun_fastsurfer.sh scripts
+(expected in same folder as this script) in addition to the fastsurfer
+singularity image.
 EOF
 }
 

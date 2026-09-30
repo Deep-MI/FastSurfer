@@ -32,7 +32,7 @@ from argparse import _ActionsContainer
 from collections.abc import Callable, Iterable, Mapping
 from dataclasses import Field, dataclass
 from pathlib import Path
-from typing import Literal, Optional, Protocol, TypeVar, get_args, get_origin
+from typing import Literal, Optional, Protocol, TypeVar, Union, get_args, get_origin
 
 from FastSurferCNN.utils import PLANES, Plane
 from FastSurferCNN.utils.arg_types import VALID_ORIENTATIONS, OrientationType, unquote_str
@@ -96,7 +96,7 @@ def __arg(
         for kw, name in (("dest", "name"), ("default",) * 2):
             default_kwargs.setdefault(kw, getattr(dcf, name))
         if "type" not in default_kwargs:
-            if str(get_origin(dcf.type)) == "typing.Union":
+            if get_origin(dcf.type) in (Union, types.UnionType):
                 _types = list(t for t in get_args(dcf.type) if t is not types.NoneType)
                 if len(_types) == 0:
                     default_kwargs["type"] = None
@@ -151,10 +151,8 @@ class SubjectDirectoryConfig:
 
     Notes
     -----
-    Important:
-    Data Types of fields should stay `Optional[<TYPE>]` and not be replaced by `<TYPE> | None`, so the Parser can use
-    the type in argparse as the value for `type` of `parser.add_argument()` (`Optional` is a callable, while `Union` is
-    not).
+    For fields of type `Optional[<TYPE>]` (or `<TYPE> | None`), the Parser passes `<TYPE>` as `type` to
+    `parser.add_argument()`.
     """
     orig_name: str = field(
         help="Name of T1 full head MRI. Absolute path if single image else common "
@@ -264,8 +262,8 @@ ALL_FLAGS = {
         default="auto",
         help="Define the device, where the view aggregation should be run. By default, the program checks if you have "
              "enough memory to run the view aggregation on the gpu (cuda). The total memory is considered for this "
-             "decision. If this fails, or you actively overwrote the check with setting > --viewagg_device cpu <, view "
-             "agg is run on the cpu. Equivalently, if you define > --viewagg_device cuda <, view agg will be run on "
+             "decision. If this fails, or you actively overwrote the check with setting '--viewagg_device cpu', view "
+             "agg is run on the cpu. Equivalently, if you define '--viewagg_device cuda', view agg will be run on "
              "the gpu (no memory check will be done).",
     ),
     "in_dir": __arg("--in_dir", dc=SubjectDirectoryConfig, fieldname="in_dir"),
@@ -302,11 +300,11 @@ ALL_FLAGS = {
         choices=VALID_ORIENTATIONS,
         type=__orientation,
         dest="orientation",
-        metavar="{native,XXX,soft-XXX}",
+        metavar="ORIENTATION",
         default="lia",
-        help="Select the target affine format for output, native: input defined by input image, soft-XXX (e.g. "
-             "soft-lia): store as XXX, but do not interpolate, XXX (e.g. lia): force XXX, affine is only 0 or +-1. "
-             "Default: lia (required by the surface pipeline).",
+        help="Select the target affine format for output, native: input defined by input image, soft-<orientation> "
+             "(e.g. soft-lia): store as <orientation>, but do not interpolate, <orientation> (e.g. lia): force "
+             "<orientation>, affine is only 0 or +-1. Default: lia (required by the surface pipeline).",
     ),
     "image_size": __arg(
         "--image_size",
@@ -322,6 +320,7 @@ ALL_FLAGS = {
         type=__conform_to_one,
         default=0.95,
         dest="conform_to_1mm_threshold",
+        metavar="THRESHOLD",
         help="The voxelsize threshold, above which images will be conformed to 1mm isotropic, if the --vox_size "
              "argument is also 'min' (the --vox_size default setting). Contrary to conform.py, the default behavior of "
              "%(prog)s is to resample all images above 0.95mm to 1mm.",

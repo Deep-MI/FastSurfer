@@ -443,10 +443,10 @@ def make_parser():
     parser.add_argument(
         "--lut",
         type=Path,
-        default=FASTSURFER_ROOT / "/config/FastSurfer_ColorLUT.tsv",
+        default=FASTSURFER_ROOT / "FastSurferCNN/config/FastSurfer_ColorLUT.tsv",
         help="FreeSurfer-style Color Lookup Table with labels to use in final prediction. "
         "Has to have columns: ID	LabelName	R	G	B	A"
-        "Default: FASTSURFERDIR/FastSurferCNN/config/FastSurfer_ColorLUT.tsv.",
+        "Default: <fastsurfer_home>/FastSurferCNN/config/FastSurfer_ColorLUT.tsv.",
     )
     parser.add_argument(
         "--combi",

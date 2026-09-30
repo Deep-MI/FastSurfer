@@ -21,8 +21,13 @@ fi
 if [[ -z "$FASTSURFER_HOME" ]]
 then
   FASTSURFER_HOME=$(cd "$(dirname "$THIS_SCRIPT")" &> /dev/null && pwd)
-  echo "Setting ENV variable FASTSURFER_HOME to script directory ${FASTSURFER_HOME}. "
-  echo "Change via environment to location of your choice if this is undesired (export FASTSURFER_HOME=/dir/to/FastSurfer)"
+  # skip the notice if the script only prints its usage
+  if [[ " $* " != *" --help "* ]] && [[ " $* " != *" -h "* ]]
+  then
+    echo "Setting ENV variable FASTSURFER_HOME to script directory ${FASTSURFER_HOME}."
+    echo "Change via environment to location of your choice if this is undesired"
+    echo "  (export FASTSURFER_HOME=<fastsurfer_home>)"
+  fi
   export FASTSURFER_HOME
 fi
 
@@ -101,7 +106,8 @@ function usage()
 {
 cat << EOF
 
-Usage: run_fastsurfer.sh --sid <sid> --sd <sdir> --t1 <t1_input> [OPTIONS]
+Usage: run_fastsurfer.sh --sid <subject_id> --sd <subjects_dir> \\
+                         --t1 <t1_file> [OPTIONS]
 
 run_fastsurfer.sh takes a T1 full head image and creates:
      (i)  a segmentation using FastSurferVINN (equivalent to FreeSurfer
@@ -110,18 +116,19 @@ run_fastsurfer.sh takes a T1 full head image and creates:
 
 FLAGS:
 
-  --fs_license <license>  Path to FreeSurfer license key file. Register at
+  --fs_license <license_file>
+                          Path to FreeSurfer license key file. Register at
                             https://surfer.nmr.mgh.harvard.edu/registration.html
                             for free to obtain it if you do not have FreeSurfer
                             installed already
-  --sid <subjectID>       Subject ID to create directory inside \$SUBJECTS_DIR
+  --sid <subject_id>      Subject ID to create directory inside \$SUBJECTS_DIR
   --sd  <subjects_dir>    Output directory \$SUBJECTS_DIR (or pass via env var)
-  --t1  <T1_input>        T1 full head input (not bias corrected). Requires an
+  --t1  <t1_file>         T1 full head input (not bias corrected). Requires an
                             ABSOLUTE Path!
-  --lesion_mask <mask_input>
+  --lesion_mask <lesion_mask_file>
                           Lesion mask input for experimental lesion inpainting.
                             Requires an ABSOLUTE Path!
-  --asegdkt_segfile <filename>
+  --asegdkt_segfile <asegdkt_segfile>
                           Name of the segmentation file, which includes the
                           aparc+DKTatlas-aseg segmentations.
                           Requires an ABSOLUTE Path! Default location:
@@ -152,15 +159,15 @@ FLAGS:
                               mri/aparc.DKTatlas+aseg.deep.manedit.mgz
                               mri/mask.manedit.mgz
                               mri/callosum.CC.upright.manedit.mgz
-                            Surface: Disables check for existing recon-surf.sh run;
-                              edits of mri/wm.mgz and brain.finalsurfs.mgz
+                            Surface: Disables check for existing recon-surf.sh
+                              run; edits of mri/wm.mgz and brain.finalsurfs.mgz
                               as well as FreeSurfer-style WM control points.
-  --version <info>        Print version information and exit; <info> is optional.
-                            <info> may be empty, just prints the version number,
-                            +git_branch also prints the current branch, and any
-                            combination of +git, +checkpoints, +pip to print
-                            additional for the git status, the checkpoints and
-                            installed python packages.
+  --version <info>        Print version information and exit; <info> is
+                            optional. <info> may be empty, just prints the
+                            version number, +git_branch also prints the current
+                            branch, and any combination of +git, +checkpoints,
+                            +pip to print additional for the git status, the
+                            checkpoints and installed python packages.
   -h --help               Print Help
 
   PIPELINES:
@@ -169,19 +176,19 @@ FLAGS:
 SEGMENTATION PIPELINE:
   --seg_only              Run only FastSurferVINN (generate segmentation, do not
                             run surface pipeline)
-  --seg_log <seg_log>     Log-file for the segmentation (FastSurferVINN, CerebNet,
-                            HypVINN)
+  --seg_log <seg_log>     Log-file for the segmentation (FastSurferVINN,
+                            CerebNet, HypVINN)
                             Default: \$SUBJECTS_DIR/\$sid/scripts/deep-seg.log
-  --conformed_name <conf.mgz>
+  --conformed_name <conformed_file>
                           Name of the file in which the conformed input
                             image will be saved. Requires an ABSOLUTE Path!
                             Default location:
                             \$SUBJECTS_DIR/\$sid/mri/orig.mgz.
   --no_biasfield          Deactivate bias field correction. The stats files are
-                            partial volume-corrected, so they are only written if
-                            a biasfield corrected image already exists, for
+                            partial volume-corrected, so they are only written
+                            if a biasfield corrected image already exists, for
                             example from an earlier run.
-  --norm_name <nu.mgz>    Name of the biasfield corrected image
+  --norm_name <norm_file> Name of the biasfield corrected image
                             Default location:
                             \$SUBJECTS_DIR/\$sid/mri/orig_nu.mgz
   --tal_reg               Perform the talairach registration for eTIV estimates
@@ -202,10 +209,12 @@ SEGMENTATION PIPELINE:
                             processed subject the above stops rather than
                             replace it: delete mri/transforms/talairach.xfm
                             first, or add --edits to keep the existing one.
-  --native_image OR       Output all images and segmentations in the native image space
-  --keepgeom                with its image geometry (voxel size, dimensions, orientation).
-                            This setting is not compatible with the surface pipeline and
-                            implies --vox_size keep. Anisotropic voxels are experimental.
+  --native_image OR       Output all images and segmentations in the native
+  --keepgeom                image space with its image geometry (voxel size,
+                            dimensions, orientation). This setting is not
+                            compatible with the surface pipeline and implies
+                            --vox_size keep. Anisotropic voxels are
+                            experimental.
 
   MODULES:
   By default, all modules are run.
@@ -215,8 +224,9 @@ SEGMENTATION PIPELINE:
   break a later step.
 
   ASEGDKT MODULE:
-  --no_asegdkt            Skip the asegdkt segmentation (aseg+aparc/DKT segmentation)
-  --asegdkt_segfile <filename>
+  --no_asegdkt            Skip the asegdkt segmentation (aseg+aparc/DKT
+                            segmentation)
+  --asegdkt_segfile <asegdkt_segfile>
                           Name of the segmentation file, which includes the
                             aseg+aparc/DKTatlas segmentations.
                             Requires an ABSOLUTE Path! Default location:
@@ -225,8 +235,9 @@ SEGMENTATION PIPELINE:
                             biasfield corrected image already exists.
 
   CEREBELLUM MODULE:
-  --no_cereb              Skip the cerebellum segmentation (CerebNet segmentation)
-  --asegdkt_segfile <seg_input>
+  --no_cereb              Skip the cerebellum segmentation (CerebNet
+                            segmentation)
+  --asegdkt_segfile <asegdkt_segfile>
                           Name of the segmentation file (similar to aparc+aseg)
                             for cerebellum localization (typically the output of the
                             APARC module (see above). Requires an ABSOLUTE Path!
@@ -271,7 +282,7 @@ SEGMENTATION PIPELINE:
   --no_biasfield          Biasfield-corrected inputs are recommended for the
                             hypothalamus sub-segmentation. This option implies images
                             were corrected externally.
-  --t2 <T2_input>         *Optional* T2 full head input (must be externally biasfield
+  --t2 <t2_file>          *Optional* T2 full head input (must be externally biasfield
                             corrected when called with --no_biasfield). Requires an
                             ABSOLUTE Path!
   --reg_mode <none|coreg|robust>
@@ -290,7 +301,7 @@ SEGMENTATION PIPELINE:
 SURFACE PIPELINE:
   --surf_only             Run surface pipeline only. The segmentation input has
                             to exist already in this case.
-  --3T                    Use the 3T atlas for talairach registration (gives better
+  --3T                    Use the 3T atlas for talairach registration (gives batter
                             etiv estimates for 3T MR images, default: 1.5T atlas).
 
 Resource Options:
@@ -355,9 +366,9 @@ Resource Options:
                             be completed beforehand! No T2 can be passed. Also
                             no T1 is explicitly passed, as it is taken from
                             within the prepared template directory.
-  --long <baseid>         Longitudinal time point processing.
+  --long <template_id>    Longitudinal time point processing.
                             Requires the base (template) already exists in the
-                            same SUBJECTS_DIR under the SID <baseid>.
+                            same SUBJECTS_DIR under the SID <template_id>.
                             Processing is identical to the regular cross-sectional
                             pipeline for segmentation. Surface module skips
                             many steps and initializes from subject template.

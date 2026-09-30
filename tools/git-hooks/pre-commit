@@ -54,8 +54,28 @@ else
 	uv run --extra style ruff check
 
 	echo "INFO: pre-commit hook: Running codespell"
-	skip_files='./build,./doc/images,./Tutorial,./.git,./.mypy_cache,./.pytest_cache,./.venv,./.idea,./doc-build'
-	skip_files+=',./checkpoints,./doc/api/generated'
+	# paths to skip that are not in .gitignore
+	skip_files='./doc/images,./Tutorial,./.git,./.mypy_cache,./.pytest_cache'
+	# add .gitignore patterns as codespell globs (fnmatch, "*" also matches "/", so anchored patterns may over-match)
+	skip_files+=$(uv run --extra style python - <<-'PYTHON'
+	from pathlib import Path
+
+	for line in Path(".gitignore").read_text().splitlines():
+	    pattern = line.rstrip()
+	    # skip blank lines, comments, negations (unsupported by codespell) and commas (--skip separator)
+	    if not pattern or pattern.startswith(("#", "!")) or "," in pattern:
+	        continue
+	    # a trailing slash (directory-only) does not anchor
+	    pattern = pattern.removesuffix("/")
+	    # "**/x" matches at any depth; a slash at the start or in the middle anchors the pattern at the repository root
+	    if pattern.startswith("**/"):
+	        pattern = "*/" + pattern.removeprefix("**/")
+	    elif "/" in pattern:
+	        pattern = "./" + pattern.removeprefix("/")
+	    # "dir/**" -> skip the directory "dir"
+	    print("," + pattern.removesuffix("/**"), end="")
+	PYTHON
+	)
 	uv run --extra style codespell --check-filenames --check-hidden --context 3 \
 	  --skip "$skip_files" --ignore-words ./.codespellignore
 

@@ -1,3 +1,5 @@
+import re
+from collections.abc import Collection
 from functools import wraps
 from os.path import relpath
 from pathlib import Path
@@ -11,6 +13,21 @@ from myst_parser.mdit_to_docutils.sphinx_ import SphinxRenderer
 from myst_parser.sphinx_ import Parser as MySTParser
 from sphinx import addnodes
 from sphinx.directives.other import Include
+
+
+_SUBSTITUTION = re.compile(r"\{\{\s*([A-Za-z_]\w*)\s*\}\}")
+
+
+def find_banner_lines(text: str, names: Collection[str]) -> dict[int, set[str]]:
+    """Map the (1-based) numbers of lines in `text` that use substitutions in `names` to the names they use.
+
+    Splits lines like markdown-it, so the numbers match the (docutils, 1-based) token maps of `text`.
+    """
+    lines = {}
+    for lineno, line in enumerate(re.split(r"\r\n?|\n", text), start=1):
+        if used := {m[1] for m in _SUBSTITUTION.finditer(line)}.intersection(names):
+            lines[lineno] = used
+    return lines
 
 
 def wrap_include_run(method):
@@ -41,12 +58,40 @@ class Renderer(SphinxRenderer):
     """
     Renderer object to automatically fix headings that are not consecutive levels in
     (included) Markdown files. Also includes alternative targets into anchors that
-    are rendered, but do not match a target.
+    are rendered, but do not match a target, renders a note on top of fenced code
+    blocks that use substitutions listed in `fix_links_substitution_banners`, and
+    replaces substitutions inside code, which MyST does not.
     """
 
     def __init__(self, parser: MarkdownIt):
         self._heading_base: Optional[int] = None
+        # line => substitution names for the outermost fence containing that line, see find_banner_lines
+        self.banner_lines: dict[int, set[str]] = {}
         super().__init__(parser)
+
+    def render_fence(self, token: SyntaxTreeNode) -> None:
+        if token.map:
+            # popping the lines keeps nested fences and the note itself from getting the note again
+            used = set().union(*(self.banner_lines.pop(line, ()) for line in range(*token.map)))
+            # a single paragraph keeps the note short, so it pops no lines of a following fence
+            if note := self.sphinx_env.config.fix_links_substitution_banners.get(frozenset(used)):
+                self.nested_render_text(f"```{{note}}\n{note}\n```", token.map[0] - 1)
+        self._substitute_in_code(token)
+        super().render_fence(token)
+
+    def render_code_inline(self, token: SyntaxTreeNode) -> None:
+        self._substitute_in_code(token)
+        super().render_code_inline(token)
+
+    def _substitute_in_code(self, token: SyntaxTreeNode) -> None:
+        """Replace `{{ name }}` in the content of `token` by `name`'s value, if it is a string substitution."""
+        substitutions = self.md_config.substitutions
+
+        def _replace(match: re.Match[str]) -> str:
+            value = substitutions.get(match[1])
+            return value if isinstance(value, str) else match[0]
+
+        token.token.content = _SUBSTITUTION.sub(_replace, token.content)
 
     def update_section_level_state(self, section: nodes.section, level: int) -> None:
         """This method is fixed such that """
@@ -165,7 +210,8 @@ class Parser(MySTParser):
         )
 
         # get the global config
-        config: MdParserConfig = document.settings.env.myst_config
+        env = document.settings.env
+        config: MdParserConfig = env.myst_config
         alt_targets = ()
 
         # update the global config with the file-level config
@@ -182,6 +228,10 @@ class Parser(MySTParser):
                 )
                 config = merge_file_level(config, topmatter, warning)
 
+        # banners are looked up by the lines of inputstring, which the token maps index
+        banner_names = set().union(*env.config.fix_links_substitution_banners)
+        banner_lines = find_banner_lines(inputstring, banner_names)
+
         from contextlib import contextmanager
 
         @contextmanager
@@ -193,8 +243,9 @@ class Parser(MySTParser):
             cfg["."] = before
 
         parser = create_md_parser(config, Renderer)
+        cast(Renderer, parser.renderer).banner_lines = banner_lines
         with _restore(
-                document.settings.env.config,
+                env.config,
                 "fix_links_alternative_targets",
                 alt_targets,
         ):

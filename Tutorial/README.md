@@ -40,9 +40,10 @@ Requirements
 ------------
 If you want to follow along on your local machine, you need a working installation of FastSurfer. The steps are also 
 covered in the second notebook (Sections B for Use case 1 and 2). In order to follow the installation instructions, some
-basic requirements have to be met. In general, you need either a Linux OS,  MacOS (+Docker) or Windows (+Docker) to run 
-FastSurfer. Further, the segmentation requires a little less than 10 GB RAM. If you are using Docker on MAC, you have to
-make sure to adjust the memory settings accordingly (by default, they are limited to 2 GB runtime memory).
+basic requirements have to be met. In general, you need either a Linux OS, macOS (Apple Silicon: the FastSurfer package,
+Intel: Docker) or Windows (+Docker) to run FastSurfer. Further, the segmentation requires a little less than 10 GB RAM.
+If you are using Docker on MAC, you have to make sure to adjust the memory settings accordingly (by default, they are
+limited to 2 GB runtime memory). See the [installation instructions](../doc/overview/INSTALL.md) for details.
 
 ### 1. Recommendation - Docker
 Docker is an open platform for developing, shipping, and running applications. In a way, it allows the user to create 
@@ -51,42 +52,24 @@ need for running the application. You do not need to install anything else. See 
 [how to install docker](https://docs.docker.com/get-docker/) on your local machine.
 
 ### 2. Local installation
-If you decide against using docker, you need either python + pip or anaconda (conda) to install FastSurfer.
-
-#### 1. Python + pip
-Python 3.12 is generally recommended to run FastSurfer (3.10 is the minimum supported version). In addition you will need the package manager pip to install the
-python dependencies used for FastSurfer (see requirements.txt in the main directory for a list). On Linux, pip is not 
-installed by default. You can install it via 
-
-```bash 
-sudo apt install python3-pip
-```
-
-If not pre-installed, `setuptools` has to be installed before the contents of requirements.txt. This can be done via apt
-or pip:
-```bash
-sudo apt install python3-setuptools
-```
-or
-```bash
-pip install setuptools
-```
-
-The optional recon-surf dependency, `scikit-sparse`, can not be installed sequentially with `numpy` (and thus can not be
-included in the requirements.txt file). Therefore, it should be installed separately, after the requirements.txt 
-install:
+If you decide against using Docker, install FastSurfer natively with [uv](https://docs.astral.sh/uv/), a fast Python
+package and environment manager (FastSurfer previously recommended conda or pip, we now recommend uv). The
+[native installation instructions](../doc/overview/INSTALL.md#native-ubuntu-2404) cover all steps, in short:
 
 ```bash
-pip install scikit-sparse=0.4.4
-```
-
-It is normally recommended to run your setups in separate virtual environments (like uv, conda, 
-[pipenv](https://pypi.org/project/pipenv/) or [virtualenv](https://pypi.org/project/virtualenv/)).
-
-#### 2. uv
-FastSurfer previously recommended conda to install Python. We now recommend uv instead of conda. 
-
-You can install uv via wget with the following command:
-```bash
+# install uv
 wget -qO- https://astral.sh/uv/install.sh | sh
+# get FastSurfer and create its python environment in FastSurfer/.venv (uv downloads python, if needed)
+git clone --branch stable https://github.com/Deep-MI/FastSurfer.git
+cd FastSurfer
+uv venv --python python3.12
+resolved=$(uv pip compile --no-build --torch-backend auto requirements.txt) && uv pip sync --no-build --torch-backend auto - <<< "$resolved"
+```
+
+The optional recon-surf dependency `scikit-sparse` speeds up the spherical projection of surfaces. It is only published
+as source code, so installing it needs a C compiler and the SuiteSparse development files:
+
+```bash
+sudo apt-get install -y build-essential libsuitesparse-dev
+uv pip install scikit-sparse
 ```

@@ -165,6 +165,8 @@ source /venv/bin/activate
 # uv pip sync only installs "exactly" the packages in the lockfile, but does not resolve dependencies
 # therefore, we first compile the environment to resolve dependencies, and then sync to install both directly and
 # indirectly required packages
+# pipefail: fail the build if uv pip compile fails, uv pip sync succeeds on the resulting empty input
+set -o pipefail
 if [[ "$PINNED_REQUIREMENTS" == "true" ]]; then
     uv pip compile --torch-backend=${DEVICE} /install/requirements.txt | uv pip sync --torch-backend=${DEVICE} -
 else
