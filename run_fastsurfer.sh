@@ -1075,6 +1075,31 @@ if [[ -f "$seg_log" ]]; then log_existed="true" ; else log_existed="false" ; fi
 if [[ -f "$tmpLF" ]] ; then cat "$tmpLF" >> "$seg_log" ; rm "$tmpLF" ; fi
 # from now on, we can and will log to LF directly
 
+# Check the device once here, so a GPU this build cannot use is explained before any work starts
+# and the modules below get "cpu" instead of each repeating the warning.
+if [[ "$run_seg_pipeline" == "true" ]] && { [[ "$device" == "auto" ]] || [[ "$device" == cuda* ]] ; }
+then
+  $python "$fastsurfercnndir/gpu_support.py" --device "$device" 2>&1 | tee -a "$seg_log"
+  case "${PIPESTATUS[0]}" in
+    0) ;;
+    3)
+      device="cpu"
+      # a pause, so the warning is not lost above the log of a run that is slow for this reason
+      if [[ -t 0 ]]
+      then
+        echo "Continuing in 10 seconds, press any key to continue now."
+        read -r -s -n 1 -t 10 || true
+      else
+        sleep 10
+      fi
+      ;;
+    4) device="cpu" ;;
+    5) echo "ERROR: The device $device cannot be used." | tee -a "$seg_log" ; exit 1 ;;
+    # the modules check the device again, so a failed check is not a reason to stop
+    *) echo "WARNING: Could not check whether the device $device can be used." | tee -a "$seg_log" ;;
+  esac
+fi
+
 ### IF THE SCRIPT GETS TERMINATED, ADD A MESSAGE
 # shellcheck disable=SC2064
 trap "{ echo \"run_fastsurfer.sh terminated via signal at \$(date -R)!\" | tee -a \"$seg_log\" ; }" SIGINT SIGTERM
