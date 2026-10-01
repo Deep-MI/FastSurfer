@@ -1084,8 +1084,9 @@ then
     0) ;;
     3)
       device="cpu"
-      # a pause, so the warning is not lost above the log of a run that is slow for this reason
-      if [[ -t 0 ]]
+      # a pause, so the warning is not lost above the log of a run that is slow for this reason;
+      # read only in the foreground ("+" in ps stat), a background job reading the terminal is stopped
+      if [[ -t 0 ]] && [[ "$(ps -o stat= -p $$ 2> /dev/null)" == *+* ]]
       then
         echo "Continuing in 10 seconds, press any key to continue now."
         read -r -s -n 1 -t 10 || true
@@ -1527,7 +1528,7 @@ then
     # generate callosum segmentation, mesh, shape and downstream measure files
     cmd=($python "$CorpusCallosumDir/fastsurfer_cc.py" --sd "$sd" --sid "$subject" --seg_log "$seg_log"
          "--threads" "$threads_seg" "--conformed_name" "$conformed_name" "--aseg_name" "$aseg_segfile"
-         "--segmentation_in_orig" "$callosum_seg" "${cc_flags[@]}")
+         "--segmentation_in_orig" "$callosum_seg" "--device" "$device" "${cc_flags[@]}")
     echo_quoted "${cmd[@]}" | tee -a "$seg_log"
     # The upright and acpc transforms this writes come out of a decomposition, so which vectorised
     # kernels numpy and OpenBLAS pick decides their last digits, and the curvature measures derived

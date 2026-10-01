@@ -126,19 +126,21 @@ def find_device(
     """
     logger = logging.get_logger(__name__ + ".auto_device")
     # if specific device is requested, check and stop if not available:
-    has_cuda = torch.cuda.is_available()
-    has_mps = hasattr(torch.backends, "mps") and torch.backends.mps.is_available()
     wants_cuda = str(device).startswith("cuda")
+    # before torch.cuda.is_available, which emits the driver warning cuda_problem quotes only once
+    problem = None
     if wants_cuda or str(device) == "auto" or not device:
         problem = cuda_problem(torch.device(device).index if wants_cuda else None)
-        if problem is not None:
-            severity, lines = problem
-            if wants_cuda:
-                raise ValueError(" ".join(lines + [f"Or run on the cpu with --{flag_name} cpu."]))
-            for line in lines:
-                (logger.warning if severity == "warning" else logger.info)(line)
-            # a GPU the build cannot run on still reports cuda as available
-            has_cuda = False
+    has_cuda = torch.cuda.is_available()
+    has_mps = hasattr(torch.backends, "mps") and torch.backends.mps.is_available()
+    if problem is not None:
+        severity, lines = problem
+        if wants_cuda:
+            raise ValueError(" ".join(lines + [f"Or run on the cpu with --{flag_name} cpu."]))
+        for line in lines:
+            (logger.warning if severity == "warning" else logger.info)(line)
+        # a GPU the build cannot run on still reports cuda as available
+        has_cuda = False
     msg = None
     if str(device).startswith("cuda") and not has_cuda:
         msg = f"cuda not available, try switching to cpu: --{flag_name} cpu"
