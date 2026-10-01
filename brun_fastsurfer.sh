@@ -37,9 +37,9 @@ function usage()
 Script to run FastSurfer on multiple subjects in parallel/series.
 
 Usage:
-brun_fastsurfer.sh --subject_list <subject_list_file> [other options]
+brun_fastsurfer.sh --subjects_list <subjects_list_path> [other options]
 OR
-brun_fastsurfer.sh --subjects <subject_id>=<t1_file> [<subject_id>=<t1_file>
+brun_fastsurfer.sh --subjects <subject_id>=<t1_path> [<subject_id>=<t1_path>
     [...]] [other options]
 OR
 brun_fastsurfer.sh [other options]
@@ -58,10 +58,10 @@ Generally, brun_fastsurfer works similar to run_fastsurfer, but loops over
 multiple subjects from
 i. a list passed through stdin of the format (one subject per line)
 ---
-<subject_id>=<t1_file>[ <subject_specific_parameters>[ ...]]
+<subject_id>=<t1_path>[ <subject_specific_parameters>[ ...]]
 ...
 ---
-ii. a subject_list file using the same format (use Ctrl-D to end the input), or
+ii. a subjects list file using the same format (use Ctrl-D to end the input), or
 iii. a list of subjects directly passed (this does not support subject-specific
   parameters)
 
@@ -92,7 +92,7 @@ in either kind of quotes, so a \$ or a \` is just that character.
 --run_fastsurfer <command>: This option enables the startup of fastsurfer in a
   more controlled manner, for example to delegate the fastsurfer run to
   container:
-  --run_fastsurfer "singularity exec --nv --no-mount home,cwd -e -B <host_folder>:/data /fastsurfer/run_fastsurfer.sh"
+  --run_fastsurfer "singularity exec --nv --no-mount home,cwd -e -B <host_dir>:/data /fastsurfer/run_fastsurfer.sh"
   Note, paths to files and --sd have to be defined in the container file system
   in this case.
 --statusfile <filename>: a file to document which subject ran successfully. Also
@@ -176,7 +176,7 @@ case $key in
   --subject_list|--subjects_list)
     if [[ ! -f "$1" ]]
     then
-      echo "ERROR: Could not find the subject list $1!"
+      echo "ERROR: Could not find the subjects list $1!"
       exit 1
     fi
     # append the subjects in the listfile (cleanup first) to the subjects array.
@@ -239,7 +239,7 @@ case $key in
   --seg_only) seg_only="true" ;;
   --sid|--t1)
     echo "ERROR: --sid and --t1 are not valid for brun_fastsurfer.sh, these values are populated"
-    echo "  via --subjects or --subject_list."
+    echo "  via --subjects or --subjects_list."
     exit 1
     ;;
   *)    # unknown option/run_fastsurfer.sh option, make sure this is arg (to keep the case)
@@ -310,7 +310,7 @@ then
   if [[ -t 0 ]] || [[ "$debug" == "true" ]]; then
     echo "Reading subjects from stdin, press Ctrl-D to end input (one subject per line)"
   fi
-  # as for --subject_list: keep a final line that the producer did not terminate with a newline
+  # as for --subjects_list: keep a final line that the producer did not terminate with a newline
   while IFS= read -r subject_line || [[ -n "$subject_line" ]]
   do subjects+=("$subject_line") ; done < <(sed "$SED_CLEANUP_SUBJECTS")
 fi

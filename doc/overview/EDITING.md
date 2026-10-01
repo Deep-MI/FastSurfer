@@ -53,9 +53,10 @@ For example (including the setup for native processing, see [Examples](EXAMPLES.
 
 ```bash
 # Setup FASTSURFER and FREESURFER
-export FASTSURFER_HOME=$HOME/FastSurfer
-export FREESURFER_HOME=/opt/freesurfer
+export FASTSURFER_HOME=${FASTSURFER_HOME:-/path/to/FastSurfer}
+export FREESURFER_HOME=${FREESURFER_HOME:-/path/to/freesurfer}
 source $FREESURFER_HOME/SetUpFreeSurfer.sh
+freesurfer_license=${freesurfer_license:-/path/to/your/freesurfer/license_file}
 
 # Define data directory
 export SUBJECTS_DIR=$HOME/my_fastsurfer_analysis
@@ -64,7 +65,7 @@ export SUBJECTS_DIR=$HOME/my_fastsurfer_analysis
 $FASTSURFER_HOME/run_fastsurfer.sh \
     --sd $SUBJECTS_DIR --sid case_with_edits \
     --t1 $HOME/my_mri_data/subjectX/t1_weighted.nii.gz \
-    --fs_license $HOME/my_fs_license.txt \
+    --fs_license $freesurfer_license \
     --edits # more flags as needed, e.g. --3T --threads 4
 ```
 
@@ -79,9 +80,10 @@ into a new `--sid`.
 Note, a re-run of the segmentation pipeline, as in the command above, should not be harmful, but is only required if the [asegdkt_segfile](#asegdkt_segfile) was edited. Therefore, in most cases, we can skip the segmentation step with
 ```bash
 # Setup FASTSURFER and FREESURFER
-export FASTSURFER_HOME=$HOME/FastSurfer
-export FREESURFER_HOME=/opt/freesurfer
+export FASTSURFER_HOME=${FASTSURFER_HOME:-/path/to/FastSurfer}
+export FREESURFER_HOME=${FREESURFER_HOME:-/path/to/freesurfer}
 source $FREESURFER_HOME/SetUpFreeSurfer.sh
+freesurfer_license=${freesurfer_license:-/path/to/your/freesurfer/license_file}
 
 # Define data directory
 export SUBJECTS_DIR=$HOME/my_fastsurfer_analysis
@@ -90,7 +92,7 @@ export SUBJECTS_DIR=$HOME/my_fastsurfer_analysis
 $FASTSURFER_HOME/run_fastsurfer.sh \
     --sd $SUBJECTS_DIR --sid case_with_edits \
     --t1 $HOME/my_mri_data/subjectX/t1_weighted.nii.gz \
-    --fs_license $HOME/my_fs_license.txt \
+    --fs_license $freesurfer_license \
     --edits --surf_only # more flags as needed, e.g. --3T --threads 4
 ```
 
@@ -108,7 +110,7 @@ For example:
 1. Run FastSurfer to obtain a bias field corrected image (not needed if you already processed with FastSurfer a first time):
    ```bash
    # Setup FASTSURFER
-   export FASTSURFER_HOME=$HOME/FastSurfer
+   export FASTSURFER_HOME=${FASTSURFER_HOME:-/path/to/FastSurfer}
 
    # Define data directory
    export SUBJECTS_DIR=$HOME/my_fastsurfer_analysis
@@ -122,9 +124,10 @@ For example:
 2. Run FastSurfer again, but this time input the bias field corrected image (i.e. `orig_nu.mgz`) instead of original input image. The file `orig_nu.mgz` can be found in the output directory under the *mri* subfolder. The output produced from the second iteration should be saved in a different output directory for comparative analysis with the output produced in first iteration.
    ```bash
    # Setup FASTSURFER and FREESURFER
-   export FASTSURFER_HOME=$HOME/FastSurfer
-   export FREESURFER_HOME=/opt/freesurfer
+   export FASTSURFER_HOME=${FASTSURFER_HOME:-/path/to/FastSurfer}
+   export FREESURFER_HOME=${FREESURFER_HOME:-/path/to/freesurfer}
    source $FREESURFER_HOME/SetUpFreeSurfer.sh
+   freesurfer_license=${freesurfer_license:-/path/to/your/freesurfer/license_file}
 
    # Define data directory
    export SUBJECTS_DIR=$HOME/my_fastsurfer_analysis
@@ -133,7 +136,7 @@ For example:
    $FASTSURFER_HOME/run_fastsurfer.sh \
        --sd $SUBJECTS_DIR --sid case_bias_corrected \
        --t1 $SUBJECTS_DIR/case_bias_only/mri/orig_nu.mgz \
-       --fs_license $HOME/my_fs_license.txt
+       --fs_license $freesurfer_license
        # more flags as needed, e.g. --3T --threads 4
     ```
 3. Compare and check if bias field correction fixed the issues:
@@ -170,7 +173,7 @@ surface, QC images, or volumetric inpainting.
    the editable CC segmentation. For example:
 
    ```bash
-   export FASTSURFER_HOME=$HOME/FastSurfer
+   export FASTSURFER_HOME=${FASTSURFER_HOME:-/path/to/FastSurfer}
    $FASTSURFER_HOME/run_fastsurfer.sh \
        --t1 $HOME/my_mri_data/subjectX/t1_weighted.nii.gz \
        --sd $HOME/my_fastsurfer_analysis \
@@ -205,7 +208,7 @@ surface, QC images, or volumetric inpainting.
 4. Re-run the original FastSurfer command with `--edits` and otherwise identical options:
 
    ```bash
-   export FASTSURFER_HOME=$HOME/FastSurfer
+   export FASTSURFER_HOME=${FASTSURFER_HOME:-/path/to/FastSurfer}
    $FASTSURFER_HOME/run_fastsurfer.sh \
        --t1 $HOME/my_mri_data/subjectX/t1_weighted.nii.gz \
        --sd $HOME/my_fastsurfer_analysis \

@@ -39,12 +39,13 @@ Docker can be used to simplify the installation (no FreeSurfer on system require
 Given you already ran the segmentation pipeline, and want to just run the surface pipeline on top of it 
 (i.e. on a different cluster), the following command can be used:
 ```bash
+freesurfer_license=${freesurfer_license:-/path/to/your/freesurfer/license_file}
 # Run command
 docker run -v $HOME/my_fastsurfer_analysis:$HOME/my_fastsurfer_analysis \
-           -v $HOME/my_fs_license.txt:$HOME/my_fs_license.txt \
+           -v $freesurfer_license:$freesurfer_license \
            --entrypoint /fastsurfer/recon_surf/recon-surf.sh \
            --rm --user $(id -u):$(id -g) deepmi/fastsurfer:cpu-v{{ FASTSURFER_VERSION }} \
-           --fs_license $HOME/my_fs_license.txt \
+           --fs_license $freesurfer_license \
            --sid subjectX --sd $HOME/my_fastsurfer_analysis --3T
 ```
 
@@ -67,6 +68,7 @@ default, so this is for expert users who may want to try out specific flags that
 Given you already ran the segmentation pipeline, and want to just run 
 the surface pipeline on top of it (i.e. on a different cluster), the following command can be used:
 ```bash
+freesurfer_license=${freesurfer_license:-/path/to/your/freesurfer/license_file}
 # 1. Build the singularity image (only if it does not exist)
 singularity build \
     $HOME/my_singularity_images/fastsurfer-cpu-{{ FASTSURFER_VERSION }}.sif \
@@ -75,10 +77,10 @@ singularity build \
 # 2. Run command
 singularity exec --no-mount home,cwd -e \
     -B $HOME/my_fastsurfer_analysis \
-    -B $HOME/my_fs_license.txt \
+    -B $freesurfer_license \
     $HOME/my_singularity_images/fastsurfer-cpu-{{ FASTSURFER_VERSION }}.sif \
     /fastsurfer/recon_surf/recon-surf.sh \
-    --fs_license $HOME/my_fs_license.txt \
+    --fs_license $freesurfer_license \
     --sid subjectX --sd $HOME/my_fastsurfer_analysis --3T \
     --t1 $HOME/my_fastsurfer_analysis/subjectX/mri/orig.mgz \
     --asegdkt_segfile \
@@ -103,10 +105,10 @@ stored on your computer under `$HOME/my_fastsurfer_analysis/subjectX/mri/`,
 run the following command from the console (do not forget to source FreeSurfer!):
 
 ```bash
-export FASTSURFER_HOME=$HOME/FastSurfer
+export FASTSURFER_HOME=${FASTSURFER_HOME:-/path/to/FastSurfer}
 # Source FreeSurfer, defining FREESURFER_HOME will usually enable
-# auto-detection in native installations
-export FREESURFER_HOME=/opt/freesurfer
+# freesurfer and license auto-detection in native installations
+export FREESURFER_HOME=${FREESURFER_HOME:-/path/to/freesurfer}
 source $FREESURFER_HOME/SetUpFreeSurfer.sh
 
 # Run recon-surf
@@ -128,23 +130,24 @@ Example 4: recon-surf on multiple subjects
 Most of the recon_surf functionality can also be achieved by running `run_fastsurfer.sh` with the `--surf_only` flag. This means we can also use the `brun_fastsurfer.sh` command with `--surf_only` to achieve similar results (see also [Example 4](../doc/overview/EXAMPLES.md#example-4-fastsurfer-on-multiple-subjects).
 
 There are however some small differences to be aware of:
-1. the path to and the filename of the t1 image in the subject_list file is optional.
-2. you are not able to specify a custom, conformed t1 image via `--t1 <t1_file>` (`run_fastsurfer.sh --surf_only` will always use `<subjects_dir>/<subject_id>/mri/orig.mgz`).
+1. the path to and the filename of the t1 image in the subjects list file is optional.
+2. you are not able to specify a custom, conformed t1 image via `--t1 <t1_path>` (`run_fastsurfer.sh --surf_only` will always use `<subjects_dir>/<subject_id>/mri/orig.mgz`).
 
 Invoke the following command (make sure you have enough resources to run the given number of subjects in parallel or drop the `--parallel_surf max` flag to run them in series!):
 
 ```bash
+freesurfer_license=${freesurfer_license:-/path/to/your/freesurfer/license_file}
 singularity exec --no-mount home,cwd -e \
             -B $HOME/my_fastsurfer_analysis \
             -B $HOME/my_mri_data \
-            -B $HOME/my_fs_license.txt \
+            -B $freesurfer_license \
             $HOME/my_singularity_images/fastsurfer-cpu-{{ FASTSURFER_VERSION }}.sif \
             /fastsurfer/brun_fastsurfer.sh \
             --surf_only \
             --subjects_list $HOME/my_mri_data/subjects_list.txt \
             --parallel_surf max \
             --sd $HOME/my_fastsurfer_analysis \
-            --fs_license $HOME/my_fs_license.txt \
+            --fs_license $freesurfer_license \
             --3T --threads 4
 ```
 

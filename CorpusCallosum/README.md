@@ -18,7 +18,7 @@ It reads those inputs and writes all CC outputs into the subject directory.
 ### Native
 
 ```bash
-export FASTSURFER_HOME=$HOME/FastSurfer
+export FASTSURFER_HOME=${FASTSURFER_HOME:-/path/to/FastSurfer}
 python3 $FASTSURFER_HOME/CorpusCallosum/fastsurfer_cc.py \
     --sd $HOME/my_fastsurfer_analysis \
     --sid subjectX \

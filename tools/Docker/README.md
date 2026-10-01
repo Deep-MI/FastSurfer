@@ -29,11 +29,12 @@ After pulling the image, you can start a FastSurfer container and process a T1-w
 surface reconstruction) with the following command:
 
 ```bash
+freesurfer_license=${freesurfer_license:-/path/to/your/freesurfer/license_file}
 docker run --gpus all -v $HOME/my_mri_data:$HOME/my_mri_data \
            -v $HOME/my_fastsurfer_analysis:$HOME/my_fastsurfer_analysis \
-           -v $HOME/my_fs_license.txt:$HOME/my_fs_license.txt \
+           -v $freesurfer_license:$freesurfer_license \
            --rm --user $(id -u):$(id -g) deepmi/fastsurfer:{{ CUDA_STRING }}-v{{ FASTSURFER_VERSION }} \
-           --fs_license $HOME/my_fs_license.txt \
+           --fs_license $freesurfer_license \
            --t1 $HOME/my_mri_data/subjectX/t1_weighted.nii.gz \
            --sid subjectX --sd $HOME/my_fastsurfer_analysis \
            --threads 4 --3T # and more flags
@@ -41,7 +42,7 @@ docker run --gpus all -v $HOME/my_mri_data:$HOME/my_mri_data \
 
 ### Docker Flags
 * `--gpus`: This argument is used to access GPU resources. With it, you can also specify how many GPUs to use. In the example above, `all` will make every GPU available to FastSurfer in the Docker container. To use a single one (e.g.  GPU 0), set `--gpus device=0`. To use multiple specific GPUs (e.g. GPU 0, 1 and 3), use `--gpus "device=0,1,3"`.
-* `-v`: This argument defines which and how data is shared between the host system and the docker container. By default, no data is shared between the host and the container. `-v` is used to explicitly share data. It follows the format `-v <host_folder>:<container_folder>:<options>`. In its simplest form, `<host_folder>` and `<container_folder>` are the same and folders inside the container are the same as on the host. `:<options>` may be left out or `:ro` to indicate that files from this folder may not be modified by the docker container (readonly). The following files need to be shared: input files, output folder (subjects directory) and FreeSurfer license.
+* `-v`: This argument defines which and how data is shared between the host system and the docker container. By default, no data is shared between the host and the container. `-v` is used to explicitly share data. It follows the format `-v <host_dir>:<container_dir>:<options>`. In its simplest form, `<host_dir>` and `<container_dir>` are the same and folders inside the container are the same as on the host. `:<options>` may be left out or `:ro` to indicate that files from this folder may not be modified by the docker container (readonly). The following files need to be shared: input files, output folder (subjects directory) and FreeSurfer license.
 * `--user $(id -u):$(id -g)`: Which user the container runs as (relevant for file access, the user-id and group-id, **required**!). `$(id -u)` and `$(id -g)` determine the user and group, respectively. If this flag is omitted, FastSurfer exits with a message asking you to map your host user. Running the docker container as root `--user 0:0` is strongly discouraged and must be combined with the FastSurfer flag `--allow_root`.
 * `--rm`: The flag takes care of removing the container (cleanup of the container) once the analysis finished (optional, but recommended). 
 * `-d`: You can add this flag to run in detached mode (no screen output, and you return to shell, optional).
@@ -64,7 +65,7 @@ All other available flags are identical to the ones explained on the main page [
 ### Docker Best Practice
 * Do not mount the user home directory into the docker container as the home directory.
   
-  Why? If the user inside the docker container has access to a user directory, settings from that directory might bleed into the FastSurfer pipeline. For example, before FastSurfer 2.2 python packages installed in the user directory would replace those installed inside the image potentially causing incompatibilities. Since FastSurfer 2.2, `docker run ... --version +pip` outputs the FastSurfer version including a full list of python packages. 
+  Why? If the user inside the docker container has access to a user directory, settings from that directory might bleed into the FastSurfer pipeline.
 
   How? Docker does not mount the home directory by default, so unless you manually set the `HOME` environment variable, all should be fine. 
 
@@ -108,12 +109,13 @@ The build script allows more specific options, that specify different CUDA optio
 
 For running the analysis, the command is the same as above for the prebuild option:
 ```bash
+freesurfer_license=${freesurfer_license:-/path/to/your/freesurfer/license_file}
 docker run --gpus all \
            -v $HOME/my_mri_data:$HOME/my_mri_data \
            -v $HOME/my_fastsurfer_analysis:$HOME/my_fastsurfer_analysis \
-           -v $HOME/my_fs_license.txt:$HOME/my_fs_license.txt \
+           -v $freesurfer_license:$freesurfer_license \
            --rm --user $(id -u):$(id -g) my_fastsurfer:cuda \
-               --fs_license $HOME/my_fs_license.txt \
+               --fs_license $freesurfer_license \
                --t1 $HOME/my_mri_data/subjectX/t1_weighted.nii.gz \
                --sid subjectX --sd $HOME/my_fastsurfer_analysis \
                --threads 4 --3T
@@ -131,11 +133,12 @@ As you can see, only the `--device` to the build command is changed from `cuda` 
 
 To run the analysis, the command is basically the same as above, except for removing the `--gpus all` GPU option:
 ```bash
+freesurfer_license=${freesurfer_license:-/path/to/your/freesurfer/license_file}
 docker run -v $HOME/my_mri_data:$HOME/my_mri_data \
            -v $HOME/my_fastsurfer_analysis:$HOME/my_fastsurfer_analysis \
-           -v $HOME/my_fs_license.txt:$HOME/my_fs_license.txt \
+           -v $freesurfer_license:$freesurfer_license \
            --rm --user $(id -u):$(id -g) my_fastsurfer:cpu \
-               --fs_license $HOME/my_fs_license.txt \
+               --fs_license $freesurfer_license \
                --t1 $HOME/my_mri_data/subjectX/t1_weighted.nii.gz \
                --device cpu \
                --sid subjectX --sd $HOME/my_fastsurfer_analysis \
@@ -154,13 +157,14 @@ python tools/Docker/build.py --device rocm --tag my_fastsurfer:rocm
 and run segmentation only:
 
 ```bash
+freesurfer_license=${freesurfer_license:-/path/to/your/freesurfer/license_file}
 docker run --rm --security-opt seccomp=unconfined \
            --device=/dev/kfd --device=/dev/dri --group-add video \
 	       -v $HOME/my_mri_data:$HOME/my_mri_data \
            -v $HOME/my_fastsurfer_analysis:$HOME/my_fastsurfer_analysis \
-           -v $HOME/my_fs_license.txt:$HOME/my_fs_license.txt \
+           -v $freesurfer_license:$freesurfer_license \
            --user $(id -u):$(id -g) my_fastsurfer:rocm \
-               --fs_license $HOME/my_fs_license.txt \
+               --fs_license $freesurfer_license \
                --t1 $HOME/my_mri_data/subjectX/t1_weighted.nii.gz \
                --sid subjectX --sd $HOME/my_fastsurfer_analysis \
                --parallel \
@@ -173,15 +177,16 @@ In conflict with the official ROCm documentation (above), we also needed to add 
 Note, we tested on an AMD Radeon Pro W6600, which is [not officially supported](https://rocm.docs.amd.com/projects/install-on-linux/en/latest/reference/system-requirements.html#supported-gpus), but setting `HSA_OVERRIDE_GFX_VERSION=10.3.0` [inside docker did the trick](https://en.opensuse.org/SDB:AMD_GPGPU#Using_CUDA_code_with_ZLUDA_and_ROCm):
 
 ```bash
+freesurfer_license=${freesurfer_license:-/path/to/your/freesurfer/license_file}
 docker run --rm --security-opt seccomp=unconfined \
            --device=/dev/kfd --device=/dev/dri --group-add video \
            --group-add render \
 	       -v $HOME/my_mri_data:$HOME/my_mri_data \
            -v $HOME/my_fastsurfer_analysis:$HOME/my_fastsurfer_analysis \
-           -v $HOME/my_fs_license.txt:$HOME/my_fs_license.txt \
+           -v $freesurfer_license:$freesurfer_license \
            -e HSA_OVERRIDE_GFX_VERSION=10.3.0 \
            --user $(id -u):$(id -g) my_fastsurfer:rocm \
-               --fs_license $HOME/my_fs_license.txt \
+               --fs_license $freesurfer_license \
                --t1 $HOME/my_mri_data/subjectX/t1_weighted.nii.gz \
                --sid subjectX --sd $HOME/my_fastsurfer_analysis \
                --parallel \
@@ -235,6 +240,9 @@ build_dir=$HOME/FastSurfer-build
 img=deepmi/fastsurfer
 # the version can be identified with: $build_dir/run_fastsurfer.sh --version
 version={{ FASTSURFER_VERSION }}
+# the FreeSurfer build image is tagged with the FreeSurfer version without dots
+freesurfer_version={{ FREESURFER_VERSION }}
+freesurfer_tag=freesurfer${freesurfer_version//./}
 # the cuda and rocm version can be identified with:
 # python $build_dir/tools/Docker/build.py --help | grep -E ^[[:space:]]+--device
 cuda=128
@@ -251,7 +259,7 @@ all_tags=("latest" "cpu-latest")
 for dev in cpu xpu "${rocms[@]}" "${cudas[@]}"
 do
   python3 tools/Docker/build.py --tag $img:$dev-v$version \
-      --freesurfer_build_image $img-build:freesurfer741 --attest \
+      --freesurfer_build_image $img-build:$freesurfer_tag --attest \
       --device $dev --pinned_requirements
   all_tags+=("$dev-v$version")
 done

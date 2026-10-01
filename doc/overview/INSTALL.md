@@ -4,7 +4,7 @@ FastSurfer is a pipeline for the segmentation of human brain MRI data. It consis
 
 The preferred way of installing and running FastSurfer is via Singularity or Docker containers on a Linux host system (with a GPU). We provide pre-built images at Dockerhub for NVIDIA GPUs (CUDA), for AMD GPUs (ROCm, experimental) and for CPU only; each image contains the full pipeline (segmentation and surface reconstruction).
 
-We also provide information on a native install on some operating systems, but since dependencies may vary, this can produce results different from our testing environment and we may not be able to support you if things don't work. Our testing is performed on Ubuntu 24.04 via our provided Docker images.
+We also provide information on a native install on some operating systems, but since dependencies may vary, this can produce results different from our testing environment and we may not be able to support you if things don't work. Our testing is performed on Ubuntu {{ UBUNTU_VERSION }} via our provided Docker images.
 
 
 Linux
@@ -40,8 +40,8 @@ docker pull deepmi/fastsurfer:{{ CUDA_STRING }}-v{{ FASTSURFER_VERSION }}
 If you are using the **rootless mode**, you have to install the [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html) and follow the [configuration for the rootless mode](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html#rootless-mode). Otherwise, running FastSurfer with Docker will give you this error message ```docker: Error response from daemon: could not select device driver "" with capabilities: [[gpu]]```.
 
 
-### Native (Ubuntu 24.04)
-In a native install you need to install all dependencies (distro packages, FreeSurfer in the supported version, python dependencies) yourself. Here we will walk you through what you need.
+### Native (Ubuntu)
+In a native install you need to install all dependencies (distro packages, FreeSurfer in the supported version, python dependencies) yourself. Here we will walk you through what you need. We tested FastSurfer {{ FASTSURFER_VERSION }} with Ubuntu {{ UBUNTU_VERSION }} (the base of our Docker images).
 
 #### 1. System Packages
 You will need a few additional packages that may be missing on your system (for this you need sudo access or ask a system admin):
@@ -75,10 +75,11 @@ wget -qO- https://astral.sh/uv/install.sh | sh
 Get FastSurfer from GitHub. Here you can decide if you want to install the current experimental "dev" version (which can be broken) or the "stable" branch (that has been tested thoroughly):
 
 ```bash
-cd $HOME
-# FastSurfer will get cloned to $HOME/FastSurfer
-git clone --branch stable https://github.com/Deep-MI/FastSurfer.git
-cd FastSurfer
+export FASTSURFER_HOME=${FASTSURFER_HOME:-/path/to/FastSurfer}
+# FastSurfer will get cloned to $FASTSURFER_HOME
+git clone --branch stable https://github.com/Deep-MI/FastSurfer.git \
+    $FASTSURFER_HOME
+cd $FASTSURFER_HOME
 ```
 
 #### 4. Python environment
@@ -86,9 +87,9 @@ Create a new environment and install FastSurfer dependencies:
 
 ```bash
 # make sure you are in the FastSurfer directory!
-# create a .venv environment directory inside $HOME/FastSurfer,
-# e.g., python 3.12 (recommended)
-uv venv --python python3.12
+# create a .venv environment directory inside the FastSurfer directory,
+# e.g., python {{ PYTHON_VERSION }} (recommended)
+uv venv --python python{{ PYTHON_VERSION }}
 # install packages with pinned versions from the last stable release
 # (recommended, that is what we tested with)
 # uv pip sync only runs if uv pip compile succeeds
@@ -129,14 +130,14 @@ echo "export PYTHONPATH=\"\${PYTHONPATH}:$(pwd)\"" >> ~/.bashrc
 
 You can also download all network checkpoint files (this should be done if you are installing for multiple users):
 ```bash
-export FASTSURFER_HOME=$HOME/FastSurfer
+export FASTSURFER_HOME=${FASTSURFER_HOME:-/path/to/FastSurfer}
 python3 $FASTSURFER_HOME/FastSurferCNN/download_checkpoints.py --all
 ```
 
 Once all dependencies are installed, you are ready to run the FastSurfer segmentation-only (!!) pipeline by calling ```run_fastsurfer.sh --seg_only ...``` , see [Example 3](EXAMPLES.md#example-3-native-fastsurfer-on-subjectx-with-parallel-processing-of-hemis) for command line flags.
 
 #### 5. FreeSurfer
-To run the full pipeline, you will need to install FreeSurfer (we recommend and support version 7.4.1) according to their [Instructions](https://surfer.nmr.mgh.harvard.edu/fswiki/rel7downloads). There is a freesurfer email list, if you run into problems during this step.
+To run the full pipeline, you will need to install FreeSurfer (we recommend and support version {{ FREESURFER_VERSION }}) according to their [Instructions](https://surfer.nmr.mgh.harvard.edu/fswiki/rel7downloads)<!-- this link will need to be updated when we use FreeSurfer 8 -->. There is a freesurfer email list, if you run into problems during this step.
 
 Make sure, the `${FREESURFER_HOME}` environment variable is set, so FastSurfer finds the FreeSurfer binaries.
 
@@ -146,7 +147,7 @@ We have successfully run the segmentation on an AMD GPU (Radeon Pro W6600) using
 Build the Docker container with ROCm support.
 
 ```bash
-export FASTSURFER_HOME=$HOME/FastSurfer
+export FASTSURFER_HOME=${FASTSURFER_HOME:-/path/to/FastSurfer}
 python3 $FASTSURFER_HOME/tools/Docker/build.py --device rocm \
     --tag my_fastsurfer:rocm
 ```
@@ -259,9 +260,10 @@ run_fastsurfer.sh --seg_only --sd $HOME/my_fastsurfer_analysis --sid subjectX \
 ```
 or, for the full pipeline:
 ```bash
+freesurfer_license=${freesurfer_license:-/path/to/your/freesurfer/license_file}
 run_fastsurfer.sh --sd $HOME/my_fastsurfer_analysis --sid subjectX \
     --t1 $HOME/my_mri_data/subjectX/t1_weighted.nii.gz \
-    --fs_license $HOME/my_fs_license.txt
+    --fs_license $freesurfer_license
 ```
 No `--device` flag is needed: the default already picks the Apple GPU (`mps`) where it is available
 and the CPU otherwise. Passing `--device mps` explicitly is an error on a Mac without an
@@ -284,11 +286,11 @@ To get a license, [register at the FreeSurfer website](https://surfer.nmr.mgh.ha
 Unlike a native Linux/source install, do not rely on FastSurfer auto-detecting the license inside `$FREESURFER_HOME`: on macOS, `$FREESURFER_HOME` points at the pruned FreeSurfer bundled with the package (`$FASTSURFER_HOME/fs-pruned`), which is installed by the `.pkg` as `root` and is not writable by your user account. Instead, save the license file somewhere in your home directory and either pass it explicitly:
 
 ```text
-run_fastsurfer.sh ... --fs_license <license_file>
+run_fastsurfer.sh ... --fs_license <freesurfer_license_path>
 ```
 or export it once per console session (FastSurfer auto-detects from this environment variable):
 ```bash
-export FS_LICENSE=$HOME/my_fs_license.txt
+export FS_LICENSE=/path/to/your/freesurfer/license_file
 ```
 or, to have it set in every shell, add that line to your shell profile yourself (`~/.zprofile` for zsh, the macOS default; `~/.bash_profile` for bash). FastSurfer does not modify these files.
 
@@ -338,9 +340,9 @@ Now you can run Fastsurfer the same way as described in [Example 2](EXAMPLES.md#
 ```bash
 docker run -v C:/Users/user/my_mri_data:/home/user/my_mri_data \
     -v C:/Users/user/my_fastsurfer_analysis:/home/user/my_fastsurfer_analysis \
-    -v C:/Users/user/my_fs_license.txt:/home/user/my_fs_license.txt \
+    -v C:/path/to/your/freesurfer/license_file:/home/user/freesurfer_license \
     --rm --user $(id -u):$(id -g) deepmi/fastsurfer:cpu-v{{ FASTSURFER_VERSION }} \
-    --fs_license /home/user/my_fs_license.txt \
+    --fs_license /home/user/freesurfer_license \
     --t1 /home/user/my_mri_data/subjectX/t1_weighted.nii.gz \
     --device cpu \
     --sid subjectX --sd /home/user/my_fastsurfer_analysis
@@ -367,9 +369,9 @@ Now you can run Fastsurfer the same way as described in [Example 2](EXAMPLES.md#
 docker run --gpus all \
     -v C:/Users/user/my_mri_data:/home/user/my_mri_data \
     -v C:/Users/user/my_fastsurfer_analysis:/home/user/my_fastsurfer_analysis \
-    -v C:/Users/user/my_fs_license.txt:/home/user/my_fs_license.txt \
+    -v C:/path/to/your/freesurfer/license_file:/home/user/freesurfer_license \
     --rm --user $(id -u):$(id -g) deepmi/fastsurfer:{{ CUDA_STRING }}-v{{ FASTSURFER_VERSION }} \
-    --fs_license /home/user/my_fs_license.txt \
+    --fs_license /home/user/freesurfer_license \
     --t1 /home/user/my_mri_data/subjectX/t1_weighted.nii.gz \
     --sid subjectX --sd /home/user/my_fastsurfer_analysis
 ```

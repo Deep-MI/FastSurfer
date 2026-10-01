@@ -52,7 +52,7 @@ For example:
 
 .. code-block:: bash
 
-    export FASTSURFER_HOME=$HOME/FastSurfer
+    export FASTSURFER_HOME=${FASTSURFER_HOME:-/path/to/FastSurfer}
     python3 $FASTSURFER_HOME/CorpusCallosum/fastsurfer_cc.py \
         --sd $HOME/my_fastsurfer_analysis \
         --sid subjectX \
@@ -89,7 +89,7 @@ The manual file may also contain fornix label 250. Then rerun the expert command
 
 .. code-block:: bash
 
-    export FASTSURFER_HOME=$HOME/FastSurfer
+    export FASTSURFER_HOME=${FASTSURFER_HOME:-/path/to/FastSurfer}
     python3 $FASTSURFER_HOME/CorpusCallosum/fastsurfer_cc.py \
         --sd $HOME/my_fastsurfer_analysis \
         --sid subjectX \
@@ -189,7 +189,7 @@ An example call with all quality control outputs is:
 
 .. code-block:: bash
 
-    export FASTSURFER_HOME=$HOME/FastSurfer
+    export FASTSURFER_HOME=${FASTSURFER_HOME:-/path/to/FastSurfer}
     python3 $FASTSURFER_HOME/CorpusCallosum/fastsurfer_cc.py \
         --sd $HOME/my_fastsurfer_analysis --sid subjectX \
         --qc_image qc_snapshots/callosum.png \
@@ -206,7 +206,7 @@ We can, for example divide the CC into 4 equal parts with the shape-based subdiv
 
 .. code-block:: bash
 
-    export FASTSURFER_HOME=$HOME/FastSurfer
+    export FASTSURFER_HOME=${FASTSURFER_HOME:-/path/to/FastSurfer}
     python3 $FASTSURFER_HOME/CorpusCallosum/fastsurfer_cc.py \
         --sd $HOME/my_fastsurfer_analysis --sid subjectX \
         --subdivision_method shape \
@@ -223,7 +223,7 @@ When running the main pipeline with ``--slice_selection all`` and ``--save_templ
 .. code-block:: bash
 
     # Generate 3D template data
-    export FASTSURFER_HOME=$HOME/FastSurfer
+    export FASTSURFER_HOME=${FASTSURFER_HOME:-/path/to/FastSurfer}
     python3 $FASTSURFER_HOME/CorpusCallosum/fastsurfer_cc.py \
         --sd $HOME/my_fastsurfer_analysis --sid subjectX \
         --slice_selection all \
@@ -244,7 +244,7 @@ When using ``--slice_selection middle`` or a specific slice number with ``--save
 .. code-block:: bash
 
     # Generate 2D template data (middle slice)
-    export FASTSURFER_HOME=$HOME/FastSurfer
+    export FASTSURFER_HOME=${FASTSURFER_HOME:-/path/to/FastSurfer}
     python3 $FASTSURFER_HOME/CorpusCallosum/fastsurfer_cc.py \
         --sd $HOME/my_fastsurfer_analysis --sid subjectX \
         --slice_selection middle \

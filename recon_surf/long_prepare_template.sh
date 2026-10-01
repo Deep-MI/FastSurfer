@@ -87,7 +87,7 @@ function usage()
 cat << EOF
 
 Usage: long_prepare_template.sh --tid <template_id> \\
-                                --t1s <t1_file_1> <t1_file_2> .. \\
+                                --t1s <t1_path_1> <t1_path_2> .. \\
                                 --tpids <tpid_1> <tpid_2> .. \\
                                 --sd <subjects_dir> [OPTIONS]
 
@@ -101,7 +101,7 @@ FLAGS:
 
   --tid <template_id>     ID for subject template/base directory inside
                             \$SUBJECTS_DIR to be created"
-  --t1s <t1_file_1> <t1_file_2> ..
+  --t1s <t1_path_1> <t1_path_2> ..
                           T1 full head inputs for each time point (do not need
                             to be bias corrected). Requires ABSOLUTE paths!
   --tpids <tpid_1> <tpid_2> ..

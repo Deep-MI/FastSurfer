@@ -7,7 +7,7 @@ On this page, we explain FastSurfer's options, usually referred to as `<fastsurf
 The `<fastsurfer_flags>` will usually at least include the subject directory (`--sd`), the subject name/id (`--sid`) and the path to the input image (`--t1`). For example:
 
 ```bash
-export FASTSURFER_HOME=$HOME/FastSurfer
+export FASTSURFER_HOME=${FASTSURFER_HOME:-/path/to/FastSurfer}
 $FASTSURFER_HOME/run_fastsurfer.sh --sd $HOME/my_fastsurfer_analysis \
     --sid subjectX --t1 $HOME/my_mri_data/subjectX/t1_weighted.nii.gz --3T
 ```
@@ -17,7 +17,7 @@ Here, we have also added the `--3T` flag, which tells FastSurfer to register aga
 In the following, we give an overview of the most important options. You can view a [full list of options](RUN_FASTSURFER.md#full-list-of-flags) with
 
 ```bash
-export FASTSURFER_HOME=$HOME/FastSurfer
+export FASTSURFER_HOME=${FASTSURFER_HOME:-/path/to/FastSurfer}
 $FASTSURFER_HOME/run_fastsurfer.sh --help
 ```
 
@@ -42,7 +42,7 @@ Optional arguments
 * `--no_cereb`: Switch off the cerebellum sub-segmentation.
 * `--no_hypothal`: Skip the hypothalamus segmentation.
 * `--no_cc`: Skip the segmentation and analysis of the corpus callosum.
-* `--lesion_mask <lesion_mask_file>`: Path to a binary lesion mask in the same space as the T1 input. If provided, FastSurfer will wrap the segmentation and surface pipelines with lesion inpainting using LIT. This experimental feature is useful for images with tumors or other large lesions; review LIT-modified outputs before downstream use.
+* `--lesion_mask <lesion_mask_path>`: Path to a binary lesion mask in the same space as the T1 input. If provided, FastSurfer will wrap the segmentation and surface pipelines with lesion inpainting using LIT. This experimental feature is useful for images with tumors or other large lesions; review LIT-modified outputs before downstream use.
 * `--cereb_segfile`: Name of the cerebellum segmentation file. Requires an ABSOLUTE Path! Default location: `$SUBJECTS_DIR/<subject_id>/mri/cerebellum.CerebNet.nii.gz`
 * `--no_biasfield`: Deactivate the biasfield correction and calculation of partial volume-corrected statistics in the segmentation modules. HypVINN does run but expects that biasfields are corrected externally.
 * `--native_image` or `--keepgeom`: **Only supported for `--seg_only`**. Preserve the native image geometry (orientation, image size, and voxel size) for saved outputs. Internally, FastSurfer may temporarily reorder/flip the image to a soft-LIA layout so the 2D networks still see the expected plane ordering, but written outputs stay in native geometry; only intensity scaling and dtype conversion are applied as needed. This also includes experimental support for anisotropic images (no extreme anisotropy).
@@ -108,7 +108,7 @@ machine.
 yourself for the whole run:
 
 ```bash
-export FASTSURFER_HOME=$HOME/FastSurfer
+export FASTSURFER_HOME=${FASTSURFER_HOME:-/path/to/FastSurfer}
 # the numpy and OpenBLAS values depend on the host, so read them from the helper
 eval "$(python $FASTSURFER_HOME/recon_surf/pin_cpu_dispatch.py)"
 export ATEN_CPU_CAPABILITY=avx2 ONEDNN_MAX_CPU_ISA=AVX2 MKL_CBWR=COMPATIBLE
@@ -142,11 +142,16 @@ checksums are no use here, because the headers record timestamps and the command
 runs still differ byte for byte.
 
 ```bash
-export FASTSURFER_HOME=$HOME/FastSurfer
+export FASTSURFER_HOME=${FASTSURFER_HOME:-/path/to/FastSurfer}
 export SUBJECTS_DIR=$HOME/my_fastsurfer_analysis
 python $FASTSURFER_HOME/tools/compare_subjects.py $SUBJECTS_DIR/subject_a \
     $SUBJECTS_DIR/subject_b
 ```
+
+Troubleshooting
+---------------
+`run_fastsurfer.sh` calls `python3` by default. If `python3` is not the python version your FastSurfer environment was
+set up with, pass that one with `--py`, for example `--py python{{ PYTHON_VERSION }}`.
 
 Full list of flags
 ------------------

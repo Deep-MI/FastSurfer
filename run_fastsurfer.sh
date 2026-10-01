@@ -107,7 +107,7 @@ function usage()
 cat << EOF
 
 Usage: run_fastsurfer.sh --sid <subject_id> --sd <subjects_dir> \\
-                         --t1 <t1_file> [OPTIONS]
+                         --t1 <t1_path> [OPTIONS]
 
 run_fastsurfer.sh takes a T1 full head image and creates:
      (i)  a segmentation using FastSurferVINN (equivalent to FreeSurfer
@@ -116,16 +116,16 @@ run_fastsurfer.sh takes a T1 full head image and creates:
 
 FLAGS:
 
-  --fs_license <license_file>
+  --fs_license <freesurfer_license_path>
                           Path to FreeSurfer license key file. Register at
                             https://surfer.nmr.mgh.harvard.edu/registration.html
                             for free to obtain it if you do not have FreeSurfer
                             installed already
   --sid <subject_id>      Subject ID to create directory inside \$SUBJECTS_DIR
   --sd  <subjects_dir>    Output directory \$SUBJECTS_DIR (or pass via env var)
-  --t1  <t1_file>         T1 full head input (not bias corrected). Requires an
+  --t1  <t1_path>         T1 full head input (not bias corrected). Requires an
                             ABSOLUTE Path!
-  --lesion_mask <lesion_mask_file>
+  --lesion_mask <lesion_mask_path>
                           Lesion mask input for experimental lesion inpainting.
                             Requires an ABSOLUTE Path!
   --asegdkt_segfile <asegdkt_segfile>
@@ -179,7 +179,7 @@ SEGMENTATION PIPELINE:
   --seg_log <seg_log>     Log-file for the segmentation (FastSurferVINN,
                             CerebNet, HypVINN)
                             Default: \$SUBJECTS_DIR/\$sid/scripts/deep-seg.log
-  --conformed_name <conformed_file>
+  --conformed_name <conformed_path>
                           Name of the file in which the conformed input
                             image will be saved. Requires an ABSOLUTE Path!
                             Default location:
@@ -188,7 +188,7 @@ SEGMENTATION PIPELINE:
                             partial volume-corrected, so they are only written
                             if a biasfield corrected image already exists, for
                             example from an earlier run.
-  --norm_name <norm_file> Name of the biasfield corrected image
+  --norm_name <norm_path> Name of the biasfield corrected image
                             Default location:
                             \$SUBJECTS_DIR/\$sid/mri/orig_nu.mgz
   --tal_reg               Perform the talairach registration for eTIV estimates
@@ -282,7 +282,7 @@ SEGMENTATION PIPELINE:
   --no_biasfield          Biasfield-corrected inputs are recommended for the
                             hypothalamus sub-segmentation. This option implies images
                             were corrected externally.
-  --t2 <t2_file>          *Optional* T2 full head input (must be externally biasfield
+  --t2 <t2_path>          *Optional* T2 full head input (must be externally biasfield
                             corrected when called with --no_biasfield). Requires an
                             ABSOLUTE Path!
   --reg_mode <none|coreg|robust>

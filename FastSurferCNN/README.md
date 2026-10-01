@@ -65,7 +65,7 @@ To run the network on MRI-volumes of subjectX in `$HOME/my_mri_data` (specified 
 `$HOME/my_mri_data/subjectX/t1_weighted.nii.gz`), run the following commands:
 
 ```bash
-export FASTSURFER_HOME=$HOME/FastSurfer
+export FASTSURFER_HOME=${FASTSURFER_HOME:-/path/to/FastSurfer}
 python3 $FASTSURFER_HOME/FastSurferCNN/run_prediction.py \
           --t1 $HOME/my_mri_data/subjectX/t1_weighted.nii.gz \
           --sd $HOME/my_fastsurfer_analysis \
@@ -84,7 +84,7 @@ Here the logfile "temp_Competitive.log" will include the logfiles of all subject
 To run the network on all subjects MRI-volumes in `$HOME/my_mri_data`, run the following command:
 
 ```bash
-export FASTSURFER_HOME=$HOME/FastSurfer
+export FASTSURFER_HOME=${FASTSURFER_HOME:-/path/to/FastSurfer}
 python3 $FASTSURFER_HOME/FastSurferCNN/run_prediction.py \
           --in_dir $HOME/my_mri_data \
           --sd $HOME/my_fastsurfer_analysis \
@@ -154,7 +154,7 @@ file could be something like `/dataset/D1/subject1/mri_volume.mgz and /dataset/D
 
 ### Example Command: Axial (Single Resolution)
 ```bash
-export FASTSURFER_HOME=$HOME/FastSurfer
+export FASTSURFER_HOME=${FASTSURFER_HOME:-/path/to/FastSurfer}
 python3 $FASTSURFER_HOME/FastSurferCNN/generate_hdf5.py \
           --hdf5_name $FASTSURFER_HOME/data/training_set_axial.hdf5 \
           --csv_file $FASTSURFER_HOME/training_set_subjects_dirs.csv \
@@ -171,7 +171,7 @@ python3 $FASTSURFER_HOME/FastSurferCNN/generate_hdf5.py \
 
 ### Example Command: Coronal (Single Resolution)
 ```bash
-export FASTSURFER_HOME=$HOME/FastSurfer
+export FASTSURFER_HOME=${FASTSURFER_HOME:-/path/to/FastSurfer}
 python3 $FASTSURFER_HOME/FastSurferCNN/generate_hdf5.py \
           --hdf5_name $FASTSURFER_HOME/data/training_set_coronal.hdf5 \
           --csv_file $FASTSURFER_HOME/training_set_subjects_dirs.csv \
@@ -187,7 +187,7 @@ python3 $FASTSURFER_HOME/FastSurferCNN/generate_hdf5.py \
 
 ### Example Command: Sagittal (Multiple Resolutions)
 ```bash
-export FASTSURFER_HOME=$HOME/FastSurfer
+export FASTSURFER_HOME=${FASTSURFER_HOME:-/path/to/FastSurfer}
 python3 $FASTSURFER_HOME/FastSurferCNN/generate_hdf5.py \
           --hdf5_name $FASTSURFER_HOME/data/training_set_sagittal.hdf5 \
           --csv_file $FASTSURFER_HOME/training_set_subjects_dirs.csv \
@@ -205,10 +205,10 @@ python3 $FASTSURFER_HOME/FastSurferCNN/generate_hdf5.py \
 `--data_dir` specifies the path in which the data is located, with `--pattern` we can select subjects from the specified
 path. By default, the pattern is `"*"` meaning all subjects will be selected (it is important to quote the pattern (i.e.
 use `"*"`, NOT `*`). As an example, imagine you have 19 FreeSurfer processed subjects labeled subject1 to subject19 in 
-the `$FASTSURFER_HOME/data` directory:
+the `$HOME/data` directory:
 
 ```text
-$HOME/FastSurfer/data
+$HOME/data
 ├── subject1
 ├── subject2
 ├── subject3
@@ -233,10 +233,10 @@ Setting `--pattern` "*" will select all 19 subjects (subject1, ..., subject19). 
 the hdf5-file (e.g. subject 10 till subject19), this can be done by changing the `--pattern` flag to "subject1[0-9]": 
 
 ```bash
-export FASTSURFER_HOME=$HOME/FastSurfer
+export FASTSURFER_HOME=${FASTSURFER_HOME:-/path/to/FastSurfer}
 python3 $FASTSURFER_HOME/FastSurferCNN/generate_hdf5.py \
-          --hdf5_name $FASTSURFER_HOME/data/training_set_axial.hdf5 \
-          --data_dir $FASTSURFER_HOME/data \
+          --hdf5_name $HOME/data/training_set_axial.hdf5 \
+          --data_dir $HOME/data \
           --pattern "subject1[0-9]" \
           --plane sagittal \
           --image_name mri/orig.mgz \
@@ -308,7 +308,7 @@ following examples:
 Trains FastSurferVINN on multi-resolution images in the coronal plane:
 
 ```bash
-export FASTSURFER_HOME=$HOME/FastSurfer
+export FASTSURFER_HOME=${FASTSURFER_HOME:-/path/to/FastSurfer}
 # the config sets LOG_DIR and the hdf5 sets relative to FastSurferCNN
 cd $FASTSURFER_HOME/FastSurferCNN
 python3 $FASTSURFER_HOME/FastSurferCNN/run_model.py \
@@ -320,7 +320,7 @@ Trains FastSurferVINN on single-resolution images in the sagittal plane by overr
 `PATH_HDF5_TRAIN`, and `PATH_HDF5_VAL` options:
 
 ```bash
-export FASTSURFER_HOME=$HOME/FastSurfer
+export FASTSURFER_HOME=${FASTSURFER_HOME:-/path/to/FastSurfer}
 # the config sets LOG_DIR relative to FastSurferCNN
 cd $FASTSURFER_HOME/FastSurferCNN
 hdf5_dir=$FASTSURFER_HOME/FastSurferCNN/hdf5_sets
@@ -338,7 +338,7 @@ python3 $FASTSURFER_HOME/FastSurferCNN/run_model.py \
 Trains FastSurferCNN using a provided configuration file and specifying no augmentations:
 
 ```bash
-export FASTSURFER_HOME=$HOME/FastSurfer
+export FASTSURFER_HOME=${FASTSURFER_HOME:-/path/to/FastSurfer}
 # LOG_DIR and other paths of the config may be relative to FastSurferCNN
 cd $FASTSURFER_HOME/FastSurferCNN
 python3 $FASTSURFER_HOME/FastSurferCNN/run_model.py \

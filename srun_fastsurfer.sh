@@ -67,11 +67,11 @@ Script to orchestrate resource-optimized FastSurfer runs on SLURM clusters.
 Usage:
 srun_fastsurfer.sh [--data <input_image_data_dir>]
     [--sd <subjects_dir>] [--work <work_dir>]
-    (--pattern <search_pattern>|--subject_list <subject_list_file>
-                                [--subject_list_delim <delimiter>]
-                                [--subject_list_awk_code_sid <subject_id_code>]
-                                [--subject_list_awk_code_args <args_code>])
-    [--singularity_image <sif_file>]
+    (--pattern <search_pattern>|--subjects_list <subjects_list_path>
+                                [--subjects_list_delim <delimiter>]
+                                [--subjects_list_awk_code_sid <subject_id_code>]
+                                [--subjects_list_awk_code_args <args_code>])
+    [--singularity_image <sif_path>]
     [--extra_singularity_options <singularity_flags>]
     [--extra_singularity_options_seg <singularity_flags>]
     [--extra_singularity_options_surf <singularity_flags>]
@@ -112,30 +112,30 @@ Data- and subject-related options:
 --data: (root) directory to search in for t1 files (default: current work directory).
 --pattern: glob string to find image files in 'data directory' (default:
    *.{nii,nii.gz,mgz}), for example '--data /data/ --pattern "*/*/mri/t1.nii.gz"'
-    will find all images of format /data/<some_folder>/<other_folder>/mri/t1.nii.gz
---subject_list: alternative way to define cases to process, files are of format:
+    will find all images of format /data/<some_dir_name>/<other_dir_name>/mri/t1.nii.gz
+--subjects_list: alternative way to define cases to process, files are of format:
   ---
-  <subject_id>=<t1_file>
+  <subject_id>=<t1_path>
   ...
   ---
   This option invalidates the --pattern option.
   May also add additional parameters like:
   ---
-  <subject_id>=<t1_file> --vox_size 1.0
+  <subject_id>=<t1_path> --vox_size 1.0
   ---
---subject_list_delim: alternative delimiter in the file (default: "="). For
-  example, if you pass --subject_list_delim "," the subject_list file is parsed
+--subjects_list_delim: alternative delimiter in the file (default: "="). For
+  example, if you pass --subjects_list_delim "," the subjects list file is parsed
   as a comma-delimited csv file.
---subject_list_awk_code_sid <subject_id_code>: alternative way to construct the
-  subject_id from the row in the subject_list (default: '\$1').
---subject_list_awk_code_args <args_code>: alternative way to construct the
-  image_path and additional parameters from the row in the subject_list
+--subjects_list_awk_code_sid <subject_id_code>: alternative way to construct the
+  subject_id from the row in the subjects list (default: '\$1').
+--subjects_list_awk_code_args <args_code>: alternative way to construct the
+  image_path and additional parameters from the row in the subjects list
   (default: '\$2'), other examples: '\$2/\$1/mri/orig.mgz', where the first
-  field (of the subject_list file) is the subject_id and the second field is the
+  field (of the subjects list file) is the subject_id and the second field is the
   containing folder, e.g. the study.
   Example for additional parameters:
---subject_list_delim "," --subject_list_awk_code_args '\$2 " --vox_size " \$4'
-  to implement from the subject_list line
+--subjects_list_delim "," --subjects_list_awk_code_args '\$2 " --vox_size " \$4'
+  to implement from the subjects list line
   ---
   subject-101,raw/T1w-101A.nii.gz,study-1,0.9
   ---
@@ -259,7 +259,7 @@ case $key in
   --subject_list|--subjects_list) subject_list="$1" ; shift ;;
   --subject_list_delim|--subjects_list_delim) subject_list_delim="$1" ; shift ;;
   --subject_list_awk_code)
-    echo "--subject_list_awk_code is outdated, use subject_list_awk_code_sid and subject_list_awk_code_args!"
+    echo "--subject_list_awk_code is outdated, use --subjects_list_awk_code_sid and --subjects_list_awk_code_args!"
     exit 1
     ;;
   --subject_list_awk_code_sid|--subjects_list_awk_code_sid) subject_list_awk_code_sid="$1" ; shift ;;
@@ -409,8 +409,8 @@ debug "Data options:"
 debug "source dir: $in_dir"
 if [[ -n "$subject_list" ]]
 then
-  debug "Reading subjects from subject_list file $subject_list"
-  debug "subject_list read options:"
+  debug "Reading subjects from subjects list file $subject_list"
+  debug "subjects list read options:"
   debug "  delimiter: '${subject_list_delim}'"
   debug "  sid awk code: '${subject_list_awk_code_sid}'"
   debug "  args awk code: '${subject_list_awk_code_args}'"
@@ -509,7 +509,7 @@ then
   check_subject_images "$in_dir" "$cases"
   if [[ "$debug" == "true" ]]
   then
-    log "Debug output of the parsed subject_list:"
+    log "Debug output of the parsed subjects list:"
     log "$cases"
     log ""
   fi
@@ -610,7 +610,7 @@ fi
 if [[ "$surf_only" != "true" ]]
 then
   fastsurfer_seg_options=(# brun_fastsurfer options (inside singularity)
-                          --subject_list /data/scripts/subject_list
+                          --subjects_list /data/scripts/subject_list
                           --statusfile /data/scripts/subject_success
                           # run_fastsurfer options (inside singularity)
                           --sd "/data/cases" --threads "$num_cpus_per_task"
@@ -698,7 +698,7 @@ fi
 if [[ "$seg_only" != "true" ]]
 then
   fastsurfer_surf_options=(# brun_fastsurfer options (outside of singularity)
-                           --subject_list "$hpc_work/scripts/subject_list"
+                           --subjects_list "$hpc_work/scripts/subject_list"
                            --parallel max
                            --statusfile "$hpc_work/scripts/subject_success"
                            # run_fastsurfer options (inside singularity)

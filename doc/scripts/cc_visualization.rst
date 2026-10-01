@@ -17,7 +17,7 @@ point the script to the exported template directory:
 
 .. code-block:: bash
 
-    export FASTSURFER_HOME=$HOME/FastSurfer
+    export FASTSURFER_HOME=${FASTSURFER_HOME:-/path/to/FastSurfer}
     python3 $FASTSURFER_HOME/CorpusCallosum/cc_visualization.py \
         --template_dir $HOME/my_fastsurfer_analysis/subjectX/cc_template \
         --output_dir $HOME/my_fastsurfer_analysis/subjectX/cc_visualization
@@ -29,7 +29,7 @@ To visualize a 2D template (using ``--slice_selection middle --save_template_dir
 
 .. code-block:: bash
 
-    export FASTSURFER_HOME=$HOME/FastSurfer
+    export FASTSURFER_HOME=${FASTSURFER_HOME:-/path/to/FastSurfer}
     python3 $FASTSURFER_HOME/CorpusCallosum/cc_visualization.py \
         --template_dir $HOME/my_fastsurfer_analysis/subjectX/cc_template \
         --output_dir $HOME/my_fastsurfer_analysis/subjectX/cc_visualization \
@@ -47,7 +47,7 @@ ordered from anterior to posterior:
 
 .. code-block:: bash
 
-    export FASTSURFER_HOME=$HOME/FastSurfer
+    export FASTSURFER_HOME=${FASTSURFER_HOME:-/path/to/FastSurfer}
     python3 $FASTSURFER_HOME/CorpusCallosum/cc_visualization.py \
         --values_file $HOME/my_fastsurfer_analysis/p_values.csv \
         --output_dir $HOME/my_fastsurfer_analysis/visualizations \

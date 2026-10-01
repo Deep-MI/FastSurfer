@@ -12,7 +12,7 @@ Debugging SLURM runs
 1. Did the run succeed?
    1. Check whether all jobs are done (specifically the copy job).
       ```text
-      $ squeue -u $USER --Format JobArrayID,Name,State,Dependency
+      squeue -u $USER --Format JobArrayID,Name,State,Dependency
       1750814_3           FastSurfer-Seg-kueglRUNNING             (null)
       1750815_3           FastSurfer-Surf-kuegPENDING             aftercorr:1750814_*(
       1750816             FastSurfer-Cleanup-kPENDING             afterany:1750815_*(u

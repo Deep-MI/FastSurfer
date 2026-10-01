@@ -54,7 +54,7 @@ need for running the application. You do not need to install anything else. See 
 ### 2. Local installation
 If you decide against using Docker, install FastSurfer natively with [uv](https://docs.astral.sh/uv/), a fast Python
 package and environment manager (FastSurfer previously recommended conda or pip, we now recommend uv). The
-[native installation instructions](../doc/overview/INSTALL.md#native-ubuntu-2404) cover all steps, in short:
+[native installation instructions](../doc/overview/INSTALL.md#native-ubuntu) cover all steps, in short:
 
 ```bash
 # install uv
@@ -64,12 +64,4 @@ git clone --branch stable https://github.com/Deep-MI/FastSurfer.git
 cd FastSurfer
 uv venv --python python3.12
 resolved=$(uv pip compile --no-build --torch-backend auto requirements.txt) && uv pip sync --no-build --torch-backend auto - <<< "$resolved"
-```
-
-The optional recon-surf dependency `scikit-sparse` speeds up the spherical projection of surfaces. It is only published
-as source code, so installing it needs a C compiler and the SuiteSparse development files:
-
-```bash
-sudo apt-get install -y build-essential libsuitesparse-dev
-uv pip install scikit-sparse
 ```

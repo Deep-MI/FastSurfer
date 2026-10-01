@@ -18,10 +18,11 @@ Usage
 Basic example
 --------------
 ```bash
-export FASTSURFER_HOME=$HOME/FastSurfer
+export FASTSURFER_HOME=${FASTSURFER_HOME:-/path/to/FastSurfer}
+freesurfer_license=${freesurfer_license:-/path/to/your/freesurfer/license_file}
 $FASTSURFER_HOME/run_fastsurfer_bids.py $HOME/my_bids_dataset \
     $HOME/my_fastsurfer_analysis participant \
-    --participant_label 01 02 --fs_license $HOME/my_fs_license.txt \
+    --participant_label 01 02 --fs_license $freesurfer_license \
     -- --threads 4
 ```
 
@@ -36,14 +37,15 @@ The image's entrypoint is `run_fastsurfer.sh`, so a BIDS run overrides it. Overr
 pipeline runs in, and it takes the script to run as its first argument.
 
 ```bash
+freesurfer_license=${freesurfer_license:-/path/to/your/freesurfer/license_file}
 docker run --gpus all -v $HOME/my_bids_dataset:$HOME/my_bids_dataset:ro \
            -v $HOME/my_fastsurfer_analysis:$HOME/my_fastsurfer_analysis \
-           -v $HOME/my_fs_license.txt:$HOME/my_fs_license.txt \
+           -v $freesurfer_license:$freesurfer_license \
            --entrypoint "/fastsurfer/tools/Docker/entrypoint.sh" \
            --rm --user $(id -u):$(id -g) deepmi/fastsurfer:{{ CUDA_STRING }}-v{{ FASTSURFER_VERSION }} \
            /fastsurfer/run_fastsurfer_bids.py \
            $HOME/my_bids_dataset $HOME/my_fastsurfer_analysis participant \
-           --fs_license $HOME/my_fs_license.txt \
+           --fs_license $freesurfer_license \
            -- --3T --threads 4
 ```
 
@@ -51,25 +53,26 @@ On a cluster, `--slurm` submits the same cases through `srun_fastsurfer.sh` inst
 `--` as well:
 
 ```bash
-export FASTSURFER_HOME=$HOME/FastSurfer
+export FASTSURFER_HOME=${FASTSURFER_HOME:-/path/to/FastSurfer}
+freesurfer_license=${freesurfer_license:-/path/to/your/freesurfer/license_file}
 $FASTSURFER_HOME/run_fastsurfer_bids.py $HOME/my_bids_dataset \
     $HOME/my_fastsurfer_analysis participant --slurm \
-    --fs_license $HOME/my_fs_license.txt \
+    --fs_license $freesurfer_license \
     -- --partition gpu --work $HOME/my_fastsurfer_work
 ```
 
 ```{warning}
 `--slurm` is experimental. Check the output of `--dry` before relying on it. Two things differ from the local route:
-`--data` is set to `<bids_dir>`, because `srun_fastsurfer.sh` rewrites every path in the subject list relative to it
-before binding it into the container, and the paths are written unquoted, because that rewrite is done with awk and a
-quote stops it from matching. A dataset whose path holds a space is therefore refused with `--slurm`, which is a
+`--data` is set to `<bids_dir>`, because `srun_fastsurfer.sh` rewrites every path in the subjects list relative to
+it before binding it into the container, and the paths are written unquoted, because that rewrite is done with awk and
+a quote stops it from matching. A dataset whose path holds a space is therefore refused with `--slurm`, which is a
 limitation of `srun_fastsurfer.sh` rather than of BIDS input: neither of its input routes handles a space.
 ```
 
 Output naming
 -------------
-`<output_dir>` is used directly as FastSurfer's `SUBJECTS_DIR`, and every session becomes one directory in it, named
-`sub-<label>_ses-<label>`:
+`<output_dir>` is used directly as FastSurfer's `SUBJECTS_DIR`, and every session becomes one directory in it,
+named `sub-<label>_ses-<label>`:
 
 ```text
 my_fastsurfer_analysis/
@@ -82,9 +85,9 @@ my_fastsurfer_analysis/
 
 Flat, not nested under `sub-<label>/ses-<label>/`. This is the layout FreeSurfer tooling expects of a `SUBJECTS_DIR`,
 so every downstream FreeSurfer or FastSurfer command works on the output directory unchanged. A dataset with no
-session level keeps the plain `sub-<label>` as the directory name. Note this means `<output_dir>` is a FreeSurfer
-subjects directory that carries a `dataset_description.json` for provenance, not a valid BIDS-derivatives dataset,
-which would require the nested layout.
+session level keeps the plain `sub-<label>` as the directory name. Note this means `<output_dir>` is a
+FreeSurfer subjects directory that carries a `dataset_description.json` for provenance, not a valid
+BIDS-derivatives dataset, which would require the nested layout.
 
 `dataset_description.json` is written if there is not one there already, and records which of the two processing
 models produced the directory. The longitudinal pipeline names its timepoints the same way this names its sessions,
@@ -92,11 +95,11 @@ so `sub-01_ses-1` from a cross-sectional run and `sub-01_ses-1` from a longitudi
 holding results of different methods. **One output directory therefore holds one model**, and a run into a directory
 recorded as the other one is refused rather than silently mixed.
 
-The generated subject list is kept as `<output_dir>/bids_subjects.txt`, so a run can be repeated or amended with
-`brun_fastsurfer.sh` directly.
+The generated subjects list is kept as `<output_dir>/bids_subjects.txt`, so a run can be repeated or amended
+with `brun_fastsurfer.sh` directly.
 
-`<output_dir>` must not be the dataset itself or lie inside one of its subjects, since the output would then be found as
-input by the next run. `<bids_dir>/derivatives/fastsurfer` is the usual place inside a dataset.
+`<output_dir>` must not be the dataset itself or lie inside one of its subjects, since the output would then be
+found as input by the next run. `<bids_dir>/derivatives/fastsurfer` is the usual place inside a dataset.
 
 Sessions
 --------
@@ -132,7 +135,7 @@ if it is installed, and skipped with a warning if it is not. `--skip_bids_valida
 
 Dry run
 -------
-`--dry` prints the subject list and the command that would be executed, and writes nothing, which is the cheap way to
+`--dry` prints the subjects list and the command that would be executed, and writes nothing, which is the cheap way to
 check what was discovered before committing to a full run. The flag is spelled as in `srun_fastsurfer.sh`, which also
 accepts `--dry_run`.
 

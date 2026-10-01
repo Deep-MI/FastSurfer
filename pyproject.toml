@@ -132,6 +132,8 @@ tracker = 'https://github.com/Deep-MI/FastSurfer/issues'
 #     default in tools/Docker/Dockerfile (a Dockerfile cannot parse toml) and the python-version
 #     in .github/workflows/pipelinetest.yaml (that step provides the interpreter which then reads
 #     this file). test/lint/test_python_version.py asserts both against this key.
+#   - doc/conf.py reads this key for {{ PYTHON_VERSION }} in the documentation, from the release
+#     the documentation refers to.
 #   - NOT .github/workflows/unittest.yaml, which pins the requires-python floor on purpose.
 #
 # This key is deliberately separate from project.requires-python, which answers a different
@@ -143,9 +145,6 @@ tracker = 'https://github.com/Deep-MI/FastSurfer/issues'
 # Raising this version also requires updating the following, none of which can read this key:
 #   - requirements.txt, regenerated for the new interpreter (tools/update_requirements.sh)
 #   - the two hardcoded copies listed above (CI will fail if you miss one)
-#   - the version quoted in user-facing docs: doc/overview/INSTALL.md (native installation only;
-#     the macOS package bundles this interpreter, so its requirements quote no python version),
-#     README.md, Tutorial/README.md
 version = "3.12"
 
 [tool.freesurfer]

@@ -7,19 +7,19 @@ Usage
 :cwd: /../
 ```
 
-Subject Lists
--------------
+Subjects Lists
+--------------
 The input files and options may be specified in three ways:
 
 1. By writing them into the console (or by piping them in) (default) (one case per line),
-2. by passing a subject list file `--subject_list <filename>` (one case per line), or
-3. by passing them on the command line `--subjects "<subject_id>=<t1_file>" [more cases]` (no additional options
+2. by passing a subjects list file `--subjects_list <subjects_list_path>` (one case per line), or
+3. by passing them on the command line `--subjects "<subject_id>=<t1_path>" [more cases]` (no additional options
    supported).
 
-These files/input options will usually be in the format `<subject_id>=<t1_file> [additional options]`, where additional
+These files/input options will usually be in the format `<subject_id>=<t1_path> [additional options]`, where additional
 options are optional and enable passing options different to the "general options" given on the command line to
 `brun_fastsurfer.sh`. One example for such a case-specific option is an optional T2w image (e.g. for the
-[HypVINN](../overview/OUTPUT_FILES.md#hypvinn-module)). An example subject list file might look like this:
+[HypVINN](../overview/OUTPUT_FILES.md#hypvinn-module)). An example subjects list file might look like this:
 
 ```text
 001=/home/user/my_mri_data/001/t1_weighted.nii.gz --t2 /home/user/my_mri_data/001/t2_weighted.nii.gz
@@ -47,7 +47,7 @@ This mode is ideal for CPU-based processing for segmentation. It will process se
 in the same process, but multiple cases are processed at the same time.
 
 ```bash
-export FASTSURFER_HOME=$HOME/FastSurfer
+export FASTSURFER_HOME=${FASTSURFER_HOME:-/path/to/FastSurfer}
 $FASTSURFER_HOME/brun_fastsurfer.sh --parallel 4 --threads 2
 ```
 will start 4 segmentations (and surface reconstructions) at the same time, and will start a fifth, when the surface
@@ -61,7 +61,7 @@ This is ideal for GPU-based processing for segmentation. It will process segment
 pipelines, which is useful for optimized GPU loading. Multiple cases may be processed at the same time.
 
 ```bash
-export FASTSURFER_HOME=$HOME/FastSurfer
+export FASTSURFER_HOME=${FASTSURFER_HOME:-/path/to/FastSurfer}
 $FASTSURFER_HOME/brun_fastsurfer.sh --device cuda:0-1 --parallel_seg 2 \
   --parallel_surf max --threads_seg 8 --threads_surf 4
 ```

@@ -100,7 +100,7 @@ The primary output files are pial, white, and inflated surface files, the thickn
 
 Lesion Inpainting Tool (LIT, optional)
 --------------------------------------
-When `--lesion_mask <lesion_mask_file>` is provided, FastSurfer wraps the segmentation and surface
+When `--lesion_mask <lesion_mask_path>` is provided, FastSurfer wraps the segmentation and surface
 pipelines with lesion inpainting using LIT. The extension is currently experimental. It inpaints
 the lesion region, runs the requested FastSurfer modules on the inpainted image, and then maps the
 lesion back into the resulting outputs. The current LIT postprocessing workflow updates the primary

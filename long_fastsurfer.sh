@@ -44,7 +44,7 @@ then
   then
     echo "Setting ENV variable FASTSURFER_HOME to script directory ${FASTSURFER_HOME}."
     echo "Change via environment to location of your choice if this is undesired"
-    echo "  (export FASTSURFER_HOME=<path_to_fastsurfer_home>)"
+    echo "  (export FASTSURFER_HOME=/path/to/fastsurfer_home)"
   fi
   export FASTSURFER_HOME
 fi
@@ -76,7 +76,7 @@ function usage()
 cat << EOF
 
 Usage: long_fastsurfer.sh --tid <template_id> \\
-                          --t1s <t1_file_1> <t1_file_2> .. \\
+                          --t1s <t1_path_1> <t1_path_2> .. \\
                           --tpids <tpid_1> <tpid_2> .. [OPTIONS]
 
 long_fastsurfer.sh takes a list of T1 full head image and sequentially creates:
@@ -88,13 +88,13 @@ FLAGS:
 
   --tid <template_id>       ID for person-specific template directory inside
                               \$SUBJECTS_DIR to be created"
-  --t1s <t1_file_1> <t1_file_2> ..
+  --t1s <t1_path_1> <t1_path_2> ..
                             T1 full head inputs for each time point (do not need
                               to be bias corrected). Requires ABSOLUTE paths!
   --tpids <tpid_1> <tpid_2> ..
                             IDs for future time points directories inside
                               \$SUBJECTS_DIR to be created later (during --long)
-  --t2s <t2_file_1> <t2_file_2> [...]
+  --t2s <t2_path_1> <t2_path_2> [...]
                             *Optional* T2 full head inputs, one per time point in
                               the order of --tpids, for the hypothalamus module.
                               Every time point needs one, or none does. Each is
@@ -514,7 +514,7 @@ if should_run_stage "long_seg"; then
     for ((i=0;i<${#tpids[@]};++i)); do
       echo "${tpids[$i]}=from-base --t2 '${t2s[$i]//$sq/$sq\\$sq$sq}'"
     done > "$long_seg_list"
-    long_seg_subjects=(--subject_list "$long_seg_list")
+    long_seg_subjects=(--subjects_list "$long_seg_list")
   else
     long_seg_subjects=(--subjects "${time_points[@]}")
   fi

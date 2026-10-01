@@ -33,43 +33,45 @@ export SUBJECTS_DIR=<subjects_dir>
 # Run FastSurfer longitudinally
 long_fastsurfer.sh \
     --tid <template_id> \
-    --t1s <t1_file_1> <t1_file_2> ... \
+    --t1s <t1_path_1> <t1_path_2> ... \
     --tpids <tpid_1> <tpid_2> ...
 ```
 
-Here `<template_id>` is a name you assign to this individual person and will be used in the output directory (`$SUBJECTS_DIR`) for the directory containing the within-subject template (e.g. "`--tid subjectX`"). The `<t1_file_1> <t1_file_2>` etc. are the absolute paths to the input full head T1w images for each time point (do not need to be bias corrected) in nifti or mgz format. The `<tpid_1> <tpid_2>` etc. are the ID names for each time point. Corresponding directories will be created in the output directory  (`$SUBJECTS_DIR`), e.g. "`--tpids subjectX_20210315 subjectX_20230920`". These directories (`<tpid_1> <tpid_2>` ...) will contain the final results for each time point for downstream analysis. The important output files are the same as for a regular individual run. The `<template_id>` directory on the other hand, is just an intermediate step and will not contain all regular FastSurfer output files. It usually should not be looked at, except for debugging.
+Here `<template_id>` is a name you assign to this individual person and will be used in the output directory (`$SUBJECTS_DIR`) for the directory containing the within-subject template (e.g. "`--tid subjectX`"). The `<t1_path_1> <t1_path_2>` etc. are the absolute paths to the input full head T1w images for each time point (do not need to be bias corrected) in nifti or mgz format. The `<tpid_1> <tpid_2>` etc. are the ID names for each time point. Corresponding directories will be created in the output directory  (`$SUBJECTS_DIR`), e.g. "`--tpids subjectX_20210315 subjectX_20230920`". These directories (`<tpid_1> <tpid_2>` ...) will contain the final results for each time point for downstream analysis. The important output files are the same as for a regular individual run. The `<template_id>` directory on the other hand, is just an intermediate step and will not contain all regular FastSurfer output files. It usually should not be looked at, except for debugging.
 
 For example, for a participant scanned on 2021-03-15 and on 2023-09-20:
 
 ```bash
-export FASTSURFER_HOME=$HOME/FastSurfer
-export FREESURFER_HOME=/opt/freesurfer
+export FASTSURFER_HOME=${FASTSURFER_HOME:-/path/to/FastSurfer}
+export FREESURFER_HOME=${FREESURFER_HOME:-/path/to/freesurfer}
 source $FREESURFER_HOME/SetUpFreeSurfer.sh
 export SUBJECTS_DIR=$HOME/my_fastsurfer_analysis
+freesurfer_license=${freesurfer_license:-/path/to/your/freesurfer/license_file}
 
 $FASTSURFER_HOME/long_fastsurfer.sh \
     --tid subjectX \
     --t1s $HOME/my_mri_data/subjectX/t1_weighted_20210315.nii.gz \
           $HOME/my_mri_data/subjectX/t1_weighted_20230920.nii.gz \
     --tpids subjectX_20210315 subjectX_20230920 \
-    --fs_license $HOME/my_fs_license.txt
+    --fs_license $freesurfer_license
 ```
 
 Note, with a few exceptions, you can add additional flags that can be understood by `run_fastsurfer.sh`, which will be passed through, e.g. the `--3T` when working with 3T images. The exceptions: `--sid`, `--t1` and `--t2` are set per time point from `--tpids`, `--t1s` and `--t2s`; `--seg_only` and `--surf_only` are replaced by stages (see [Running Individual Stages](#running-individual-stages) below); and `--remove_suffix`, `--keepgeom` and `--native_image` are not supported in longitudinal processing.
 
-If you have T2-weighted images, pass them with `--t2s <t2_file_1> <t2_file_2> ...`, one per time point in the same order as `--tpids`. They are used by the hypothalamus module (HypVINN) in the segmentation of each time point, where each T2 is registered directly to that time point's T1 in template space. The template itself does not need them, as the hypothalamus module does not run on it. Either every time point gets a T2 or none does: a T2 changes what the hypothalamus module computes, so a series where only some time points had one would not be comparable over time. `--reg_mode` selects how each T2 reaches template space: with `coreg` (the default) or `robust`, it is registered to its time point's T1 there; with `none`, it must already be co-registered with the T1 you passed in `--t1s`, and it is then mapped into template space with the same transform as that T1.
+If you have T2-weighted images, pass them with `--t2s <t2_path_1> <t2_path_2> ...`, one per time point in the same order as `--tpids`. They are used by the hypothalamus module (HypVINN) in the segmentation of each time point, where each T2 is registered directly to that time point's T1 in template space. The template itself does not need them, as the hypothalamus module does not run on it. Either every time point gets a T2 or none does: a T2 changes what the hypothalamus module computes, so a series where only some time points had one would not be comparable over time. `--reg_mode` selects how each T2 reaches template space: with `coreg` (the default) or `robust`, it is registered to its time point's T1 there; with `none`, it must already be co-registered with the T1 you passed in `--t1s`, and it is then mapped into template space with the same transform as that T1.
 
 The above command will, of course, be slightly different when using your preferred installation in Singularity or Docker. For example, for Singularity:
 
 ```bash
+freesurfer_license=${freesurfer_license:-/path/to/your/freesurfer/license_file}
 singularity exec --nv \
                  --no-mount cwd,home \
                  -B $HOME/my_mri_data \
                  -B $HOME/my_fastsurfer_analysis \
-                 -B $HOME/my_fs_license.txt \
+                 -B $freesurfer_license \
                  $HOME/my_singularity_images/fastsurfer-{{ FASTSURFER_VERSION }}.sif \
                  /fastsurfer/long_fastsurfer.sh \
-                 --fs_license $HOME/my_fs_license.txt \
+                 --fs_license $freesurfer_license \
                  --tid subjectX \
                  --t1s $HOME/my_mri_data/subjectX/t1_weighted_20210315.nii.gz \
                        $HOME/my_mri_data/subjectX/t1_weighted_20230920.nii.gz \
@@ -81,13 +83,14 @@ singularity exec --nv \
 For Docker, this is very similar, but we need to specify the entrypoint explicitly:
 
 ```bash
+freesurfer_license=${freesurfer_license:-/path/to/your/freesurfer/license_file}
 docker run --gpus all --rm --user  $(id -u):$(id -g) \
                  -v $HOME/my_mri_data:$HOME/my_mri_data \
                  -v $HOME/my_fastsurfer_analysis:$HOME/my_fastsurfer_analysis \
-                 -v $HOME/my_fs_license.txt:$HOME/my_fs_license.txt \
+                 -v $freesurfer_license:$freesurfer_license \
                  --entrypoint "/fastsurfer/long_fastsurfer.sh" \
                  deepmi/fastsurfer:{{ CUDA_STRING }}-v{{ FASTSURFER_VERSION }} \
-                 --fs_license $HOME/my_fs_license.txt \
+                 --fs_license $freesurfer_license \
                  --tid subjectX \
                  --t1s $HOME/my_mri_data/subjectX/t1_weighted_20210315.nii.gz \
                        $HOME/my_mri_data/subjectX/t1_weighted_20230920.nii.gz \
@@ -123,10 +126,11 @@ A dependency does not have to be selected again if it ran in an earlier call: `l
 Stages take the place of `--seg_only` and `--surf_only`. For example, to check the segmentations before computing any surfaces:
 
 ```bash
-export FASTSURFER_HOME=$HOME/FastSurfer
-export FREESURFER_HOME=/opt/freesurfer
+export FASTSURFER_HOME=${FASTSURFER_HOME:-/path/to/FastSurfer}
+export FREESURFER_HOME=${FREESURFER_HOME:-/path/to/freesurfer}
 source $FREESURFER_HOME/SetUpFreeSurfer.sh
 export SUBJECTS_DIR=$HOME/my_fastsurfer_analysis
+freesurfer_license=${freesurfer_license:-/path/to/your/freesurfer/license_file}
 
 # segmentation of the template and of all time points
 $FASTSURFER_HOME/long_fastsurfer.sh \
@@ -134,14 +138,14 @@ $FASTSURFER_HOME/long_fastsurfer.sh \
     --t1s $HOME/my_mri_data/subjectX/t1_weighted_20210315.nii.gz \
           $HOME/my_mri_data/subjectX/t1_weighted_20230920.nii.gz \
     --tpids subjectX_20210315 subjectX_20230920 \
-    --fs_license $HOME/my_fs_license.txt \
+    --fs_license $freesurfer_license \
     --stage prepare --stage template_seg --stage long_seg
 
 # later, the surfaces
 $FASTSURFER_HOME/long_fastsurfer.sh \
     --tid subjectX \
     --tpids subjectX_20210315 subjectX_20230920 \
-    --fs_license $HOME/my_fs_license.txt \
+    --fs_license $freesurfer_license \
     --stage template_surf --stage long_surf
 ```
 
@@ -154,7 +158,7 @@ Behind the Scenes
    ```text
    long_prepare_template.sh \
      --tid <template_id> \
-     --t1s <t1_file_1> <t1_file_2> ... \
+     --t1s <t1_path_1> <t1_path_2> ... \
      --tpids <tpid_1> <tpid_2>
    ```
    This segments each time point once, only to obtain a brain mask, and then registers (aligns) all time point images into the unbiased mid-space using `mri_robust_template`. It will also create the template image, the voxel-wise median across time. For single time point cases, it will align the input into a standard upright position. Finally, it maps each time point's input into template space, where the time point stages below pick it up.
@@ -172,8 +176,8 @@ The final results will be located in `$SUBJECTS_DIR/<tpid_1>` ... for each time 
 Note, that followup tools, e.g. Longitudinal Hippocampus and Amygdala pipeline, require additional files. These files can be generated by running the [FastSurfer longitudinal outputs script `recon_surf/long_compat_segmentHA.py`](../scripts/long_compat_segmentHA.rst) on top of the longitudinal processing directory.
 ```bash
 # Setup FASTSURFER and FREESURFER
-export FASTSURFER_HOME=$HOME/FastSurfer
-export FREESURFER_HOME=/opt/freesurfer
+export FASTSURFER_HOME=${FASTSURFER_HOME:-/path/to/FastSurfer}
+export FREESURFER_HOME=${FREESURFER_HOME:-/path/to/freesurfer}
 source $FREESURFER_HOME/SetUpFreeSurfer.sh
 
 # Define data directory

@@ -15,6 +15,12 @@ import subprocess
 import sys
 from pathlib import Path
 
+# tomllib is standard library from python 3.11, older interpreters need tomli
+if sys.version_info >= (3, 11):
+    import tomllib
+else:
+    import tomli as tomllib
+
 # relative path so sphinx can locate the different modules directly for autosummary
 sys.path.append(str(Path(__file__).parents[1]))
 sys.path.append(str(Path(__file__).parents[1] / "recon_surf"))
@@ -68,35 +74,65 @@ def _latest_release() -> str:
 image_version = version if documents_a_release else _latest_release()
 
 
-def _default_cuda(ref: str | None) -> tuple[str, str]:
-    """Return DEFAULTS.CUDA and DEFAULTS.CUDA_VERSION of tools/Docker/build.py, in the working tree or at ref.
-
-    These are the device of the `latest` image (e.g. cu128) and the CUDA version it ships (e.g. 12.8).
-    """
+def _read_file_gitref(path: str, ref: str | None) -> str:
+    """Return the text of path (relative to the repository root), in the working tree or at ref."""
     root = Path(__file__).parents[1]
     if ref is None:
-        source = (root / "tools/Docker/build.py").read_text()
-    else:
-        source = subprocess.run(
-            ["git", "show", f"{ref}:tools/Docker/build.py"], cwd=root, capture_output=True, text=True, check=True,
-        ).stdout
-    for node in ast.walk(ast.parse(source)):
+        return (root / path).read_text()
+    return subprocess.run(
+        ["git", "show", f"{ref}:{path}"], cwd=root, capture_output=True, text=True, check=True,
+    ).stdout
+
+
+def _build_defaults_gitref(ref: str | None, *names: str) -> tuple:
+    """Return DEFAULTS.<name> of tools/Docker/build.py for each of names, in the working tree or at ref."""
+    for node in ast.walk(ast.parse(_read_file_gitref("tools/Docker/build.py", ref))):
         if isinstance(node, ast.ClassDef) and node.name == "DEFAULTS":
             values = {
                 target.id: stmt.value
                 for stmt in node.body if isinstance(stmt, ast.Assign)
                 for target in stmt.targets if isinstance(target, ast.Name)
             }
-            if "CUDA" in values and "CUDA_VERSION" in values:
-                return ast.literal_eval(values["CUDA"]), ast.literal_eval(values["CUDA_VERSION"])
-    raise RuntimeError(
-        f"tools/Docker/build.py ({ref or 'working tree'}) does not define both DEFAULTS.CUDA and DEFAULTS.CUDA_VERSION."
-    )
+            if missing := [name for name in names if name not in values]:
+                raise RuntimeError(
+                    f"tools/Docker/build.py ({ref or 'working tree'}) does not define "
+                    f"{', '.join(f'DEFAULTS.{name}' for name in missing)}."
+                )
+            return tuple(ast.literal_eval(values[name]) for name in names)
+    raise RuntimeError(f"tools/Docker/build.py ({ref or 'working tree'}) has no class DEFAULTS.")
 
 
-# the CUDA device (e.g. cu128) and CUDA version (e.g. 12.8) of the images named by image_version, from the same tree
-# as image_version
-image_cuda, version_cuda = _default_cuda(None if documents_a_release else f"v{image_version}")
+# tool.<name>.version of releases whose pyproject.toml predates the key (python: ARG PYTHON_VERSION of their
+# tools/Docker/Dockerfile); remove an entry once the newest release defines the key
+_TOOL_VERSIONS_FALLBACK = {"v2.5.4": {"python": "3.12"}}
+
+
+def _tool_versions_gitref(ref: str | None, *names: str) -> tuple[str, ...]:
+    """Return tool.<name>.version of pyproject.toml for each of names, in the working tree or at ref."""
+    tool = tomllib.loads(_read_file_gitref("pyproject.toml", ref)).get("tool", {})
+    versions = _TOOL_VERSIONS_FALLBACK.get(ref, {}) | {
+        name: tool[name]["version"] for name in names if "version" in tool.get(name, {})
+    }
+    if missing := [name for name in names if name not in versions]:
+        raise RuntimeError(
+            f"pyproject.toml ({ref or 'working tree'}) does not define "
+            f"{', '.join(f'tool.{name}.version' for name in missing)}."
+        )
+    return tuple(versions[name] for name in names)
+
+
+# the tree the images named by image_version were built from, which is also what the native installation clones
+# (--branch stable), so the versions of the software in both come from there as well
+_image_ref = None if documents_a_release else f"v{image_version}"
+# the CUDA device, the CUDA version and the base image of the images named by image_version, these are the device of
+# the `latest` image and the CUDA version it ships
+image_cuda, version_cuda, _runtime_base_image = _build_defaults_gitref(
+    _image_ref, "CUDA", "CUDA_VERSION", "RUNTIME_BASE_IMAGE",
+)
+if not _runtime_base_image.startswith("ubuntu:"):
+    raise RuntimeError(f"UBUNTU_VERSION needs an ubuntu image, DEFAULTS.RUNTIME_BASE_IMAGE is {_runtime_base_image}.")
+version_ubuntu = _runtime_base_image.removeprefix("ubuntu:")
+version_python, version_freesurfer = _tool_versions_gitref(_image_ref, "python", "freesurfer")
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
@@ -156,6 +192,9 @@ myst_substitutions = {
     "FASTSURFER_VERSION": image_version,
     "CUDA_STRING": image_cuda,
     "CUDA_VERSION": version_cuda,
+    "PYTHON_VERSION": version_python,
+    "UBUNTU_VERSION": version_ubuntu,
+    "FREESURFER_VERSION": version_freesurfer,
 }
 
 templates_path = ["_templates"]

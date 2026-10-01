@@ -65,7 +65,7 @@ function usage()
 {
 cat << EOF
 
-Usage: recon-surf.sh --sid <subject_id> --sd <subjects_dir> --t1 <t1_file> \\
+Usage: recon-surf.sh --sid <subject_id> --sd <subjects_dir> --t1 <t1_path> \\
                      --asegdkt_segfile <asegdkt_segfile> [OPTIONS]
 
 recon-surf.sh takes a segmentation and T1 full head image and creates surfaces,
@@ -74,13 +74,13 @@ thickness etc as a FS subject dir.
 FLAGS:
   --sid <subject_id>      Subject ID to create directory inside \$SUBJECTS_DIR
   --sd  <subjects_dir>    Output directory \$SUBJECTS_DIR (or pass via env var)
-  --t1  <t1_file>         T1 full head input (not bias corrected). This must be
+  --t1  <t1_path>         T1 full head input (not bias corrected). This must be
                             a conformed image (dimensions: 256x256x256, voxel
                             size: 1x1x1, LIA orientation, and data type UCHAR).
                             Images can be conformed using FastSurferCNN's
                             conform.py script (usage example: python3
-                            FastSurferCNN/data_loader/conform.py -i <t1_file>
-                            -o <conformed_file>). Requires an ABSOLUTE Path!
+                            FastSurferCNN/data_loader/conform.py -i <t1_path>
+                            -o <conformed_path>). Requires an ABSOLUTE Path!
   --asegdkt_segfile <asegdkt_segfile>
                           Name of intermediate DL-based segmentation file
                             (similar to aparc+aseg). This must be conformed
@@ -91,7 +91,7 @@ FLAGS:
                             otherwise are conformed.
                             Requires an ABSOLUTE Path! Default location:
                             \$SUBJECTS_DIR/\$sid/mri/aparc.DKTatlas+aseg.deep.mgz
-  --mask_name <mask_file> Path to the brain mask file to use. Default location:
+  --mask_name <mask_path> Path to the brain mask file to use. Default location:
                             \$SUBJECTS_DIR/\$sid/mri/mask.mgz
   --edits                 Disable the check for existing recon-surf.sh run,
                             replace <asegdkt_segfile> by its manedit-suffixed
@@ -125,7 +125,7 @@ FLAGS:
                             using two cores. No effect at --threads 2 or more,
                             where the hemispheres already run at the same time.
   --py <python_cmd>       Command for python, default ${python}
-  --fs_license <license_file>
+  --fs_license <freesurfer_license_path>
                           Path to FreeSurfer license key file. Register at
                             https://surfer.nmr.mgh.harvard.edu/registration.html
                             for free to obtain it if you do not have FreeSurfer

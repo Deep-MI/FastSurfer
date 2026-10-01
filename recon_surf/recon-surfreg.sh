@@ -59,7 +59,7 @@ FLAGS:
                             using two cores. No effect at --threads 2 or more,
                             where the hemispheres already run at the same time.
   --py <python_cmd>       Command for python, default $python
-  --fs_license <license_file>
+  --fs_license <freesurfer_license_path>
                           Path to FreeSurfer license key file. Register at
                             https://surfer.nmr.mgh.harvard.edu/registration.html
                             for free to obtain it if you do not have FreeSurfer
