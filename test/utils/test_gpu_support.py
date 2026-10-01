@@ -62,31 +62,37 @@ class TestSupportsCapability:
 
 
 class TestSuggestion:
+    """Against the builds FastSurfer points to, whichever these are; only the oldest arch decides old or new."""
+
+    ARCHS = ["sm_75", "sm_120"]
+    OLD, NEW = (6, 1), (99, 0)
+    LEGACY, NEWEST = gpu_support.LEGACY_BUILD, gpu_support.NEWEST_BUILD
+
     @pytest.fixture(autouse=True)
     def in_container(self, monkeypatch):
         monkeypatch.setattr(gpu_support, "in_container", lambda: True)
 
     def test_old_gpu_on_the_newest_build_points_to_the_legacy_image(self):
-        lines = gpu_support._arch_problem("TITAN Xp", (6, 1), CU132_214, (13, 2))
+        lines = gpu_support._arch_problem("old", self.OLD, self.ARCHS, self.NEWEST[0])
         assert "compute capability 6.1" in lines[0]
-        assert lines[-1].endswith("deepmi/fastsurfer:cu126-<VERSION>.")
+        assert f"deepmi/fastsurfer:{self.LEGACY[1]}-v" in lines[-1]
 
     def test_new_gpu_on_the_legacy_build_points_to_the_newest_image(self):
-        lines = gpu_support._arch_problem("RTX 5090", (12, 0), CU126_214, (12, 6))
-        assert lines[-1].endswith("deepmi/fastsurfer:cu132-<VERSION>.")
+        lines = gpu_support._arch_problem("new", self.NEW, self.ARCHS, self.LEGACY[0])
+        assert f"deepmi/fastsurfer:{self.NEWEST[1]}-v" in lines[-1]
 
     def test_gpu_newer_than_any_build(self):
-        lines = gpu_support._arch_problem("future", (15, 0), CU132_214, (13, 2))
+        lines = gpu_support._arch_problem("new", self.NEW, self.ARCHS, self.NEWEST[0])
         assert "No FastSurfer build supports this GPU yet" in lines[-1]
 
     def test_gpu_older_than_any_build(self):
-        lines = gpu_support._arch_problem("Kepler", (3, 5), CU126_214, (12, 6))
+        lines = gpu_support._arch_problem("old", self.OLD, self.ARCHS, self.LEGACY[0])
         assert "No FastSurfer build supports this GPU any more" in lines[-1]
 
     def test_native_install_points_to_the_wheels(self, monkeypatch):
         monkeypatch.setattr(gpu_support, "in_container", lambda: False)
-        lines = gpu_support._arch_problem("TITAN Xp", (6, 1), CU132_214, (13, 2))
-        assert lines[-1].endswith("https://download.pytorch.org/whl/cu126.")
+        lines = gpu_support._arch_problem("old", self.OLD, self.ARCHS, self.NEWEST[0])
+        assert lines[-1].endswith(f"https://download.pytorch.org/whl/{self.LEGACY[1]}.")
 
 
 class TestDriverMajor:

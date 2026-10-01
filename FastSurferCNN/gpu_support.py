@@ -125,10 +125,21 @@ def driver_major() -> int | None:
     return int(match.group(1)) if match else None
 
 
+def _fastsurfer_version() -> str:
+    """The version of this FastSurfer as in the image tags, e.g. v2.6.0 (dev builds keep their suffix)."""
+    try:
+        from FastSurferCNN.version import read_and_close_version
+
+        version = read_and_close_version()
+    except (ImportError, OSError):
+        return "v<VERSION>"
+    return "v<VERSION>" if version == "unspecified" else f"v{version}"
+
+
 def _use_build(build: tuple[tuple[int, int], str], lead: str = "Use") -> str:
     (major, minor), tag = build
     if in_container():
-        return f"{lead} the FastSurfer image for CUDA {major}.{minor}, deepmi/fastsurfer:{tag}-<VERSION>."
+        return f"{lead} the FastSurfer image for CUDA {major}.{minor}, deepmi/fastsurfer:{tag}-{_fastsurfer_version()}."
     return f"{lead} PyTorch built for CUDA {major}.{minor}, from https://download.pytorch.org/whl/{tag}."
 
 
