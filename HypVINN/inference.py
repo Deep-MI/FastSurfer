@@ -328,17 +328,17 @@ class Inference:
 
             if self.cfg.DATA.PLANE == "axial":
                 pred = pred.permute((2, 3, 0, 1)).to(self.viewagg_device)
-                pred_prob[:, :, start_index:start_index + pred.shape[2], :] += torch.mul(pred, 0.4)
+                pred_prob[:, :, start_index:start_index + pred.shape[2], :] += torch.mul(pred, 0.4 * 8)
                 start_index += pred.shape[2]
 
             elif self.cfg.DATA.PLANE == "coronal":
                 pred = pred.permute(2, 0, 3, 1).to(self.viewagg_device)
-                pred_prob[:, start_index:start_index + pred.shape[1], :, :] += torch.mul(pred, 0.4)
+                pred_prob[:, start_index:start_index + pred.shape[1], :, :] += torch.mul(pred, 0.4 * 4)
                 start_index += pred.shape[1]
 
             else:
                 pred = hypo_map_prediction_sagittal2full(pred).permute(0, 2, 3, 1).to(self.viewagg_device)
-                pred_prob[start_index:start_index + pred.shape[0],:, :, :] += torch.mul(pred, 0.2)
+                pred_prob[start_index:start_index + pred.shape[0],:, :, :] += torch.mul(pred, 0.2 * 2)
                 start_index += pred.shape[0]
 
         logger.info(f"--->  {self.cfg.DATA.PLANE} Model Testing Done.")

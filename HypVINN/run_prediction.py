@@ -586,7 +586,7 @@ def get_prediction(
         logger.info(f"Evaluating {plane} model, cpkt :{opts['ckpt']}")
         model.set_model(opts["cfg"])
         model.load_checkpoint(opts["ckpt"])
-        pred_prob += model.run(subject_name, modalities, orig_zoom, pred_prob, out_scale, mode=mode)
+        pred_prob = model.run(subject_name, modalities, orig_zoom, pred_prob, out_scale, mode=mode)
 
     # Get hard predictions and map to freesurfer label space
     _, pred_classes = torch.max(pred_prob, 3)
