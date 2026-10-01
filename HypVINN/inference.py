@@ -318,6 +318,13 @@ class Inference:
         self.model.eval()
 
         start_index = 0
+        # View weights reproduce the original HypVINN aggregation bit for bit. get_prediction used
+        # `pred_prob += model.run(..., pred_prob, ...)`, but this method already adds each view into
+        # pred_prob in place and returns it, so the += doubled the accumulator after every view.
+        # With PLANES = (axial, coronal, sagittal) and base weights 0.4 / 0.4 / 0.2 this gave
+        # axial 0.4 * 8 = 3.2, coronal 0.4 * 4 = 1.6, sagittal 0.2 * 2 = 0.4 (8 : 4 : 1).
+        # The factors are powers of two, so the scaling is exact in float32. Do not "fix" them
+        # back to 0.4 / 0.4 / 0.2 without retraining or re-validating; that changes the segmentation.
         for _batch_idx, batch in tqdm(enumerate(val_loader), total=len(val_loader)):
 
             images = batch["image"].to(self.device)
@@ -328,17 +335,17 @@ class Inference:
 
             if self.cfg.DATA.PLANE == "axial":
                 pred = pred.permute((2, 3, 0, 1)).to(self.viewagg_device)
-                pred_prob[:, :, start_index:start_index + pred.shape[2], :] += torch.mul(pred, 0.4)
+                pred_prob[:, :, start_index:start_index + pred.shape[2], :] += torch.mul(pred, 0.4 * 8)
                 start_index += pred.shape[2]
 
             elif self.cfg.DATA.PLANE == "coronal":
                 pred = pred.permute(2, 0, 3, 1).to(self.viewagg_device)
-                pred_prob[:, start_index:start_index + pred.shape[1], :, :] += torch.mul(pred, 0.4)
+                pred_prob[:, start_index:start_index + pred.shape[1], :, :] += torch.mul(pred, 0.4 * 4)
                 start_index += pred.shape[1]
 
             else:
                 pred = hypo_map_prediction_sagittal2full(pred).permute(0, 2, 3, 1).to(self.viewagg_device)
-                pred_prob[start_index:start_index + pred.shape[0],:, :, :] += torch.mul(pred, 0.2)
+                pred_prob[start_index:start_index + pred.shape[0],:, :, :] += torch.mul(pred, 0.2 * 2)
                 start_index += pred.shape[0]
 
         logger.info(f"--->  {self.cfg.DATA.PLANE} Model Testing Done.")
