@@ -11,6 +11,7 @@ FastSurferCNN
 
     download_checkpoints
     generate_hdf5
+    gpu_support
     inference
     mri_brainvol_stats
     mri_segstats

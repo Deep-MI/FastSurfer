@@ -1,0 +1,5 @@
+﻿FastSurferCNN.gpu_support
+=========================
+
+.. automodule:: FastSurferCNN.gpu_support
+    :members:
