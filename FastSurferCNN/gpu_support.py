@@ -232,6 +232,11 @@ def main() -> int:
         default="auto",
         help="the device to check, as passed to --device: auto, cuda or cuda:<n>; others are not checked",
     )
+    parser.add_argument(
+        "--flag_name",
+        default="device",
+        help="the flag the device was passed with, for the messages",
+    )
     args = parser.parse_args()
     device = args.device
     if device != "auto" and not device.startswith("cuda"):
@@ -243,7 +248,7 @@ def main() -> int:
     severity, lines = problem
     if device != "auto":
         print(f"ERROR: {lines[0]}")
-        for line in lines[1:] + ["Or run on the cpu with --device cpu."]:
+        for line in lines[1:] + [f"Or run on the cpu with --{args.flag_name} cpu."]:
             print(f"  {line}")
         return 5
     if severity == "note":

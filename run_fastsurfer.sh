@@ -1075,8 +1075,18 @@ if [[ -f "$seg_log" ]]; then log_existed="true" ; else log_existed="false" ; fi
 if [[ -f "$tmpLF" ]] ; then cat "$tmpLF" >> "$seg_log" ; rm "$tmpLF" ; fi
 # from now on, we can and will log to LF directly
 
-# Check the device once here, so a GPU this build cannot use is explained before any work starts
+# Check the devices once here, so a GPU this build cannot use is explained before any work starts
 # and the modules below get "cpu" instead of each repeating the warning.
+# A cuda viewagg device is an explicit request, so it stops the run; "auto" follows --device.
+if [[ "$run_seg_pipeline" == "true" ]] && [[ "$viewagg" == cuda* ]] && [[ "$viewagg" != "$device" ]]
+then
+  $python "$fastsurfercnndir/gpu_support.py" --device "$viewagg" --flag_name viewagg_device 2>&1 | tee -a "$seg_log"
+  case "${PIPESTATUS[0]}" in
+    0) ;;
+    5) echo "ERROR: The viewagg device $viewagg cannot be used." | tee -a "$seg_log" ; exit 1 ;;
+    *) echo "WARNING: Could not check whether the viewagg device $viewagg can be used." | tee -a "$seg_log" ;;
+  esac
+fi
 if [[ "$run_seg_pipeline" == "true" ]] && { [[ "$device" == "auto" ]] || [[ "$device" == cuda* ]] ; }
 then
   $python "$fastsurfercnndir/gpu_support.py" --device "$device" 2>&1 | tee -a "$seg_log"
