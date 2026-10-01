@@ -87,11 +87,10 @@ run_hypvinn_module="true"
 run_cc_module="true"
 run_lit_module="false"
 lit_outputs_exist="false"
-threads_seg="1"
-# 2, so the surface pipeline runs the two hemispheres at the same time with one thread each by
-# default. recon-surf.sh is always called with --threads "$threads_surf", so its own default of 2
-# would never be reached otherwise.
-threads_surf="2"
+# empty unless passed, so OMP_NUM_THREADS and then the defaults can apply (see resolve_threads):
+# 1 for segmentation, and 2 for recon-surf.sh, one thread per hemisphere
+threads_seg=""
+threads_surf=""
 # python3 -s excludes user-directory package inclusion
 python="python3 -s"
 allow_root=()
@@ -317,14 +316,15 @@ Resource Options:
                             view agg is run on the cpu. Equivalently, if you
                             pass a different device, view agg will be run on that
                             device (no memory check will be done).
-  --threads <int>         Set openMP and ITK threads to <int> or "max", also
+  --threads <int>         Set openMP, BLAS and ITK threads to <int> or "max", also
   --threads_seg <int>       for definition of threads specific to segmentation
   --threads_surf <int>      and surface reconstruction. For surfaces this is a
                             total budget: with 2 or more the two hemispheres run
                             at the same time and split it, so the default of 2
                             gives one thread each. Use 1 for a single-threaded
                             run, the setting to use if you need results to be
-                            reproducible (default: seg 1, surf 2).
+                            reproducible. Without these flags, OMP_NUM_THREADS
+                            sets the budget if exported (default: seg 1, surf 2).
   --parallel              Run the hemispheres at the same time with one thread
                             each, even at --threads 1. That keeps every binary
                             single threaded, and so reproducible, while still
@@ -434,9 +434,10 @@ fi
 
 function verify_threads() {
   # 1: flag, 2: value
+  # max, 0 and negative values are kept as they are, resolve_threads turns them into a CPU count
   value="$(echo "$2" | tr '[:upper:]' '[:lower:]')"
-  if [[ "$value" =~ ^(max|-[0-9]+|0)$ ]] ; then verify_value=$(nproc)
-  elif [[ "$value" =~ ^[0-9]+$ ]] ; then verify_value="$value"
+  if [[ "$value" =~ ^(max|-[0-9]+|0+)$ ]] ; then verify_value="$value"
+  elif [[ "$value" =~ ^[0-9]+$ ]] ; then verify_value="$((10#$value))"
   else echo "ERROR: Invalid value for $1: '$2', must be integer or 'max'." ; exit 1
   fi
   export verify_value
@@ -664,8 +665,8 @@ tmpLF=$(mktemp)
 
 # CHECKS
 
-# a string comparison, because threads_surf can still be "max" here
-if [[ "$legacy_parallel_hemi" == "true" ]] && [[ ! "$threads_surf" =~ ^[01]$ ]]
+# a string comparison, because threads_surf can still be "max" here; empty leaves it to recon-surf.sh
+if [[ "$legacy_parallel_hemi" == "true" ]] && [[ -n "$threads_surf" ]] && [[ "$threads_surf" != "1" ]]
 then
   {
     echo "NOTE: --parallel has no effect at $threads_surf surface threads. The surface thread count"
@@ -1223,6 +1224,13 @@ fi
 
 if [[ "$run_seg_pipeline" == "true" ]]
 then
+  # --threads reaches torch, but numpy's BLAS reads its own variable once at import and otherwise
+  # starts one thread per core
+  if ! resolve_threads "$threads_seg" 1 ; then echo "$threads_note" | tee -a "$seg_log" ; exit 1 ; fi
+  threads_seg="$threads_budget"
+  set_thread_env "$threads_seg"
+  describe_threads "Segmentation" | tee -a "$seg_log"
+
   # ============= Running LIT Inpainting ========================================
   if [[ "$run_lit_module" == "true" ]]
   then
@@ -1723,6 +1731,9 @@ then
     fi
   fi
 
+  # recon-surf.sh resolves its own budget, from the environment the user started with
+  restore_thread_env
+
 else # not running segmentation pipeline
   # Replace asegdkt_segfile and aseg_segfile variables with manedit file here,
   # if the manedit exists, so recon-surf uses the manedit file.
@@ -1735,14 +1746,14 @@ then
   echo "SURFACE RECONSTRUCTION PIPELINE" >> "$exec_time_log"
   echo "===============================" >> "$exec_time_log"
 
-  if [[ "$threads_surf" == "max" ]]; then threads_surf="$(nproc)" ; fi
-  if [[ "$threads_surf" == "0" ]]; then threads_surf=1 ; fi
   # ============= Running recon-surf (surfaces, thickness etc.) ===============
   # use recon-surf to create surface models based on the FastSurferCNN segmentation.
   pushd "$reconsurfdir" > /dev/null || exit 1
   echo "cd $reconsurfdir" | tee -a "$seg_log"
   cmd=("./recon-surf.sh" --sid "$subject" --sd "$sd" --t1 "$conformed_name" --mask_name "$mask_name"
-       --asegdkt_segfile "$asegdkt_segfile" --threads "$threads_surf" --py "$python" "${surf_flags[@]}")
+       --asegdkt_segfile "$asegdkt_segfile" --py "$python" "${surf_flags[@]}")
+  # without the flag, recon-surf.sh takes OMP_NUM_THREADS or its default
+  if [[ -n "$threads_surf" ]] ; then cmd+=(--threads "$threads_surf") ; fi
   echo_quoted "${cmd[@]}" | tee -a "$seg_log"
   "${wrap[@]}" "${cmd[@]}" # no tee, this gets logged to recon-surf.log from inside recon-surf.sh
   if [[ "${PIPESTATUS[0]}" != 0 ]]

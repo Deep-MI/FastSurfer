@@ -20,7 +20,7 @@ FS_VERSION_SUPPORT="7.4.1"
 subject=""; # Subject name
 python="python3 -s" # python version
 ParallelFlag="false" # "true", if --parallel passed
-threads="2" # total thread budget; 2 runs the two hemispheres in parallel, 1 thread each
+threads="" # total thread budget; empty takes OMP_NUM_THREADS, else 2 (one per hemisphere)
 
 # Dev flags default
 check_version=1.      # Check for supported FreeSurfer version (terminate if not detected)
@@ -48,11 +48,12 @@ subject directory, if this step was skipped in recon-surf.sh with --no_surfreg
 FLAGS:
   --sid <subject_id>      Subject ID to create directory inside \$SUBJECTS_DIR
   --sd  <subjects_dir>    Output directory \$SUBJECTS_DIR (or pass via env var)
-  --threads <int>         Total thread budget, default 2. With 2 or more the two
+  --threads <int>         Total thread budget, or "max". With 2 or more the two
                             hemispheres run at the same time and split it, so 2
                             gives one thread each and 8 gives four each. Use 1
                             to keep every binary single threaded, which is what
-                            to use for reproducible results.
+                            to use for reproducible results. Without the flag,
+                            OMP_NUM_THREADS sets the budget if exported, else 2.
   --parallel              Run the hemispheres at the same time with one thread
                             each, even at --threads 1. That keeps every binary
                             single threaded, and so reproducible, while still
@@ -212,9 +213,9 @@ then
   exit 1
 fi
 
-# set threads for openMP and itk
-# if OMP_NUM_THREADS is not set and available resources are too vast, mc will fail with segmentation fault!
-# Therefore we set it to 1 as default above, if nothing is specified.
+if ! resolve_threads "$threads" 2 ; then echo "$threads_note" ; exit 1 ; fi
+threads="$threads_budget"
+
 # --threads is a total budget: above one thread the two hemispheres run at the same time and split
 # it, so --threads 2 means two hemispheres with one thread each. --parallel only forces that split,
 # for --threads 1, where the budget would otherwise say to run them one after the other; it does not
@@ -230,8 +231,8 @@ else
 fi
 
 fsthreads=""
-export OMP_NUM_THREADS=$threads_hemi
-export ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS=$threads_hemi
+# each hemisphere gets its share of the budget
+set_thread_env "$threads_hemi"
 if [ "$threads_hemi" -gt "1" ]
 then
   fsthreads="-threads $threads_hemi -itkthreads $threads_hemi"
@@ -304,6 +305,7 @@ then
 else
   echo " RUNNING both hemis SEQUENTIALLY " | tee -a "$LF"
 fi
+describe_threads "The surface registration" | tee -a "$LF"
 echo " RUNNING $OMP_NUM_THREADS number of OMP THREADS " | tee -a "$LF"
 echo " RUNNING $ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS number of ITK THREADS " | tee -a "$LF"
 echo " " | tee -a "$LF"
