@@ -1,0 +1,64 @@
+pipelinetest tests
+===============
+
+This suite compares two runs of fastsurfer and is used as a online check for function in the [github pipelinetest workflow](../../.github/workflows/pipelinetest.yaml).
+
+The `pipelinetest` suite requires
+- A python environment as defined by `fastsurfer[pipelinetest]`
+  ```bash
+  python -m pip install $FASTSURFER_HOME[pipelinetest]
+  ```
+- A target `subject directory` for an image (processed with a known good version of FastSurfer). This should be placed in the directory defined by the environment variable `REF_DIR`.
+- A to-compare `subject directory` for an image. This should be placed in the directory defined by the environment variable `SUBJECTS_DIR`.
+- A definition of the test setup in the following environment variables:
+  - `REF_DIR`: known-good reference data. One subject per folder, each compared against the folder of the same name in `SUBJECTS_DIR`; `logs` and `slurm` are ignored.
+  - `SUBJECTS_DIR`: to-compare/test data
+  - `MAX_SUBJECTS`: optional, process at most this many subjects (default: all)
+
+Test 1: Search for errors in to-compare log files
+-------------------------------------------------
+
+Contained in test_errors_in_logfiles.py
+
+
+Test 2: Check existence of expected files in to-compare subject directory
+-------------------------------------------------------------------------
+
+Contained in test_file_existence.py
+
+Test 3: Compare output images and segmentation maps
+---------------------------------------------------
+
+Contained in test_images.py
+
+Test 4: Check output stats files
+--------------------------------
+
+Contained in test_stats.py
+
+Refreshing the reference data after a release
+---------------------------------------------
+
+The reference data has to be regenerated after every release, so that it stays the output of the most
+recent released version. Outputs drift as the models and the pipeline change, and an old reference
+turns that drift into test failures, which then hide any real regression.
+
+The inputs and the references are downloaded from urls kept in repository secrets
+(`PIPELINETEST_IMAGE_HREF_*` and `PIPELINETEST_TARGET_HREF_*`), because the data is too large for the
+repository. To refresh one, process the input with the **released container image** and the flags
+from the matrix in [pipelinetest.yaml](../../.github/workflows/pipelinetest.yaml), archive the subject
+folder, and update the url. The archive is unpacked into `REF_DIR`, so the subject folder has to sit
+at its top level under the name the workflow uses for the case.
+
+Use the released image rather than a fresh build of the release tag. The image ships pinned
+dependencies, while a build from source can resolve them again and pick up newer ones, so the two
+do not always produce the same output. The reference has to be what users actually get.
+
+Take the image variant that matches how the workflow runs it, and give the same thread count and
+device. The runner has no GPU, so that is the CPU image rather than `latest`, which is a CUDA build,
+and the thread count is the runner's core count. Both change the output, so a reference produced
+with a GPU or with more threads cannot be reproduced by the workflow.
+
+Tolerances are separate and do live here, one file per output under [data](data). Widen one only for
+a small difference that keeps recurring; a large disagreement means the reference is out of date or
+something really changed.

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 
-# Copyright 2019 Image Analysis Lab, German Center for Neurodegenerative Diseases (DZNE), Bonn
+# Copyright 2019 DeepMI Lab, German Center for Neurodegenerative Diseases (DZNE), Bonn
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,12 +18,13 @@
 
 # IMPORTS
 import sys
-from typing import Any, overload
+from typing import Literal, cast, overload
 
 import nibabel as nib
 import numpy as np
 import SimpleITK as sitk
-from nibabel.freesurfer.mghformat import MGHHeader
+from nibabel.freesurfer.mghformat import MGHHeader, MGHImage
+from nibabel.spatialimages import SpatialHeader as nibabelHeader
 
 
 def mgh_from_sitk(
@@ -35,14 +36,14 @@ def mgh_from_sitk(
     Parameters
     ----------
     sitk_img : sitk.Image
-        sitk image
-    orig_mgh_header : Optional[nib.freesurfer.mghformat.MGHHeader]
-        original mgh image header (Default value = None)
+        The `sitk.Image` object to convert.
+    orig_mgh_header : nibabel.freesurfer.mghformat.MGHHeader, optional
+        Original mgh image header.
 
     Returns
     -------
-    mgh_img
-        mgh image
+    nibabel.freesurfer.mghformat.MGHImage
+        The MGH image converted from the sitk image.
 
     """
     if orig_mgh_header:
@@ -68,6 +69,9 @@ def mgh_from_sitk(
         dims = np.hstack((dims, [1]))
     h1["dims"] = dims
     h1["Pxyz_c"] = affine.dot(np.hstack((dims[:3] / 2.0, [1])))[:3]
+    # FreeSurfer keeps the largest of the three extents in fov; MGHHeader defaults it to 0 and a
+    # header converted from a NIfTI has none to inherit
+    h1["fov"] = float(np.max(dims[:3] * h1["delta"]))
     # swap axes as data is stored differently between sITK and Nibabel
     data = np.swapaxes(sitk.GetArrayFromImage(sitk_img), 0, 2)
     # assemble MGHImage from header, image data and affine
@@ -76,24 +80,23 @@ def mgh_from_sitk(
     
     
 def sitk_from_mgh(img: nib.MGHImage) -> sitk.Image:
-    """Convert mgh image to sitk image.
+    """Convert nibabel MGH image into an `sitk.Image` object.
 
     Parameters
     ----------
     img : nib.MGHImage
-        mgh image
+        The nibabel MGH image to convert.
 
     Returns
     -------
     img_sitk
-        sitk image
-
+        The `sitk.Image` object converted from the nibabel mgh image.
     """
     # reorder data as structure differs between nibabel and sITK:
     data = np.swapaxes(np.asanyarray(img.dataobj), 0, 2)
     # sitk can only create image with system native endianness
     if not data.dtype.isnative:
-        data = data.byteswap().newbyteorder()
+        data = data.byteswap().view(data.dtype.newbyteorder())
     # create image from array
     img_sitk = sitk.GetImageFromArray(data)
     # Get direction from MDC, need to change sign of dim 0 and 1
@@ -110,8 +113,8 @@ def sitk_from_mgh(img: nib.MGHImage) -> sitk.Image:
 @overload
 def readITKimage(
         filename: str,
-        vox_type: Any | None = None,
-        with_header: False = False
+        vox_type: int | None = None,
+        return_header: Literal[False] = False
 ) -> sitk.Image:
     ...
 
@@ -119,34 +122,34 @@ def readITKimage(
 @overload
 def readITKimage(
         filename: str,
-        vox_type: Any | None = None,
-        with_header: True = True
-) -> tuple[sitk.Image, Any]:
+        vox_type: int | None = None,
+        return_header: Literal[True] = True
+) -> tuple[sitk.Image, nibabelHeader]:
     ...
 
 
 def readITKimage(
         filename: str,
-        vox_type: Any | None = None,
-        with_header: bool = False
-) -> sitk.Image | tuple[sitk.Image, Any]:
+        vox_type: int | None = None,
+        return_header: bool = False
+) -> sitk.Image | tuple[sitk.Image, nibabelHeader]:
     """Read the itk image.
 
     Parameters
     ----------
     filename : str
-        Filename of the image
-    vox_type : Optional[Any]
-        Voxel type. Defaults to None
-    with_header : bool
-        If True, then header is also returned. Defaults to False
+        Filename of the image.
+    vox_type : int, optional
+        The Voxel type index.
+    return_header : bool, default=False
+        Whether to also return the header.
 
     Returns
     -------
-    itk_image
-        itk image
-    header
-        Image header (if with_header = True)
+    itk_image : sitk.Image
+        The `sitk.Image` object to read from the file.
+    header : Any
+        Image header, only returned if ``return_header=True``.
 
     """
     # If image is nifti image
@@ -160,7 +163,7 @@ def readITKimage(
     # if image is mgz
     elif filename[-4:] == ".mgz":
         print("read MGZ (FreeSurfer) image via nibabel...")
-        image = nib.load(filename)
+        image = cast(MGHImage, nib.load(filename))
         header = image.header
         itkimage = sitk_from_mgh(image)
         if vox_type:
@@ -169,7 +172,7 @@ def readITKimage(
         sys.exit(
             f"read ERROR: {filename} image type not supported (only: .mgz, .nii, .nii.gz).\n"
         )
-    if with_header:
+    if return_header:
         return itkimage, header
     else:
         return itkimage
@@ -186,11 +189,11 @@ def writeITKimage(
     Parameters
     ----------
     img : sitk.Image
-        itk image to save
+        The `sitk.Image` object to save.
     filename : str
-        Path and filename to save to
-    header : Optional[nib.freesurfer.mghformat.MGHHeader]
-        mgh image header (Default value = None)
+        Path and filename to save to.
+    header : nibabel.freesurfer.mghformat.MGHHeader, optional
+        An optional nibabel MGH image header object.
 
     """
     # If image is nifti image
@@ -212,6 +215,6 @@ if __name__ == "__main__":
     if len(sys.argv) < 3:
         print("\nError: pass input and output file names!\n")
         sys.exit(1)
-    img, hdr = readITKimage(sys.argv[1], with_header=True)
+    img, hdr = readITKimage(sys.argv[1], return_header=True)
     writeITKimage(img, sys.argv[2], hdr)
     sys.exit(0)

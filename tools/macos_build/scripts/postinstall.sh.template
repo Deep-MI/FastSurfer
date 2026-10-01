@@ -1,0 +1,46 @@
+#!/bin/bash
+set -e
+
+# The package ships a complete, self-contained python distribution (python/) with all dependencies
+# already installed, plus the network checkpoints. This script therefore does no downloading, no
+# pip install and no environment creation: it only wires up the parts that depend on the final
+# install location.
+
+FASTSURFER_HOME="<fastsurfer_home_dir>"
+SCRIPT_DIR="$(dirname $0)"
+PYTHON="$FASTSURFER_HOME/python/bin/python<python_version>"
+
+# Clear quarantine before anything runs the bundled binaries: they arrive from a downloaded,
+# unsigned package, and Gatekeeper otherwise refuses to load them, surfacing much later as an
+# obscure import or exec error. xattr fails on paths that never had the attribute, hence the || true.
+xattr -dr com.apple.quarantine "$FASTSURFER_HOME" 2>/dev/null || true
+
+# Fail here rather than at first use if the bundled distribution did not survive packaging.
+if [[ ! -x "$PYTHON" ]]
+then
+  echo "ERROR: the bundled python is missing at $PYTHON." >&2
+  echo "  The package appears to be incomplete; please report this with the installer version." >&2
+  exit 1
+fi
+if ! "$PYTHON" -c "import torch, numpy, nibabel" > /dev/null 2>&1
+then
+  echo "ERROR: the bundled python at $PYTHON cannot import its own dependencies." >&2
+  echo "  Diagnose with: $PYTHON -c 'import torch'" >&2
+  exit 1
+fi
+
+# Precompile bytecode while this still runs as root and can write into the install directory. The
+# build ships none, because a .pyc records its source path and staging-built ones would point every
+# traceback at a path that does not exist. /Applications is usually not writable by the user, so
+# whatever is not compiled now is recompiled on every run. Non-fatal: it only costs startup time.
+"$PYTHON" -m compileall -q "$FASTSURFER_HOME/python/lib" > /dev/null 2>&1 || true
+"$PYTHON" -m compileall -q \
+    "$FASTSURFER_HOME/FastSurferCNN" "$FASTSURFER_HOME/CerebNet" "$FASTSURFER_HOME/HypVINN" \
+    "$FASTSURFER_HOME/CorpusCallosum" "$FASTSURFER_HOME/recon_surf" > /dev/null 2>&1 || true
+
+FREESURFER_HOME="$FASTSURFER_HOME/fs-pruned"
+"$SCRIPT_DIR/link_fs.sh" "$FREESURFER_HOME"
+
+# use our python (not really needed in recon-all anyway)
+# TODO: soft-linking python has proven to break the python installation for the docker container
+ln -sf "$PYTHON" "$FREESURFER_HOME/bin/fspython"

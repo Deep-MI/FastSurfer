@@ -1,4 +1,4 @@
-# Copyright 2024 AI in Medical Imaging, German Center for Neurodegenerative Diseases(DZNE), Bonn
+# Copyright 2024 DeepMI Lab, German Center for Neurodegenerative Diseases(DZNE), Bonn
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -11,44 +11,28 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 from pathlib import Path
+from typing import cast
 
 import nibabel as nib
 import numpy as np
-from numpy import typing as npt
+from nibabel.orientations import aff2axcodes
 from scipy import ndimage
 from skimage.measure import label
 
 import FastSurferCNN.utils.logging as logging
+from FastSurferCNN.data_loader.conform import Reorientation, does_vox2vox_rot_require_interpolation
+from FastSurferCNN.data_loader.data_utils import save_image
+from FastSurferCNN.utils import AffineMatrix4x4, Image4d, nibabelImage
 from HypVINN.data_loader.data_utils import hypo_map_subseg_2_fsseg
 
 LOGGER = logging.get_logger(__name__)
 
 
-def img2axcodes(img: nib.Nifti1Image) -> tuple:
-    """
-    Convert the affine matrix of an image to axis codes.
-
-    This function takes an image as input and returns the axis codes corresponding to the affine matrix of the image.
-
-    Parameters
-    ----------
-    img : nibabel image object
-        The input image.
-
-    Returns
-    -------
-    tuple
-        The axis codes corresponding to the affine matrix of the image.
-    """
-    return nib.aff2axcodes(img.affine)
-
-
 def save_segmentation(
         prediction: np.ndarray,
         orig_path: Path,
-        ras_affine: npt.NDArray[float],
+        ras_affine: AffineMatrix4x4,
         ras_header: nib.nifti1.Nifti1Header | nib.nifti2.Nifti2Header | nib.freesurfer.mghformat.MGHHeader,
         subject_dir: Path,
         seg_file: str,
@@ -88,38 +72,54 @@ def save_segmentation(
     """
     from time import time
     starttime = time()
-    from HypVINN.data_loader.data_utils import reorient_img
 
     pred_arr, labels_cc = get_clean_labels(np.array(prediction, dtype=np.uint8))
-    # Mapped HypVINN labelst to FreeSurfer Hypvinn Labels
+    # Mapped HypVINN labels to FreeSurfer Hypvinn Labels
     pred_arr = hypo_map_subseg_2_fsseg(pred_arr)
-    orig_img = nib.load(orig_path)
-    LOGGER.info(f"Orig data orientation : {img2axcodes(orig_img)}")
+    orig_img = cast(nibabelImage, nib.load(orig_path))
+
+    reorient = Reorientation.from_target_affine(
+        ras_affine,
+        orig_img.affine,
+        labels_cc.shape,
+        voxel_center=False,
+    )
+    LOGGER.info(f"Orig data orientation : {aff2axcodes(orig_img.affine)}")
+
+    for data, name in ((pred_arr, "segmentation"), (labels_cc, "mask")):
+        if not np.allclose(reorient.reorder_axes(np.asarray(data.shape)), orig_img.shape):
+            raise RuntimeError(f"Hypothalamus {name} and orig image have different shapes!")
+
+    if does_vox2vox_rot_require_interpolation(reorient.vox2vox):
+        LOGGER.warning("Hypothalamus mask and segmentation reorientation requires lossy interpolation.")
 
     if save_mask:
-        mask_img = nib.Nifti1Image(labels_cc, affine=ras_affine, header=ras_header)
-        LOGGER.info(f"HypVINN Mask orientation: {img2axcodes(mask_img)}")
-        mask_img = reorient_img(mask_img, orig_img)
-        LOGGER.info(
-            f"HypVINN Mask after re-orientation: {img2axcodes(mask_img)}"
+        # a mask is uchar
+        save_image(
+            orig_img.header,
+            orig_img.affine,
+            reorient(labels_cc.astype(np.uint8), order=0),
+            subject_dir / "mri" / mask_file,
+            dtype=np.uint8,
         )
-        nib.save(mask_img, subject_dir / "mri" / mask_file)
+        LOGGER.info(f"HypVINN Mask after re-orientation: {aff2axcodes(orig_img.affine)}")
 
-    pred_img = nib.Nifti1Image(pred_arr, affine=ras_affine, header=ras_header)
-    LOGGER.info(f"HypVINN Prediction orientation: {img2axcodes(pred_img)}")
-    pred_img = reorient_img(pred_img, orig_img)
-    LOGGER.info(
-        f"HypVINN Prediction after re-orientation: {img2axcodes(pred_img)}"
+    # the hypothalamus labels reach 984, so int16
+    save_image(
+        orig_img.header,
+        orig_img.affine,
+        reorient(pred_arr.astype(np.int16), order=0),
+        subject_dir / "mri" / seg_file,
+        dtype=np.int16,
     )
-    pred_img.set_data_dtype(np.int16)  # Maximum value 984
-    nib.save(pred_img, subject_dir / "mri" / seg_file)
+    LOGGER.info(f"HypVINN Prediction after re-orientation: {aff2axcodes(orig_img.affine)}")
     return time() - starttime
 
 
 def save_logits(
-        logits: npt.NDArray[float],
+        logits: Image4d,
         orig_path: Path,
-        ras_affine: npt.NDArray[float],
+        ras_affine: AffineMatrix4x4,
         ras_header: nib.nifti1.Nifti1Header | nib.nifti2.Nifti2Header | nib.freesurfer.mghformat.MGHHeader,
         save_dir: Path,
         mode: str,
@@ -132,11 +132,11 @@ def save_logits(
 
     Parameters
     ----------
-    logits : npt.NDArray[float]
+    logits : np.ndarray
         The raw model outputs.
     orig_path : Path
         The path to the original image.
-    ras_affine : npt.NDArray[float]
+    ras_affine : AffineMatrix4x4
         The affine transformation of the RAS orientation.
     ras_header : nib.nifti1.Nifti1Header
         The header of the RAS orientation.
@@ -151,22 +151,24 @@ def save_logits(
         The path where the logits were saved.
 
     """
-    from HypVINN.data_loader.data_utils import reorient_img
-    orig_img = nib.load(orig_path)
-    LOGGER.info(f"Orig data orientation: {img2axcodes(orig_img)}")
-    nifti_img = nib.Nifti1Image(
-        logits.astype(np.float32),
-        affine=ras_affine,
-        header=ras_header,
+    orig_img = cast(nibabelImage, nib.load(orig_path))
+    LOGGER.info(f"Orig data orientation: {aff2axcodes(orig_img.affine)}")
+    reorient = Reorientation.from_target_affine(
+        ras_affine,
+        orig_img.affine,
+        logits.shape,
+        voxel_center=False,
     )
-    LOGGER.info(f"HypVINN logits orientation: {img2axcodes(nifti_img)}")
-    nifti_img = reorient_img(nifti_img, orig_img)
-    LOGGER.info(
-        f"HypVINN logits after re-orientation: {img2axcodes(nifti_img)}"
-    )
-    nifti_img.set_data_dtype(np.float32)
     save_as = save_dir / f"HypVINN_logits_{mode}.nii.gz"
-    nib.save(nifti_img, save_as)
+    # logits are continuous, so float
+    save_image(
+        orig_img.header,
+        orig_img.affine,
+        reorient(logits.astype(np.float32)),
+        save_as,
+        dtype=np.float32,
+    )
+    LOGGER.info(f"HypVINN logits after re-orientation: {aff2axcodes(orig_img.affine)}")
     return save_as
 
 
@@ -251,7 +253,7 @@ def get_clean_labels(segmentation: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
 
     Parameters
     ----------
-    segmentation: np.ndarray
+    segmentation : np.ndarray
         The segmentation mask.
 
     Returns

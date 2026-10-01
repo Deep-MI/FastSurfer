@@ -1,4 +1,4 @@
-# Copyright 2019 Image Analysis Lab, German Center for Neurodegenerative Diseases (DZNE), Bonn
+# Copyright 2019 DeepMI Lab, German Center for Neurodegenerative Diseases (DZNE), Bonn
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,8 +13,7 @@
 # limitations under the License.
 
 """
-This is the FastSurfer/run_prediction.py script, the backbone for whole brain
-segmentation.
+This is the FastSurfer/run_prediction.py script, the backbone for whole brain segmentation.
 
 Usage:
 
@@ -24,49 +23,37 @@ See Also
 `run_prediction.py --help`
 """
 
-
 # IMPORTS
 import argparse
-import copy
 import sys
+import warnings
+from collections import deque
 from collections.abc import Iterator, Sequence
 from concurrent.futures import Executor, Future, ThreadPoolExecutor
 from pathlib import Path
-from typing import Any, Literal
+from typing import Any, Literal, cast
 
-import nibabel as nib
 import numpy as np
 import torch
-import yacs.config
+from numpy import typing as npt
+from yacs.config import CfgNode
 
 import FastSurferCNN.reduce_to_aseg as rta
-from FastSurferCNN.data_loader import conform as conf
 from FastSurferCNN.data_loader import data_utils as du
+from FastSurferCNN.data_loader.conform import Reorientation, conform, is_conform
+from FastSurferCNN.host_info import log_torch_info
 from FastSurferCNN.inference import Inference
 from FastSurferCNN.quick_qc import check_volume
-from FastSurferCNN.utils import PLANES, Plane, logging, parser_defaults
-from FastSurferCNN.utils.arg_types import VoxSizeOption
-from FastSurferCNN.utils.checkpoint import (
-    get_checkpoints,
-    load_checkpoint_config_defaults,
-)
-from FastSurferCNN.utils.common import (
-    SerialExecutor,
-    SubjectDirectory,
-    SubjectList,
-    find_device,
-    handle_cuda_memory_exception,
-    pipeline,
-)
+from FastSurferCNN.utils import PLANES, AffineMatrix4x4, Plane, logging, nibabelImage, parser_defaults
+from FastSurferCNN.utils.arg_types import OrientationType, VoxSizeOption
+from FastSurferCNN.utils.arg_types import vox_size as _vox_size
+from FastSurferCNN.utils.checkpoint import get_checkpoints, get_config_file, load_checkpoint_config_defaults
+from FastSurferCNN.utils.common import SubjectDirectory, SubjectList, find_device, handle_cuda_memory_exception
 from FastSurferCNN.utils.load_config import load_config
-
-##
-# Global Variables
-##
-from FastSurferCNN.utils.parser_defaults import FASTSURFER_ROOT, SubjectDirectoryConfig
+from FastSurferCNN.utils.parallel import SerialExecutor, pipeline
+from FastSurferCNN.utils.parser_defaults import SubjectDirectoryConfig
 
 LOGGER = logging.getLogger(__name__)
-CHECKPOINT_PATHS_FILE = FASTSURFER_ROOT / "FastSurferCNN/config/checkpoint_paths.yaml"
 
 
 ##
@@ -75,11 +62,9 @@ CHECKPOINT_PATHS_FILE = FASTSURFER_ROOT / "FastSurferCNN/config/checkpoint_paths
 def set_up_cfgs(
         cfg_file: str | Path,
         batch_size: int = 1,
-) -> yacs.config.CfgNode:
+) -> CfgNode:
     """
-    Set up configuration.
-
-    Sets up configurations with given arguments inside the yaml file.
+    Set up configuration with given arguments inside the yaml file.
 
     Parameters
     ----------
@@ -103,45 +88,37 @@ def set_up_cfgs(
 
 
 def args2cfg(
-    cfg_ax: str | None = None,
-    cfg_cor: str | None = None,
-    cfg_sag: str | None = None,
+    cfg_ax: str | Path | None = None,
+    cfg_cor: str | Path | None = None,
+    cfg_sag: str | Path | None = None,
     batch_size: int = 1,
-) -> tuple[
-    yacs.config.CfgNode, yacs.config.CfgNode, yacs.config.CfgNode, yacs.config.CfgNode
-]:
+) -> tuple[CfgNode, CfgNode, CfgNode, CfgNode]:
     """
     Extract the configuration objects from the arguments.
 
     Parameters
     ----------
-    cfg_ax : str, optional
+    cfg_ax : str, Path, optional
         The path to the axial network YAML config file.
-    cfg_cor : str, optional
+    cfg_cor : str, Path, optional
         The path to the coronal network YAML config file.
-    cfg_sag : str, optional
+    cfg_sag : str, Path, optional
         The path to the sagittal network YAML config file.
     batch_size : int, default=1
         The batch size for the network.
 
     Returns
     -------
-     yacs.config.CfgNode
+    yacs.config.CfgNode
         Configurations for all planes.
     """
-    if cfg_cor is not None:
-        cfg_cor = set_up_cfgs(cfg_cor, batch_size)
-    if cfg_sag is not None:
-        cfg_sag = set_up_cfgs(cfg_sag, batch_size)
-    if cfg_ax is not None:
-        cfg_ax = set_up_cfgs(cfg_ax, batch_size)
-    cfgs = (cfg_cor, cfg_sag, cfg_ax)
+    cfgs = tuple(None if c is None else set_up_cfgs(c, batch_size) for c in (cfg_cor, cfg_sag, cfg_ax))
     # returns the first non-None cfg
     try:
         cfg_fin = next(filter(None, cfgs))
     except StopIteration as err:
         raise RuntimeError("No valid configuration passed!") from err
-    return (cfg_fin,) + cfgs
+    return cast(tuple[CfgNode, CfgNode, CfgNode, CfgNode], (cfg_fin,) + cfgs)
 
 
 ##
@@ -155,10 +132,11 @@ class RunModelOnData:
 
     Attributes
     ----------
-    vox_size : float, 'min'
+    vox_size : float, 'min', None
     current_plane : str
     models : Dict[str, Inference]
     view_ops : Dict[str, Dict[str, Any]]
+    orientation : OrientationType
     conform_to_1mm_threshold : float, optional
         threshold until which the image will be conformed to 1mm res
 
@@ -188,13 +166,14 @@ class RunModelOnData:
         Getter.
     """
 
-    vox_size: float | Literal["min"]
+    vox_size: float | Literal["min"] | None
     current_plane: Plane
     models: dict[Plane, Inference]
     view_ops: dict[Plane, dict[str, Any]]
     conform_to_1mm_threshold: float | None
     device: torch.device
     viewagg_device: torch.device
+    orientation: OrientationType
     _pool: Executor
 
     def __init__(
@@ -211,6 +190,8 @@ class RunModelOnData:
             threads: int = 1,
             batch_size: int = 1,
             vox_size: VoxSizeOption = "min",
+            orientation: OrientationType = "lia",
+            image_size: bool = True,
             async_io: bool = False,
             conform_to_1mm_threshold: float = 0.95,
     ):
@@ -226,6 +207,12 @@ class RunModelOnData:
         self._threads = threads
         torch.set_num_threads(self._threads)
         self._async_io = async_io
+        self.orientation = orientation
+        self.image_size = image_size
+        # writes started while conforming, for the caller to await; see pending_writes. A deque
+        # because the pool appends to it while the main thread drains it, and append and popleft
+        # are each atomic, so neither side needs a lock
+        self._pending: deque[Future[None]] = deque()
 
         self.sf = 1.0
 
@@ -234,54 +221,58 @@ class RunModelOnData:
         if self.device.type == "cpu" and viewagg_device in ("auto", "cpu"):
             self.viewagg_device = self.device
         else:
-            # check, if GPU is big enough to run view agg on it
-            # (this currently takes the memory of the passed device)
+            if self.device.type == "cuda" and not torch.cuda.is_initialized():
+                with warnings.catch_warnings():
+                    warnings.simplefilter("error")
+                    try:
+                        torch.cuda.init()
+                    except RuntimeError as err:
+                        LOGGER.critical("Failed to initialize cuda device, maybe incompatible CUDA version?")
+                        LOGGER.exception(err)
+                        raise err
+
+            # check, if GPU is big enough to run view agg on it (this currently takes the memory of the passed device)
             self.viewagg_device = find_device(
                 viewagg_device,
                 flag_name="viewagg_device",
                 min_memory=4 * (2**30),
+                default_cuda_device=self.device,
             )
 
         LOGGER.info(f"Running view aggregation on {self.viewagg_device}")
+        log_torch_info(LOGGER)
 
         try:
             self.lut = du.read_classes_from_lut(lut)
         except FileNotFoundError as err:
             raise ValueError(
-                f"Could not find the ColorLUT in {lut}, please make sure the "
-                f"--lut argument is valid."
+                f"Could not find the ColorLUT in {lut}, please make sure the --lut argument is valid."
             ) from err
-        self.labels = self.lut["ID"].values
-        self.torch_labels = torch.from_numpy(self.lut["ID"].values)
+        self.labels = np.asarray(self.lut["ID"].values).copy()
+        self.torch_labels = torch.from_numpy(self.labels)
         self.names = ["SubjectName", "Average", "Subcortical", "Cortical"]
-        self.cfg_fin, cfg_cor, cfg_sag, cfg_ax = args2cfg(
-            cfg_ax, cfg_cor, cfg_sag, batch_size=batch_size,
-        )
+        self.cfg_fin, cfgn_cor, cfgn_sag, cfgn_ax = args2cfg(cfg_ax, cfg_cor, cfg_sag, batch_size=batch_size)
         # the order in this dictionary dictates the order in the view aggregation
         self.view_ops = {
-            "coronal": {"cfg": cfg_cor, "ckpt": ckpt_cor},
-            "sagittal": {"cfg": cfg_sag, "ckpt": ckpt_sag},
-            "axial": {"cfg": cfg_ax, "ckpt": ckpt_ax},
+            "coronal": {"cfg": cfgn_cor, "ckpt": ckpt_cor},
+            "sagittal": {"cfg": cfgn_sag, "ckpt": ckpt_sag},
+            "axial": {"cfg": cfgn_ax, "ckpt": ckpt_ax},
         }
-        self.num_classes = max(
-            view["cfg"].MODEL.NUM_CLASSES for view in self.view_ops.values()
-        )
+        # self.num_classes = max(view["cfg"].MODEL.NUM_CLASSES for view in self.view_ops.values() if view["cfg"])
+        # currently, num_classes must be 79 in all cases. This seems like it is a config option here, but in reality it
+        # is not, so we hard-code it here. Only sagittal has < 79 classes, but num_classes is only used to set the
+        # dimensions of the view aggregation tensor, which is after splitting the classes from sagittal to all.
+        self.num_classes = 79
         self.models = {}
         for plane, view in self.view_ops.items():
             if all(view[key] is not None for key in ("cfg", "ckpt")):
-                self.models[plane] = Inference(
-                    view["cfg"], ckpt=view["ckpt"], device=self.device, lut=self.lut,
-                )
+                self.models[plane] = Inference(view["cfg"], ckpt=view["ckpt"], device=self.device, lut=self.lut)
 
-        if vox_size == "min":
-            self.vox_size = "min"
-        elif 0.0 < float(vox_size) <= 1.0:
-            self.vox_size = float(vox_size)
-        else:
-            raise ValueError(
-                f"Invalid value for vox_size, must be between 0 and 1 or 'min', was "
-                f"{vox_size}."
-            )
+        try:
+            self.vox_size = _vox_size(vox_size)
+        except (argparse.ArgumentTypeError, ValueError):
+            condition = "convertible to a float between 0 and 1, 'min', or 'any'"
+            raise ValueError(f"Invalid value for vox_size, must be {condition}, was '{vox_size}'.") from None
         self.conform_to_1mm_threshold = conform_to_1mm_threshold
 
     @property
@@ -291,10 +282,7 @@ class RunModelOnData:
         specified in __init__).
         """
         if not hasattr(self, "_pool"):
-            if not self._async_io:
-                self._pool = SerialExecutor()
-            else:
-                self._pool = ThreadPoolExecutor(self._threads)
+            self._pool = ThreadPoolExecutor(self._threads) if self._async_io else SerialExecutor()
         return self._pool
 
     def __del__(self):
@@ -304,9 +292,17 @@ class RunModelOnData:
             # do not wait if we encounter a fail case)
             self._pool.shutdown(True)
 
+    def __conform_kwargs(self, **kwargs) -> dict[str, Any]:
+        return dict({
+            "threshold_1mm": self.conform_to_1mm_threshold,
+            "vox_size": self.vox_size,
+            "orientation": self.orientation,
+            "img_size": self.image_size,
+        }, **kwargs)
+
     def conform_and_save_orig(
         self, subject: SubjectDirectory,
-    ) -> tuple[nib.analyze.SpatialImage, np.ndarray]:
+    ) -> tuple[nibabelImage, np.ndarray]:
         """
         Conform and saves original image.
 
@@ -317,41 +313,30 @@ class RunModelOnData:
 
         Returns
         -------
-        tuple[nib.analyze.SpatialImage, np.ndarray]
-            Conformed image.
+        the_image : nibabelImage
+            The SpatialImage object from nibabel of the conformed image (including updated affine).
+        the_data : np.ndarray
+            The data of the conformed image.
         """
         orig, orig_data = du.load_image(subject.orig_name, "orig image")
         LOGGER.info(f"Successfully loaded image from {subject.orig_name}.")
 
-        # Save input image to standard location, but only
-        if subject.can_resolve_attribute("copy_orig_name"):
-            self.pool.submit(self.save_img, subject.copy_orig_name, orig_data, orig)
-
-        if not conf.is_conform(
-            orig,
-            conform_vox_size=self.vox_size,
-            check_dtype=True,
-            verbose=True,
-            conform_to_1mm_threshold=self.conform_to_1mm_threshold,
-        ):
-            LOGGER.info("Conforming image")
-            orig = conf.conform(
-                orig,
-                conform_vox_size=self.vox_size,
-                conform_to_1mm_threshold=self.conform_to_1mm_threshold,
-            )
+        if not is_conform(orig, **self.__conform_kwargs(verbose=True)):
+            if (self.orientation is None or self.orientation == "native") and \
+                    not is_conform(orig, **self.__conform_kwargs(verbose=False, dtype=None, vox_size="min")):
+                LOGGER.warning("Support for anisotropic voxels is experimental. Careful QC of all images is needed!")
+            LOGGER.info("Conforming image...")
+            # orig will remain the same class
+            orig = conform(orig, **self.__conform_kwargs())
             orig_data = np.asanyarray(orig.dataobj)
 
         # Save conformed input image
         if subject.can_resolve_attribute("conf_name"):
-            self.pool.submit(
-                self.save_img, subject.conf_name, orig_data, orig, dtype=np.uint8
-            )
+            # kept so main can await it; a write that fails in the pool has to reach the exit code
+            self._pending.append(self.async_save_img(subject.conf_name, orig_data, orig, dtype=np.uint8))
+            LOGGER.info(f"Saving conformed image to {subject.conf_name}...")
         else:
-            raise RuntimeError(
-                "Cannot resolve the name to the conformed image, please specify an "
-                "absolute path."
-            )
+            raise RuntimeError("Cannot resolve the name to the conformed image, please specify an absolute path.")
 
         return orig, orig_data
 
@@ -367,7 +352,7 @@ class RunModelOnData:
         self.current_plane = plane
 
     def get_prediction(
-        self, image_name: str, orig_data: np.ndarray, zoom: np.ndarray | Sequence[int],
+        self, image_name: str, orig_data: np.ndarray, zoom: np.ndarray | Sequence[int], affine: AffineMatrix4x4,
     ) -> np.ndarray:
         """
         Run and get prediction.
@@ -380,36 +365,42 @@ class RunModelOnData:
             Original image data.
         zoom : np.ndarray, tuple
             Original zoom.
+        affine : AffineMatrix4x4
+            Original affine.
 
         Returns
         -------
         np.ndarray
             Predicted classes.
         """
-        shape = orig_data.shape + (self.get_num_classes(),)
-        kwargs = {
-            "device": self.viewagg_device,
-            "dtype": torch.float16,
-            "requires_grad": False,
-        }
+        _zoom = np.asarray(zoom)
+        if not np.allclose(_zoom, np.mean(_zoom), atol=1e-4, rtol=1e-3):
+            msg = "FastSurfer support for anisotropic images is experimental, we detected the following voxel sizes!"
+            LOGGER.warning(f"{msg}: {np.round(_zoom, decimals=4).tolist()}!")
 
-        pred_prob = torch.zeros(shape, **kwargs)
+        native_to_lia = Reorientation.from_target_orientation(affine, "soft LIA", orig_data.shape, _zoom)
+        orig_in_lia = native_to_lia(orig_data, order=1)
+        shape = orig_in_lia.shape + (self.get_num_classes(),)
+        _zoom_in_lia = native_to_lia.reorder_axes(_zoom)
+
+        pred_prob = torch.zeros(shape, device=self.viewagg_device, dtype=torch.float16, requires_grad=False)
 
         # inference and view aggregation
         for plane, model in self.models.items():
             LOGGER.info(f"Run {plane} prediction")
             self.set_model(plane)
             # pred_prob is updated inplace to conserve memory
-            pred_prob = model.run(pred_prob, image_name, orig_data, zoom, out=pred_prob)
+            pred_prob = model.run(pred_prob, image_name, orig_in_lia, _zoom_in_lia, out=pred_prob)
 
         # Get hard predictions
         pred_classes = torch.argmax(pred_prob, 3)
         del pred_prob
+        # reorder from lia to native
+        pred_classes = native_to_lia.inverse(pred_classes, order=0)
         # map to freesurfer label space
         pred_classes = du.map_label2aparc_aseg(pred_classes, self.labels)
         # return numpy array
-        # TODO: split_cortex_labels requires a numpy ndarray input, maybe we can also
-        #  use Mapper here
+        # TODO: split_cortex_labels requires a numpy ndarray input, maybe we can also use Mapper here
         pred_classes = du.split_cortex_labels(pred_classes.cpu().numpy())
         return pred_classes
 
@@ -417,8 +408,8 @@ class RunModelOnData:
         self,
         save_as: str | Path,
         data: np.ndarray | torch.Tensor,
-        orig: nib.analyze.SpatialImage,
-        dtype: type | None = None,
+        orig: nibabelImage,
+        dtype: npt.DTypeLike | None = None,
     ) -> None:
         """
         Save image as a file.
@@ -429,38 +420,27 @@ class RunModelOnData:
             Filename to give the image.
         data : np.ndarray, torch.Tensor
             Image data.
-        orig : nib.analyze.SpatialImage
+        orig : nibabelImage
             Original Image.
         dtype : type, optional
-            Data type to use for saving the image. If None, the original data type is
-            used (Default value = None).
+            Data type to use for saving the image. If None, the original data type is used.
         """
         save_as = Path(save_as)
         # Create output directory if it does not already exist.
         if not save_as.parent.exists():
-            LOGGER.info(
-                f"Output image directory {save_as.parent} does not exist. "
-                f"Creating it now..."
-            )
+            LOGGER.info(f"Output image directory {save_as.parent} does not exist. Creating it now...")
             save_as.parent.mkdir(parents=True)
 
         np_data = data if isinstance(data, np.ndarray) else data.cpu().numpy()
-        if dtype is not None:
-            _header = orig.header.copy()
-            _header.set_data_dtype(dtype)
-        else:
-            _header = orig.header
-        du.save_image(_header, orig.affine, np_data, save_as, dtype=dtype)
-        LOGGER.info(
-            f"Successfully saved image {'asynchronously ' if self._async_io else ''}  as {save_as}."
-        )
+        du.save_image(orig.header, orig.affine, np_data, save_as, dtype=dtype)
+        LOGGER.info(f"Successfully saved image {'asynchronously ' if self._async_io else ''}as {save_as}.")
 
     def async_save_img(
         self,
         save_as: str | Path,
         data: np.ndarray | torch.Tensor,
-        orig: nib.analyze.SpatialImage,
-        dtype: type | None = None,
+        orig: nibabelImage,
+        dtype: npt.DTypeLike | None = None,
     ) -> Future[None]:
         """
         Save the image asynchronously and return a concurrent.futures.Future to track,
@@ -470,28 +450,44 @@ class RunModelOnData:
         ----------
         save_as : str, Path
             Filename to give the image.
-        data : Union[np.ndarray, torch.Tensor]
+        data : np.ndarray, torch.Tensor
             Image data.
-        orig : nib.analyze.SpatialImage
+        orig : nibabelImage
             Original Image.
         dtype : type, optional
-            Data type to use for saving the image. If None, the original data type is
-            used.
+            Data type to use for saving the image. If None, the original data type is used.
 
         Returns
         -------
         Future[None]
-            A Future object to synchronize (and catch/handle exceptions in the save_img
-            method).
+            A Future object to synchronize (and catch/handle exceptions in the save_img method).
         """
         return self.pool.submit(self.save_img, save_as, data, orig, dtype)
 
-    def set_up_model_params(
-            self,
-            plane: Plane,
-            cfg: "yacs.config.CfgNode",
-            ckpt: "torch.Tensor",
-    ) -> None:
+    def pending_writes(self) -> list["Future[None]"]:
+        """
+        The writes started while conforming, so the caller can await them with its own.
+
+        A write runs in the pool, so its exception only surfaces when someone asks the future for
+        its result. Anything not awaited fails silently.
+
+        Draining one at a time rather than swapping the container, because the pool keeps appending
+        to it while this runs: a swap can drop a future that was appended between reading the
+        container and copying out of it, which is the write whose failure would then go unreported.
+
+        Returns
+        -------
+        list of Future
+            The futures, which are handed over and no longer tracked here.
+        """
+        pending = []
+        while True:
+            try:
+                pending.append(self._pending.popleft())
+            except IndexError:
+                return pending
+
+    def set_up_model_params(self, plane: Plane, cfg: CfgNode, ckpt: "torch.Tensor") -> None:
         """
         Set up the model parameters from the configuration and checkpoint.
         """
@@ -511,7 +507,7 @@ class RunModelOnData:
 
     def pipeline_conform_and_save_orig(
         self, subjects: SubjectList,
-    ) -> Iterator[tuple[SubjectDirectory, tuple[nib.analyze.SpatialImage, np.ndarray]]]:
+    ) -> Iterator[tuple[SubjectDirectory, tuple[nibabelImage, np.ndarray]]]:
         """
         Pipeline for conforming and saving original images asynchronously.
 
@@ -522,8 +518,15 @@ class RunModelOnData:
 
         Yields
         ------
-        tuple[SubjectDirectory, tuple[nib.analyze.SpatialImage, np.ndarray]]
-            Subject directory and a tuple with the image and its data.
+        subject_dir : SubjectDirectory
+            The SubjectDirectory object, that helps manage file names.
+        image_and_data : tuple of nibabelImage and np.ndarray
+            The tuple with the image and its data.
+
+        See Also
+        --------
+        RunModelOnData.conform_and_save_orig
+            For more detailed description of `image_and_data`.
         """
         if not self._async_io:
             # do not pipeline, direct iteration and function call
@@ -548,53 +551,32 @@ def make_parser():
 
     # 1. Options for input directories and filenames
     parser = parser_defaults.add_arguments(
-        parser, ["t1", "sid", "in_dir", "tag", "csv_file", "lut", "remove_suffix"]
+        parser,
+        ["t1", "sid", "in_dir", "tag", "csv_file", "lut", "remove_suffix"],
     )
 
     # 2. Options for output
     parser = parser_defaults.add_arguments(
         parser,
-        [
-            "asegdkt_segfile",
-            "conformed_name",
-            "brainmask_name",
-            "aseg_name",
-            "sd",
-            "seg_log",
-            "qc_log",
-        ],
+        ["asegdkt_segfile", "conformed_name", "brainmask_name", "aseg_name", "sd", "seg_log", "qc_log"],
     )
+
+    def _add_sd_help(action: argparse.Action) -> None:
+        action.help += " Optional if full path is defined for --pred_name."
+    parser_defaults.modify_argument(parser, "--sd", _add_sd_help)
 
     # 3. Checkpoint to load
+    config_file = get_config_file("FastSurferCNN")
     files: dict[Plane, str | Path] = {k: "default" for k in PLANES}
-    parser = parser_defaults.add_plane_flags(
-        parser,
-        "checkpoint",
-        files,
-        CHECKPOINT_PATHS_FILE
-    )
+    parser = parser_defaults.add_plane_flags(parser, "checkpoint", files, config_file)
 
     # 4. CFG-file with default options for network
-    parser = parser_defaults.add_plane_flags(
-        parser,
-        "config",
-        files,
-        CHECKPOINT_PATHS_FILE
-    )
+    parser = parser_defaults.add_plane_flags(parser, "config", files, config_file)
 
     # 5. technical parameters
-    parser = parser_defaults.add_arguments(
-        parser,
-        [
-            "vox_size",
-            "conform_to_1mm_threshold",
-            "device",
-            "viewagg_device",
-            "batch_size",
-            "async_io",
-            "threads",
-        ],
-    )
+    image_flags = ["vox_size", "conform_to_1mm_threshold", "orientation", "image_size", "device"]
+    tech_flags = ["viewagg_device", "batch_size", "async_io", "threads"]
+    parser = parser_defaults.add_arguments(parser, image_flags + tech_flags)
     return parser
 
 def main(
@@ -623,6 +605,8 @@ def main(
         device: str = "auto",
         viewagg_device: str = "auto",
         batch_size: int = 1,
+        orientation: OrientationType = "lia",
+        image_size: bool = True,
         async_io: bool = True,
         threads: int = -1,
         conform_to_1mm_threshold: float = 0.95,
@@ -645,8 +629,10 @@ def main(
     # Download checkpoints if they do not exist
     # see utils/checkpoint.py for default paths
     LOGGER.info("Checking or downloading default checkpoints ...")
-    
-    urls = load_checkpoint_config_defaults("url", filename=CHECKPOINT_PATHS_FILE)
+
+    config_file = get_config_file("FastSurferCNN")
+
+    urls = load_checkpoint_config_defaults("url", filename=config_file)
 
     get_checkpoints(ckpt_ax, ckpt_cor, ckpt_sag, urls=urls)
 
@@ -662,15 +648,11 @@ def main(
         remove_suffix=remove_suffix,
         out_dir=out_dir,
     )
-    config.copy_orig_name = "mri/orig/001.mgz"
+    slist_kwargs = {"segfile": "pred_name"}
 
     try:
         # Get all subjects of interest
-        subjects = SubjectList(
-            config,
-            segfile="pred_name",
-            copy_orig_name="copy_orig_name",
-        )
+        subjects = SubjectList(config, **slist_kwargs)
         subjects.make_subjects_dir()
 
         # Set Up Model
@@ -687,6 +669,8 @@ def main(
             threads=threads,
             batch_size=batch_size,
             vox_size=vox_size,
+            orientation=orientation,
+            image_size=image_size,
             async_io=async_io,
             conform_to_1mm_threshold=conform_to_1mm_threshold,
         )
@@ -698,45 +682,35 @@ def main(
     iter_subjects = eval.pipeline_conform_and_save_orig(subjects)
     futures = []
     for subject, (orig_img, data_array) in iter_subjects:
+        # the conformed image is written while the subject is prepared, so pick that write up here
+        futures.extend(eval.pending_writes())
         # Run model
         try:
             # The orig_t1_file is only used to populate verbose messages here
-            pred_data = eval.get_prediction(
-                subject.orig_name, data_array, orig_img.header.get_zooms()
-            )
-            futures.append(
-                eval.async_save_img(
-                    subject.segfile, pred_data, orig_img, dtype=np.int16
-                )
-            )
+            pred_data = eval.get_prediction(subject.orig_name, data_array, orig_img.header.get_zooms(), orig_img.affine)
+            futures.append(eval.async_save_img(subject.segfile, pred_data, orig_img, dtype=np.int16))
 
             # Create aseg and brainmask
 
-            # There is a funny edge case in legacy FastSurfer 2.0, where the behavior is
-            # not well-defined, if orig_name is an absolute path, but out_dir is not
-            # set. Then, we would create a sub-folder in the folder of orig_name using
-            # the subject_id (passed by --sid or extracted from the orig_name) and use
-            # that as the subject folder.
+            # There is a funny edge case in legacy FastSurfer 2.0, where the behavior is not well-defined, if orig_name
+            # is an absolute path, but out_dir is not set. Then, we would create a sub-folder in the folder of orig_name
+            # using the subject_id (passed by --sid or extracted from the orig_name) and use that as the subject folder.
             bm = None
             store_brainmask = subject.can_resolve_filename(brainmask_name)
             store_aseg = subject.can_resolve_filename(aseg_name)
             if store_brainmask or store_aseg:
                 LOGGER.info("Creating brainmask based on segmentation...")
-                bm = rta.create_mask(copy.deepcopy(pred_data), 5, 4)
+                bm = rta.create_mask(pred_data, 5, 4)
             if store_brainmask:
                 # get mask
                 mask_name = subject.filename_in_subject_folder(brainmask_name)
-                futures.append(
-                    eval.async_save_img(mask_name, bm, orig_img, dtype=np.uint8)
-                )
+                futures.append(eval.async_save_img(mask_name, bm, orig_img, dtype=np.uint8))
             else:
-                LOGGER.info(
-                    "Not saving the brainmask, because we could not figure out where "
-                    "to store it. Please specify a subject id with {sid[flag]}, or an "
-                    "absolute brainmask path with {brainmask_name[flag]}.".format(
-                        **subjects.flags,
-                    )
+                message = (
+                    "Not saving the brainmask, because we could not figure out where to store it. Please specify a "
+                    "subject id with {sid[flag]}, or an absolute brainmask path with {brainmask_name[flag]}."
                 )
+                LOGGER.info(message.format(**subjects.flags))
 
             if store_aseg:
                 # reduce aparc to aseg and mask regions
@@ -746,26 +720,19 @@ def main(
                 aseg = rta.flip_wm_islands(aseg)
                 aseg_name = subject.filename_in_subject_folder(aseg_name)
                 # Change datatype to np.uint8, else mri_cc will fail!
-                futures.append(
-                    eval.async_save_img(aseg_name, aseg, orig_img, dtype=np.uint8)
-                )
+                futures.append(eval.async_save_img(aseg_name, aseg, orig_img, dtype=np.uint8))
             else:
-                LOGGER.info(
-                    "Not saving the aseg file, because we could not figure out where "
-                    "to store it. Please specify a subject id with {sid[flag]}, or an "
-                    "absolute aseg path with {aseg_name[flag]}.".format(
-                        **subjects.flags,
-                    )
+                message = (
+                    "Not saving the aseg file, because we could not figure out where to store it. Please specify a "
+                    "subject id with {sid[flag]}, or an absolute aseg path with {aseg_name[flag]}."
                 )
+                LOGGER.info(message.format(**subjects.flags))
 
             # Run QC check
             LOGGER.info("Running volume-based QC check on segmentation...")
             seg_voxvol = np.prod(orig_img.header.get_zooms())
             if not check_volume(pred_data, seg_voxvol):
-                LOGGER.warning(
-                    "Total segmentation volume is too small. Segmentation may be "
-                    "corrupted."
-                )
+                LOGGER.warning("Total segmentation volume is too small. Segmentation may be corrupted.")
                 if qc_file_handle is not None:
                     qc_file_handle.write(subject.id + "\n")
                     qc_file_handle.flush()

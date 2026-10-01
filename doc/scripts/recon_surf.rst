@@ -13,6 +13,6 @@ Surface pipeline: recon-surf.sh
 ..
   Usage help text
   ---------------
-  
+
   .. command-output:: ./recon_surf/recon-surf.sh --help
      :cwd: /../

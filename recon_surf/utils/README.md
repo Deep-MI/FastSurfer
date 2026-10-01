@@ -1,9 +1,9 @@
-# Utilities
-
+Utilities
+=========
 This directory contains some useful utility scripts.
 
-## Command Time Extraction
-
+Command Time Extraction
+-----------------------
 The `extract_recon_surf_time_info.py` script can be used to generate a yaml file containing information on the commands executed in recon_surf from a `recon-surf.log` file.
 Every command has a corresponding entry, which includes the information:
 * cmd_name: the full command
@@ -20,7 +20,6 @@ Entries are grouped according to the section in `recon_surf.sh` in which the com
 * `--time_units`: Units for duration: s (seconds) or m (minutes; default)
 
 ### Example
-
 The following will extract recon_surf command time information from `123456/scripts/recon-surf.log` and save it in `123456/scripts/recon-surf_times.yaml` (with durations in minutes).
 
 ```

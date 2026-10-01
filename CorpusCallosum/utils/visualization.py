@@ -1,0 +1,265 @@
+# Copyright 2025 DeepMI Lab, German Center for Neurodegenerative Diseases(DZNE), Bonn
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+from contextlib import nullcontext
+from pathlib import Path
+
+import matplotlib.axes
+import nibabel as nib
+import numpy as np
+
+from CorpusCallosum.utils.types import ContourList, Polygon2dType
+from FastSurferCNN.utils import AffineMatrix4x4, Image3d, Vector2d
+
+
+def plot_standardized_space(
+    ax_row: list[matplotlib.axes.Axes],
+    vol: np.ndarray, 
+    ac_coords: np.ndarray, 
+    pc_coords: np.ndarray
+) -> None:
+    """Plot standardized space visualization across three views.
+
+    Parameters
+    ----------
+    ax_row : list[matplotlib.axes.Axes]
+        Row of axes to plot on (should be length 3).
+    vol : np.ndarray
+        Volume data to visualize.
+    ac_coords : np.ndarray
+        AC coordinates in standardized space.
+    pc_coords : np.ndarray
+        PC coordinates in standardized space.
+
+    Notes
+    -----
+    Creates three views:
+    - Sagittal
+    - Coronal
+    - Axial
+    """
+    # View configuration for LIA orientation (0:L, 1:I, 2:A)
+    # Each entry: (slice_axis, x_plot_idx, y_plot_idx, origin, transpose, view_name)
+    view_configs = [
+        (0, 2, 1, 'upper', False, "Sagittal"), # Slice L, plot (A, I)
+        (2, 0, 1, 'upper', True,  "Coronal"),  # Slice A, plot (L, I)
+        (1, 0, 2, 'lower', True,  "Axial")     # Slice I, plot (L, A)
+    ]
+
+    for i, (slice_axis, x_idx, y_idx, origin, do_transpose, name) in enumerate(view_configs):
+        slice_idx = vol.shape[slice_axis] // 2
+        
+        # Extract slice
+        if slice_axis == 0:
+            slice_data = vol[slice_idx, :, :]
+        elif slice_axis == 1:
+            slice_data = vol[:, slice_idx, :]
+        else:
+            slice_data = vol[:, :, slice_idx]
+
+        if do_transpose:
+            slice_data = slice_data.T
+
+        ax_row[i].imshow(slice_data, cmap="gray", origin=origin)
+        ax_row[i].scatter(ac_coords[x_idx], ac_coords[y_idx], color="red", marker="x", s=20)
+        ax_row[i].scatter(pc_coords[x_idx], pc_coords[y_idx], color="blue", marker="x", s=20)
+        ax_row[i].set_ylabel(name)
+
+
+def visualize_coordinate_spaces(
+    orig: "nib.Nifti1Image",
+    upright: np.ndarray,
+    standardized: np.ndarray,
+    ac_coords_orig: np.ndarray,
+    pc_coords_orig: np.ndarray,
+    ac_coords_3d: np.ndarray,
+    pc_coords_3d: np.ndarray,
+    ac_coords_standardized: np.ndarray,
+    pc_coords_standardized: np.ndarray,
+    output_plot_path: str | Path,
+) -> None:
+    """Visualize the AC and PC coordinates in different coordinate spaces.
+
+    Creates a figure showing the anterior and posterior commissure points
+    in three different coordinate spaces for testing/debugging.
+
+    Parameters
+    ----------
+    orig : nibabel.Nifti1Image
+        Original image volume.
+    upright : np.ndarray
+        Volume in fsaverage space.
+    standardized : np.ndarray
+        Volume in standardized space.
+    ac_coords_orig : np.ndarray
+        AC coordinates in original space.
+    pc_coords_orig : np.ndarray
+        PC coordinates in original space.
+    ac_coords_3d : np.ndarray
+        AC coordinates in fsaverage space.
+    pc_coords_3d : np.ndarray
+        PC coordinates in fsaverage space.
+    ac_coords_standardized : np.ndarray
+        AC coordinates in standardized space.
+    pc_coords_standardized : np.ndarray
+        PC coordinates in standardized space.
+    output_plot_path : str or Path
+        Directory to save visualization.
+
+    Notes
+    -----
+    Saves a visualization of the anterior (red) and posterior (blue) commisure in three different view:
+    1. the orig image (orig),
+    2. fs-average standardized image space, and
+    3. standardized image space
+    as a single image named 'ac_pc_spaces.png' in `output_dir`.
+    """
+    from matplotlib import pyplot as plt
+    fig, ax = plt.subplots(3, 3, figsize=(12, 12))
+
+    # Original space (Column 0)
+    plot_standardized_space(ax[:, 0], np.asarray(orig.dataobj), ac_coords_orig, pc_coords_orig)
+    ax[0, 0].set_title("Orig")
+
+    # Fsaverage space (Column 1)
+    plot_standardized_space(ax[:, 1], upright, ac_coords_3d, pc_coords_3d)
+    ax[0, 1].set_title("Fsaverage")
+
+    # Standardized space (Column 2)
+    plot_standardized_space(ax[:, 2], standardized, ac_coords_standardized, pc_coords_standardized)
+    ax[0, 2].set_title("Standardized")
+
+    # Format all subplots
+    for a in ax.flatten():
+        a.set_aspect("equal", adjustable="box")
+        a.axis("off")
+
+    plt.savefig(output_plot_path, dpi=300, bbox_inches="tight")
+    plt.close()
+
+
+def plot_contours(
+    slice_or_slab: Image3d,
+    split_contours: ContourList | None = None,
+    midline_equidistant: Polygon2dType | None = None,
+    levelpaths: list[Polygon2dType] | None = None,
+    output_path: str | Path | list[Path | str] | None = None,
+    ac_coords_vox: Vector2d | None = None,
+    pc_coords_vox: Vector2d | None = None,
+    vox2ras: AffineMatrix4x4 | None = None,
+    title: str = "",
+) -> None:
+    """Creates a figure of the contours (shape) and the subdivisions of the corpus callosum.
+
+    Parameters
+    ----------
+    slice_or_slab : np.ndarray
+        Intensities of the current slice, midslice or midslab (will plot middle slice).
+    split_contours : list[np.ndarray], optional
+        List of contour arrays for each subdivision (ignore contours on None) in upright AS coordinates each with shape
+        (N, 2).
+    midline_equidistant : np.ndarray, optional
+        Midline points at equidistant spacing (ignore midline on None) in upright AS coordinates with shape (2, N).
+    levelpaths : list[np.ndarray], optional
+        List of level paths for visualization (ignore level paths on None) in upright AS coordinates each with shape
+        (2, N).
+    output_path : str or Path or list of Paths, optional
+        Path to save the plot (show and do not save on None).
+    ac_coords_vox : np.ndarray, optional
+        AC coordinates for visualization (ignore AC on None) in LIA voxel coordinates.
+    pc_coords_vox : np.ndarray, optional
+        PC coordinates for visualization (ignore PC on None) in LIA voxel coordinates.
+    vox2ras : AffineMatrix4x4, optional
+        Slice vox2ras transformation matrix.
+    title : str, default=""
+        Title for the plot.
+
+    Notes
+    -----
+    Creates a visualization of the corpus callosum contours and their subdivisions.
+    If output_path is provided, saves the plot to that location.
+    """
+    from functools import partial
+
+    from nibabel.affines import apply_affine
+
+    from FastSurferCNN.utils.plotting import backend
+
+    if vox2ras is None and None in (split_contours, midline_equidistant, levelpaths):
+        raise ValueError("vox_size must be provided if split_contours, midline_equidistant, or levelpaths are given.")
+    
+    _backend_context = nullcontext if output_path is None else partial(backend, 'agg')  # Use non-GUI backend
+
+    # convert vox_size from LIA to AS
+    ras2vox = partial(apply_affine, np.linalg.inv(vox2ras)[1:, 1:])
+
+    # scale contour data by vox_size to convert from AS to AS-aligned voxel space
+    _split_contours = [] if split_contours is None else [ras2vox(sp.T).T for sp in split_contours]
+    _midline_equi = np.zeros((0, 2)) if midline_equidistant is None else ras2vox(midline_equidistant)
+    _levelpaths = [] if levelpaths is None else [ras2vox(lp) for lp in levelpaths]
+
+    has_first_plot = not (len(_split_contours) == 0 and ac_coords_vox is None and pc_coords_vox is None)
+    num_plots = 1 + int(has_first_plot)
+
+    with _backend_context():
+        # import here to have the correct backend set for non-GUI environments
+        from matplotlib import pyplot as plt
+
+        fig, ax = plt.subplots(1, num_plots, sharex=True, sharey=True, figsize=(15, 10))
+
+        # NOTE: For all plots imshow shows y inverted
+        current_plot = 0
+
+        if _split_contours:
+            reference_contour = _split_contours[-1]
+
+        # This visualization uses voxel coordinates in fsaverage space...
+        if has_first_plot:
+            ax[current_plot].imshow(slice_or_slab[slice_or_slab.shape[0] // 2], cmap="gray")
+            ax[current_plot].set_title(title)
+        if _split_contours:
+            for this_contour in _split_contours:
+                ax[current_plot].fill(this_contour[1, :], this_contour[0, :], color="steelblue", alpha=0.25)
+                kwargs = {"color": "mediumblue", "linewidth": 0.7, "linestyle": "solid"}
+                ax[current_plot].plot(this_contour[1, :], this_contour[0, :], **kwargs)
+        if ac_coords_vox is not None:
+            ax[current_plot].scatter(ac_coords_vox[1], ac_coords_vox[0], color="red", marker="x")
+        if pc_coords_vox is not None:
+            ax[current_plot].scatter(pc_coords_vox[1], pc_coords_vox[0], color="blue", marker="x")
+        current_plot += int(has_first_plot)
+
+        ax[current_plot].imshow(slice_or_slab[slice_or_slab.shape[0] // 2], cmap="gray")
+        for this_path in _levelpaths:
+            ax[current_plot].plot(this_path[:, 1], this_path[:, 0], color="brown", linewidth=0.8)
+        ax[current_plot].set_title("Midline & Levelpaths")
+        if _midline_equi.shape[0] > 0:
+            ax[current_plot].plot(_midline_equi[:, 1], _midline_equi[:, 0], color="red")
+        if _split_contours:
+            ax[current_plot].plot(reference_contour[1, :], reference_contour[0, :], color="red", linewidth=0.5)
+
+        padding = 30
+        for a in ax.flatten():
+            a.set_aspect("equal", adjustable="box")
+            a.axis("off")
+            if _split_contours:
+                # get bounding box of contours
+                a.set_xlim(reference_contour[1, :].min() - padding, reference_contour[1, :].max() + padding)
+                a.set_ylim((reference_contour[0, :]).max() + padding, (reference_contour[0, :]).min() - padding)
+
+        if output_path is None:
+            return plt.show()
+        for _output_path in (output_path if isinstance(output_path, list | tuple) else [output_path]):
+            Path(_output_path).parent.mkdir(parents=True, exist_ok=True)
+            fig.savefig(_output_path, dpi=300, bbox_inches="tight")
+    return None

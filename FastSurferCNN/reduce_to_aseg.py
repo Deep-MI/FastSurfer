@@ -1,4 +1,4 @@
-# Copyright 2019 Image Analysis Lab, German Center for Neurodegenerative Diseases (DZNE), Bonn
+# Copyright 2019 DeepMI Lab, German Center for Neurodegenerative Diseases (DZNE), Bonn
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,15 +13,29 @@
 # limitations under the License.
 
 # IMPORTS
-import copy
 import optparse
 import sys
+from functools import partial
+from pathlib import Path
+from typing import TypeVar, cast
 
 import nibabel as nib
 import numpy as np
 import scipy.ndimage
 from skimage.filters import gaussian
 from skimage.measure import label
+
+from FastSurferCNN.data_loader.data_utils import as_mgh_image
+from FastSurferCNN.utils import AffineMatrix4x4, ShapeType, logging, nibabelHeader, nibabelImage
+from FastSurferCNN.utils.brainvolstats import mask_in_array
+from FastSurferCNN.utils.logging import setup_logging
+from FastSurferCNN.utils.parallel import thread_executor
+
+_T = TypeVar("_T", bound=np.number)
+_TDType = np.dtype[_T]
+
+
+LOGGER = logging.getLogger(__name__)
 
 HELPTEXT = """
 Script to reduce aparc+aseg to aseg by mapping cortex labels back to left/right GM.
@@ -51,10 +65,6 @@ Dependencies:
     
     skimage for erosion, dilation, connected component
     https://scikit-image.org/
-
-Original Author: Martin Reuter
-Date: Jul-24-2018
-
 """
 
 h_input = "path to input segmentation"
@@ -73,7 +83,7 @@ def options_parse():
         Object holding options.
     """
     parser = optparse.OptionParser(
-        version="$Id: reduce_to_aseg.py,v 1.0 2018/06/24 11:34:08 mreuter Exp $",
+        version="%prog, part of FastSurfer, see 'run_fastsurfer.sh --version'",
         usage=HELPTEXT,
     )
     parser.add_option("--input", "-i", dest="input_seg", help=h_input)
@@ -90,9 +100,9 @@ def options_parse():
     return options
 
 
-def reduce_to_aseg(data_inseg: np.ndarray) -> np.ndarray:
+def reduce_to_aseg(data_inseg: np.ndarray[ShapeType, _TDType]) -> np.ndarray[ShapeType, _TDType]:
     """
-    Reduce the input segmentation to a simpler segmentation.
+    Reduce the input segmentation to a simpler segmentation (for all data orientations, LIA/etc).
 
     Parameters
     ----------
@@ -105,21 +115,20 @@ def reduce_to_aseg(data_inseg: np.ndarray) -> np.ndarray:
     data_inseg : np.ndarray, torch.Tensor
         The reduced segmentation.
     """
-    print("Reducing to aseg ...")
-    # replace 2000... with 42
-    data_inseg[data_inseg >= 2000] = 42
-    # replace 1000... with 3
-    data_inseg[data_inseg >= 1000] = 3
-    return data_inseg
+    LOGGER.info("Reducing to aseg ...")
+    cortical_fill = np.full_like(data_inseg, 3)
+    cortical_fill[data_inseg >= 2000] = 42
+    return np.where(data_inseg >= 1000, cortical_fill, data_inseg)
 
 
-def create_mask(aseg_data, dnum, enum):
+def create_mask(aseg_data: np.ndarray[ShapeType, _TDType], dnum: int, enum: int) \
+        -> np.ndarray[ShapeType, np.dtype[np.bool_]]:
     """
-    Create dilated mask.
+    Create dilated mask (works for all data orientations, LIA/etc).
 
     Parameters
     ----------
-    aseg_data : npt.NDArray[int]
+    aseg_data : int np.ndarray
         The input segmentation data.
     dnum : int
         The number of iterations for the dilation operation.
@@ -128,16 +137,16 @@ def create_mask(aseg_data, dnum, enum):
 
     Returns
     -------
-    -
-        Returns aseg_data.
+    bool np.ndarray same shape as aseg_data
+        Returns mask.
     """
-    print("Creating dilated mask ...")
+    LOGGER.info("Creating dilated mask ...")
 
     # treat lateral orbital frontal and parsorbitalis special to avoid capturing too much of eye nerve
-    lat_orb_front_mask = np.logical_or(aseg_data == 2012, aseg_data == 1012)
-    parsorbitalis_mask = np.logical_or(aseg_data == 2019, aseg_data == 1019)
-    frontal_mask = np.logical_or(lat_orb_front_mask, parsorbitalis_mask)
-    print("Frontal region special treatment: ", format(np.sum(frontal_mask)))
+    lat_orb_front_mask = [2012, 1012]
+    parsorbitalis_mask = [2019, 1019]
+    frontal_mask = mask_in_array(aseg_data, lat_orb_front_mask + parsorbitalis_mask)
+    LOGGER.info(f"Frontal region special treatment: {np.sum(frontal_mask)}")
 
     # reduce to binary
     datab = aseg_data > 0
@@ -153,24 +162,22 @@ def create_mask(aseg_data, dnum, enum):
     # extract largest component
     labels = label(datab)
     assert labels.max() != 0  # assume at least 1 real connected component
-    print(f"  Found {labels.max()} connected component(s)!")
+    LOGGER.info(f"  Found {labels.max()} connected component(s)!")
 
     if labels.max() > 1:
-        print("  Selecting largest component!")
+        LOGGER.info("  Selecting largest component!")
         datab = labels == np.argmax(np.bincount(labels.flat)[1:]) + 1
 
     # add frontal regions back to mask
     datab[frontal_mask] = 1
 
     # set mask
-    aseg_data[~datab] = 0
-    aseg_data[datab] = 1
-    return aseg_data
+    return datab.astype(np.uint8)
 
 
-def flip_wm_islands(aseg_data : np.ndarray) -> np.ndarray:
+def flip_wm_islands(aseg_data: np.ndarray[ShapeType, _TDType]) -> np.ndarray[ShapeType, _TDType]:
     """
-    Flip labels of disconnected white matter islands to the other hemisphere.
+    Flip labels of disconnected white matter islands to the other hemisphere (works for all data orientations, LIA/etc).
 
     Parameters
     ----------
@@ -192,27 +199,22 @@ def flip_wm_islands(aseg_data : np.ndarray) -> np.ndarray:
     rh_wm = 41
     rh_gm = 42
 
-    # for lh get largest component and islands
-    mask = aseg_data == lh_wm
-    labels = label(mask, background=0)
-    assert labels.max() != 0  # assume at least 1 connected component
-    bc = np.bincount(labels.flat)[1:]
-    largestID = np.argmax(bc) + 1
-    largestCC = labels == largestID
-    lh_islands = (~largestCC) & (labels > 0)
+    def _islands(data: np.ndarray[ShapeType, _TDType], _label: int) -> np.ndarray[ShapeType, np.dtype[np.bool_]]:
+        # for lh get largest component and islands
+        mask = data == _label
+        labels = label(mask, background=0)
+        assert labels.max() != 0  # assume at least 1 connected component
+        bc = np.bincount(labels.flat)[1:]
+        largest_id = np.argmax(bc) + 1
+        largest_cc = labels == largest_id
+        return (~largest_cc) & (labels > 0)
 
-    # same for rh
-    mask = aseg_data == rh_wm
-    labels = label(mask, background=0)
-    assert labels.max() != 0  # assume at least 1 CC
-    bc = np.bincount(labels.flat)[1:]
-    largestID = np.argmax(bc) + 1
-    largestCC = labels == largestID
-    rh_islands = (labels != largestID) & (labels > 0)
+    lh_islands, rh_islands = thread_executor().map(partial(_islands, aseg_data), [lh_wm, rh_wm])
+
 
     # get signed probability for lh and rh (by smoothing joined GM+WM labels)
-    lhmask = (aseg_data == lh_wm) | (aseg_data == lh_gm)
-    rhmask = (aseg_data == rh_wm) | (aseg_data == rh_gm)
+    lhmask = np.logical_or(aseg_data == lh_wm, aseg_data == lh_gm)
+    rhmask = np.logical_or(aseg_data == rh_wm, aseg_data == rh_gm)
     ii = gaussian(lhmask.astype(float) * (-1) + rhmask.astype(float), sigma=1.5)
 
     # flip island
@@ -221,43 +223,83 @@ def flip_wm_islands(aseg_data : np.ndarray) -> np.ndarray:
     flip_data = aseg_data.copy()
     flip_data[rhswap] = lh_wm
     flip_data[lhswap] = rh_wm
-    print(f"FlipWM: rh {rhswap.sum()} and lh {lhswap.sum()} flipped.")
+    LOGGER.info(f"FlipWM: rh {rhswap.sum()} and lh {lhswap.sum()} flipped.")
 
     return flip_data
+
+
+def create_mask_and_save(
+        seg: np.ndarray[ShapeType, np.dtype],
+        seg_affine: AffineMatrix4x4,
+        seg_header: nibabelHeader,
+        filename: Path | None = None,
+) -> np.ndarray[ShapeType, np.dtype[np.uint8]]:
+    """Convenience function for brainmask generation plus saving."""
+    mask_data = create_mask(seg, 5, 4)
+    if filename is not None:
+        LOGGER.info(f"Outputting mask: {filename}")
+        # a mask is uchar, like the aseg, and not the type of the segmentation it was derived from
+        mask = as_mgh_image(mask_data, seg_affine, seg_header, dtype=np.uint8)
+        mask.to_filename(filename)
+    return mask_data
+
+
+def reduce_to_aseg_and_save(
+        seg: np.ndarray[ShapeType, np.dtype],
+        seg_affine: AffineMatrix4x4,
+        seg_header: nibabelHeader,
+        filename: Path | None = None,
+) -> np.ndarray[ShapeType, np.dtype[np.uint8]]:
+    """Convenience function for reduce_to_aseg plus saving."""
+    _data = reduce_to_aseg(seg)
+
+    if filename is not None:
+        LOGGER.info(f"Outputting aseg: {filename}")
+        # an aseg has no label above 255 and FreeSurfer writes these files as uchar, so ask for it
+        # rather than inheriting the type of the segmentation this was reduced from
+        image = as_mgh_image(_data, seg_affine, seg_header, dtype=np.uint8)
+        image.to_filename(filename)
+    return _data
 
 
 if __name__ == "__main__":
     # Command Line options are error checking done here
     options = options_parse()
 
-    print(f"Reading in aparc+aseg: {options.input_seg} ...")
-    inseg = nib.load(options.input_seg)
+    setup_logging()
+
+    LOGGER.info(f"Reading in aparc+aseg: {options.input_seg} ...")
+    inseg = cast(nibabelImage, nib.load(options.input_seg))
     inseg_data = np.asanyarray(inseg.dataobj)
     inseg_header = inseg.header
     inseg_affine = inseg.affine
 
-    # Change datatype to np.uint8
-    inseg_header.set_data_dtype(np.uint8)
-
     # get mask
     if options.output_mask:
-        bm = create_mask(copy.deepcopy(inseg_data), 5, 4)
-        print(f"Outputting mask: {options.output_mask}")
-        mask = nib.MGHImage(bm, inseg_affine, inseg_header)
-        mask.to_filename(options.output_mask)
+        io_fut_mask = thread_executor().submit(
+            create_mask_and_save,
+            inseg_data,
+            inseg_affine,
+            inseg_header,
+            options.output_mask,
+        )
+    else:
+        io_fut_mask = None
 
     # reduce aparc to aseg and mask regions
     aseg = reduce_to_aseg(inseg_data)
 
     if options.output_mask:
         # mask aseg also
+        # wait and report errors in saving the mask
+        bm = io_fut_mask.result()
         aseg[bm == 0] = 0
 
     if options.fix_wm:
         aseg = flip_wm_islands(aseg)
 
-    print(f"Outputting aseg: {options.output_seg}")
-    aseg_fin = nib.MGHImage(aseg, inseg_affine, inseg_header)
+    LOGGER.info(f"Outputting aseg: {options.output_seg}")
+    aseg_fin = as_mgh_image(aseg, inseg_affine, inseg_header, dtype=np.uint8)
     aseg_fin.to_filename(options.output_seg)
 
     sys.exit(0)

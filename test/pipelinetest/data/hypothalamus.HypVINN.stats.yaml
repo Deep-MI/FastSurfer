@@ -1,0 +1,9 @@
+default_threshold: 0.01
+lut: FastSurferCNN/config/FreeSurferColorLUT.txt
+
+# there is no expected list of thresholds, so measures will be skipped
+measure_thresholds: {}
+
+thresholds:
+  structure: 0.1
+

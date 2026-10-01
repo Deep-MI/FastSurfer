@@ -1,5 +1,5 @@
 # Copyright 2024
-# AI in Medical Imaging, German Center for Neurodegenerative Diseases(DZNE), Bonn
+# DeepMI Lab, German Center for Neurodegenerative Diseases(DZNE), Bonn
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,85 +14,15 @@
 # limitations under the License.
 
 # IMPORTS
-import nibabel as nib
 import numpy as np
-from numpy import typing as npt
 
 from FastSurferCNN.data_loader.conform import getscale, scalecrop
-from HypVINN.config.hypvinn_global_var import (
-    FS_CLASS_NAMES,
-    HYPVINN_CLASS_NAMES,
-    SAG2FULL_MAP,
-    hyposubseg_labels,
-)
+from FastSurferCNN.utils import ShapeType
+from HypVINN.config.hypvinn_global_var import FS_CLASS_NAMES, HYPVINN_CLASS_NAMES, SAG2FULL_MAP, hyposubseg_labels
 
 ##
 # Helper Functions
 ##
-
-
-def calculate_flip_orientation(iornt: np.ndarray, base_ornt: np.ndarray) -> np.ndarray:
-    """
-    Compute the flip orientation transform.
-
-    ornt[N, 1] is flip of axis N, where 1 means no flip and -1 means flip.
-
-    Parameters
-    ----------
-    iornt : np.ndarray
-        Initial orientation.
-    base_ornt : np.ndarray
-        Base orientation.
-
-    Returns
-    -------
-    new_iornt : np.ndarray
-        New orientation.
-    """
-    new_iornt = iornt.copy()
-
-    # Find the axis to compared and then compared orientation, where 1 means no flip
-    # and -1 means flip.
-    for axno, direction in np.asarray(base_ornt):
-        idx = np.where(iornt[:, 0] == axno)
-        idirection = iornt[int(idx[0][0]), 1]
-        if direction == idirection:
-            new_iornt[int(idx[0][0]), 1] = 1.0
-        else:
-            new_iornt[int(idx[0][0]), 1] = -1.0
-
-    return new_iornt
-
-
-def reorient_img(img, ref_img):
-    """
-    Reorient a Nibabel image based on the orientation of a reference nibabel image.
-
-    Parameters
-    ----------
-    img : nibabel.Nifti1Image
-        Nibabel Image to reorient.
-    ref_img : nibabel.Nifti1Image
-        Reference orientation nibabel image.
-
-    Returns
-    -------
-    img : nibabel.Nifti1Image
-        Reoriented image.
-    """
-    ref_ornt = nib.io_orientation(ref_img.affine)
-    iornt = nib.io_orientation(img.affine)
-
-    if not np.array_equal(iornt, ref_ornt):
-        # first flip orientation
-        fornt = calculate_flip_orientation(iornt, ref_ornt)
-        img = img.as_reoriented(fornt)
-        # the transpose axis
-        tornt = np.ones_like(ref_ornt)
-        tornt[:, 0] = ref_ornt[:, 0]
-        img = img.as_reoriented(tornt)
-
-    return img
 
 
 def transform_axial2coronal(vol: np.ndarray, axial2coronal: bool = True) -> np.ndarray:
@@ -179,10 +109,11 @@ def rescale_image(img_data: np.ndarray) -> np.ndarray:
     if not np.allclose([src_min, scale], [0, 1]):
         mapped_data = scalecrop(img_data, 0, 255, src_min, scale)
 
-    return np.uint8(np.rint(mapped_data))
+    return np.rint(mapped_data).astype(np.uint8)
 
 
-def hypo_map_label2subseg(mapped_subseg: npt.NDArray[int]) -> npt.NDArray[int]:
+def hypo_map_label2subseg(mapped_subseg: np.ndarray[ShapeType, np.dtype[np.integer]]) \
+        -> np.ndarray[ShapeType, np.dtype[np.integer]]:
     """
     Perform look-up table mapping from label space to subseg space.
 
@@ -191,12 +122,12 @@ def hypo_map_label2subseg(mapped_subseg: npt.NDArray[int]) -> npt.NDArray[int]:
 
     Parameters
     ----------
-    mapped_subseg : npt.NDArray[int]
+    mapped_subseg : np.ndarray of integers
         The input array in label space to be mapped to subseg space.
 
     Returns
     -------
-    npt.NDArray[int]
+    np.ndarray of integers
         The mapped array in subseg space.
     """
     # TODO can this function be replaced by a Mapper and a mapping file?
@@ -209,8 +140,8 @@ def hypo_map_label2subseg(mapped_subseg: npt.NDArray[int]) -> npt.NDArray[int]:
 
 
 def hypo_map_prediction_sagittal2full(
-        prediction_sag: npt.NDArray[int],
-) -> npt.NDArray[int]:
+        prediction_sag: np.ndarray[ShapeType, np.dtype[np.integer]],
+) -> np.ndarray[ShapeType, np.dtype[np.integer]]:
     """
     Remap the prediction on the sagittal network to full label space.
 
@@ -219,12 +150,12 @@ def hypo_map_prediction_sagittal2full(
 
     Parameters
     ----------
-    prediction_sag : npt.NDArray[int]
+    prediction_sag : np.ndarray of integers
         The sagittal prediction in label space to be remapped to full label space.
 
     Returns
     -------
-    npt.NDArray[int]
+    np.ndarray of integers
         The remapped prediction in full label space.
     """
     # TODO can this function be replaced by a Mapper and a mapping file?
@@ -235,9 +166,9 @@ def hypo_map_prediction_sagittal2full(
 
 
 def hypo_map_subseg_2_fsseg(
-        subseg: npt.NDArray[int],
+        subseg: np.ndarray[ShapeType, np.dtype[np.integer]],
         reverse: bool = False,
-) -> npt.NDArray[int]:
+) -> np.ndarray[ShapeType, np.dtype[np.int16]]:
     """
     Remap HypVINN internal labels to FastSurfer Labels and vice versa.
 
@@ -248,7 +179,7 @@ def hypo_map_subseg_2_fsseg(
 
     Parameters
     ----------
-    subseg : npt.NDArray[int]
+    subseg : np.ndarray of integers
         The input array with HypVINN or FastSurfer labels to be remapped.
     reverse : bool, default=False
         A flag to determine the direction of the remapping. If False, remap HypVINN
@@ -256,12 +187,12 @@ def hypo_map_subseg_2_fsseg(
 
     Returns
     -------
-    npt.NDArray[int]
+    np.ndarray of integers
         The remapped array with FastSurfer or HypVINN labels.
     """
     # TODO can this function be replaced by a Mapper and a mapping file?
 
-    fsseg = np.zeros_like(subseg, dtype=np.int16)
+    fsseg: np.ndarray[ShapeType, np.dtype[np.int16]] = np.zeros_like(subseg, dtype=np.int16)
 
     if not reverse:
         for value, name in HYPVINN_CLASS_NAMES.items():

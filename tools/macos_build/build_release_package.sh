@@ -1,0 +1,490 @@
+#!/bin/bash
+
+# abort on the first failure: nearly every step feeds the next, so an unchecked error runs on into
+# pkgbuild and yields an installer that looks fine but is incomplete. pipefail additionally covers
+# the "git ls-files | rsync" pipeline below, where a failing git would hand rsync an empty list.
+set -e
+set -o pipefail
+
+# Recognised but refused, rather than falling through to the usage text, so the reason is visible
+# and nobody spends an hour of build time discovering it.
+if [[ "${1-}" == "intel" ]] ; then
+  echo "ERROR: the Intel package cannot be built." >&2
+  echo "  PyTorch publishes no macOS x86_64 wheels after 2.2, so the bundled environment does not" >&2
+  echo "  resolve. Intel Mac users run the Docker image, see doc/overview/INSTALL.md." >&2
+  exit 1
+fi
+if [[ "$#" -lt 1 ]] || [[ "$1" != "arm" ]] ; then
+  echo
+  echo "Usage:  build_release_package.sh arm [--fs-download-cache path] [--fs-pruned-cache-dir dir]"
+  echo "                                     [--uv-cache-dir dir] [--checkpoints-dir dir]"
+  echo
+  echo "--fs-download-cache points at a file path for the raw FreeSurfer tarball: if it already"
+  echo "  exists there (e.g. from a prior, interrupted local run), it is reused instead of"
+  echo "  downloading again; if not, the download is saved there for a later run to reuse."
+  echo "  (default: \$FS_DOWNLOAD_CACHE, if set)"
+  echo "--fs-pruned-cache-dir points at a directory for the pruned FreeSurfer install: if a valid"
+  echo "  one is already there, the whole download+prune step is skipped."
+  echo "  (default: \$FS_PRUNED_CACHE_DIR, if set)"
+  echo "--uv-cache-dir points at a directory for uv's download cache (the standalone python"
+  echo "  distribution and the dependency wheels), so repeated builds and CI do not re-download"
+  echo "  several hundred MB."
+  echo "  (default: \$UV_CACHE_DIR, if set, else uv's own default)"
+  echo "--checkpoints-dir points at a directory holding the network checkpoints. They are copied"
+  echo "  into the package, so the installed FastSurfer needs no download on first run. If the"
+  echo "  directory is missing or incomplete, the missing checkpoints are downloaded into it."
+  echo "  (default: \$FASTSURFER_CHECKPOINTS_DIR, else <fastsurfer>/checkpoints)"
+  echo
+  exit
+fi
+ARCH_TYPE=$1 # chip architecture, only "arm" is buildable, see the check above
+shift
+
+fs_download_cache="$FS_DOWNLOAD_CACHE"
+fs_pruned_cache_dir="$FS_PRUNED_CACHE_DIR"
+uv_cache_dir="$UV_CACHE_DIR"
+checkpoints_dir="$FASTSURFER_CHECKPOINTS_DIR"
+while [[ "$#" -ge 1 ]] ; do
+  case "$1" in
+  --fs-download-cache) fs_download_cache=$2 ; shift ; shift ;;
+  --fs-pruned-cache-dir) fs_pruned_cache_dir=$2 ; shift ; shift ;;
+  --uv-cache-dir) uv_cache_dir=$2 ; shift ; shift ;;
+  --checkpoints-dir) checkpoints_dir=$2 ; shift ; shift ;;
+  *) echo "Invalid argument $1" ; exit 1 ;;
+  esac
+done
+
+if [[ -z "${BASH_SOURCE[0]}" ]]; then THIS_SCRIPT="$0"
+else THIS_SCRIPT="${BASH_SOURCE[0]}"
+fi
+build_dir=$(cd "$(dirname "$THIS_SCRIPT")" && pwd)
+tools_dir=$(dirname "$build_dir")
+
+FASTSURFER_HOME=$(dirname "$tools_dir") # directory to fastsurfer
+# version of the project
+VERSION=$(python3 "$tools_dir/read_toml.py" --file "$FASTSURFER_HOME/pyproject.toml" --key project.version)
+VERSION_NO_DOTS=${VERSION//./}
+#version of the freesurfer
+FREESURFER_VERSION=$(python3 "$tools_dir/read_toml.py" --file "$FASTSURFER_HOME/pyproject.toml" --key tool.freesurfer.version)
+# freesurfer install url
+URL_TO_FREESURFER_TEMP=$(python3 "$tools_dir/read_toml.py" --file "$FASTSURFER_HOME/pyproject.toml" --key tool.freesurfer.urls.macOS)
+sub="{version}"
+URL_TO_FREESURFER="${URL_TO_FREESURFER_TEMP//$sub/$FREESURFER_VERSION}"
+
+# no x86_64 branch: an intel build is refused at the top, so this is the only reachable value
+ARCH_TYPE_NAME="arm64"
+
+RESOURCES_DIR="$build_dir/resources"
+# File name of the installer. Deliberately carries no version, so the docs can link to
+# releases/latest/download/<PACKAGE_NAME>.pkg, which GitHub only resolves for a fixed name.
+PACKAGE_NAME=FastSurfer-macos-darwin_${ARCH_TYPE_NAME}
+# ... so the version has to be shown somewhere else: this is the installer's window title
+PACKAGE_TITLE=FastSurfer$VERSION_NO_DOTS-macos-darwin_${ARCH_TYPE_NAME}
+# package identifier (f.e. com.mycompany.productid)
+ID="org.deep-mi.FastSurfer.${VERSION_NO_DOTS}_${ARCH_TYPE_NAME}"
+# install location for the content of the package
+INSTALLATION_DIR="/Applications"
+# raw package file to be created
+OUTPUT_PKG="$build_dir/raw_package/$PACKAGE_NAME.pkg"
+# installer to be created
+INSTALLER_PKG="$build_dir/installer/$PACKAGE_NAME.pkg"
+
+# create temporary folder to package and copy FastSurfer over
+STAGED_DIR="$build_dir/FastSurferPackageContent"
+FASTSURFER_TO_PACKAGE="$STAGED_DIR/FastSurfer$VERSION"
+# start from an empty staging tree: neither the copy below nor pkgbuild removes anything, so an
+# interrupted build's leftovers would be packaged. A run from before fs-pruned was nested leaves a
+# "freesurfer" directory here, which would install into /Applications/freesurfer again.
+rm -rf "$STAGED_DIR"
+mkdir -p "$FASTSURFER_TO_PACKAGE"
+# top-level paths that are not needed to run FastSurfer and so stay out of the installed package.
+# Do not add pyproject.toml (version.py reads it at runtime) or LICENSE (shipped for redistribution).
+not_packaged=(
+  # build-side only, never part of an install
+  tools
+  requirements.txt
+  requirements.cpu.txt
+  # development/CI material
+  .github
+  .codespellignore
+  .dockerignore
+  .gitignore
+  CODE_OF_CONDUCT.md
+  CONTRIBUTING.md
+  # published at fastsurfer.org / only relevant in a source checkout (the build reads doc/ from
+  # $FASTSURFER_HOME itself, not from this copy)
+  doc
+  test
+  Tutorial
+  Documentation
+  env
+)
+# package git-tracked files only: build artifacts, downloaded tarballs and scratch dirs would
+# otherwise add gigabytes to the installer. The checkpoints are gitignored and excluded here too;
+# they are staged deliberately from --checkpoints-dir in the BUNDLED CHECKPOINTS section below.
+if git -C "$FASTSURFER_HOME" rev-parse --git-dir > /dev/null 2>&1
+then
+  pathspecs=()
+  for path in "${not_packaged[@]}" ; do pathspecs+=(":(exclude)$path") ; done
+  git -C "$FASTSURFER_HOME" ls-files -z -- . "${pathspecs[@]}" \
+    | rsync -av --from0 --files-from=- "$FASTSURFER_HOME/" "$FASTSURFER_TO_PACKAGE" || exit 1
+else
+  # not a git checkout (e.g. building from a source tarball): fall back to excluding by name
+  excludes=(--exclude /.git)
+  for path in "${not_packaged[@]}" ; do excludes+=(--exclude "/$path") ; done
+  rsync -av --progress "$FASTSURFER_HOME/" "$FASTSURFER_TO_PACKAGE" "${excludes[@]}"
+fi
+
+# install pruned freesurfer, nested inside FastSurfer's own directory rather than the canonical
+# /Applications/freesurfer, so it cannot collide with a real FreeSurfer install.
+# --fs-pruned-cache-dir lets install_fs_pruned.sh skip the download+prune when a matching install is
+# already there; either way the result is copied into the staged tree.
+fs_pruned_where="${fs_pruned_cache_dir:-$FASTSURFER_TO_PACKAGE}"
+download_cache_args=()
+if [[ -n "$fs_download_cache" ]] ; then download_cache_args=(--fs-download-cache "$fs_download_cache") ; fi
+"$tools_dir/build/install_fs_pruned.sh" "$fs_pruned_where" --url "$URL_TO_FREESURFER" --name fs-pruned "${download_cache_args[@]}"
+
+if [[ ! -f "$fs_pruned_where/fs-pruned/build-stamp.txt" ]]
+then
+  echo "FreeSurfer install was unsuccessful!"
+  exit 1
+fi
+
+if [[ -n "$fs_pruned_cache_dir" ]]
+then
+  mkdir -p "$FASTSURFER_TO_PACKAGE"
+  # remove any stale fs-pruned first: cp -R copies *into* an existing destination dir instead of
+  # replacing it, which would silently nest a leftover from an interrupted prior build
+  rm -rf "$FASTSURFER_TO_PACKAGE/fs-pruned"
+  cp -R "$fs_pruned_where/fs-pruned" "$FASTSURFER_TO_PACKAGE/"
+fi
+
+SCRIPTS_DIR="$tools_dir/macos_build/scripts" # directory with scripts executed during installation process (f.e. preinstall postinstall)
+# the exact python bundled into the package: the interpreter lives at python/bin/python$PYTHON_VERSION
+# and its packages under python/lib/python$PYTHON_VERSION, both referred to by name, so this has to
+# be one version and not a range. See pyproject.toml for why tool.python.version is separate.
+PYTHON_VERSION=$(python3 "$tools_dir/read_toml.py" --file "$FASTSURFER_HOME/pyproject.toml" --key tool.python.version)
+
+# where the package will live once installed, substituted into the installer and console scripts.
+# The bundled python needs no such help: it derives its prefix from the interpreter's own location.
+PATH_TO_FASTSURFER="$INSTALLATION_DIR/FastSurfer$VERSION"
+
+# ============================ BUNDLED PYTHON ENVIRONMENT ==================================
+# Ship a complete python environment, so installing needs no network and no pre-installed python.
+# Homebrew's python cannot be bundled: even a --copies venv links against the Cellar and resolves
+# its stdlib there. uv's relocatable standalone CPython needs only /usr/lib and system frameworks.
+if ! command -v uv > /dev/null 2>&1
+then
+  echo "ERROR: uv not found, but it is required to fetch the standalone python and the" >&2
+  echo "  dependencies for the bundled environment. Install it with 'brew install uv' or" >&2
+  echo "  'curl -LsSf https://astral.sh/uv/install.sh | sh'." >&2
+  exit 1
+fi
+if [[ -n "$uv_cache_dir" ]] ; then export UV_CACHE_DIR="$uv_cache_dir" ; fi
+
+BUNDLED_PYTHON="$FASTSURFER_TO_PACKAGE/python"
+
+echo "Fetching standalone python $PYTHON_VERSION ..."
+# Install into a build-local directory rather than uv's default, which is shared with the
+# developer's own uv installs: this step copies a whole distribution, so it must know which one.
+UV_PYTHON_DIR="$build_dir/.uv-pythons"
+UV_PYTHON_INSTALL_DIR="$UV_PYTHON_DIR" uv python install "$PYTHON_VERSION"
+# Glob for it rather than using `uv python find`: this directory holds exactly what was just
+# installed, whereas interpreter discovery also considers venvs and the system python.
+standalone_root=""
+for candidate in "$UV_PYTHON_DIR"/cpython-"$PYTHON_VERSION"*/ ; do
+  if [[ -x "$candidate/bin/python$PYTHON_VERSION" ]] ; then standalone_root="${candidate%/}" ; fi
+done
+if [[ -z "$standalone_root" ]]
+then
+  echo "ERROR: uv installed no usable standalone python $PYTHON_VERSION under $UV_PYTHON_DIR." >&2
+  echo "  Found: $(ls "$UV_PYTHON_DIR" 2>/dev/null | tr '\n' ' ')" >&2
+  exit 1
+fi
+echo "  using $standalone_root"
+
+echo "Bundling the python distribution ..."
+rm -rf "$BUNDLED_PYTHON"
+cp -R "$standalone_root" "$BUNDLED_PYTHON"
+BUNDLED_INTERPRETER="$BUNDLED_PYTHON/bin/python$PYTHON_VERSION"
+
+# uv installs a python for the host architecture and resolves the wheels for it, while $ARCH_TYPE
+# only names the package. On the wrong runner that ships arm64 binaries as darwin_x86_64.
+interpreter_archs="$(lipo -archs "$BUNDLED_INTERPRETER")"
+case " $interpreter_archs " in
+  *" $ARCH_TYPE_NAME "*) echo "  bundled python is $interpreter_archs, matching the package name" ;;
+  *)
+    echo "ERROR: an $ARCH_TYPE_NAME package needs an $ARCH_TYPE_NAME host," >&2
+    echo "  but the bundled python is $interpreter_archs." >&2
+    exit 1
+    ;;
+esac
+
+# Dependencies go into the distribution's own site-packages, with no virtual environment in
+# between. A venv records its location in pyvenv.cfg and its activate scripts, none of which
+# survive the move to the install directory, and it duplicates the interpreter. The distribution
+# derives its prefix from the interpreter's location, so it can be moved as-is.
+#
+# uv marks the distributions it manages as EXTERNALLY-MANAGED ("should not be modified"), which is
+# right for the copy it keeps for the developer but not for this private one. Remove it here only.
+rm -f "$BUNDLED_PYTHON/lib/python$PYTHON_VERSION/EXTERNALLY-MANAGED"
+
+echo "Installing dependencies into the bundled distribution ..."
+# requirements.txt pins exact versions, so every build of a given commit ships the same packages.
+# It is exported from the linux container, so fall back to resolving from pyproject.toml if a pin
+# has no macOS wheel for this python.
+if uv pip install --python "$BUNDLED_INTERPRETER" -r "$FASTSURFER_HOME/requirements.txt"
+then
+  # requirements.txt already pins whippersnappy, i.e. the whole of the [qc] extra
+  echo "  installed from requirements.txt (pinned)"
+else
+  echo "  WARNING: requirements.txt did not resolve for macOS/python$PYTHON_VERSION," >&2
+  echo "    falling back to resolving from pyproject.toml (versions are then build-date dependent)" >&2
+  # Resolve first, install second. Installing "$FASTSURFER_HOME[qc]" directly would install
+  # FastSurfer itself alongside its dependencies, which is exactly the shadowed second copy in
+  # site-packages that the note below rules out. [qc] pulls in whippersnappy, for --qc_snap.
+  fallback_requirements="$(mktemp -t fastsurfer-requirements)"
+  uv pip compile --python "$BUNDLED_INTERPRETER" --extra qc --no-header \
+      -o "$fallback_requirements" "$FASTSURFER_HOME/pyproject.toml"
+  uv pip install --python "$BUNDLED_INTERPRETER" -r "$fallback_requirements"
+  rm -f "$fallback_requirements"
+fi
+
+# FastSurfer itself is deliberately NOT installed into the environment: the package ships its own
+# source tree at $PATH_TO_FASTSURFER and both run_fastsurfer.sh and the console put that on
+# PYTHONPATH. Installing it as well would put a second, shadowed copy of every module in
+# site-packages, which is how the console and the pipeline previously ended up importing different
+# copies of the same module.
+
+# The oldest macOS the package can run on is set by the wheels, not by us: numpy and scipy are at 14
+# today, against the interpreter's own 11.0. uv accepts platform tags up to the build host's version,
+# so a dependency update can raise this silently. The value below is what doc/overview/INSTALL.md
+# tells users, so the check makes that statement fail loudly rather than rot.
+MACOS_MIN_DOCUMENTED="14.0"
+echo "Checking the macOS deployment target of the bundled binaries ..."
+macos_min_found="$( { otool -l "$BUNDLED_INTERPRETER" ;
+    find "$BUNDLED_PYTHON" -type f \( -name "*.so" -o -name "*.dylib" \) -print0 \
+      | xargs -0 otool -l 2>/dev/null ; } \
+  | awk '/^ *minos /{print $2}' | sort -t. -k1,1n -k2,2n -k3,3n | tail -1 )"
+if [[ -z "$macos_min_found" ]]
+then
+  echo "ERROR: could not read a deployment target from any bundled binary." >&2
+  exit 1
+elif [[ "$(printf '%s\n%s\n' "$MACOS_MIN_DOCUMENTED" "$macos_min_found" | sort -t. -k1,1n -k2,2n -k3,3n | tail -1)" != "$MACOS_MIN_DOCUMENTED" ]]
+then
+  echo "ERROR: a bundled binary needs macOS $macos_min_found, but doc/overview/INSTALL.md says the" >&2
+  echo "  package runs on $MACOS_MIN_DOCUMENTED. Update both together." >&2
+  exit 1
+fi
+echo "  highest deployment target: macOS $macos_min_found (documented: $MACOS_MIN_DOCUMENTED)"
+
+# ============================ BUNDLED CHECKPOINTS =========================================
+# Ship the network weights, so a fresh install does not have to download them on first run.
+echo "Bundling checkpoints ..."
+checkpoints_dir="${checkpoints_dir:-$FASTSURFER_HOME/checkpoints}"
+mkdir -p "$checkpoints_dir"
+# The downloader has no target-directory option: it resolves the paths from
+# */config/checkpoint_paths.yaml against the FastSurferCNN package it imports (FASTSURFER_ROOT in
+# utils/parser_defaults.py), so the only way to aim it is to run the staged copy, which is where the
+# weights have to end up anyway.
+rm -rf "$FASTSURFER_TO_PACKAGE/checkpoints"
+mkdir -p "$FASTSURFER_TO_PACKAGE/checkpoints"
+# seed from the cache; download_checkpoints.py skips files already present, so only gaps are fetched
+rsync -a "$checkpoints_dir/" "$FASTSURFER_TO_PACKAGE/checkpoints/"
+PYTHONPATH="$FASTSURFER_TO_PACKAGE" "$BUNDLED_INTERPRETER" \
+    "$FASTSURFER_TO_PACKAGE/FastSurferCNN/download_checkpoints.py" --all
+# hand new downloads back to the cache. No --delete: it defaults to the checkout's own checkpoints
+# directory, which may hold weights this build did not ask for.
+rsync -a "$FASTSURFER_TO_PACKAGE/checkpoints/" "$checkpoints_dir/"
+if [[ -z "$(ls -A "$FASTSURFER_TO_PACKAGE/checkpoints")" ]]
+then
+  echo "ERROR: no checkpoints were staged into the package." >&2
+  exit 1
+fi
+
+# ============================ BUILD PROVENANCE ============================================
+# Record what this package was built from: it ships no .git, so without this file version.py falls
+# back to a placeholder and `run_fastsurfer.sh --version` reports +0000000. It has to be complete,
+# because run_fastsurfer.sh passes --prefer_cache whenever BUILD.info exists and version.py then
+# refuses to compute a missing section itself.
+# Two passes, as the docker build does: git is only readable from the checkout, while the other
+# sections must describe what is *shipped* (the staged checkpoints, the bundled environment) rather
+# than whatever the build machine's python3 has. The second pass merges the first via --build_cache.
+echo "Recording build provenance ..."
+# Outside the checkout: version.py's -o creates the file before it runs `git status -sb`, so a path
+# inside the tree would show up as untracked and every package would report a dirty source tree.
+git_build_info="$(mktemp -t fastsurfer-buildinfo)"
+if git -C "$FASTSURFER_HOME" rev-parse --git-dir > /dev/null 2>&1
+then
+  version_sections="+git+checkpoints+pip"
+  PYTHONPATH="$FASTSURFER_HOME" python3 "$FASTSURFER_HOME/FastSurferCNN/version.py" \
+      --sections +git -o "$git_build_info"
+else
+  # a source tarball has no git, and +git would fail on the missing status; the version alone is
+  # still better than the placeholder
+  echo "  not a git checkout: recording the version without commit information"
+  version_sections="+checkpoints+pip"
+  PYTHONPATH="$FASTSURFER_HOME" python3 "$FASTSURFER_HOME/FastSurferCNN/version.py" \
+      -o "$git_build_info"
+fi
+PYTHONPATH="$FASTSURFER_TO_PACKAGE" "$BUNDLED_INTERPRETER" \
+    "$FASTSURFER_TO_PACKAGE/FastSurferCNN/version.py" --sections "$version_sections" \
+    --build_cache "$git_build_info" -o "$FASTSURFER_TO_PACKAGE/BUILD.info"
+# Both generated sections name absolute paths, the checkpoint files and pip's Location column, and
+# they are written from the staging tree. finalize_bundled_python.py only retargets python/, so
+# rewrite them here or the installed --version reports build-machine paths.
+sed -i '' -e "s|$FASTSURFER_TO_PACKAGE|$PATH_TO_FASTSURFER|g" "$FASTSURFER_TO_PACKAGE/BUILD.info"
+rm -f "$git_build_info"
+sed -n '1p' "$FASTSURFER_TO_PACKAGE/BUILD.info" | sed 's/^/  /'
+grep -cE "^[a-z_ ]+:$" "$FASTSURFER_TO_PACKAGE/BUILD.info" | sed 's/^/  sections recorded: /'
+
+# Retarget the distribution from the staging to the install directory: the interpreter needs no
+# help, but pip and uv write console scripts as /bin/sh wrappers that exec it by absolute path. This
+# also strips compiled bytecode, which records source paths and cannot be rewritten as text;
+# postinstall regenerates it. Placing it last lets its verification cover everything before it.
+echo "Retargeting the bundled python to the install prefix ..."
+python3 "$build_dir/finalize_bundled_python.py" \
+    --dist "$BUNDLED_PYTHON" \
+    --from "$FASTSURFER_TO_PACKAGE" \
+    --to "$PATH_TO_FASTSURFER"
+
+# Assemble the installer scripts in a directory of their own: pkgbuild --scripts packages the whole
+# directory it is given, so pointing it at the tracked source directory shipped the templates too.
+PKG_SCRIPTS_DIR="$build_dir/pkg-scripts"
+rm -rf "$PKG_SCRIPTS_DIR"
+mkdir -p "$PKG_SCRIPTS_DIR"
+
+# substitute values in the install scripts. preinstall clears a previous installation of this
+# version, so what ends up installed is exactly the payload.
+for script in preinstall postinstall ; do
+  sed -e "s|<fastsurfer_home_dir>|${PATH_TO_FASTSURFER}|g" \
+      -e "s|<python_version>|${PYTHON_VERSION}|g" \
+      < "$SCRIPTS_DIR/$script.sh.template" \
+      > "$PKG_SCRIPTS_DIR/$script"
+done
+# postinstall calls link_fs.sh, so it has to travel with it
+cp "$tools_dir/build/link_fs.sh" "$PKG_SCRIPTS_DIR/link_fs.sh"
+
+chmod +x "$PKG_SCRIPTS_DIR/preinstall" "$PKG_SCRIPTS_DIR/postinstall" \
+         "$PKG_SCRIPTS_DIR/link_fs.sh"
+# The script archive will also contain AppleDouble (._*) entries: pkgbuild stores extended
+# attributes that way and macOS tags every file with com.apple.provenance. The installer ignores them.
+
+# assemble resources
+mkdir -p "$RESOURCES_DIR"
+cp "$FASTSURFER_HOME/doc/images/fastsurfer.png" "$RESOURCES_DIR"
+cp "$FASTSURFER_HOME/LICENSE" "$RESOURCES_DIR/LICENSE.txt"
+# final screen of the installer, registered as text/html by edit_distribution.py
+sed -e "s|<fastsurfer>|FastSurfer${VERSION}|g" \
+    < "$build_dir/conclusion.html.template" \
+    > "$RESOURCES_DIR/conclusion.html"
+
+sed -e "s|<fastsurfer>|FastSurfer${VERSION}|g" \
+    -e "s|<python_version>|${PYTHON_VERSION}|g" \
+    < "$build_dir/macos_setup_fastsurfer.sh.template" \
+    > "$build_dir/macos_setup_fastsurfer.sh"
+
+mv "$build_dir/macos_setup_fastsurfer.sh" "$FASTSURFER_TO_PACKAGE/"
+
+# the FastSurfer applet, an AppleScript that opens Terminal with the FastSurfer console. osacompile
+# ships with macOS, so building it needs no Python and the applet bundles none.
+APPLET="$STAGED_DIR/FastSurfer$VERSION.app"
+sed -e "s|<fastsurfer>|FastSurfer${VERSION}|g" \
+    < "$build_dir/FastSurfer.applescript.template" \
+    > "$build_dir/FastSurfer.applescript"
+osacompile -o "$APPLET" "$build_dir/FastSurfer.applescript"
+rm "$build_dir/FastSurfer.applescript"
+
+# the icon, every size scaled from the 1024 px fastsurfer-icon.png (see make_icon.py)
+ICONSET="$build_dir/FastSurfer.iconset"
+rm -rf "$ICONSET"
+mkdir -p "$ICONSET"
+for size in 16 32 128 256 512 ; do
+  sips -z "$size" "$size" "$build_dir/fastsurfer-icon.png" --out "$ICONSET/icon_${size}x${size}.png" > /dev/null
+  sips -z $((size * 2)) $((size * 2)) "$build_dir/fastsurfer-icon.png" \
+    --out "$ICONSET/icon_${size}x${size}@2x.png" > /dev/null
+done
+iconutil -c icns "$ICONSET" -o "$APPLET/Contents/Resources/applet.icns"
+rm -rf "$ICONSET"
+# some osacompile versions also write an asset catalog with the default icon, which macOS prefers
+# over the icns
+rm -f "$APPLET/Contents/Resources/Assets.car"
+
+APPLET_PLIST="$APPLET/Contents/Info.plist"
+# The identifier has to be unique per version: the Installer places a bundle by its identifier, and
+# given a match it installs over the older applet instead of at the packaged path.
+plutil -replace CFBundleIdentifier -string "org.deep-mi.FastSurfer.applet.$VERSION" "$APPLET_PLIST"
+# The version keys accept only one to three dot-separated integers, which a development version like
+# 2.6.0-dev0 is not. Such a version becomes 0.0.0 rather than claiming a release that does not exist;
+# the full version is still in the identifier, the installer title and the install directory name.
+short_version_re='^[0-9]+(\.[0-9]+){0,2}$'
+if [[ "$VERSION" =~ $short_version_re ]] ; then short_version="$VERSION" ; else short_version="0.0.0" ; fi
+plutil -replace CFBundleShortVersionString -string "$short_version" "$APPLET_PLIST"
+plutil -replace CFBundleVersion -string "$short_version" "$APPLET_PLIST"
+# the icon name points at the asset catalog removed above; not every osacompile writes it
+if plutil -extract CFBundleIconName raw "$APPLET_PLIST" > /dev/null 2>&1 ; then
+  plutil -remove CFBundleIconName "$APPLET_PLIST"
+fi
+# osacompile names the bundle after the file, version included; the menu bar and the prompt below
+# show this name
+plutil -replace CFBundleName -string "FastSurfer" "$APPLET_PLIST"
+# shown when macOS asks whether the applet may control Terminal
+plutil -replace NSAppleEventsUsageDescription -string "FastSurfer opens Terminal to start the FastSurfer console." "$APPLET_PLIST"
+# editing the bundle invalidates the ad-hoc signature osacompile made, and arm64 runs no unsigned code
+codesign --force --sign - "$APPLET"
+
+chmod -R 755 "$STAGED_DIR"/*
+
+# create raw package
+mkdir -p "$build_dir/raw_package"
+
+# Pin bundles to the location they are packaged for. pkgbuild marks a .app as relocatable by
+# default, so the Installer overwrites any existing bundle with the same CFBundleIdentifier instead
+# of installing at the packaged path, which silently replaced an older applet and left none at the
+# new one's path. The applet's identifier is also unique per version (see above), but that only
+# avoids the collision; this removes the mechanism.
+COMPONENT_PLIST="$build_dir/component.plist"
+pkgbuild --analyze --root "$STAGED_DIR" "$COMPONENT_PLIST"
+python3 - "$COMPONENT_PLIST" <<'PYTHON'
+import plistlib
+import sys
+
+path = sys.argv[1]
+with open(path, "rb") as fp:
+    components = plistlib.load(fp)
+for component in components:
+    component["BundleIsRelocatable"] = False
+with open(path, "wb") as fp:
+    plistlib.dump(components, fp)
+print(f"  pinned {len(components)} bundle component(s) to their packaged location")
+PYTHON
+
+pkgbuild \
+    --root "$STAGED_DIR" \
+    --version "$VERSION" \
+    --identifier "$ID" \
+    --install-location "$INSTALLATION_DIR" \
+    --component-plist "$COMPONENT_PLIST" \
+    --scripts "$PKG_SCRIPTS_DIR" \
+    "$OUTPUT_PKG"
+
+# create distribution file template based on provided package
+DISTRIBUTION_FILE="$RESOURCES_DIR/distribution.xml"
+
+productbuild --synthesize --package "$OUTPUT_PKG" "$DISTRIBUTION_FILE"
+
+# edit the distribution file
+# the title is what the installer window shows, so it carries the version, unlike the file name
+python3 "$build_dir/edit_distribution.py" --file "$DISTRIBUTION_FILE" --title "$PACKAGE_TITLE"
+
+# create installer package
+mkdir -p "$build_dir/installer"
+productbuild \
+    --distribution "$DISTRIBUTION_FILE" \
+    --resources "$RESOURCES_DIR" \
+    --package-path "$build_dir/raw_package" \
+    "$INSTALLER_PKG"
+
+# get rid of temporary folders. PKG_SCRIPTS_DIR and .uv-pythons are build-local, so nothing has to
+# be cleaned out of the tracked source tree any more.
+rm -rf "$STAGED_DIR" "$RESOURCES_DIR" "$PKG_SCRIPTS_DIR" "$COMPONENT_PLIST"

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 
-# Copyright 2024 Image Analysis Lab, German Center for Neurodegenerative Diseases (DZNE), Bonn
+# Copyright 2024 DeepMI Lab, German Center for Neurodegenerative Diseases (DZNE), Bonn
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -45,11 +45,6 @@ Dependencies:
 
     Nibabel to read and write FreeSurfer surface meshes
     http://nipy.org/nibabel/
-
-
-Original Author: Martin Reuter
-Date: Dec-18-2023
-
 """
 
 h_inseg = "path to input segmentation image"
@@ -72,7 +67,7 @@ def options_parse():
         Namespace object holding options.
     """
     parser = optparse.OptionParser(
-        version="$Id: smooth_aparc,v 1.0 2018/06/24 11:34:08 mreuter Exp $",
+        version="%prog, part of FastSurfer, see 'run_fastsurfer.sh --version'",
         usage=HELPTEXT,
     )
     parser.add_option("--inseg", dest="inseg", help=h_inseg)
@@ -194,7 +189,7 @@ def sample_nearest_nonzero(img, vox_coords, radius=3.0):
     data = np.asarray(img.dataobj)
     
     # radius in voxels:
-    rvox = radius * voxsize[0]
+    rvox = radius / voxsize[0]
     
     # sample window around nearest voxel
     x_nn = np.rint(vox_coords).astype(int)

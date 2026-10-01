@@ -1,4 +1,4 @@
-# Copyright 2024 AI in Medical Imaging, German Center for Neurodegenerative Diseases(DZNE), Bonn
+# Copyright 2024 DeepMI Lab, German Center for Neurodegenerative Diseases(DZNE), Bonn
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,14 +13,12 @@
 # limitations under the License.
 from pathlib import Path
 
-import matplotlib.pyplot as plt
 import nibabel as nib
 import numpy as np
 
-#from FastSurferCNN.utils.parser_defaults import FASTSURFER_ROOT
+from FastSurferCNN.utils.common import update_docstring
+from FastSurferCNN.utils.plotting import backend
 from HypVINN.config.hypvinn_files import HYPVINN_LUT
-
-#_doc_HYPVINN_LUT = os.path.relpath(HYPVINN_LUT, FASTSURFER_ROOT)
 
 
 def remove_values_from_list(the_list, val):
@@ -42,6 +40,7 @@ def remove_values_from_list(the_list, val):
     return [value for value in the_list if value != val]
 
 
+@update_docstring(HYPVINN_LUT=HYPVINN_LUT)
 def get_lut(lookup_table_path: Path = HYPVINN_LUT):
     """
     Retrieve a color lookup table (LUT) from a file.
@@ -50,12 +49,12 @@ def get_lut(lookup_table_path: Path = HYPVINN_LUT):
 
     Parameters
     ----------
-    lookup_table_path: Path, defaults to local LUT"
+    lookup_table_path : Path, default="{HYPVINN_LUT}"
         The path to the file from which the LUT will be constructed.
 
     Returns
     -------
-    lut: OrderedDict
+    lut : OrderedDict
         The constructed LUT as an ordered dictionary.
     """
     from collections import OrderedDict
@@ -71,6 +70,7 @@ def get_lut(lookup_table_path: Path = HYPVINN_LUT):
     return lut
 
 
+@update_docstring(HYPVINN_LUT=HYPVINN_LUT)
 def map_hyposeg2label(hyposeg: np.ndarray, lut_file: Path = HYPVINN_LUT):
     """
     Map a HypVINN segmentation to a continuous label space using a lookup table.
@@ -79,7 +79,7 @@ def map_hyposeg2label(hyposeg: np.ndarray, lut_file: Path = HYPVINN_LUT):
     ----------
     hyposeg : np.ndarray
         The original segmentation map.
-    lut_file : Path, defaults to local LUT"
+    lut_file : Path, default="{HYPVINN_LUT}"
         The path to the lookup table file.
 
     Returns
@@ -239,13 +239,15 @@ def select_index_to_plot(hyposeg, slice_step=2):
     return sorted(idx)
 
 
+@update_docstring(HYPVINN_LUT=HYPVINN_LUT)
 def plot_qc_images(
         subject_qc_dir: Path,
         orig_path: Path,
         prediction_path: Path,
         padd: int = 45,
         lut_file: Path = HYPVINN_LUT,
-        slice_step: int = 2):
+        slice_step: int = 2,
+) -> None:
     """
     Plot the quality control images for the subject.
 
@@ -259,7 +261,7 @@ def plot_qc_images(
         The path to the predicted image.
     padd : int, default=45
         The padding value for cropping the images and segmentations.
-    lut_file : Path, defaults to local LUT"
+    lut_file : Path, default="{HYPVINN_LUT}"
         The path to the lookup table file.
     slice_step : int, default=2
         The step size for selecting indices from the predicted segmentation.
@@ -285,39 +287,27 @@ def plot_qc_images(
     hypo_seg, cmap = map_hyposeg2label(hyposeg=mod_pred, lut_file=lut_file)
 
     if len(idx) > 0:
-
         crop_image = mod_image[idx, :, :]
-
         crop_seg = hypo_seg[idx, :, :]
-
-        cm = ndimage.center_of_mass(crop_seg > 0)
-
-        cm = np.asarray(cm).astype(int)
-
-        crop_image = crop_image[:, cm[1] - padd:cm[1] + padd, cm[2] - padd:cm[2] + padd]
-        crop_seg = crop_seg[:, cm[1] - padd:cm[1] + padd, cm[2] - padd:cm[2] + padd]
-
+        center_of_mass = np.asarray(ndimage.center_of_mass(crop_seg > 0), dtype=int)
     else:
         depth = hypo_seg.shape[0] // 2
         crop_image = mod_image[depth - 8:depth + 8, :, :]
         crop_seg = hypo_seg[depth - 8:depth + 8, :, :]
 
-        cm = [crop_image.shape[0] // 2, crop_image.shape[1] // 2, crop_image.shape[2] // 2]
-        cm = np.array(cm).astype(int)
+        center_of_mass = np.asarray([0, crop_image.shape[1] // 2, crop_image.shape[2] // 2], dtype=int)
 
-        crop_image = crop_image[:, cm[1] - padd:cm[1] + padd, cm[2] - padd:cm[2] + padd]
-        crop_seg = crop_seg[:, cm[1] - padd:cm[1] + padd, cm[2] - padd:cm[2] + padd]
+    com_indexer = (slice(None),) + tuple(slice(com - padd, com + padd) for com in center_of_mass[1:3])
 
-    crop_image = np.rot90(np.flip(crop_image, axis=0), k=-1, axes=(1, 2))
-    crop_seg = np.rot90(np.flip(crop_seg, axis=0), k=-1, axes=(1, 2))
+    def _data_around_com(data):
+        return np.rot90(np.flip(data[com_indexer], axis=0), k=-1, axes=(1, 2))
 
-    fig = plot_coronal_predictions(
-        cmap=cmap,
-        images_batch=crop_image,
-        pred_batch=crop_seg,
-        img_per_row=crop_image.shape[0],
-    )
+    with backend('agg'):
+        fig = plot_coronal_predictions(
+            cmap=cmap,
+            images_batch=_data_around_com(crop_image),
+            pred_batch=_data_around_com(crop_seg),
+            img_per_row=crop_image.shape[0],
+        )
 
-    fig.savefig(subject_qc_dir / HYPVINN_QC_IMAGE_NAME, transparent=False)
-
-    plt.close(fig)
+        fig.savefig(subject_qc_dir / HYPVINN_QC_IMAGE_NAME, transparent=False)

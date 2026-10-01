@@ -1,4 +1,4 @@
-# Copyright 2023 Image Analysis Lab, German Center for Neurodegenerative Diseases (DZNE), Bonn
+# Copyright 2023 DeepMI Lab, German Center for Neurodegenerative Diseases (DZNE), Bonn
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,15 +15,16 @@
 
 # IMPORTS
 from collections.abc import Sequence
-from pathlib import Path
-from typing import TypedDict, TypeVar
+from typing import TypeVar
 
 import nibabel as nib
 import numpy as np
 import torch
-from numpy import typing as npt
 
 from FastSurferCNN.data_loader.conform import getscale, scalecrop
+from FastSurferCNN.utils import ShapeType, logging, nibabelImage
+
+logger = logging.getLogger(__name__)
 
 CLASS_NAMES = {
     "Background": 0,
@@ -60,32 +61,6 @@ CLASS_NAMES = {
 subseg_labels = {"cereb_subseg": np.array(list(CLASS_NAMES.values()))}
 
 AT = TypeVar("AT", np.ndarray, torch.Tensor)
-
-
-class LTADict(TypedDict):
-    type: int
-    nxforms: int
-    mean: list[float]
-    sigma: float
-    lta: npt.NDArray[float]
-    src_valid: int
-    src_filename: str
-    src_volume: list[int]
-    src_voxelsize: list[float]
-    src_xras: list[float]
-    src_yras: list[float]
-    src_zras: list[float]
-    src_cras: list[float]
-    dst_valid: int
-    dst_filename: str
-    dst_volume: list[int]
-    dst_voxelsize: list[float]
-    dst_xras: list[float]
-    dst_yras: list[float]
-    dst_zras: list[float]
-    dst_cras: list[float]
-    src: npt.NDArray[float]
-    dst: npt.NDArray[float]
 
 
 def define_size(mov_dim, ref_dim):
@@ -149,9 +124,9 @@ def map_size_leg(arr, base_shape, return_border=False):
     new_arr = np.zeros(new_shape, dtype=arr.dtype)
     final_arr = np.zeros(base_shape, dtype=arr.dtype)
     new_arr[
-        borders[0, 0] : borders[0, 1],
-        borders[1, 0] : borders[1, 1],
-        borders[2, 0] : borders[2, 1],
+        borders[0, 0]: borders[0, 1],
+        borders[1, 0]: borders[1, 1],
+        borders[2, 0]: borders[2, 1],
     ] = arr[:]
     middle_point = [
         int(new_arr.shape[0] // 2),
@@ -162,9 +137,9 @@ def map_size_leg(arr, base_shape, return_border=False):
     low_border = np.array((np.array(middle_point) - np.array(padd)), dtype=int)
     high_border = np.array(np.array(low_border) + np.array(base_shape), dtype=int)
     final_arr = new_arr[
-        low_border[0] : high_border[0],
-        low_border[1] : high_border[1],
-        low_border[2] : high_border[2],
+        low_border[0]: high_border[0],
+        low_border[1]: high_border[1],
+        low_border[2]: high_border[2],
     ]
 
     if return_border:
@@ -172,9 +147,9 @@ def map_size_leg(arr, base_shape, return_border=False):
         high_back_border = low_back_border + np.array(arr.shape)
         back_borders = np.vstack((low_back_border, high_back_border)).T
         back_arr = final_arr[
-            back_borders[0, 0] : back_borders[0, 1],
-            back_borders[1, 0] : back_borders[1, 1],
-            back_borders[2, 0] : back_borders[2, 1],
+            back_borders[0, 0]: back_borders[0, 1],
+            back_borders[1, 0]: back_borders[1, 1],
+            back_borders[2, 0]: back_borders[2, 1],
         ]
 
         assert np.all(
@@ -187,9 +162,9 @@ def map_size_leg(arr, base_shape, return_border=False):
 
 
 def bounding_volume_offset(
-    img: np.ndarray | Sequence[int],
-    target_img_size: tuple[int, ...],
-    image_shape: tuple[int, ...] | None = None,
+        img: np.ndarray | Sequence[int],
+        target_img_size: tuple[int, ...],
+        image_shape: tuple[int, ...] | None = None,
 ) -> tuple[int, ...]:
     """Find the center of the non-zero values in img and returns offsets so this center is in the center of a bounding
     volume of size target_img_size."""
@@ -202,7 +177,7 @@ def bounding_volume_offset(
         bbox = img
     center = (
         (_max + _min) / 2
-        for _min, _max in zip(bbox[: len(bbox) // 2], bbox[len(bbox) // 2 :], strict=False)
+        for _min, _max in zip(bbox[: len(bbox) // 2], bbox[len(bbox) // 2:], strict=False)
     )
     offset = tuple(
         max(0, int(round(c - ts / 2))) for c, ts in zip(center, target_img_size, strict=False)
@@ -215,14 +190,13 @@ def bounding_volume_offset(
         else None
     )
     if img_shape is not None:
+        # try to set the offset so the bounding volume is fully inside
+        _offset = list((max(0, o), imgs - ts) for o, ts, imgs in zip(offset, target_img_size, img_shape, strict=False))
+        # if it does not fit fully inside, warn
+        if any(min(left, right) < 0 for left, right in _offset):
+            logger.warning(f"The image is not large enough to cut a {target_img_size} patch, padding!")
         offset = tuple(
-            min(max(0, o), imgs - ts)
-            for o, ts, imgs in zip(offset, target_img_size, img_shape, strict=False)
-        )
-        if any(o < 0 for o in offset):
-            raise RuntimeError(
-                f"Insufficient image size {img_shape} for target image size {target_img_size}"
-            )
+            min(left, right) if min(left, right) >= 0 else int((left + right) / 2) for left, right in _offset)
     return offset
 
 
@@ -271,13 +245,13 @@ def rescale_image(img_data):
     return new_data
 
 
-def load_reorient(img_filename: str) -> nib.analyze.SpatialImage:
+def load_reorient(img_filename: str) -> nibabelImage:
     img_file = nib.load(img_filename)
     canonical_img = nib.as_closest_canonical(img_file)
     return canonical_img
 
 
-def load_reorient_lia(img_filename: str) -> nib.analyze.SpatialImage:
+def load_reorient_lia(img_filename: str) -> nibabelImage:
     return load_reorient(img_filename).as_reoriented([[1, -1], [0, -1], [2, 1]])
 
 
@@ -354,79 +328,11 @@ def apply_warp_field(dform_field, img, interpol_order=3):
     return deformed_img
 
 
-def read_lta(file: Path | str) -> LTADict:
-    """Read the LTA info."""
-    import re
-    from functools import partial
-
-    import numpy as np
-    parameter_pattern = re.compile("^\s*([^=]+)\s*=\s*([^#]*)\s*(#.*)")
-    vol_info_pattern = re.compile("^(.*) volume info$")
-    shape_pattern = re.compile("^(\s*\d+)+$")
-    matrix_pattern = re.compile("^(-?\d+\.\S+\s+)+$")
-
-    _Type = TypeVar("_Type", bound=type)
-
-    def _vector(_a: str, dtype: type[_Type] = float, count: int = -1) -> list[_Type]:
-        return np.fromstring(_a, dtype=dtype, count=count, sep=" ").tolist()
-
-    parameters = {
-        "type": int,
-        "nxforms": int,
-        "mean": partial(_vector, dtype=float, count=3),
-        "sigma": float,
-        "subject": str,
-        "fscale": float,
-    }
-    vol_info_par = {
-        "valid": int,
-        "filename": str,
-        "volume": partial(_vector, dtype=int, count=3),
-        "voxelsize": partial(_vector, dtype=float, count=3),
-        **{f"{c}ras": partial(_vector, dtype=float) for c in "xyzc"}
-    }
-
-    with open(file) as f:
-        lines = f.readlines()
-
-    items = []
-    shape_lines = []
-    matrix_lines = []
-    section = ""
-    for i, line in enumerate(lines):
-        if line.strip() == "":
-            continue
-        if hits := parameter_pattern.match(line):
-            name = hits.group(1)
-            if section and name in vol_info_par:
-                items.append((f"{section}_{name}", vol_info_par[name](hits.group(2))))
-            elif name in parameters:
-                section = ""
-                items.append((name, parameters[name](hits.group(2))))
-            else:
-                raise NotImplementedError(f"Unrecognized type string in lta-file "
-                                          f"{file}:{i+1}: '{name}'")
-        elif hits := vol_info_pattern.match(line):
-            section = hits.group(1)
-            # not a parameter line
-        elif shape_pattern.search(line):
-            shape_lines.append(np.fromstring(line, dtype=int, count=-1, sep=" "))
-        elif matrix_pattern.search(line):
-            matrix_lines.append(np.fromstring(line, dtype=float, count=-1, sep=" "))
-
-    shape_lines = list(map(tuple, shape_lines))
-    lta = dict(items)
-    if lta["nxforms"] != len(shape_lines):
-        raise OSError("Inconsistent lta format: nxforms inconsistent with shapes.")
-    if len(shape_lines) > 1 and np.any(np.not_equal([shape_lines[0]], shape_lines[1:])):
-        raise OSError(f"Inconsistent lta format: shapes inconsistent {shape_lines}")
-    lta_matrix = np.asarray(matrix_lines).reshape((-1,) + shape_lines[0].shape)
-    lta["lta"] = lta_matrix
-    return lta
-
-
 def load_talairach_coordinates(tala_path, img_shape, vox2ras):
-    tala_lta = read_lta(tala_path)
+    """Load talairach coordinates from file."""
+    from neuroreg import LTA
+
+    tala_lta = LTA.read(tala_path)
     # create image grid p
     x, y, z = np.meshgrid(
         np.arange(img_shape[0]),
@@ -437,8 +343,8 @@ def load_talairach_coordinates(tala_path, img_shape, vox2ras):
     p = np.array([x.flatten(), y.flatten(), z.flatten()]).transpose()
     p1 = np.concatenate((p, np.ones((p.shape[0], 1))), axis=1)
 
-    assert tala_lta["type"] == 1, "talairach not in ras2ras"  # ras2ras
-    m = np.matmul(tala_lta["lta"][0, 0], vox2ras)
+    assert tala_lta.type == 1, "talairach not in ras2ras"  # ras2ras
+    m = np.matmul(tala_lta.r2r(), vox2ras)
 
     tala_coordinates = np.matmul(m, p1.transpose()).transpose()
     tala_coordinates = tala_coordinates[:, :-1]
@@ -446,7 +352,9 @@ def load_talairach_coordinates(tala_path, img_shape, vox2ras):
     return tala_coordinates
 
 
-def normalize_array(arr):
+def normalize_array(arr: np.ndarray[ShapeType, np.dtype[np.number]]) \
+        -> np.ndarray[ShapeType, np.dtype[np.floating]]:
+    """Normalize the data array to [0, 1]."""
     min = arr.min()
     max = arr.max()
 
@@ -455,198 +363,3 @@ def normalize_array(arr):
         return arr
     arr = arr / (max - min)
     return arr
-
-
-def _crop_transform_make_indices(image_shape, offsets, target_shape):
-    """
-    Create the indexing tuple and return padding tuples for the last N dimensions.
-
-    Parameters
-    ----------
-    image_shape : np.ndarray
-        The shape of the image from which a region is to be cropped.
-    offsets : Sequence[int]
-        Exact location within the image from which the cropping should start.
-    target_shape : Sequence[int], optional
-        The desired shape of the cropped region.
-
-    Returns
-    -------
-    paddings: list of 2-tuples of paddings or None
-        A list of per-axis tuples of the padding to apply to the slice to get the target_shape.
-    indices : tuple of indices
-        A tuple of per-axis indices to index in the data to get the target_shape.
-    """
-    if len(offsets) != len(target_shape):
-        raise ValueError(
-            f"offsets {offsets} and target shape {target_shape} must be same length."
-        )
-    if len(offsets) > len(image_shape):
-        raise ValueError("offsets too long for image")
-    batch_dims = len(image_shape) - len(offsets)
-    indices = [slice(None)] * batch_dims
-    paddings = []
-    any_pad = False
-    for offset, t_shape, i_shape in zip(
-        offsets, target_shape, image_shape[batch_dims:], strict=False
-    ):
-        crop_end = min(offset + t_shape, i_shape)
-        indices.append(slice(max(0, offset), crop_end))
-        pads = (max(0, -offset), max(0, offset + t_shape - crop_end))
-        paddings.append(pads)
-        any_pad = any_pad or any(p != 0 for p in pads)
-
-    return paddings if any_pad else None, tuple(indices)
-
-
-def _crop_transform_pad_fn(image, pad_tuples, pad):
-    """
-    Generate a parameterized pad function.
-
-    Parameters
-    ----------
-    image : np.ndarray, torch.Tensor
-        Input image.
-    pad_tuples : List[Tuple[int, int]]
-        List of padding tuples for each axis.
-
-    Returns
-    -------
-    partial
-        A partial function to pad the image.
-    """
-    if all(p1 == 0 and p2 == 0 for p1, p2 in pad_tuples):
-        return None
-
-    kwargs = {"mode": "constant"}
-    if isinstance(pad, str):
-        kwargs["mode"] = pad
-    elif isinstance(image, np.ndarray):
-        kwargs["constant_values"] = pad
-    else:  # Tensor
-        kwargs["value"] = pad
-
-    from functools import partial
-
-    if isinstance(image, np.ndarray):
-        return partial(
-            np.pad,
-            pad_width=[(0, 0)] * (image.ndim - len(pad_tuples)) + pad_tuples,
-            **kwargs,
-        )
-    else:  # Tensor
-        from itertools import chain
-
-        return partial(
-            torch.nn.functional.pad,
-            pad=list(chain.from_iterable(reversed(pad_tuples))),
-            **kwargs,
-        )
-
-
-def crop_transform(
-        image: AT,
-        offsets: Sequence[int] | None = None,
-        target_shape: Sequence[int] | None = None,
-        out: AT | None = None,
-        pad: int = 0,
-) -> AT:
-    """
-    Perform a crop transform of the last N dimensions on the image data.
-    Cropping does not interpolate the image, but "just removes" border pixels/voxels.
-    Negative offsets lead to padding.
-
-    Parameters
-    ----------
-    image : np.ndarray, torch.Tensor
-        Image of size [..., D_1, D_2, ..., D_N], where D_1, D_2, ..., D_N are the N
-        image dimensions.
-    offsets : Sequence[int], optional
-        Offset of the cropped region for the last N dimensions (default: center crop
-        with less crop/pad towards index 0).
-    target_shape : Sequence[int], optional
-        If defined, target_shape specifies the target shape of the "cropped region",
-        else the crop will be centered cropping offset[dim] voxels on each side (then
-        the shape is derived by subtracting 2x the dimension-specific offset).
-        target_shape should have the same number of elements as offsets.
-        May be implicitly defined by out.
-    out : np.ndarray, torch.Tensor, optional
-        Array to store the cropped image in (optional), can be a view on image for
-        memory-efficiency.
-    pad :  int, str, default=0/zero-pad
-        Padding strategy to use when padding is required, if int, pad with that value.
-
-    Returns
-    -------
-    out : np.ndarray, torch.Tensor
-        The image (stack) cropped in the last N dimensions by offsets to the shape
-        target_shape, or if target_shape is not given image.shape[i+2] - 2*offset[i].
-
-    Raises
-    ------
-    ValueError
-        If neither offsets nor target_shape nor out are defined.
-    ValueError  
-        If out is not target_shape.
-    TypeError
-        If the type of image is not an np.ndarray or a torch.Tensor.
-    RuntimeError 
-        If the dimensionality of image, out, offset or target_shape is invalid or
-        inconsistent.
-
-    See Also
-    --------
-    numpy.pad
-        For additional information refer to numpy.pad function.
-
-    Notes
-    -----
-    Either offsets, target_shape or out must be defined.
-    """
-    if target_shape is None and out is not None:
-        target_shape = out.shape
-
-    # check the type of offsets
-    if offsets is None:
-        if target_shape is None:
-            raise ValueError("Either target_shape or offsets must be defined!")
-        _target_shape = image.shape[: -len(target_shape)] + tuple(target_shape)
-        offsets = tuple(int((i - t) / 2) for t, i in zip(_target_shape, image.shape, strict=False))
-        len_off = len(offsets)
-    else:
-        len_off = len(offsets)
-        if target_shape is None:
-            _target_shape = image.shape[:-len_off] + tuple(
-                i - 2 * o for i, o in zip(image.shape[-len_off:], offsets, strict=False)
-            )
-        elif len_off != len(target_shape):
-            raise ValueError(
-                "Incompatible offset and target_shape dimensionality (at least once)."
-            )
-        else:
-            _target_shape = tuple(
-                i if t == -1 else t
-                for i, t in zip(image.shape[-len_off:], target_shape, strict=False)
-            )
-            _target_shape = image.shape[:-len_off] + _target_shape
-
-    if len_off > image.ndim:
-        raise RuntimeError("shape of offsets is larger than dim of image allows.")
-
-    pad_tuples, indices = _crop_transform_make_indices(
-        image.shape, offsets, _target_shape
-    )
-    if out is None:
-        if pad_tuples is None:
-            return image[indices]
-        else:
-            pad_fn = _crop_transform_pad_fn(image, pad_tuples, pad)
-            return pad_fn(image[indices])
-    else:
-        if pad_tuples is None:
-            out[:] = image[indices]
-        else:
-            pad_fn = _crop_transform_pad_fn(image, pad_tuples, pad)
-            out[:] = pad_fn(image[indices])
-
-    return out

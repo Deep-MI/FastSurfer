@@ -1,6 +1,8 @@
+# both hosts serve the published models, record 582b5b7ab6304dc8b3cf15310a365267 on b2share and
+# record 10390742 on zenodo, with matching checksums
 url:
+- "https://b2share.fz-juelich.de/api/files/864b2ed5-e91e-4c2c-aa7a-c16b7c751b35"
 - "https://zenodo.org/records/10390742/files"
-- "https://b2share.fz-juelich.de/api/files/c6cf7bc6-2ae5-4d0e-814d-2a3cf0e1a8c5"
 
 checkpoint:
   axial:  "checkpoints/CerebNet_axial_v1.0.0.pkl"

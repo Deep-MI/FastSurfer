@@ -1,6 +1,8 @@
 # This workflow file is a reusable workflow that will create a docker container from the currently
-# selected branch and crates a docker image in an artifact (fastsurfer-<github-sha>-docker)
+# selected branch and crates a docker image in an artifact (fastsurfer-<short-sha>-<target>)
 # The build artifact includes the image in docker-image.tar and the name of the image in image_name.env
+
+# This action requires an existing uv installation!
 
 name: 'Build a FastSurfer docker image'
 description: 'Build a FastSurfer image'
@@ -31,10 +33,10 @@ runs:
   using: "composite"
   steps:
     - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v3
+      uses: docker/setup-buildx-action@v4
     - name: Recover freesurfer build image
       if: ${{ contains( inputs.freesurfer-build-image, 'fastsurfer-build:freesurfer') }}
-      uses: ./.github/actions/load-docker
+      uses: Deep-MI/FastSurfer/.github/actions/load-docker@dev
       with:
         docker-image: ${{ inputs.freesurfer-build-image }}
         target: build_freesurfer
@@ -43,27 +45,54 @@ runs:
       shell: bash
       env:
         FASTSURFER_HOME: ${{ inputs.fastsurfer-home }}
+        # build.py imports FastSurferCNN, which the project install would otherwise provide. Set
+        # here so the uv calls below can skip that install, see --no-project.
+        PYTHONPATH: ${{ inputs.fastsurfer-home }}
       run: |
         echo "::group::Build FastSurfer Image"
+        bashopts=
+        if [[ "$RUNNER_DEBUG" == "1" ]] ; then bashopts=-x ; set $bashopts ; fi
         image_name="${{ inputs.tag }}"
         if [[ "$image_name" == "auto" ]] ; then  
-          v="$(bash "$FASTSURFER_HOME/run_fastsurfer.sh" --version --py python)"
+          v="$(bash $bashopts "$FASTSURFER_HOME/run_fastsurfer.sh" --version --py python)"
           image_name="fastsurfer:cpu-${v/+/_}"
         fi
-        cmd=(python "$FASTSURFER_HOME/Docker/build.py" --device cpu --tag "$image_name" --target "${{ inputs.target }}")
+        if [[ -z "$(uv run --no-project python -c 'import sys; print(sys.executable)' 2>/dev/null)" ]] ; then echo "ERROR: Cannot find python!" ; fi
+        # --no-project, because build.py needs no third-party package: its imports are the standard
+        # library plus FastSurferCNN.version and .utils.run_tools, which are themselves standard
+        # library only, and the one heavy import it has falls back to argparse when absent. Syncing
+        # the project instead downloads the CUDA wheels onto a cpu-only runner every run.
+        # This needs the interpreter uv picks to be 3.11 or newer, because build.py reads
+        # pyproject.toml with tomllib and tomli is not a dependency. setup-uv sets UV_PYTHON from
+        # the python-version of the calling workflow, which pipelinetest.yaml pins to
+        # tool.python.version.
+        cmd=(uv run --no-project python "$FASTSURFER_HOME/tools/Docker/build.py" --device cpu --tag "$image_name" --target "${{ inputs.target }}")
+        # --save_image, so buildkit writes the artifact tarball itself. Importing a multi-GB image
+        # into this job's docker only to docker save it straight back out is a second and a third
+        # copy of it, and no step here runs the image. A step added below that needs it has to
+        # docker load /tmp/docker-image.tar first.
+        cmd+=(--save_image /tmp/docker-image.tar)
         if [[ "${{ inputs.freesurfer-build-image }}" != "rebuild" ]] ; then 
           cmd+=(--freesurfer_build_image "${{ inputs.freesurfer-build-image }}")
         fi
+        if [[ "$RUNNER_DEBUG" == "1" ]] ; then cmd+=(--debug) ; fi
         "${cmd[@]}"
         echo "::endgroup::"
         echo "::group::Save image as artifact"
+        # the name travels beside the tarball, load-docker reads it from here
         echo "IMAGE_NAME=$image_name" | tee /tmp/image_name.env >> $GITHUB_OUTPUT
-        # Export image
-        docker save "$image_name" -o /tmp/docker-image.tar
+    - name: Resolve the artifact name
+      shell: bash
+      env:
+        TARGET: ${{ inputs.target }}
+      run: |
+        # Short sha: the full 40 characters make the downloaded name unreadable and carry no more
+        # information. Must match load-docker, which downloads this artifact by name.
+        echo "FS_DOCKER_ARTIFACT=fastsurfer-${GITHUB_SHA::8}-$TARGET" >> "$GITHUB_ENV"
     - name: Save docker image
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
-        name: fastsurfer-${{ github.sha }}-${{ inputs.target }}
+        name: ${{ env.FS_DOCKER_ARTIFACT }}
         path: |
           /tmp/docker-image.tar
           /tmp/image_name.env

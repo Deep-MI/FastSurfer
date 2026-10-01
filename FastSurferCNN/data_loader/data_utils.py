@@ -1,4 +1,4 @@
-# Copyright 2023 Image Analysis Lab, German Center for Neurodegenerative Diseases (DZNE), Bonn
+# Copyright 2023 DeepMI Lab, German Center for Neurodegenerative Diseases (DZNE), Bonn
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,6 +14,7 @@
 
 
 # IMPORTS
+from collections import defaultdict
 from collections.abc import Mapping
 from pathlib import Path
 from typing import cast
@@ -24,6 +25,8 @@ import pandas as pd
 import scipy.ndimage.morphology as morphology
 import torch
 from nibabel.filebasedimages import FileBasedHeader as _Header
+from nibabel.freesurfer.mghformat import MGHError
+from nibabel.spatialimages import HeaderDataError
 from numpy import typing as npt
 from scipy.ndimage import (
     binary_closing,
@@ -35,13 +38,19 @@ from scipy.ndimage import (
 from skimage.measure import label, regionprops
 
 from FastSurferCNN.data_loader.conform import check_affine_in_nifti, conform, is_conform
-from FastSurferCNN.utils import logging
-from FastSurferCNN.utils.arg_types import VoxSizeOption
+from FastSurferCNN.utils import AffineMatrix4x4, Shape1d, logging, nibabelImage
 
 ##
 # Global Vars
 ##
 SUPPORTED_OUTPUT_FILE_FORMATS = ("mgz", "nii", "nii.gz")
+# Every type each output format can store. Asking for one outside its own list is refused rather
+# than answered with a substitute, so these have to be complete and not a preference.
+MGH_DTYPES = (np.uint8, np.uint16, np.int16, np.int32, np.float32)
+NIFTI_DTYPES = (
+    np.uint8, np.int8, np.uint16, np.int16, np.uint32, np.int32, np.uint64, np.int64,
+    np.float32, np.float64,
+)
 LOGGER = logging.getLogger(__name__)
 
 ##
@@ -53,9 +62,9 @@ LOGGER = logging.getLogger(__name__)
 # voxels
 def load_and_conform_image(
         img_filename: Path | str,
-        interpol: int = 1,
+        order: int = 1,
         logger: logging.Logger = LOGGER,
-        conform_min: bool = False
+        **conform_kwargs,
 ) -> tuple[_Header, np.ndarray, np.ndarray]:
     """
     Load MRI image and conform it to UCHAR, RAS orientation and 1mm or minimum isotropic
@@ -67,13 +76,12 @@ def load_and_conform_image(
     ----------
     img_filename : Path, str
         Path and name of volume to read.
-    interpol : int, default=1
-        Interpolation order for image conformation
-        (0=nearest, 1=linear(default), 2=quadratic, 3=cubic).
+    order : int, default=1
+        Interpolation order for image conformation (0=nearest, 1=linear(default), 2=quadratic, 3=cubic).
     logger : logging.Logger, default=<local logger>
         Logger to write output to (default = STDOUT).
-    conform_min : bool, default=False
-        Conform image to minimal voxel size (for high-res).
+    **conform_kwargs
+        Additional parameters to conform and is_conform.
 
     Returns
     -------
@@ -87,47 +95,35 @@ def load_and_conform_image(
     Raises
     ------
     RuntimeError
-        Multiple input frames not supported.
-    RuntimeError
-        Inconsistency in nifti-header.
+        If input has multiple input frames or inconsistent nifti headers.
     """
     img_file = Path(img_filename)
-    orig = nib.load(img_file)
-    # is_conform and conform accept numeric values and the string 'min' instead of the
-    # bool value
-    _conform_vox_size = "min" if conform_min else 1.0
-    if not is_conform(orig, conform_vox_size=_conform_vox_size):
+    orig = cast(nibabelImage, nib.load(img_file))
+    # is_conform and conform accept numeric values and the string 'min' instead of the bool value
+    if not is_conform(orig, **conform_kwargs):
 
-        logger.info(
-            "Conforming image to UCHAR, RAS orientation, and minimum isotropic voxels"
-        )
+        logger.info("Conforming image to UCHAR, RAS orientation, and minimum isotropic voxels")
 
         if len(orig.shape) > 3 and orig.shape[3] != 1:
-            raise RuntimeError(
-                f"ERROR: Multiple input frames ({orig.shape[3]}) not supported!"
-            )
+            raise RuntimeError(f"Multiple input frames ({orig.shape[3]}) not supported!")
 
         # Check affine if image is nifti image
         if img_file.suffix == ".nii" or img_file.suffixes[-2:] == [".nii", ".gz"]:
-            if not check_affine_in_nifti(orig, logger=logger):
-                raise RuntimeError("ERROR: inconsistency in nifti-header. Exiting now.")
+            if not check_affine_in_nifti(cast(nib.nifti1.Nifti1Image | nib.nifti2.Nifti1Image, orig), logger=logger):
+                raise RuntimeError("Inconsistency in nifti-header!")
 
-        # conform
-        orig = conform(orig, interpol, conform_vox_size=_conform_vox_size)
+        # conform ; orig will remain the same class
+        orig = conform(orig, order=order, **conform_kwargs)
 
-    # Collect header and affine information
-    header_info = orig.header
-    affine_info = orig.affine
-    orig_data = np.asanyarray(orig.dataobj)
-
-    return header_info, affine_info, orig_data
+    # Return header and affine information
+    return orig.header, orig.affine, np.asanyarray(orig.dataobj)
 
 
 def load_image(
         file: str | Path,
         name: str = "image",
         **kwargs,
-) -> tuple[nib.analyze.SpatialImage, np.ndarray]:
+) -> tuple[nibabelImage, np.ndarray]:
     """
     Load file 'file' with nibabel, including all data.
 
@@ -142,8 +138,10 @@ def load_image(
 
     Returns
     -------
-    Tuple[nib.analyze.SpatialImage, np.ndarray]
-        The nibabel image object and a numpy array of the data.
+    the_image : nibabelImage
+        The SpatialImage object from nibabel of the conformed image (including updated affine).
+    the_data : np.ndarray
+        The data of the conformed image.
 
     Raises
     ------
@@ -160,20 +158,17 @@ def load_image(
         }
     """
     try:
-        img = cast(nib.analyze.SpatialImage, nib.load(file, **kwargs))
+        img = cast(nibabelImage, nib.load(file, **kwargs))
     except (OSError, FileNotFoundError) as e:
-        raise OSError(
-            f"Failed loading the {name} '{file}' with error: {e.args[0]}"
-        ) from e
-    data = np.asarray(img.dataobj)
-    return img, data
+        raise OSError(f"Failed loading the {name} '{file}' with error: {e.args[0]}") from e
+    return img, np.asarray(img.dataobj)
 
 
 def load_maybe_conform(
         file: Path | str,
         alt_file: Path | str,
-        vox_size: VoxSizeOption = "min"
-) -> tuple[Path, nib.analyze.SpatialImage, np.ndarray]:
+        **conform_kwargs,
+) -> tuple[Path, nibabelImage, np.ndarray]:
     """
     Load an image by file, check whether it is conformed to vox_size and conform to
     vox_size if it is not.
@@ -184,126 +179,331 @@ def load_maybe_conform(
         Path to the file to load.
     alt_file : Path, str
         Alternative file to interpolate from.
-    vox_size : VoxSizeOption, default="min"
-        Voxel Size.
+    **conform_kwargs
+        Additional parameters to conform and is_conform.
 
     Returns
     -------
     Path
         The path to the file.
-    nib.analyze.SpatialImage
+    nibabelImage
         The file container object including the corrected header.
     np.ndarray
         The data loaded from the file.
+
+    See Also
+    --------
+    FastSurferCNN.data_loader.conform.conform
+        For additional parameters supported via `conform_kwargs`.
     """
     file = Path(file)
     alt_file = Path(alt_file)
+    conform_kwargs_is_conform = dict(conform_kwargs.items())
+    del conform_kwargs_is_conform["order"]
 
     _is_conform, img = False, None
     if file.is_file():
         # see if the file is 1mm
-        img = cast(nib.analyze.SpatialImage, nib.load(file))
+        img = cast(nibabelImage, nib.load(file))
         # is_conform only needs the header, not the data
-        _is_conform = is_conform(img, conform_vox_size=vox_size, verbose=False)
+        _is_conform = is_conform(img, **conform_kwargs_is_conform, verbose=False, vox_eps=0.1)
 
-    if _is_conform:
+    if _is_conform and img is not None:
         # calling np.asarray here, forces the load of img.dataobj into memory
         # (which is parallel with other operations, if done here)
         data = np.asarray(img.dataobj)
         dst_file = file
     else:
         # the image is not conformed to 1mm, do this now.
-
-        fileext = [
-            ext for ext in SUPPORTED_OUTPUT_FILE_FORMATS
-            if file.name.endswith("." + ext)
-        ]
+        fileext = [ext for ext in SUPPORTED_OUTPUT_FILE_FORMATS if file.name.endswith("." + ext)]
         if len(fileext) != 1:
             raise RuntimeError(
-                f"Invalid file extension of conf_name: {file}, must be one of "
-                f"{SUPPORTED_OUTPUT_FILE_FORMATS}."
+                f"Invalid file extension of conf_name: {file}, must be one of {SUPPORTED_OUTPUT_FILE_FORMATS}."
             )
         file_no_fileext = str(file)[:-len(fileext[0]) - 1]
-        if vox_size == "min":
-            vox_suffix = ".min"
-        else:
-            vox_suffix = f".{str(vox_size).replace('.', '')}mm"
+        vox_size = conform_kwargs.get("vox_size", 1.0)
+        vox_suffix = ".min" if vox_size == "min" else f".{str(vox_size).replace('.', '')}mm"
         if not file_no_fileext.endswith(vox_suffix):
             file_no_fileext += vox_suffix
-        # if the orig file is neither absolute nor in the subject path, use the
-        # conformed file
+        # if the orig file is neither absolute nor in the subject path, use the conformed file
         src_file = alt_file if alt_file.is_file() else file
         if not alt_file.is_file():
             LOGGER.warning(
-                f"No valid alternative file (e.g. orig, here: {alt_file}) was given to "
-                f"interpolate from, so we might lose quality due to multiple chained "
-                f"interpolations."
+                f"No valid alternative file (e.g. orig, here: {alt_file}) was given to interpolate from, so we might "
+                f"lose quality due to multiple chained interpolations. "
             )
 
         dst_file = Path(file_no_fileext + "." + fileext[0])
         # conform to 1mm
         header, affine, data = load_and_conform_image(
-            src_file, conform_min=False, logger=logging.getLogger(__name__ + ".conform")
+            src_file, logger=logging.getLogger(__name__ + ".conform"), **conform_kwargs,
         )
 
-        # after conforming, save the conformed file
-        save_image(header, affine, data, dst_file)
-        img = nib.MGHImage(data, affine, header)
+        # save the conformed file and hand back the image that was written, so the container
+        # matches the file and the type is decided once
+        img = save_image(header, affine, data, dst_file)
     return dst_file, img, data
+
+
+def fits_dtype(array: np.ndarray, dtype: npt.DTypeLike) -> bool:
+    """
+    Whether every value of `array` survives being stored as `dtype`.
+
+    An integer loses its identity as surely by being rounded into a float as by being clipped, so a
+    float target holds integers only as far as it counts exactly: 2**24 for float32, 2**53 for
+    float64. Narrowing a value that was already floating-point counts as fitting, since a
+    measurement losing digits is not a label becoming a different label.
+
+    Parameters
+    ----------
+    array : np.ndarray
+        The data to store.
+    dtype : npt.DTypeLike
+        The type to store it as.
+
+    Returns
+    -------
+    bool
+        False if storing `array` as `dtype` would round or clip a value.
+    """
+    dtype = np.dtype(dtype)
+    # a bool counts as an integer here: it is 0 or 1, which every numeric type stores exactly
+    array_is_integer = np.issubdtype(array.dtype, np.integer) or array.dtype == np.bool_
+    if np.issubdtype(dtype, np.floating):
+        if not array_is_integer:
+            return True
+        # the mantissa plus its implied leading bit, so every integer up to here is exact
+        exact = 2 ** (np.finfo(dtype).nmant + 1)
+        return array.size == 0 or bool(-exact <= int(array.min()) and int(array.max()) <= exact)
+    if not np.issubdtype(dtype, np.integer):
+        return True
+    if not array_is_integer:
+        return False
+    if np.can_cast(array.dtype, dtype):
+        return True
+    limits = np.iinfo(dtype)
+    return array.size == 0 or bool(limits.min <= int(array.min()) and int(array.max()) <= limits.max)
+
+
+def choose_dtype(
+        array: np.ndarray,
+        header: _Header,
+        dtype: npt.DTypeLike | None = None,
+) -> np.dtype:
+    """
+    The type to store `array` as: `dtype` if the caller gave one, else the header's.
+
+    That type is used or nothing is. It may not lose data: narrowing that would round or clip is the
+    caller's to do, deliberately and outside, because only the caller knows whether to cast, to
+    rescale or to refuse.
+
+    Whether the type can be stored at all is the output format's answer, not this function's, so it
+    is asked when the type is applied. The byte order is dropped here for the same reason: an MGH
+    file is always big-endian, whatever type it stores.
+
+    Parameters
+    ----------
+    array : np.ndarray
+        The data to store.
+    header : _Header
+        The header, whose type is used when `dtype` is None.
+    dtype : npt.DTypeLike, optional
+        The type to store, overriding the header's.
+
+    Returns
+    -------
+    np.dtype
+        The type to write, in native byte order.
+
+    Raises
+    ------
+    ValueError
+        If storing `array` as that type would round or clip a value.
+    """
+    wanted = np.dtype(header.get_data_dtype() if dtype is None else dtype).newbyteorder("=")
+    if not fits_dtype(array, wanted):
+        source = "requested" if dtype is not None else "carried by the header"
+        both_integer = np.issubdtype(array.dtype, np.integer) and np.issubdtype(wanted, np.integer)
+        raise ValueError(
+            f"Refusing to store {array.dtype} data as the {wanted} {source}, because values would "
+            f"be {'clipped' if both_integer else 'rounded'}. Convert the data before saving if that "
+            f"is what you want."
+        )
+    return wanted
+
+
+def _set_dtype(img: nibabelImage, wanted: np.dtype, offered: tuple[npt.DTypeLike, ...]) -> None:
+    """
+    Store `wanted` in the image header, or say what the format can hold instead.
+
+    The format is the authority on what it accepts, so it is asked rather than checked against a
+    list; `offered` only names the alternatives in the message.
+    """
+    try:
+        img.set_data_dtype(wanted)
+    except (MGHError, HeaderDataError) as error:
+        raise ValueError(
+            f"The output format cannot store {wanted}, only "
+            f"{', '.join(np.dtype(c).name for c in offered)}. Name a type it can store, write the "
+            f"image in a format that can, or call storable_dtype to pick the closest one."
+        ) from error
+
+
+def storable_dtype(
+        array: np.ndarray,
+        candidates: tuple[npt.DTypeLike, ...] = MGH_DTYPES,
+) -> np.dtype:
+    """
+    The array's own type if the output format can store it, else the closest one that holds it.
+
+    For an output whose type is not ours to choose: `mri/rawavg.mgz`, the MGH copy of whatever the
+    scanner or the conversion tool produced. Every other output has a type that belongs to the
+    output rather than to the input, so its caller names it and `choose_dtype` refuses anything that
+    does not fit.
+
+    Closest means the same kind first, so a float is never answered with an integer and signed data
+    stays signed, and within the kind the narrowest that holds every value. An MGH file has no
+    float64, so a float64 input is written as float32.
+
+    Parameters
+    ----------
+    array : np.ndarray
+        The data to store.
+    candidates : tuple of npt.DTypeLike, default=MGH_DTYPES
+        Every type the output format can store.
+
+    Returns
+    -------
+    np.dtype
+        The type to write, in native byte order.
+
+    Raises
+    ------
+    ValueError
+        If nothing the format can store holds `array`.
+    """
+    own = np.dtype(array.dtype).newbyteorder("=")
+    offered = tuple(np.dtype(c) for c in candidates)
+    if own in offered:
+        return own
+    by_width = sorted(offered, key=lambda c: (c.itemsize, c.kind))
+    same_kind = [c for c in by_width if c.kind == own.kind]
+    for group in (same_kind, by_width):
+        for candidate in group:
+            if fits_dtype(array, candidate):
+                return candidate
+    raise ValueError(
+        f"The output format cannot store {own}, and none of the types it does store "
+        f"({', '.join(c.name for c in offered)}) holds this data. Write it in a format that can."
+    )
+
+
+def as_mgh_image(
+        data: np.ndarray,
+        affine: AffineMatrix4x4,
+        header: _Header,
+        dtype: npt.DTypeLike | None = None,
+) -> nib.MGHImage:
+    """
+    Build an MGHImage from data, affine and header, and set the two fields the conversion drops.
+
+    `MGHHeader.from_header` carries neither the field of view nor the data type over from a non-MGH
+    header, so both are set here and the file does not depend on the container its header came from.
+    The fov is the largest of the three extents, as FreeSurfer keeps it, taken from `data` so that
+    it is right even where the header is inherited from a volume of a different shape.
+
+    Parameters
+    ----------
+    data : np.ndarray
+        An array containing image data.
+    affine : AffineMatrix4x4
+        Image affine information.
+    header : _Header
+        Image header information; a non-MGH header is converted. Required, because every image we
+        write is derived from one we read, and the header is the only carrier of the acquisition
+        parameters and of the type to store.
+    dtype : npt.DTypeLike, optional
+        The type to store, overriding the one the header carries. Neither may lose data nor be one
+        MGH cannot store, see `choose_dtype`.
+
+    Returns
+    -------
+    nib.MGHImage
+        The image, with `fov` and the data type set.
+    """
+    array = np.asanyarray(data)
+    # before building anything, so a request that loses data fails where it was made
+    wanted = choose_dtype(array, header, dtype)
+    img = nib.MGHImage(array, affine, header)
+    zooms = img.header.get_zooms()
+    img.header["fov"] = max(d * z for d, z in zip(img.shape[:3], zooms[:3], strict=True))
+    _set_dtype(img, wanted, MGH_DTYPES)
+    return img
 
 
 # Save image routine
 def save_image(
         header_info: _Header,
-        affine_info: npt.NDArray[float],
+        affine_info: AffineMatrix4x4,
         img_array: np.ndarray,
         save_as: str | Path,
         dtype: npt.DTypeLike | None = None
-) -> None:
+) -> nibabelImage:
     """
     Save an image (nibabel MGHImage), according to the desired output file format.
 
-    Supported formats are defined in supported_output_file_formats. Saves predictions to
-    save_as.
+    Supported formats are defined in supported_output_file_formats. Saves predictions to save_as.
 
     Parameters
     ----------
     header_info : _Header
         Image header information.
-    affine_info : npt.NDArray[float]
+    affine_info : AffineMatrix4x4
         Image affine information.
     img_array : np.ndarray
         An array containing image data.
     save_as : Path, str
         Name under which to save prediction; this determines output file format.
     dtype : npt.DTypeLike, optional
-        Image array type; if provided, the image object is explicitly set to match this
-        type (Default value = None).
+        The type to store, overriding the one the header carries. Neither may lose data nor be one
+        the format cannot store, see `choose_dtype`.
+
+    Returns
+    -------
+    nibabelImage
+        The image as it was written, so a caller that also needs it in memory does not have to build
+        it a second time, and gets the container the file actually uses.
+
+    Notes
+    -----
+    The type is decided the same way for every format. The file name only decides which types are
+    available at all: MGH has no float64 and no int64, NIfTI has both.
     """
     save_as = Path(save_as)
-    assert (
-        save_as.suffix[1:] in SUPPORTED_OUTPUT_FILE_FORMATS or
-        save_as.suffixes[-2:] == [".nii", ".gz"]
-    ), (
-        f"Output filename does not contain a supported file format "
-        f"{SUPPORTED_OUTPUT_FILE_FORMATS}!"
-    )
-
-    mgh_img = None
+    array = np.asanyarray(img_array)
     if save_as.suffix == ".mgz":
-        mgh_img = nib.MGHImage(img_array, affine_info, header_info)
+        img = as_mgh_image(array, affine_info, header_info, dtype)
     elif save_as.suffix == ".nii" or save_as.suffixes[-2:] == [".nii", ".gz"]:
-        mgh_img = nib.nifti1.Nifti1Pair(img_array, affine_info, header_info)
-
-    if dtype is not None:
-        mgh_img.set_data_dtype(dtype)
+        wanted = choose_dtype(array, header_info, dtype)
+        img = nib.nifti1.Nifti1Pair(array, affine_info, header_info)
+        _set_dtype(img, wanted, NIFTI_DTYPES)
+        if np.issubdtype(wanted, np.integer):
+            # left free, nibabel is entitled to add a scale factor of its own, and a label read back
+            # through one is no longer the integer it was written as
+            img.header.set_slope_inter(1, 0)
+    else:
+        raise ValueError(
+            f"Invalid file extension of {save_as}, must be one of "
+            f"{SUPPORTED_OUTPUT_FILE_FORMATS}!"
+        )
 
     if save_as.suffix in (".mgz", ".nii"):
-        nib.save(mgh_img, save_as)
+        nib.save(img, save_as)
     elif save_as.suffixes[-2:] == [".nii", ".gz"]:
         # For correct outputs, nii.gz files should be saved using the nifti1
         # sub-module's save():
-        nib.nifti1.save(mgh_img, str(save_as))
+        nib.nifti1.save(img, str(save_as))
+    return img
 
 
 # Transformation for mapping
@@ -577,9 +777,7 @@ def deep_sulci_and_wm_strand_mask(
 
     # Get difference between eroded and original image
     diff_image = np.logical_xor(empty_im, eroded)
-    print(
-        "Remaining voxels sulci/wm strand: ", np.unique(diff_image, return_counts=True)
-    )
+    print("Remaining voxels sulci/wm strand: ", np.unique(diff_image, return_counts=True))
     return diff_image
 
 
@@ -610,24 +808,21 @@ def read_classes_from_lut(lut_file: str | Path):
     if lut_file.suffix == ".tsv":
         return pd.read_csv(lut_file, sep="\t")
 
-    # Read in file
-    names = {
-        "ID": "int",
-        "LabelName": "str",
-        "Red": "int",
-        "Green": "int",
-        "Blue": "int",
-        "Alpha": "int",
-    }
-    kwargs = {}
+    # Read in file, default factory must be a dtype factory
+    names: defaultdict[str, str] = defaultdict(lambda: "str",
+        ID="int",
+        LabelName="str",
+        Red="int",
+        Green="int",
+        Blue="int",
+        Alpha="int",
+    )
     if lut_file.suffix == ".csv":
-        kwargs["sep"] = ","
+        _sep = ","
     elif lut_file.suffix == ".txt":
-        kwargs["sep"] = "\\s+"
+        _sep = "\\s+"
     else:
-        raise RuntimeError(
-            f"Unknown LUT file extension {lut_file}, must be csv, txt or tsv."
-        )
+        raise RuntimeError(f"Unknown LUT file extension {lut_file}, must be csv, txt or tsv.")
     return pd.read_csv(
         lut_file,
         index_col=False,
@@ -636,7 +831,7 @@ def read_classes_from_lut(lut_file: str | Path):
         header=None,
         names=list(names.keys()),
         dtype=names,
-        **kwargs,
+        sep=_sep,
     )
 
 
@@ -925,7 +1120,7 @@ def unify_lateralized_labels(
 def get_labels_from_lut(
         lut: str | pd.DataFrame,
         label_extract: tuple[str, str] = ("Left-", "ctx-rh")
-) -> tuple[np.ndarray, np.ndarray]:
+) -> tuple[np.ndarray[Shape1d, np.dtype[np.integer]], np.ndarray[Shape1d, np.dtype[np.integer]]]:
     """
     Extract labels from the lookup tables.
 
@@ -949,10 +1144,9 @@ def get_labels_from_lut(
     np.ndarray
         Sagittal label list.
     """
-    if isinstance(lut, str):
-        lut = read_classes_from_lut(lut)
-    mask = lut["LabelName"].str.startswith(label_extract)
-    return lut["ID"].values, lut["ID"][~mask].values
+    _lut = read_classes_from_lut(lut) if isinstance(lut, str) else lut
+    mask = _lut["LabelName"].str.startswith(label_extract)
+    return np.asarray(_lut["ID"].values), np.asarray(_lut["ID"][~mask].values)
 
 
 def map_aparc_aseg2label(

@@ -1,4 +1,4 @@
-# Copyright 2024 AI in Medical Imaging, German Center for Neurodegenerative Diseases(DZNE), Bonn
+# Copyright 2024 DeepMI Lab, German Center for Neurodegenerative Diseases(DZNE), Bonn
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -24,6 +24,7 @@ from tqdm import tqdm
 
 import FastSurferCNN.utils.logging as logging
 from FastSurferCNN.data_loader.augmentation import ToTensorTest
+from FastSurferCNN.host_info import log_torch_info
 from FastSurferCNN.utils.common import find_device
 from HypVINN.data_loader.data_utils import hypo_map_prediction_sagittal2full
 from HypVINN.data_loader.dataset import HypVINNDataset
@@ -52,7 +53,6 @@ class Inference:
     def __init__(
             self,
             cfg,
-            threads: int = -1,
             async_io: bool = False,
             device: str = "auto",
             viewagg_device: str = "auto",
@@ -68,8 +68,6 @@ class Inference:
         ----------
         cfg : yacs.config.CfgNode
             The configuration node containing the parameters for the model.
-        threads : int, optional
-            The number of threads to use. Default is -1, which uses all available threads.
         async_io : bool, optional
             Whether to use asynchronous IO. Default is False.
         device : str, optional
@@ -77,8 +75,9 @@ class Inference:
         viewagg_device : str, optional
             The device to use for view aggregation. Can be 'auto', 'cpu', or 'cuda'. Default is 'auto'.
         """
-        self._threads = threads
-        torch.set_num_threads(self._threads)
+        from FastSurferCNN.utils.parallel import get_num_threads
+
+        torch.set_num_threads(get_num_threads())
         self._async_io = async_io
 
         # Set random seed from configs.
@@ -98,15 +97,15 @@ class Inference:
         else:
             # check, if GPU is big enough to run view agg on it
             # (this currently takes the memory of the passed device)
-            self.viewagg_device = torch.device(
-                find_device(
-                    viewagg_device,
-                    flag_name="viewagg_device",
-                    min_memory=4 * (2 ** 30),
-                )
+            self.viewagg_device = find_device(
+                viewagg_device,
+                flag_name="viewagg_device",
+                min_memory=4 * (2 ** 30),
+                default_cuda_device=self.device,
             )
 
         logger.info(f"Running view aggregation on {self.viewagg_device}")
+        log_torch_info(logger)
 
         # Initial model setup
         self.model = self.setup_model(cfg)
@@ -329,17 +328,17 @@ class Inference:
 
             if self.cfg.DATA.PLANE == "axial":
                 pred = pred.permute((2, 3, 0, 1)).to(self.viewagg_device)
-                pred_prob[:, :, start_index:start_index + pred.shape[2], :] += torch.mul(pred, 0.4)
+                pred_prob[:, :, start_index:start_index + pred.shape[2], :] += torch.mul(pred, 0.4 * 8)
                 start_index += pred.shape[2]
 
             elif self.cfg.DATA.PLANE == "coronal":
                 pred = pred.permute(2, 0, 3, 1).to(self.viewagg_device)
-                pred_prob[:, start_index:start_index + pred.shape[1], :, :] += torch.mul(pred, 0.4)
+                pred_prob[:, start_index:start_index + pred.shape[1], :, :] += torch.mul(pred, 0.4 * 4)
                 start_index += pred.shape[1]
 
             else:
                 pred = hypo_map_prediction_sagittal2full(pred).permute(0, 2, 3, 1).to(self.viewagg_device)
-                pred_prob[start_index:start_index + pred.shape[0],:, :, :] += torch.mul(pred, 0.2)
+                pred_prob[start_index:start_index + pred.shape[0],:, :, :] += torch.mul(pred, 0.2 * 2)
                 start_index += pred.shape[0]
 
         logger.info(f"--->  {self.cfg.DATA.PLANE} Model Testing Done.")

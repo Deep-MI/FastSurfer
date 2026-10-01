@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 
-# Copyright 2019 Image Analysis Lab, German Center for Neurodegenerative Diseases (DZNE), Bonn
+# Copyright 2019 DeepMI Lab, German Center for Neurodegenerative Diseases (DZNE), Bonn
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -40,11 +40,6 @@ Dependencies:
 
     Nibabel to read and write FreeSurfer surface meshes
     http://nipy.org/nibabel/
-
-
-Original Author: Martin Reuter
-Date: Jul-24-2018
-
 """
 
 h_inaparc = "path to input aparc"
@@ -63,7 +58,7 @@ def options_parse():
         Namespace object holding options.
     """
     parser = optparse.OptionParser(
-        version="$Id: smooth_aparc,v 1.0 2018/06/24 11:34:08 mreuter Exp $",
+        version="%prog, part of FastSurfer, see 'run_fastsurfer.sh --version'",
         usage=HELPTEXT,
     )
     parser.add_option("--insurf", dest="insurf", help=h_insurf)
@@ -177,7 +172,7 @@ def mode_filter(
     # for num rings exponentiate adjM and add adjM from step before
     # we currently do this outside of mode_filter
     # new labels will be the same as old almost everywhere
-    labels_new = labels
+    labels_new = labels.copy()
     # find vertices to fill
     # if fillonlylabels empty, fill all
     if not fillonlylabel:
@@ -204,8 +199,6 @@ def mode_filter(
     # create sparse matrix with labels at neighbors
     nlabels = sparse.csr_matrix((labels[JJ], (II, JJ)))
     # print("nlabels: {}".format(nlabels))
-    from scipy.stats import mode
-
     if not isinstance(nlabels, sparse.csr_matrix):
         raise ValueError("Matrix must be CSR format.")
     # novote = [-1,0,fillonlylabel]
@@ -227,19 +220,16 @@ def mode_filter(
         rr = np.isin(nlabels.data, novote)
         nlabels.data[rr] = 0
         nlabels.eliminate_zeros()
-    # run over all rows and compute mode (maybe vectorize later)
+    # Run over all rows and compute mode.  The labels are non-negative at
+    # this point; bincount().argmax() matches scipy.stats.mode's smallest-value
+    # tie behavior without the heavy per-row SciPy dispatch.
     rempty = 0
     for row in rows:
         rvals = nlabels.data[nlabels.indptr[row] : nlabels.indptr[row + 1]]
         if rvals.size == 0:
             rempty += 1
             continue
-        # print(str(rvals))
-        mvals = mode(rvals, keepdims=True)[0]
-        # print(str(mvals))
-        if mvals.size != 0:
-            # print(str(row)+' '+str(ids[row])+' '+str(mvals[0]))
-            labels_new[ids[row]] = mvals[0]
+        labels_new[ids[row]] = np.bincount(rvals).argmax()
     if rempty > 0:
         # should not happen
         print("WARNING: row empty: " + str(rempty))

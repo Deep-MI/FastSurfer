@@ -1,4 +1,4 @@
-# Copyright 2019 Image Analysis Lab, German Center for Neurodegenerative Diseases (DZNE), Bonn
+# Copyright 2019 DeepMI Lab, German Center for Neurodegenerative Diseases (DZNE), Bonn
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -271,28 +271,14 @@ class FastSurferVINN(FastSurferCNNBase):
         self.height = params["height"]
         self.width = params["width"]
 
-        self.out_tensor_shape = tuple(
-            params.get("out_tensor_" + k, padded_size) for k in ["width", "height"]
-        )
+        self.out_tensor_shape = tuple(params.get("out_tensor_" + k, padded_size) for k in ("width", "height"))
 
-        self.interpolation_mode = (
-            params["interpolation_mode"]
-            if "interpolation_mode" in params
-            else "bilinear"
-        )
-        if self.interpolation_mode not in ["nearest", "bilinear", "bicubic", "area"]:
+        self.interpolation_mode = params["interpolation_mode"] if "interpolation_mode" in params else "bilinear"
+        if self.interpolation_mode not in ("nearest", "bilinear", "bicubic", "area"):
             raise ValueError("Invalid interpolation mode")
 
-        self.crop_position = (
-            params["crop_position"] if "crop_position" in params else "top_left"
-        )
-        if self.crop_position not in [
-            "center",
-            "top_left",
-            "top_right",
-            "bottom_left",
-            "bottom_right",
-        ]:
+        self.crop_position = params["crop_position"] if "crop_position" in params else "top_left"
+        if self.crop_position not in ("center", "top_left", "top_right", "bottom_left", "bottom_right"):
             raise ValueError("Invalid crop position")
 
         # Reset input channels to original number (overwritten in super call)
@@ -322,16 +308,12 @@ class FastSurferVINN(FastSurferCNNBase):
         # Code for Network Initialization
         for m in self.modules():
             if isinstance(m, nn.Conv2d) or isinstance(m, nn.ConvTranspose2d):
-                nn.init.kaiming_normal_(
-                    m.weight, mode="fan_out", nonlinearity="leaky_relu"
-                )
+                nn.init.kaiming_normal_(m.weight, mode="fan_out", nonlinearity="leaky_relu")
             elif isinstance(m, nn.BatchNorm2d):
                 nn.init.constant_(m.weight, 1)
                 nn.init.constant_(m.bias, 0)
 
-    def forward(
-        self, x: Tensor, scale_factor: Tensor, scale_factor_out: Tensor | None = None
-    ) -> Tensor:
+    def forward(self, x: Tensor, scale_factor: Tensor, scale_factor_out: Tensor | None = None) -> Tensor:
         """
         Feedforward through graph.
 
@@ -340,8 +322,7 @@ class FastSurferVINN(FastSurferCNNBase):
         x : Tensor
             Input image [N, C, H, W].
         scale_factor : Tensor
-            Tensor of shape [N, 1] representing the scale factor for each image in the
-            batch.
+            Tensor of shape [N, 1] representing the scale factor for each image in the batch.
         scale_factor_out : Tensor, optional
             Tensor representing the scale factor for the output. Defaults to None.
 
@@ -361,18 +342,12 @@ class FastSurferVINN(FastSurferCNNBase):
         if scale_factor_out is None:
             scale_factor_out = rescale_factor
         else:
-            scale_factor_out = (
-                np.asarray(scale_factor_out)
-                * np.asarray(rescale_factor)
-                / np.asarray(scale_factor)
-            )
+            scale_factor_out = np.asarray(scale_factor_out) * np.asarray(rescale_factor) / np.asarray(scale_factor)
 
         prior_target_shape = self.interpol2.target_shape
         self.interpol2.target_shape = skip_encoder_0.shape[2:]
         try:
-            decoder_output0, sf = self.interpol2(
-                decoder_output1, scale_factor_out, rescale=True
-            )
+            decoder_output0, sf = self.interpol2(decoder_output1, scale_factor_out, rescale=True)
         finally:
             self.interpol2.target_shape = prior_target_shape
         outblock = self.outp_block(decoder_output0, skip_encoder_0)
@@ -403,9 +378,7 @@ def build_model(cfg: 'yacs.config.CfgNode') -> FastSurferCNN | FastSurferVINN:
     model
         Object of the initialized model.
     """
-    assert (
-        cfg.MODEL.MODEL_NAME in _MODELS.keys()
-    ), f"Model {cfg.MODEL.MODEL_NAME} not supported"
+    assert cfg.MODEL.MODEL_NAME in _MODELS.keys(), f"Model {cfg.MODEL.MODEL_NAME} not supported"
     params = {k.lower(): v for k, v in dict(cfg.MODEL).items()}
     model = _MODELS[cfg.MODEL.MODEL_NAME](params, padded_size=cfg.DATA.PADDED_SIZE)
     return model

@@ -1,6 +1,6 @@
 #!/bin/python
 
-# Copyright 2022 Image Analysis Lab, German Center for Neurodegenerative Diseases (DZNE), Bonn
+# Copyright 2022 DeepMI Lab, German Center for Neurodegenerative Diseases (DZNE), Bonn
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -45,16 +45,11 @@ def setup_options():
     # Training settings
     parser = argparse.ArgumentParser(description="Segmentation")
 
-    # 1. Directory information (where to read from, where to write from and to incl.
-    # search-tag)
-    parser = parser_defaults.add_arguments(
-        parser, ["in_dir", "tag", "csv_file", "sd", "sid", "remove_suffix"]
-    )
+    # 1. Directory information (where to read from, where to write from and to incl. search-tag)
+    parser = parser_defaults.add_arguments(parser, ["in_dir", "tag", "csv_file", "sd", "sid", "remove_suffix"])
 
     # 2. Options for the MRI volumes
-    parser = parser_defaults.add_arguments(
-        parser, ["t1", "conformed_name", "norm_name", "asegdkt_segfile"]
-    )
+    parser = parser_defaults.add_arguments(parser, ["t1", "conformed_name", "norm_name", "asegdkt_segfile"])
     parser.add_argument(
         "--cereb_segfile",
         dest="cereb_segfile",
@@ -81,7 +76,26 @@ def setup_options():
     advanced = parser.add_argument_group(title="Advanced options")
     parser_defaults.add_arguments(
         advanced,
-        ["device", "viewagg_device", "threads", "batch_size", "async_io"],
+        ["device", "viewagg_device", "threads", "batch_size", "async_io", "orientation", "image_size"],
+    )
+
+    def _vox_size(a):
+        if a.lower() == "none":
+            return None
+        try:
+            if float(a) == 1:
+                return 1.0
+        except ValueError:
+            pass
+        raise argparse.ArgumentTypeError(f"--vox_size can only be 1 or 'none', not {a}") from None
+
+    advanced.add_argument(
+        "--vox_size",
+        choices=(1.0, None),
+        type=_vox_size,
+        default=1.0,
+        dest="vox_size",
+        help="Choose the voxelsize to process, CerebNet only supports 1 or 'none' to ignore the voxelsize. ",
     )
 
     files: dict[Plane, str | Path] = {k: "default" for k in PLANES}
@@ -117,10 +131,9 @@ def main(args: argparse.Namespace) -> int | str:
 
     Returns
     -------
-    int
-        Returns 0 upon successful execution to indicate success.
-    str
-        A message indicating the failure reason in case of an exception.
+    int, str
+        Returns 0 upon successful execution to indicate success or
+        a message indicating the failure reason in case of an exception.
 
     References
     ----------
@@ -139,10 +152,7 @@ def main(args: argparse.Namespace) -> int | str:
 
     subjects_kwargs = {}
     cereb_statsfile = getattr(args, "cereb_statsfile", None)
-    if cereb_statsfile is None or str(cereb_statsfile) == "default":
-        cereb_statsfile = DEFAULT_CEREBELLUM_STATSFILE
-        args.cereb_statsfile = cereb_statsfile
-    if cereb_statsfile is not None:
+    if cereb_statsfile:
         subjects_kwargs["cereb_statsfile"] = "cereb_statsfile"
         if not hasattr(args, "norm_name"):
             return (
@@ -158,9 +168,7 @@ def main(args: argparse.Namespace) -> int | str:
     get_checkpoints(args.ckpt_ax, args.ckpt_cor, args.ckpt_sag, urls=urls)
 
     # Check input and output options and get all subjects of interest
-    subjects = SubjectList(
-        args, asegdkt_segfile="pred_name", segfile="cereb_segfile", **subjects_kwargs,
-    )
+    subjects = SubjectList(args, asegdkt_segfile="pred_name", segfile="cereb_segfile", **subjects_kwargs)
 
     try:
         tester = Inference(
@@ -168,6 +176,9 @@ def main(args: argparse.Namespace) -> int | str:
             threads=getattr(args, "threads", 1),
             device=args.device,
             viewagg_device=args.viewagg_device,
+            orientation=args.orientation,
+            vox_size=args.vox_size,
+            image_size=args.image_size,
         )
         return tester.run(subjects)
     except Exception as e:

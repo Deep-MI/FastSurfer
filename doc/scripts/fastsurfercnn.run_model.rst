@@ -1,5 +1,5 @@
 FastSurferCNN: run_model.py
-================================
+===========================
 
 .. include:: ../../FastSurferCNN/README.md
    :parser: fix_links.parser

@@ -1,4 +1,4 @@
-# Copyright 2022 Image Analysis Lab, German Center for Neurodegenerative Diseases (DZNE), Bonn
+# Copyright 2022 DeepMI Lab, German Center for Neurodegenerative Diseases (DZNE), Bonn
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,29 +14,27 @@
 
 # IMPORTS
 from numbers import Number
-from typing import Literal, TypeVar
+from typing import Literal, TypedDict, TypeVar, cast
 
 import h5py
-import nibabel as nib
 import numpy as np
 import torch
-from numpy import typing as npt
 from torch.utils.data.dataset import Dataset
 from torchvision.transforms import Compose
 
 from CerebNet.data_loader import data_utils as utils
 from CerebNet.data_loader.augmentation import ToTensor
 from CerebNet.datasets.load_data import SubjectLoader
-from CerebNet.datasets.utils import bounding_volume_offset, crop_transform
-from FastSurferCNN.data_loader.data_utils import (
-    get_thick_slices,
-    transform_axial,
-    transform_sagittal,
-)
-from FastSurferCNN.utils import Plane, logging
+from CerebNet.datasets.utils import bounding_volume_offset
+from FastSurferCNN.data_loader.conform import Reorientation, apply_vox2vox, crop_transform
+from FastSurferCNN.data_loader.data_utils import get_thick_slices, transform_axial, transform_sagittal
+from FastSurferCNN.utils import AffineMatrix4x4, Mask3d, Plane, Shape3d, logging, nibabelImage
 
 ROIKeys = Literal["source_shape", "offsets", "target_shape"]
-LocalizerROI = dict[ROIKeys, tuple[int, ...]]
+class LocalizerROI(TypedDict):
+    source_shape: Shape3d
+    offsets: Shape3d
+    target_shape: Shape3d
 
 NT = TypeVar("NT", bound=Number)
 
@@ -153,29 +151,31 @@ class CerebDataset(Dataset):
                 return vol.reshape(n_imgs * n_slices, thickness, h, w)
             n_imgs, n_slices, h, w = vol.shape
             return vol.reshape(n_imgs * n_slices, h, w)
-        if len(vol.shape) == 5:
+        elif len(vol.shape) == 5:
             vol = np.moveaxis(vol, [0, 1, 2, 3, 4], [0, 2, 3, 1, 4])
             n_imgs, n_slices, h, w, c = vol.shape
             vol = vol.reshape(n_imgs * n_slices, h, w, c)
             return np.moveaxis(vol, [0, 1, 2, 3], [0, 2, 3, 1])
+        else:
+            raise ValueError("Invalid shape")
 
     def __getitem__(self, index):
-        sample = {}
-        sample["image"] = self.dataset["img"][index]
-        sample["label"] = self.dataset["label"][index]
+        sample = {
+            "image": self.dataset["img"][index],
+            "label": self.dataset["label"][index],
+        }
         if "talairach" in self.dataset:
             sample["talairach"] = self.dataset["talairach"][index]
 
         if self.transforms is not None:
             sample = self.transforms(sample)
+
         sample["weight"] = utils.create_weight_mask2d(
             sample["label"], self.class_wise_weights
         )
 
         if "talairach" in sample:
-            sample["image"] = np.concatenate(
-                (sample["image"], sample["talairach"]), axis=0
-            )
+            sample["image"] = np.concatenate((sample["image"], sample["talairach"]), axis=0)
             del sample["talairach"]
         elif self.load_talairach:  ## for validation use zeros instead
             pad_width = self.cfg.MODEL.NUM_CHANNELS - sample["image"].shape[0]
@@ -231,16 +231,18 @@ class SubjectDataset(Dataset):
 
     """
 
-    roi = LocalizerROI
+    roi: LocalizerROI
 
     def __init__(
         self,
-        img_org: nib.analyze.SpatialImage,
-        brain_seg: nib.analyze.SpatialImage,
+        img_org: nibabelImage,
+        brain_seg: nibabelImage,
         patch_size: tuple[int, ...],
         slice_thickness: int,
-        primary_slice: str,
+        primary_slice: str | None = None,
     ):
+        from numpy.linalg import inv
+
         self.slice_thickness = slice_thickness
         self.transforms = Compose([ToTensor()])
         self.img_org = img_org
@@ -249,65 +251,60 @@ class SubjectDataset(Dataset):
         self.brain_seg = brain_seg
 
         # binarize the cerebellum from brain_seg
-        cereb_aseg_mask = utils.get_aseg_cereb_mask(np.asarray(brain_seg.dataobj))
+        cereb_aseg_mask: Mask3d = utils.get_aseg_cereb_mask(np.asarray(brain_seg.dataobj))
 
-        from numpy.linalg import inv
-
-        affine = inv(brain_seg.affine) @ img_org.affine
-
-        # print(brain_seg.affine, img_org.affine)
-        if not np.allclose(affine, np.eye(affine.shape[0])):
-            logger.info(
-                "The conformed image and the segmentation do not share the same affine. The cerebellum mask "
-                "is being resampled to localize it in the conformed image."
-            )
-            from scipy.ndimage import affine_transform
-
-            cereb_aseg = affine_transform(
-                cereb_aseg_mask.astype(np.float32), affine, output_shape=img_org.shape
-            )
-            cereb_aseg_mask = cereb_aseg > 0.5
+        # localize the cerebellum in the conformed image; apply_vox2vox returns the mask untouched
+        # when the two already share a grid, so it decides whether resampling is needed.
+        # order=0 because this is a binary mask: interpolating a membership overshoots past 0 and 1
+        # and only the bounding box below is read off it.
+        img2aseg_v2v: AffineMatrix4x4 = inv(brain_seg.affine) @ img_org.affine
+        cereb_aseg = apply_vox2vox(
+            cereb_aseg_mask.astype(np.float32), img2aseg_v2v, out_shape=img_org.shape, order=0,
+        )
+        cereb_aseg_mask: Mask3d = cereb_aseg > 0.5
 
         bbox = self.locate_mask_bbox(cereb_aseg_mask)
 
-        # create the roi from cereb_aseg (where labels after interpolation > 0.05 --> membership rounded to 1 decimal)
-        self.roi: LocalizerROI = {
-            "source_shape": img_org.shape,
-            "offsets": bounding_volume_offset(
-                bbox, patch_size, image_shape=cereb_aseg_mask.shape
-            ),
-            "target_shape": patch_size,
-        }
-        # crop the region of interest
-        img = crop_transform(
-            self.img_org_data,
-            offsets=self.roi["offsets"],
-            target_shape=self.roi["target_shape"],
+        # create the roi from the located cerebellum, padded out to the patch size
+        self.roi = LocalizerROI(
+            source_shape=cast(Shape3d, img_org.shape),
+            offsets=cast(Shape3d, bounding_volume_offset(bbox, patch_size, image_shape=cereb_aseg_mask.shape)),
+            target_shape=cast(Shape3d, patch_size),
         )
+        # crop the region of interest
+        img = crop_transform(self.img_org_data, offsets=self.roi["offsets"], target_shape=self.roi["target_shape"])
+        patch_vox2vox = np.concatenate([np.eye(4)[:, :3], np.append(self.roi["offsets"], 1)[:, None]], axis=1)
+        patch_vox2ras = self.img_org.affine @ patch_vox2vox
+        # reorient the data to lia
+        self.native_to_lia = Reorientation.from_target_orientation(patch_vox2ras, "soft LIA", self.roi["target_shape"])
+        img_lia = self.native_to_lia(img, order=1)
 
         self.images_per_plane = {}
         self.count = 0
         self._plane: Plane = "axial"
         data = {
-            "axial": transform_axial(img),
-            "coronal": img,
-            "sagittal": transform_sagittal(img),
+            "axial": transform_axial(img_lia),
+            "coronal": img_lia,
+            "sagittal": transform_sagittal(img_lia),
         }
         for plane, data_i in data.items():
             # data is transformed to 'plane'-direction in axis 2
-            thick_slices = get_thick_slices(
-                data_i, self.slice_thickness
-            )  # [H, W, n_slices, C]
+            thick_slices = get_thick_slices(data_i, self.slice_thickness)  # [H, W, n_slices, C]
             # it seems x and y are flipped with respect to expectations here
-            self.images_per_plane[plane] = np.transpose(
-                thick_slices, (2, 0, 1, 3)
-            )  # [n_slices, H, W, C]
+            self.images_per_plane[plane] = np.transpose(thick_slices, (2, 0, 1, 3))  # [n_slices, H, W, C]
 
-    def locate_mask_bbox(self, mask: npt.NDArray[bool]):
+    def locate_mask_bbox(self, mask: Mask3d) -> tuple[int, int, int, int, int, int]:
         """Find the largest connected component of the mask.
 
-        Returns:
-            bbox of min0, min1, ..., max0, max1, ...
+        Parameters
+        ----------
+        mask : np.ndarray of bool
+            Cerebellum mask.
+
+        Returns
+        -------
+        tuple of 6 ints
+            Bounding box the cerebellum 6 coordinates: x_min, y_min, z_min, x_max, y_max, z_max.
         """
         # filter disconnected components
         from skimage.measure import label, regionprops
@@ -326,9 +323,7 @@ class SubjectDataset(Dataset):
     def set_plane(self, plane: Plane):
         """Set the active plane."""
         if plane not in self.images_per_plane.keys():
-            raise ValueError(
-                f"Invalid plane name, must be in {tuple(self.images_per_plane.keys())}"
-            )
+            raise ValueError(f"Invalid plane name, must be in {tuple(self.images_per_plane.keys())}")
         self._plane = plane
 
     @property

@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
-
-# Copyright 2022 Image Analysis Lab, German Center for Neurodegenerative Diseases (DZNE), Bonn
+# Copyright 2022 DeepMI Lab, German Center for Neurodegenerative Diseases (DZNE), Bonn
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,35 +13,33 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from CerebNet.utils.checkpoint import (
-    YAML_DEFAULT as CEREBNET_YAML,
-)
-from FastSurferCNN.utils import PLANES
-from FastSurferCNN.utils.checkpoint import (
-    YAML_DEFAULT as VINN_YAML,
-)
+from functools import lru_cache
+from itertools import chain
+from pathlib import Path
+
 from FastSurferCNN.utils.checkpoint import (
     check_and_download_ckpts,
     get_checkpoints,
+    get_config_file,
     load_checkpoint_config_defaults,
 )
-from HypVINN.utils.checkpoint import (
-    YAML_DEFAULT as HYPVINN_YAML,
-)
+from FastSurferCNN.utils.parallel import thread_executor
 
 
 class ConfigCache:
-    def vinn_url(self):
-        return load_checkpoint_config_defaults("url", filename=VINN_YAML)
+    @classmethod
+    @lru_cache
+    def url(cls, module: str) -> list[str]:
+        return load_checkpoint_config_defaults("url", get_config_file(module))
 
-    def cerebnet_url(self):
-        return load_checkpoint_config_defaults("url", filename=CEREBNET_YAML)
+    @classmethod
+    @lru_cache
+    def checkpoint(cls, module: str) -> dict[str, Path]:
+        return load_checkpoint_config_defaults("checkpoint", get_config_file(module))
 
-    def hypvinn_url(self):
-        return load_checkpoint_config_defaults("url", filename=HYPVINN_YAML)
-
-    def all_urls(self):
-        return self.vinn_url() + self.cerebnet_url() + self.hypvinn_url()
+    @classmethod
+    def all_urls(cls) -> list[str]:
+        return list(chain(*(cls.url(mod) for mod in ("FastSurferCNN", "CorpusCallosum", "CerebNet", "HypVINN"))))
 
 
 defaults = ConfigCache()
@@ -72,6 +69,12 @@ def make_parser():
         action="store_true",
         help="Check and download CerebNet default checkpoints",
     )
+    parser.add_argument(
+        "--cc",
+        default=False,
+        action="store_true",
+        help="Check and download Corpus Callosum default checkpoints",
+    )
 
     parser.add_argument(
         "--hypvinn",
@@ -85,9 +88,8 @@ def make_parser():
         type=str,
         default=None,
         help=f"Specify you own base URL. This is applied to all models. \n"
-             f"Default for VINN: {defaults.vinn_url()} \n"
-             f"Default for CerebNet: {defaults.cerebnet_url()} \n"
-             f"Default for HypVINN: {defaults.hypvinn_url()}",
+             f"Default for VINN: {defaults.url('FastSurferCNN')} \n" + \
+             "\n".join(f"Default for {mod}: {defaults.url(mod)}" for mod in ("CerebNet", "CorpusCallosum", "HypVINN")),
     )
     parser.add_argument(
         "files",
@@ -99,48 +101,25 @@ def make_parser():
 
 
 def main(
-        vinn: bool,
-        cerebnet: bool,
-        hypvinn: bool,
-        all: bool,
-        files: list[str],
+        vinn: bool = False,
+        cerebnet: bool = False,
+        hypvinn: bool = False,
+        cc: bool = False,
+        all: bool = False,
+        files: list[str] = (),
         url: str | None = None,
 ) -> int | str:
-    if not vinn and not files and not cerebnet and not hypvinn and not all:
-        return ("Specify either files to download or --vinn, --cerebnet, "
-                "--hypvinn, or --all, see help -h.")
+    if not vinn and not files and not cerebnet and not hypvinn and not cc and not all:
+        return "Specify either files to download or --vinn, --cerebnet, --cc, --hypvinn, or --all, see help -h."
 
+    futures = []
+    all_errors = []
     try:
-        # FastSurferVINN checkpoints
-        if vinn or all:
-            vinn_config = load_checkpoint_config_defaults(
-                "checkpoint",
-                filename=VINN_YAML,
-            )
-            get_checkpoints(
-                *(vinn_config[plane] for plane in PLANES),
-                urls=defaults.vinn_url() if url is None else [url]
-            )
-        # CerebNet checkpoints
-        if cerebnet or all:
-            cerebnet_config = load_checkpoint_config_defaults(
-                "checkpoint",
-                filename=CEREBNET_YAML,
-            )
-            get_checkpoints(
-                *(cerebnet_config[plane] for plane in PLANES),
-                urls=defaults.cerebnet_url() if url is None else [url],
-            )
-        # HypVINN checkpoints
-        if hypvinn or all:
-            hypvinn_config = load_checkpoint_config_defaults(
-                "checkpoint",
-                filename=HYPVINN_YAML,
-            )
-            get_checkpoints(
-                *(hypvinn_config[plane] for plane in PLANES),
-                urls=defaults.hypvinn_url() if url is None else [url],
-            )
+        for mod, sel in (("FastSurferCNN", vinn), ("CerebNet", cerebnet), ("HypVINN", hypvinn), ("CorpusCallosum", cc)):
+            if sel or all:
+                urls = defaults.url(mod) if url is None else [url]
+                futures.extend(thread_executor().submit(get_checkpoints, file, urls=urls)
+                               for key, file in defaults.checkpoint(mod).items())
         for fname in files:
             check_and_download_ckpts(
                 fname,
@@ -149,8 +128,13 @@ def main(
     except Exception as e:
         from traceback import print_exception
         print_exception(e)
-        return e.args[0]
-    return 0
+        all_errors = [e.args[0]]
+    for f in futures:
+        if e := f.exception():
+            from traceback import print_exception
+            print_exception(e)
+            all_errors.append(f.exception().args[0])
+    return "\n".join(all_errors) or 0
 
 
 if __name__ == "__main__":

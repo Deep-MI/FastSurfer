@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Copyright 2019 Image Analysis Lab, German Center for Neurodegenerative Diseases (DZNE), Bonn
+# Copyright 2019 DeepMI Lab, German Center for Neurodegenerative Diseases (DZNE), Bonn
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,8 +14,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-VERSION='$Id$'
-
 # Set default values for arguments
 if [[ -z "${BASH_SOURCE[0]}" ]]; then THIS_SCRIPT="$0"
 else THIS_SCRIPT="${BASH_SOURCE[0]}"
@@ -28,17 +26,27 @@ then
   export FASTSURFER_HOME
 fi
 
+if [[ "$(uname -s)" == "Darwin" ]] && [[ -z "$PYTORCH_ENABLE_MPS_FALLBACK" ]]
+then
+  # device "auto" resolves to mps on Apple Silicon whenever available (no cuda on macOS), so most mac
+  # runs hit this; some ops (e.g. max_unpool2d) are still not implemented for MPS and PyTorch only
+  # honors PYTORCH_ENABLE_MPS_FALLBACK if it is set before `import torch`, so this must happen here,
+  # not later once the actual device is known
+  export PYTORCH_ENABLE_MPS_FALLBACK=1
+fi
+
 fastsurfercnndir="$FASTSURFER_HOME/FastSurferCNN"
 cerebnetdir="$FASTSURFER_HOME/CerebNet"
 hypvinndir="$FASTSURFER_HOME/HypVINN"
 reconsurfdir="$FASTSURFER_HOME/recon_surf"
+CorpusCallosumDir="$FASTSURFER_HOME/CorpusCallosum"
 
 # Regular flags defaults
 subject=""
 sd="$SUBJECTS_DIR"
 t1=""
 t2=""
-merged_segfile=""
+lesion_mask=""
 cereb_segfile=""
 asegdkt_segfile=""
 asegdkt_segfile_default="\$SUBJECTS_DIR/\$SID/mri/aparc.DKTatlas+aseg.deep.mgz"
@@ -49,6 +57,7 @@ hypo_segfile=""
 hypo_statsfile=""
 hypvinn_flags=()
 hypvinn_regmode="coreg"
+cc_flags=()
 conformed_name=""
 conformed_name_t2=""
 norm_name=""
@@ -60,42 +69,36 @@ edits="false"
 viewagg="auto"
 device="auto"
 batch_size="1"
-run_seg_pipeline="1"
-run_biasfield="1"
-run_surf_pipeline="1"
+run_seg_pipeline="true"
+run_biasfield="true"
+run_surf_pipeline="true"
 surf_flags=()
-legacy_parallel_hemi=0
+legacy_parallel_hemi="false"
 vox_size="min"
-run_asegdkt_module="1"
-run_cereb_module="1"
-run_hypvinn_module="1"
+native_image="false"
+run_asegdkt_module="true"
+run_cereb_module="true"
+run_hypvinn_module="true"
+run_cc_module="true"
+run_lit_module="false"
+lit_outputs_exist="false"
 threads_seg="1"
-threads_surf="1"
-# python3.10 -s excludes user-directory package inclusion
-python="python3.10 -s"
+# 2, so the surface pipeline runs the two hemispheres at the same time with one thread each by
+# default. recon-surf.sh is always called with --threads "$threads_surf", so its own default of 2
+# would never be reached otherwise.
+threads_surf="2"
+# python3 -s excludes user-directory package inclusion
+python="python3 -s"
 allow_root=()
 version_and_quit=""
 warn_seg_only=()
 warn_base=()
-base=0                # flag for longitudinal template (base) run
-long=0                # flag for longitudinal time point run
+base="false"          # flag for longitudinal template (base) run
+long="false"          # flag for longitudinal time point run
 baseid=""             # baseid for logitudinal time point run
 
 function usage()
 {
-#  --merged_segfile <filename>
-#                          Name of the segmentation file, which includes all labels
-#                            (currently similar to aparc+aseg). When using
-#                            FastSurfer, this segmentation is already conformed,
-#                            since inference is always based on a conformed image.
-#                            Currently, this is the same as the aparc+aseg and just
-#                            a symlink to the asegdkt_segfile.
-#                            Requires an ABSOLUTE Path! Default location:
-#                            \$SUBJECTS_DIR/\$sid/mri/fastsurfer.merged.mgz
-# --asegdkt_segfile <name> If not provided,
-#                            this intermediate DL-based segmentation will not be
-#                            stored, but only the merged segmentation will be stored
-#                            (see --merged_segfile <filename>).
 cat << EOF
 
 Usage: run_fastsurfer.sh --sid <sid> --sd <sdir> --t1 <t1_input> [OPTIONS]
@@ -115,12 +118,16 @@ FLAGS:
   --sd  <subjects_dir>    Output directory \$SUBJECTS_DIR (or pass via env var)
   --t1  <T1_input>        T1 full head input (not bias corrected). Requires an
                             ABSOLUTE Path!
+  --lesion_mask <mask_input>
+                          Lesion mask input for experimental lesion inpainting.
+                            Requires an ABSOLUTE Path!
   --asegdkt_segfile <filename>
                           Name of the segmentation file, which includes the
                           aparc+DKTatlas-aseg segmentations.
                           Requires an ABSOLUTE Path! Default location:
                           \$SUBJECTS_DIR/\$sid/mri/aparc.DKTatlas+aseg.deep.mgz
-  --vox_size <0.7-1|min>  Forces processing at a specific voxel size.
+  --vox_size <0.7-1|min|keep>
+                          Forces processing at a specific voxel size.
                             If a number between 0.7 and 1 is specified (below
                             is experimental) the T1w image is conformed to
                             that voxel size and processed.
@@ -129,16 +136,22 @@ FLAGS:
                             (smallest per-direction voxel size) in the T1w
                             image:
                               If the minimal voxel size is bigger than 0.98mm,
-                                the image is conformed to 1mm isometric.
+                                the image is conformed to 1mm isotropic.
                               If the minimal voxel size is smaller or equal to
                                 0.98mm, the T1w image will be conformed to
-                                isometric voxels of that voxel size.
+                                isotropic voxels of that voxel size.
                             The voxel size (whether set manually or derived)
                             determines whether the surfaces are processed with
                             highres options (below 1mm) or not.
+                            If "keep" is specified, the native voxel size is
+                            preserved. This is experimental and only compatible
+                            with the segmentation pipeline.
   --edits                 Enables manual edits by replacing select intermediate/
                             result files by manedit substitutes (*.manedit.<ext>).
-                            Segmentation: <asegdkt_segfile> and <mask_name>.
+                            Segmentation edits (default paths):
+                              mri/aparc.DKTatlas+aseg.deep.manedit.mgz
+                              mri/mask.manedit.mgz
+                              mri/callosum.CC.upright.manedit.mgz
                             Surface: Disables check for existing recon-surf.sh run;
                               edits of mri/wm.mgz and brain.finalsurfs.mgz
                               as well as FreeSurfer-style WM control points.
@@ -164,18 +177,42 @@ SEGMENTATION PIPELINE:
                             image will be saved. Requires an ABSOLUTE Path!
                             Default location:
                             \$SUBJECTS_DIR/\$sid/mri/orig.mgz.
-  --no_biasfield          Create a bias field corrected image and enable the
-                            calculation of partial volume-corrected stats-files.
-  --norm_name             Name of the biasfield corrected image
+  --no_biasfield          Deactivate bias field correction. The stats files are
+                            partial volume-corrected, so they are only written if
+                            a biasfield corrected image already exists, for
+                            example from an earlier run.
+  --norm_name <nu.mgz>    Name of the biasfield corrected image
                             Default location:
                             \$SUBJECTS_DIR/\$sid/mri/orig_nu.mgz
   --tal_reg               Perform the talairach registration for eTIV estimates
                             in --seg_only stream and stats files (is affected by
                             the --3T flag, see below). Manual talairach
                             registrations are not replaced in --edits mode.
+                            To add eTIV to a subject that is already segmented,
+                            switch off everything that already ran, so only the
+                            registration and the stats files are redone:
+                              --seg_only --tal_reg --no_asegdkt --no_biasfield
+                              --no_cereb --no_hypothal --no_cc
+                            The stats are rewritten from the files on disk, so
+                            nothing is re-segmented. Leaving any of these out
+                            recomputes that module and overwrites its output.
+                            This works on a subject whose segmentation has run
+                            but not its surfaces. The surface pipeline always
+                            computes a talairach registration, so on a fully
+                            processed subject the above stops rather than
+                            replace it: delete mri/transforms/talairach.xfm
+                            first, or add --edits to keep the existing one.
+  --native_image OR       Output all images and segmentations in the native image space
+  --keepgeom                with its image geometry (voxel size, dimensions, orientation).
+                            This setting is not compatible with the surface pipeline and
+                            implies --vox_size keep. Anisotropic voxels are experimental.
 
   MODULES:
   By default, all modules are run.
+
+  The options below that name an output file are for expert use. Later modules
+  and follow-up tools look for the default names, so renaming an output can
+  break a later step.
 
   ASEGDKT MODULE:
   --no_asegdkt            Skip the asegdkt segmentation (aseg+aparc/DKT segmentation)
@@ -184,8 +221,8 @@ SEGMENTATION PIPELINE:
                             aseg+aparc/DKTatlas segmentations.
                             Requires an ABSOLUTE Path! Default location:
                             \$SUBJECTS_DIR/\$sid/mri/aparc.DKTatlas+aseg.deep.mgz
-  --no_biasfield          Deactivate the calculation of partial volume-corrected
-                            statistics.
+  --no_biasfield          Skip the partial volume-corrected statistics, unless a
+                            biasfield corrected image already exists.
 
   CEREBELLUM MODULE:
   --no_cereb              Skip the cerebellum segmentation (CerebNet segmentation)
@@ -205,23 +242,48 @@ SEGMENTATION PIPELINE:
                             with an additional file suffix of ".1mm".
                             Requires an ABSOLUTE Path! Default location:
                             \$SUBJECTS_DIR/\$sid/mri/cerebellum.CerebNet.nii.gz
-  --no_biasfield          Deactivate the calculation of partial volume-corrected
-                            statistics.
+  --cereb_statsfile <stats_output>
+                          Name of the statistics file of the cerebellum
+                            segmentation. Requires an ABSOLUTE Path!
+                            Default location:
+                            \$SUBJECTS_DIR/\$sid/stats/cerebellum.CerebNet.stats
+  --no_biasfield          Skip the partial volume-corrected statistics, unless a
+                            biasfield corrected image already exists.
+
+  CORPUS CALLOSUM MODULE:
+  --no_cc                Skip the segmentation and analysis of the corpus callosum.
+  --qc_snap              Create quality control images in \$SUBJECTS_DIR/\$sid/qc_snapshots
+                         to simplify the QC process. Also creates additional volumes
+                         in mri/ for QC.
 
   HYPOTHALAMUS MODULE (HypVINN):
   --no_hypothal           Skip the hypothalamus segmentation.
-  --no_biasfield          This option implies --no_hypothal, as the hypothalamus
-                            sub-segmentation requires biasfield-corrected images.
-  --t2 <T2_input>         *Optional* T2 full head input (does not have to be bias
-                            corrected, a mandatory biasfield correction step is
-                            performed). Requires an ABSOLUTE Path!
+  --hypo_segfile <seg_output>
+                          Name of the DL-based segmentation file of the
+                            hypothalamus. Requires an ABSOLUTE Path!
+                            Default location:
+                            \$SUBJECTS_DIR/\$sid/mri/hypothalamus.HypVINN.nii.gz
+  --hypo_statsfile <stats_output>
+                          Name of the statistics file of the hypothalamus
+                            segmentation. Requires an ABSOLUTE Path!
+                            Default location:
+                            \$SUBJECTS_DIR/\$sid/stats/hypothalamus.HypVINN.stats
+  --no_biasfield          Biasfield-corrected inputs are recommended for the
+                            hypothalamus sub-segmentation. This option implies images
+                            were corrected externally.
+  --t2 <T2_input>         *Optional* T2 full head input (must be externally biasfield
+                            corrected when called with --no_biasfield). Requires an
+                            ABSOLUTE Path!
   --reg_mode <none|coreg|robust>
                           Ignored, if no T2 image is passed.
                             Specifies the registration method used to register T1
                             and T2 images. Options are 'coreg' (default) for
                             mri_coreg, 'robust' for mri_robust_register, and 'none'
                             to skip registration (this requires T1 and T2 are
-                            externally co-registered).
+                            externally co-registered). With --long, 'none' means
+                            the T2 is co-registered with the T1 this time point
+                            was built from, and it is mapped into template space
+                            with the same transform as that T1.
   --qc_snap               Create QC snapshots in \$SUBJECTS_DIR/\$sid/qc_snapshots
                             to simplify the QC process.
 
@@ -246,8 +308,18 @@ Resource Options:
                             device (no memory check will be done).
   --threads <int>         Set openMP and ITK threads to <int> or "max", also
   --threads_seg <int>       for definition of threads specific to segmentation
-  --threads_surf <int>      and surface reconstruction (parallel hemispheres if
-                            at number of threads for surfaces >=2, default: 1).
+  --threads_surf <int>      and surface reconstruction. For surfaces this is a
+                            total budget: with 2 or more the two hemispheres run
+                            at the same time and split it, so the default of 2
+                            gives one thread each. Use 1 for a single-threaded
+                            run, the setting to use if you need results to be
+                            reproducible (default: seg 1, surf 2).
+  --parallel              Run the hemispheres at the same time with one thread
+                            each, even at --threads 1. That keeps every binary
+                            single threaded, and so reproducible, while still
+                            using two cores. No effect at 2 or more surface
+                            threads, where the hemispheres already run at the
+                            same time.
   --batch <batch_size>    Batch size for inference (default: 1).
   --py <python_cmd>       Command for python, used in both pipelines.
                             Default: "$python"
@@ -312,6 +384,12 @@ Faber J*, Kuegler D*, Bahrami E*, et al. (*co-first). CerebNet: A fast and
  NeuroImage 264 (2022), 119703.
  https://doi.org/10.1016/j.neuroimage.2022.119703
 
+For corpus callosum segmentation and analysis:
+Pollak C, Diers K, Estrada S, Kuegler D, Reuter M, FastSurfer-CC: A robust,
+ accurate, and comprehensive framework for corpus callosum morphometry,
+ pre-print on arXiv:
+ https://doi.org/10.48550/arXiv.2511.16471
+
 For hypothalamus sub-segemntation:
 Estrada S, Kuegler D, Bahrami E, Xu P, Mousa D, Breteler MMB, Aziz NA, Reuter M.
  FastSurfer-HypVINN: Automated sub-segmentation of the hypothalamus and adjacent
@@ -324,6 +402,16 @@ Reuter M, Schmansky NJ, Rosas HD, Fischl B. Within-subject template estimation
  https://doi.org/10.1016/j.neuroimage.2012.02.084
 
 EOF
+
+# Environment variables (for advanced users / developers only):
+# SUBJECTS_DIR           (path to SUBJECTS_DIR, no default, either SUBJECTS_DIR or --sd must be set)
+# FASTSURFER_HOME        (path to FastSurfer installation, default: script location)
+# FASTSURFER_EXECTIMELOG (path to execution time log file relative to $SUBJECTS_DIR/$SID, default: scripts/exectime.log)
+# FREESURFER_HOME        (path to FreeSurfer installation, must be set for surface pipeline)
+# FS_LICENSE             (path to FreeSurfer license file, overwritten by --fs_license, must be found for surface
+#                         pipeline, default: search in FREESURFER_HOME, unless...)
+# DO_NOT_SEARCH_FS_LICENSE_IN_FREESURFER_HOME
+#                         (developer: if "true", deactivate search for the FreeSurfer license file in FREESURFER_HOME)
 }
 
 # PRINT USAGE if called without params
@@ -345,6 +433,8 @@ function verify_threads() {
 
 # PARSE Command line
 inputargs=("$@")
+printf -v invocation_command '%q ' "$THIS_SCRIPT" "${inputargs[@]}"
+invocation_command="${invocation_command% }"
 POSITIONAL=()
 while [[ $# -gt 0 ]]
 do
@@ -362,7 +452,7 @@ case $key in
     then
       export FS_LICENSE="$1"
     else
-      echo "ERROR: Provided FreeSurfer license file $1 could not be found. Make sure to provide the full path and name. Exiting..."
+      echo "ERROR: Provided FreeSurfer license file $1 could not be found. Make sure to provide the full path and name."
       exit 1
     fi
     shift # past value
@@ -375,7 +465,9 @@ case $key in
   --sid) subject="$1" ; shift ;;
   --sd) sd="$1" ; shift ;;
   --t1) t1="$1" ; shift ;;
-  --t2) t2="$1" ; shift ;;
+  # not for base: the template has no T2, long_prepare_template.sh rejects --t2 as well
+  --t2) t2="$1" ; warn_base+=("$key" "$1") ; shift ;;
+  --lesion_mask) lesion_mask="$1" ; run_lit_module="true" ; shift ;;
   --seg_log) seg_log="$1" ; shift ;;
   --conformed_name) conformed_name="$1" ; warn_seg_only+=("$key" "$1") ; shift ;;
   --norm_name) norm_name="$1" ; warn_seg_only+=("$key" "$1") ; shift ;;
@@ -398,9 +490,7 @@ case $key in
   --py) python="$1" ; shift ;;
   -h|--help) usage ; exit ;;
   --version)
-    if [[ "$#" -lt 1 ]] || [[ "$1" =~ ^-- ]]; then
-      # no more args or next arg starts with --
-      version_and_quit="1"
+    if [[ "$#" -lt 1 ]] || [[ "$1" =~ ^-- ]]; then version_and_quit="true" # no more args or next arg starts with --
     else
       case "$(echo "$1" | tr '[:upper:]' '[:lower:]')" in
         all) version_and_quit="+checkpoints+git+pip" ;;
@@ -417,8 +507,9 @@ case $key in
 
   # common options for seg
   #=============================================================
-  --surf_only) run_seg_pipeline="0" ;;
-  --no_biasfield) run_biasfield="0" ;;
+  --surf_only) run_seg_pipeline="false" ;;
+  --no_biasfield) run_biasfield="false" ;;
+  --keepgeom|--native_image) native_image="true" ; vox_size="keep" ;;
   --tal_reg) run_talairach_registration="true" ;;
   --device) device="$1" ; shift ;;
   --batch) batch_size="$1" ; shift ;;
@@ -437,10 +528,7 @@ case $key in
     esac
     shift # past value
     ;;
-  --no_cuda)
-    echo "WARNING: --no_cuda is deprecated and will be removed, use --device cpu."
-    device="cpu"
-    ;;
+  --no_cuda) echo "WARNING: --no_cuda is deprecated and will be removed, use --device cpu." ; device="cpu" ;;
 
   # asegdkt module options
   #=============================================================
@@ -449,23 +537,28 @@ case $key in
     then
       echo "WARNING: --no_aparc is deprecated and will be removed, use --no_asegdkt."
     fi
-    run_asegdkt_module="0"
+    run_asegdkt_module="false"
     ;;
-  --asegdkt_statsfile) asegdkt_statsfile="$1" ; shift ;;
+  # names the VINN statsfile; $asegdkt_statsfile is the older name linked to it
+  --asegdkt_statsfile) asegdkt_vinn_statsfile="$1" ; shift ;;
+  --aseg_statsfile) aseg_vinn_statsfile="$1" ; shift ;;
   --aseg_segfile) aseg_segfile="$1" ; shift ;;
   --mask_name) mask_name="$1" ; warn_seg_only+=("$key" "$1") ; warn_base+=("$key" "$1") ; shift ;;
-  --merged_segfile) merged_segfile="$1" ; shift ;;
+
+  # corupus callosum module options
+  #=============================================================
+  --no_cc) run_cc_module="false" ;;
 
   # cereb module options
   #=============================================================
-  --no_cereb) run_cereb_module="0" ;;
+  --no_cereb) run_cereb_module="false" ;;
   # several options that set a variable
   --cereb_segfile) cereb_segfile="$1" ; shift ;;
   --cereb_statsfile) cereb_statsfile="$1" ; shift ;;
 
   # hypothal module options
   #=============================================================
-  --no_hypothal) run_hypvinn_module="0" ;;
+  --no_hypothal) run_hypvinn_module="false" ;;
   # several options that set a variable
   --hypo_segfile) hypo_segfile="$1" ; shift ;;
   --hypo_statsfile) hypo_statsfile="$1" ; shift ;;
@@ -476,16 +569,24 @@ case $key in
     fi
     shift # past value
     ;;
+
   # several options that set a variable
-  --qc_snap) hypvinn_flags+=(--qc_snap) ;;
+  --qc_snap)
+    hypvinn_flags+=(--qc_snap) ;
+    cc_flags+=(--qc_image "qc_snapshots/callosum.png" --thickness_image "qc_snapshots/callosum.thickness.png"
+               --cc_html "qc_snapshots/corpus_callosum.html" --upright_volume "mri/upright_volume.mgz")
+    ;;
 
   ##############################################################
   # surf-pipeline options
   ##############################################################
-  --seg_only) run_surf_pipeline="0" ;;
+  --seg_only) run_surf_pipeline="false" ;;
   # several flag options that are *just* passed through to recon-surf.sh
   --fstess|--fsqsphere|--fsaparc|--no_surfreg|--ignore_fs_version) surf_flags+=("$key") ;;
-  --parallel) legacy_parallel_hemi=1 ;;
+  # passed through, not translated into --threads 2: at --threads 1 the two are not equivalent,
+  # because --threads also sets the thread count for the sections outside the hemisphere loop,
+  # and --parallel is specifically the way to keep those single threaded
+  --parallel) legacy_parallel_hemi="true" ; surf_flags+=("$key") ;;
   --no_fs_t1) surf_flags+=("--no_fs_T1") ;;
 
   # temporary segstats development flag
@@ -494,19 +595,25 @@ case $key in
   ##############################################################
   # longitudinal options
   ##############################################################
-  --base) base=1 ; run_cereb_module="0" ; run_hypvinn_module="0" ; surf_flags=("${surf_flags[@]}" "--base") ;;
-  --long) long=1 ; baseid="$1" ; surf_flags=("${surf_flags[@]}" "--long" "$1") ; shift ;;
-  *)    # unknown option
-    # if not empty arguments, error & exit
-    if [[ "$key" != "" ]] ; then echo "ERROR: Flag '$key' unrecognized." ;  exit 1 ; fi
+  --base)
+    base="true"
+    # for now, keep the cc running in base, as it is very fast and should not have side effects
+    # run_cc_module="false"
+    run_cereb_module="false"
+    run_hypvinn_module="false"
+    surf_flags=("${surf_flags[@]}" "--base")
     ;;
+  --long) long="true" ; baseid="$1" ; surf_flags=("${surf_flags[@]}" "--long" "$1") ; shift ;;
+  # unknown option ;  if not empty arguments, error & exit
+  *) if [[ "$key" != "" ]] ; then echo "ERROR: Flag '$key' unrecognized." ; exit 1 ; fi ;;
 esac
 done
 set -- "${POSITIONAL[@]}" # restore positional parameters
 
 # make sure FastSurfer is in the PYTHONPATH
 export PYTHONPATH
-PYTHONPATH="$FASTSURFER_HOME$([[ -n "$PYTHONPATH" ]] && echo ":$PYTHONPATH")"
+PYTHONPATH="$FASTSURFER_HOME$([[ -n "$PYTHONPATH" ]] && echo ":$PYTHONPATH" || echo "")"
+subject_dir="$sd/$subject"
 
 ########################################## VERSION AND QUIT HERE ########################################
 # make sure the python  executable is valid and found
@@ -523,18 +630,18 @@ fi
 
 if [[ -n "$version_and_quit" ]]
 then
-  # if version_and_quit is 1, it should only print the version number+git branch
-  if [[ "$version_and_quit" != "1" ]]
+  # if version_and_quit is true, it should only print the version number and version info
+  if [[ "$version_and_quit" != "true" ]]
   then
     version_cache_args=("${version_cache_args[@]}" --sections "$version_and_quit")
   fi
   $python "$FASTSURFER_HOME/FastSurferCNN/version.py" "${version_cache_args[@]}"
-  exit
+  exit $?
 fi
 
 source "${reconsurfdir}/functions.sh"
 
-# Warning if run as root user
+# Check for invalid docker/root user setup
 check_allow_root "${allow_root[@]}"
 
 # from now to the creation of the logfile, all messages are only written to the console and thus lost if the output is
@@ -546,41 +653,18 @@ tmpLF=$(mktemp)
 
 # CHECKS
 
-if [[ "$legacy_parallel_hemi" == 1 ]] ; then
+# a string comparison, because threads_surf can still be "max" here
+if [[ "$legacy_parallel_hemi" == "true" ]] && [[ ! "$threads_surf" =~ ^[01]$ ]]
+then
   {
-    echo "WARNING: The --parallel flag is obsolete and will be removed in FastSurfer 3."
-    echo "  Hemispheres are now automatically processed in parallel, if threads for surface "
-    echo "  reconstruction are more than 1 (defined via --threads 2 or --threads_surf 2)!"
-    echo "IMPORTANT NOTE: The threads behavior has also changed, --threads used to define the"
-    echo "  number of threads per hemisphere, it now defines the number of threads in total!"
+    echo "NOTE: --parallel has no effect at $threads_surf surface threads. The surface thread count"
+    echo "  is a total budget, not a count per hemisphere, and from 2 upwards the hemispheres always"
+    echo "  run at the same time and split it. --parallel only changes anything at one thread, where"
+    echo "  it runs the two hemispheres at the same time with one thread each."
   } | tee -a "$tmpLF"
-  if [[ "$threads_surf" == 1 ]] ; then
-    threads_surf=2
-    {
-      echo "INFO: We have changed the requested number of threads from 1 to 2, to activate parallel"
-      echo "  hemisphere processing (as requested by --parallel for backwards compatibility)."
-    } | tee -a "$tmpLF"
-  fi
 fi
 
-if [[ -z "${sd}" ]]
-then
-  echo "ERROR: No subject directory defined via --sd. This is required!"
-  exit 1
-fi
-if [[ ! -d "${sd}" ]]
-then
-  echo "INFO: The subject directory did not exist, creating it now." | tee -a "$tmpLF"
-  if ! mkdir -p "$sd" ; then echo "ERROR: Subject directory creation failed" ; exit 1 ; fi
-fi
-if [[ "$(stat -c "%u:%g" "$sd")" == "0:0" ]] && [[ "$(id -u)" != "0" ]] && \
-  [[ "$(stat -c "%a" "$sd" | tail -c 2)" -lt 6 ]]
-then
-  echo "ERROR: The subject directory ($sd) is owned by root and is not writable."
-  echo "  FastSurfer cannot write results! This can happen if the directory is created"
-  echo "  by docker. Make sure to create the directory before invoking docker!"
-  exit 1
-fi
+check_create_subjects_dir_properties "$sd"
 
 if [[ -z "$subject" ]]
 then
@@ -588,7 +672,7 @@ then
   exit 1
 fi
 
-if [[ "${#warn_seg_only[@]}" -gt 0 ]] && [[ "$run_surf_pipeline" == "1" ]]
+if [[ "${#warn_seg_only[@]}" -gt 0 ]] && [[ "$run_surf_pipeline" == "true" ]]
 then
   {
     echo "WARNING: Specifying '${warn_seg_only[*]}' only affects the segmentation "
@@ -598,32 +682,64 @@ then
 fi
 
 # DEFAULT FILE NAMES
-if [[ -z "$merged_segfile" ]] ; then merged_segfile="${sd}/${subject}/mri/fastsurfer.merged.mgz" ; fi
-if [[ -z "$asegdkt_segfile" ]] ; then asegdkt_segfile="${sd}/${subject}/mri/aparc.DKTatlas+aseg.deep.mgz" ; fi
-if [[ -z "$aseg_segfile" ]] ; then aseg_segfile="${sd}/${subject}/mri/aseg.auto_noCCseg.mgz"; fi
-if [[ -z "$asegdkt_statsfile" ]] ; then asegdkt_statsfile="${sd}/${subject}/stats/aseg+DKT.stats" ; fi
-if [[ -z "$cereb_segfile" ]] ; then cereb_segfile="${sd}/${subject}/mri/cerebellum.CerebNet.nii.gz" ; fi
-if [[ -z "$cereb_statsfile" ]] ; then cereb_statsfile="${sd}/${subject}/stats/cerebellum.CerebNet.stats" ; fi
-if [[ -z "$hypo_segfile" ]] ; then hypo_segfile="${sd}/${subject}/mri/hypothalamus.HypVINN.nii.gz" ; fi
-if [[ -z "$hypo_statsfile" ]] ; then hypo_statsfile="${sd}/${subject}/stats/hypothalamus.HypVINN.stats" ; fi
-if [[ -z "$mask_name" ]] ; then mask_name="${sd}/${subject}/mri/mask.mgz" ; fi
-if [[ -z "$conformed_name" ]] ; then conformed_name="${sd}/${subject}/mri/orig.mgz"; fi
-if [[ -z "$conformed_name_t2" ]] ; then conformed_name_t2="${sd}/${subject}/mri/T2orig.mgz" ; fi
-if [[ -z "$norm_name" ]] ; then norm_name="${sd}/${subject}/mri/orig_nu.mgz" ; fi
-if [[ -z "$norm_name_t2" ]] ; then norm_name_t2="${sd}/${subject}/mri/T2_nu.mgz" ;  fi
-if [[ -z "$seg_log" ]] ; then seg_log="${sd}/${subject}/scripts/deep-seg.log" ; fi
-if [[ -z "$build_log" ]] ; then build_log="${sd}/${subject}/scripts/build.log" ; fi
+if [[ -z "$asegdkt_segfile" ]] ; then asegdkt_segfile="$subject_dir/mri/aparc.DKTatlas+aseg.deep.mgz" ; fi
+if [[ -z "$aseg_segfile" ]] ; then aseg_segfile="$subject_dir/mri/aseg.auto_noCCseg.mgz"; fi
+if [[ -z "$aseg_auto_segfile" ]] ; then aseg_auto_segfile="$subject_dir/mri/aseg.auto.mgz"; fi
+if [[ -z "$callosum_seg" ]] ; then callosum_seg="$subject_dir/mri/callosum.CC.orig.mgz"; fi
+if [[ -z "$asegdkt_statsfile" ]] ; then asegdkt_statsfile="$subject_dir/stats/aseg+DKT.stats" ; fi
+if [[ -z "$asegdkt_vinn_statsfile" ]] ; then asegdkt_vinn_statsfile="$subject_dir/stats/aseg+DKT.VINN.stats" ; fi
+if [[ -z "$aseg_vinn_statsfile" ]] ; then aseg_vinn_statsfile="$subject_dir/stats/aseg.VINN.stats" ; fi
+# derived from the three above, and here rather than in the corpus callosum module because the stats
+# that read them run from their inputs, whether or not that module runs in this call
+asegdkt_withcc_segfile="$(add_file_suffix "$asegdkt_segfile" "withCC")"
+asegdkt_withcc_vinn_statsfile="$(add_file_suffix "$asegdkt_vinn_statsfile" "withCC")"
+aseg_auto_statsfile="$(add_file_suffix "$aseg_vinn_statsfile" "withCC")"
+if [[ -z "$cereb_segfile" ]] ; then cereb_segfile="$subject_dir/mri/cerebellum.CerebNet.nii.gz" ; fi
+if [[ -z "$cereb_statsfile" ]] ; then cereb_statsfile="$subject_dir/stats/cerebellum.CerebNet.stats" ; fi
+if [[ -z "$hypo_segfile" ]] ; then hypo_segfile="$subject_dir/mri/hypothalamus.HypVINN.nii.gz" ; fi
+if [[ -z "$hypo_statsfile" ]] ; then hypo_statsfile="$subject_dir/stats/hypothalamus.HypVINN.stats" ; fi
+if [[ -z "$mask_name" ]] ; then mask_name="$subject_dir/mri/mask.mgz" ; fi
+if [[ -z "$conformed_name" ]] ; then conformed_name="$subject_dir/mri/orig.mgz"; fi
+if [[ -z "$conformed_name_t2" ]] ; then conformed_name_t2="$subject_dir/mri/T2orig.mgz" ; fi
+if [[ -z "$norm_name" ]] ; then norm_name="$subject_dir/mri/orig_nu.mgz" ; fi
+if [[ -z "$norm_name_t2" ]] ; then norm_name_t2="$subject_dir/mri/T2_nu.mgz" ;  fi
+# These files are created by neurolit>=0.6.1 in FastSurfer mode:
+# - lit_inpainting_result: inpainted T1w image from lit-inpainting --fastsurfer_dir.
+# - lit_mask_output: processed lesion mask from lit-inpainting --fastsurfer_dir.
+# - lit_original_mask_output: original input lesion mask copied by lit-inpainting --fastsurfer_dir.
+# - lit_postprocessing_summary: summary written by lit-postprocessing after lesion-aware stats/mapping.
+# Keep the paths centralized here for FastSurfer checks; switch to explicit
+# neurolit output-path arguments if the neurolit CLI adds them.
+lit_mask_output="${subject_dir}/mri/mask.lit.nii.gz"
+lit_inpainting_result="${subject_dir}/mri/inpainted.lit.nii.gz"
+lit_original_mask_output="${subject_dir}/mri/orig/mask.lit.nii.gz"
+lit_postprocessing_summary="${subject_dir}/stats/lesion_impact_summary.yaml"
+if [[ -z "$exec_time_log" ]] ; then exec_time_log="$subject_dir/${FASTSURFER_EXECTIMELOG:-scripts/exectime.log}" ; fi
+if [[ -z "$seg_log" ]] ; then seg_log="$subject_dir/scripts/deep-seg.log" ; fi
+if [[ -z "$build_log" ]] ; then build_log="$subject_dir/scripts/build.log" ; fi
 # T2 image is only used in segmentation pipeline (but registration is done even if hypvinn is off)
-if [[ -n "$t2" ]] && [[ "$run_seg_pipeline" == 1 ]]
+if [[ -n "$t2" ]] && [[ "$run_seg_pipeline" == "true" ]]
 then
   if [[ ! -f "$t2" ]] ; then echo "ERROR: T2 file $t2 does not exist!" ; exit 1 ; fi
-  copy_name_T2="${sd}/${subject}/mri/orig/T2.001.mgz"
+  # written by copy_input.py, which also places the verbatim copy beside it; recon-all converts a
+  # -T2 input to this same path, so samseg and -T2pial find it where they expect
+  rawavg_name_t2="$subject_dir/mri/orig/T2raw.mgz"
 fi
 
 if [[ -z "$PYTHONUNBUFFERED" ]] ; then export PYTHONUNBUFFERED=0 ; fi
 
 # check the vox_size setting
-if [[ "$vox_size" =~ ^[0-9]+([.][0-9]+)?$ ]]
+if [[ "$native_image" != "false" ]]
+then
+  if [[ "$vox_size" != "min" ]] && [[ "$vox_size" != "keep" ]]
+  then
+    {
+      echo "WARNING: Overwriting --vox_size $vox_size with --vox_size keep because --keepgeom or --native_image was"
+      echo "  specified."
+    } | tee -a "$tmpLF"
+  fi
+  vox_size="keep"
+elif [[ "$vox_size" =~ ^[0-9]+([.][0-9]+)?$ ]]
 then
   # a number
   if (( $(echo "$vox_size < 0" | bc -l) || $(echo "$vox_size > 1" | bc -l) ))
@@ -634,21 +750,12 @@ then
   then
     echo "WARNING: support for voxel sizes smaller than 0.7mm iso. is experimental." | tee -a "$tmpLF"
   fi
-elif [[ "$vox_size" != "min" ]]
+elif [[ "$vox_size" != "min" ]] && [[ "$vox_size" != "auto" ]] && [[ "$vox_size" != "keep" ]]
 then
   # not a number or "min"
-  echo "ERROR: Invalid option for --vox_size, only a number or 'min' are valid."
+  echo "ERROR: Invalid option '$vox_size' for --vox_size, only a number, 'min', or 'keep' are valid."
   exit 1
 fi
-
-#if [[ "${asegdkt_segfile: -3}" != "${merged_segfile: -3}" ]]
-#  then
-#    # This is because we currently only do a symlink
-#    echo "ERROR: Specified segmentation outputs do not have same file type."
-#    echo "You passed --asegdkt_segfile ${asegdkt_segfile} and --merged_segfile ${merged_segfile}."
-#    echo "Make sure these have the same file-format and adjust the names passed to the flags accordingly!"
-#    exit 1
-#fi
 
 if [[ "${asegdkt_segfile: -3}" != "${conformed_name: -3}" ]]
 then
@@ -660,29 +767,45 @@ then
   exit 1
 fi
 
-if [[ "$run_surf_pipeline" == "1" ]] && { [[ "$run_asegdkt_module" == "0" ]] || [[ "$run_seg_pipeline" == "0" ]]; }
+# Check if running on an existing subject directory
+if [[ "$run_surf_pipeline" == "true" ]]
 then
-  if [[ ! -f "$asegdkt_segfile" ]]
+  if [[ -f "$SUBJECTS_DIR/$subject/mri/wm.mgz" ]] || [[ -f "$SUBJECTS_DIR/$subject/mri/aparc.DKTatlas+aseg.orig.mgz" ]]
   then
-    echo "ERROR: To run the surface pipeline, a whole brain segmentation must already exist."
-    echo "  You passed --surf_only or --no_asegdkt, but the whole-brain segmentation "
-    echo "  ($asegdkt_segfile) could not be found."
-    echo "  If the segmentation is not saved in the default location ($asegdkt_segfile_default),"
-    echo "  specify the absolute path and name via --asegdkt_segfile <filename>."
-    exit 1
+    if [[ "$edits" == "true" ]]
+    then
+      echo "INFO: Running on top of an existing subject directory, but edits is $edits."
+    else
+      echo "ERROR: Running the surface pipeline on top of an existing subject directory, but not --edits!"
+      echo "  The output directory must not contain data from a previous invocation of recon-surf."
+      exit 1
+    fi
   fi
-  if [[ ! -f "$conformed_name" ]]
+  if [[ "$run_asegdkt_module" == "false" ]] || [[ "$run_seg_pipeline" == "false" ]]
   then
-    echo "ERROR: To run the surface pipeline only, a conformed T1 image must already exist."
-    echo "  You passed --surf_only but the conformed image ($conformed_name) could not be"
-    echo "  found. If the conformed image is not saved in the default location"
-    echo "  (\$SUBJECTS_DIR/\$SID/mri/orig.mgz), specify the absolute path and name via"
-    echo "  --conformed_name."
-    exit 1
+    if [[ ! -f "$asegdkt_segfile" ]]
+    then
+      echo "ERROR: To run the surface pipeline, a whole brain segmentation must already exist."
+      echo "  You passed --surf_only or --no_asegdkt, but the whole-brain segmentation "
+      echo "  ($asegdkt_segfile) could not be found."
+      echo "  If the segmentation is not saved in the default location ($asegdkt_segfile_default),"
+      echo "  specify the absolute path and name via --asegdkt_segfile <filename>."
+      exit 1
+    fi
+    if [[ ! -f "$conformed_name" ]]
+    then
+      echo "ERROR: To run the surface pipeline only, a conformed T1 image must already exist."
+      echo "  You passed --surf_only but the conformed image ($conformed_name) could not be"
+      echo "  found. If the conformed image is not saved in the default location"
+      echo "  (\$SUBJECTS_DIR/\$SID/mri/orig.mgz), specify the absolute path and name via"
+      echo "  --conformed_name."
+      exit 1
+    fi
   fi
 fi
 
-if [[ "$run_seg_pipeline" == "1" ]] && { [[ "$run_asegdkt_module" == "0" ]] && [[ "$run_cereb_module" == "1" ]]; }
+if [[ "$run_seg_pipeline" == "true" ]] && \
+   { [[ "$run_asegdkt_module" == "false" ]] && [[ "$run_cereb_module" == "true" ]]; }
 then
   if [[ ! -f "$asegdkt_segfile" ]]
   then
@@ -694,8 +817,62 @@ then
   fi
 fi
 
+if [[ "$run_seg_pipeline" == "true" ]] && \
+   { [[ "$run_asegdkt_module" == "false" ]] && [[ "$run_cc_module" == "true" ]]; }
+then
+  if [[ ! -f "$asegdkt_segfile" ]]
+  then
+    echo "ERROR: To run the corpus callosum module but no asegdkt, the aseg segmentation must already exist."
+    echo "  You passed --no_asegdkt but the asegdkt segmentation ($asegdkt_segfile) could not be found."
+    echo "  If the segmentation is not saved in the default location ($asegdkt_segfile_default),"
+    echo "  specify the absolute path and name via --asegdkt_segfile"
+    exit 1
+  fi
+fi
 
-if [[ "$run_surf_pipeline" == "0" ]] && [[ "$run_seg_pipeline" == "0" ]]
+# Check if --thickness_image is in cc_flags and whippersnappy version is >= 2.1
+if [[ "$run_seg_pipeline" == "true" ]] && [[ "$run_cc_module" == "true" ]] && \
+   [[ "${cc_flags[*]}" == *"--thickness_image"* ]]
+then
+  # Check if whippersnappy is installed and version is >= 2.1
+  whippersnappy_check=$($python -c "
+try:
+    import whippersnappy as wspy
+    from packaging.version import parse
+    print('OK' if parse(wspy.__version__) >= parse('2.1') else ('OLD_VERSION:' + wspy.__version__))
+except ImportError:
+    print('NOT_INSTALLED')
+except Exception as e:
+    print('ERROR:' + str(e))
+" 2>&1)
+
+  if [[ "$whippersnappy_check" != "OK" ]]
+  then
+    if [[ "$whippersnappy_check" == "NOT_INSTALLED" ]]
+    then
+      echo "ERROR: The --qc_snap flag requires the 'whippersnappy' package (version >= 2.1) to generate the qc"
+      echo "  thickness image, but whippersnappy is not installed in your Python environment."
+    elif [[ "$whippersnappy_check" == OLD_VERSION:* ]]
+    then
+      installed_version="${whippersnappy_check#OLD_VERSION:}"
+      echo "ERROR: The --qc_snap flag requires whippersnappy version >= 2.1 to generate the qc thickness image,"
+      echo "  but you only have version $installed_version installed."
+    else
+      echo "ERROR: Failed to check whippersnappy installation: $whippersnappy_check"
+    fi
+    echo "  Please install or upgrade whippersnappy with one of the following commands:"
+    echo "    pip install 'whippersnappy>=2.1'"
+    exit 1
+  fi
+fi
+
+if [[ "$run_surf_pipeline" == "true" ]] && [[ "$native_image" != "false" ]]
+then
+  echo "ERROR: The surface pipeline is not compatible with --native_image (alias --keepgeom)."
+  exit 1
+fi
+
+if [[ "$run_surf_pipeline" == "false" ]] && [[ "$run_seg_pipeline" == "false" ]]
 then
   echo "ERROR: You specified both --surf_only and --seg_only. Therefore neither part of the pipeline will be run."
   echo "  To run the whole FastSurfer pipeline, omit both flags."
@@ -703,9 +880,11 @@ then
 fi
 
 what_needs_license=""
-if [[ "$run_surf_pipeline" == 1 ]] ; then what_needs_license+=" and the surface pipeline" ; fi
-if [[ "$run_seg_pipeline" == 1 ]] ; then
-  if [[ "$run_biasfield" == 1 ]] && [[ "$run_talairach_registration" == "true" ]] ; then
+if [[ "$run_surf_pipeline" == "true" ]] ; then what_needs_license+=" and the surface pipeline" ; fi
+if [[ "$run_seg_pipeline" == "true" ]] ; then
+  # not conditional on run_biasfield: the registration also runs when --no_biasfield reuses an
+  # existing biasfield corrected image
+  if [[ "$run_talairach_registration" == "true" ]] ; then
     what_needs_license+=" and the talairach-registration in the segmentation pipeline"
   fi
   if [[ -n "$t2" ]] && [[ "$hypvinn_regmode" != "none" ]] ; then
@@ -714,58 +893,37 @@ if [[ "$run_seg_pipeline" == 1 ]] ; then
 fi
 if [[ -n "$what_needs_license" ]]
 then
-  msg="T${what_needs_license:6} require(s) a FreeSurfer License"
-  if [[ -z "$FS_LICENSE" ]]
-  then
-    msg="$msg, but no license was provided via --fs_license or the FS_LICENSE environment variable"
-    if [[ "$DO_NOT_SEARCH_FS_LICENSE_IN_FREESURFER_HOME" != "true" ]] && [[ -n "$FREESURFER_HOME" ]]
-    then
-      echo "WARNING: $msg. Checking common license files in \$FREESURFER_HOME." | tee -a "$tmpLF"
-      for filename in "license.dat" "license.txt" ".license"
-      do
-        if [[ -f "$FREESURFER_HOME/$filename" ]]
-        then
-          echo "  Trying with '$FREESURFER_HOME/$filename', specify a license with --fs_license to overwrite." | tee -a "$tmpLF"
-          export FS_LICENSE="$FREESURFER_HOME/$filename"
-          break
-        fi
-      done
-      if [[ -z "$FS_LICENSE" ]]; then echo "ERROR: No license found..." ; exit 1 ; fi
-    else
-      echo "ERROR: $msg."
-      exit 1
-    fi
-  elif [[ ! -f "$FS_LICENSE" ]]
-  then
-    echo "ERROR: $msg, but the provided path is not a file: $FS_LICENSE."
-    exit 1
-  fi
+  auto_detect_fs_license "$what_needs_license" | tee -a "$tmpLF";
+  # capture before testing: [[ ]] is a command and overwrites PIPESTATUS, so reading it again inside
+  # the branch yields the status of the test (0), and a missing license exited 0 instead of aborting
+  exit_code="${PIPESTATUS[0]}"
+  if [[ "$exit_code" != 0 ]] ; then exit "$exit_code" ; fi
 fi
 
 # checks and t1 setup for longitudinal pipeline
 # generally any t1 input per command line is overwritten here
-if [[ "$long" == "1" ]] && [[ "$base" == "1" ]]
+if [[ "$long" == "true" ]] && [[ "$base" == "true" ]]
 then
   echo "ERROR: You specified both --long and --base. You need to setup and then run base template first,"
   echo "  before you can run any longitudinal time points."
   exit 1
 fi
 
-if [[ "$base" == "1" ]]
+if [[ "$base" == "true" ]]
 then
   check_is_template "$sd" "$subject"
   if [[ -n "$t1" ]] && [[ "$t1" != "from-base" ]]; then
     echo "WARNING: --t1 was passed but will be overwritten with T1 from base template." | tee -a "$tmpLF"
   fi
   # base can only be run with the template image from base-setup:
-  t1="$sd/$subject/mri/orig.mgz"
+  t1="$subject_dir/mri/orig.mgz"
   if [[ "${#warn_base[@]}" -gt 0 ]] ; then
     echo "ERROR: Specifying '${warn_base[*]}' is not supported for base (template) creation."
     exit 1
   fi
 fi
 
-if [[ "$long" == "1" ]]
+if [[ "$long" == "true" ]]
 then
   check_is_template "$sd" "$baseid"
   if ! grep -Fxq "$subject" "$sd/$baseid/base-tps.fastsurfer" ; then
@@ -778,9 +936,52 @@ then
   fi
   # this is the default longitudinal input from base directory:
   t1="$sd/$baseid/long-inputs/$subject/long_conform.nii.gz"
+  # Both pipelines can reach the talairach step, and there a time point copies the transforms from
+  # the base instead of computing its own. Checked here rather than only in talairach-reg.sh,
+  # because that point comes after hours of work, and for the surface pipeline after
+  # aparc.DKTatlas+aseg.orig.mgz is written, which recon-surf.sh then refuses to start on top of.
+  # So the late failure also blocks its own restart.
+  #
+  # The segmentation reaches the step with --tal_reg. The surface pipeline reaches it whenever the
+  # time point does not already have both transforms, see the condition in recon-surf.sh. Neither
+  # applies in --edits mode, which keeps an existing manual registration and never reads the base.
+  needs_base_tal="false"
+  if [[ "$edits" != "true" ]]
+  then
+    if [[ "$run_seg_pipeline" == "true" ]] && [[ "$run_talairach_registration" == "true" ]]
+    then needs_base_tal="true"
+    fi
+    if [[ "$run_surf_pipeline" == "true" ]] &&
+       { [[ ! -f "$subject_dir/mri/transforms/talairach.lta" ]] ||
+         [[ ! -f "$subject_dir/mri/transforms/talairach_with_skull.lta" ]] ; }
+    then needs_base_tal="true"
+    fi
+  fi
+  if [[ "$needs_base_tal" == "true" ]]
+  then
+    # the same three files talairach-reg.sh copies, so this does not pass a base it would reject
+    missing_tal=()
+    for tal_from_base in talairach.lta talairach.auto.xfm talairach.xfm.lta ; do
+      if [[ ! -f "$sd/$baseid/mri/transforms/$tal_from_base" ]] ; then
+        missing_tal+=("$tal_from_base")
+      fi
+    done
+    if [[ "${#missing_tal[@]}" -gt 0 ]] ; then
+      {
+        # kept word for word the same as the check in talairach-reg.sh, so the two do not drift
+        # into describing the same problem differently
+        echo "ERROR: The base $baseid has no talairach registration, missing ${missing_tal[*]}"
+        echo "  in $sd/$baseid/mri/transforms. A longitudinal time point copies these from the"
+        echo "  base, so the base has to be segmented with --tal_reg first. With"
+        echo "  long_fastsurfer.sh that is the template_seg stage, or directly:"
+        echo "    run_fastsurfer.sh --sid $baseid --base --seg_only --tal_reg ..."
+      } | tee -a "$tmpLF"
+      exit 1
+    fi
+  fi
 fi
 
-if [[ "$run_seg_pipeline" == "1" ]] && { [[ -z "$t1" ]] || [[ ! -f "$t1" ]]; }
+if [[ "$run_seg_pipeline" == "true" ]] && { [[ -z "$t1" ]] || [[ ! -f "$t1" ]]; }
 then
   echo "ERROR: T1 image ($t1) could not be found. You must supply an existing T1 input"
   echo "  (full head) via --t1 <absolute path and name> for generating the segmentation."
@@ -788,12 +989,68 @@ then
   exit 1
 fi
 
+if [[ -n "$lesion_mask" ]] && [[ ! -f "$lesion_mask" ]]
+then
+  echo "ERROR: Lesion mask file $lesion_mask could not be found. You must supply an existing lesion mask"
+  echo "  via --lesion_mask <absolute path and name> for generating the inpainting."
+  exit 1
+fi
+
+if [[ -f "$lit_mask_output" ]] && [[ -f "$lit_inpainting_result" ]]
+then
+  lit_outputs_exist="true"
+  {
+    echo "INFO: Detected LIT inpainting outputs in $subject_dir."
+    echo "  LIT postprocessing will be enabled for downstream processing."
+  } | tee -a "$tmpLF"
+elif [[ -f "$lit_mask_output" ]] || [[ -f "$lit_inpainting_result" ]]
+then
+  echo "ERROR: Incomplete LIT outputs detected in $subject_dir."
+  echo "  Expected both $lit_mask_output and $lit_inpainting_result."
+  exit 1
+fi
+
+if [[ "$edits" == "true" ]] && [[ "$run_lit_module" == "true" ]] && [[ "$lit_outputs_exist" != "true" ]]
+then
+  echo "ERROR: --edits was called with --lesion_mask, but no existing LIT outputs were detected."
+  echo "  Re-run without --edits to activate LIT from a clean segmentation run, or"
+  echo "  remove --lesion_mask to keep LIT activation consistent with the previous run."
+  exit 1
+fi
+
+if [[ "$edits" == "true" ]] && [[ "$lit_outputs_exist" == "true" ]] && [[ "$run_lit_module" != "true" ]]
+then
+  echo "ERROR: Existing LIT outputs were detected, but this --edits run was not called"
+  echo "  with --lesion_mask. Re-run with the same LIT activation as the previous run."
+  exit 1
+fi
+
+if [[ "$run_seg_pipeline" != "true" ]] && [[ "$run_surf_pipeline" == "true" ]] && [[ -f "$lit_postprocessing_summary" ]]
+then
+  echo "ERROR: Existing LIT postprocessing outputs were detected in $subject_dir,"
+  echo "  but --surf_only after LIT postprocessing is not supported."
+  echo "  Re-run the full pipeline with --lesion_mask if surface outputs are needed."
+  exit 1
+fi
+
+if [[ "$run_seg_pipeline" == "true" ]] && [[ "$run_surf_pipeline" != "true" ]] && [[ "$run_lit_module" == "true" ]]
+then
+  {
+    echo "WARNING: --seg_only with --lesion_mask will run LIT postprocessing for"
+    echo "  segmentation outputs. A later --surf_only run on this subject is not"
+    echo "  supported; run the full pipeline with --lesion_mask if surfaces are needed."
+  } | tee -a "$tmpLF"
+fi
+
 ## make sure +eo are unset
 set +eo > /dev/null
 
 ########################################## START ########################################################
 mkdir -p "$(dirname "$seg_log")"
+mkdir -p "$(dirname "$exec_time_log")"
 
+
+wrap=("time_it" "$exec_time_log")
 
 if [[ -f "$seg_log" ]]; then log_existed="true" ; else log_existed="false" ; fi
 
@@ -806,6 +1063,12 @@ if [[ -f "$seg_log" ]]; then log_existed="true" ; else log_existed="false" ; fi
   date 2>&1
   echo ""
   echo "Log file for FastSurfer pipeline, run_fastsurfer.sh and segmentation(s)"
+  echo "Invocation: $invocation_command"
+  echo ""
+  # --fingerprint records what this host computes, so two logs can be compared for whether the
+  # runs were comparable at all. Once here rather than in each network: it describes the machine,
+  # not the process. The thread counts are left out for the opposite reason, they are per network.
+  $python "$FASTSURFER_HOME/FastSurferCNN/host_info.py" --fingerprint 2>&1
 } | tee -a "$seg_log"
 
 ### IF tmpLF exists, it has been created with a warning or similar, copy that warning to seg_log now
@@ -813,32 +1076,61 @@ if [[ -f "$tmpLF" ]] ; then cat "$tmpLF" >> "$seg_log" ; rm "$tmpLF" ; fi
 # from now on, we can and will log to LF directly
 
 ### IF THE SCRIPT GETS TERMINATED, ADD A MESSAGE
+# shellcheck disable=SC2064
 trap "{ echo \"run_fastsurfer.sh terminated via signal at \$(date -R)!\" | tee -a \"$seg_log\" ; }" SIGINT SIGTERM
 
 # create the build log, file with all version info in parallel
 # uses ${version_cache_args}, which is filled exactly if a build_cache file exists
-printf "%s %s\n%s\n" "$THIS_SCRIPT" "${inputargs[*]}" "$(date -R)" >> "$build_log"
-$python "$FASTSURFER_HOME/FastSurferCNN/version.py" --sections all -o "$build_log" "${version_cache_args[@]}" &
+# Limit the runtime if the platform can: timeout is GNU coreutils, absent on macOS (gtimeout when
+# coreutils is installed via homebrew). Running unbounded is an acceptable fallback rather than a
+# compromise, because version.py already puts a 10s timeout on every subprocess it spawns (git,
+# md5sum, pip) and so cannot hang indefinitely; this is only a second line of defence. Without the
+# fallback the command just fails on macOS and the invocation block below is never appended.
+# A function, not an array: "${arr[@]}" on an empty array is an error under `set -u` in bash 3.2,
+# which is what macOS ships.
+function run_with_timeout()
+{
+  if command -v timeout > /dev/null 2>&1 ; then timeout 20 "$@"
+  elif command -v gtimeout > /dev/null 2>&1 ; then gtimeout 20 "$@"
+  else "$@"
+  fi
+}
+(
+  if run_with_timeout $python "$FASTSURFER_HOME/FastSurferCNN/version.py" --sections all -o "$build_log" "${version_cache_args[@]}"
+  then
+    {
+      echo ""
+      echo "=========="
+      echo "invocation:"
+      echo "=========="
+      echo "$invocation_command"
+      date -R
+    } >> "$build_log"
+  fi
+) &
 
-if [[ "$run_seg_pipeline" != "1" ]]
+if [[ "$run_seg_pipeline" != "true" ]]
 then
   {
     echo "INFO: Running run_fastsurfer.sh without segmentation pipeline;"
-    echo "  expecting previous --seg_only run in ${sd}/${subject}."
+    echo "  expecting previous --seg_only run in $subject_dir."
   } | tee -a "$seg_log"
 fi
 
-pushd "${sd}/${subject}" > /dev/null || { echo "Could not access ${sd}/${subject}!" ; exit 1 ; }
-  function filter_log_build()
-  {
-    # filter expected files $LF and scripts/BUILD.log
-    IFS=""
-    while read -r file ; do
-      if [[ "${sd}/${subject}/${file:2}" != "$seg_log" ]] && [[ "$file" != "./scripts/BUILD.log" ]] ; then echo "$file" ; fi
-    done
-  }
+function filter_log_build()
+{
+  # filter expected files $LF and scripts/BUILD.log
+  IFS=""
+  while read -r file ; do
+    if [[ "$sd/$subject/${file:2}" != "$seg_log" ]] && [[ "$file" != "./scripts/BUILD.log" ]] ; then echo "$file" ; fi
+  done
+}
 
-  mapfile -t content_of_subject_dir < <(find "." -type f | filter_log_build)
+pushd "$subject_dir" > /dev/null || { echo "ERROR: Could not access $subject_dir!" ; exit 1 ; }
+  # read into the array rather than with mapfile, which is bash 4+ while macOS ships bash 3.2
+  content_of_subject_dir=()
+  while IFS= read -r found_file ; do content_of_subject_dir+=("$found_file") ; done \
+    < <(find "." -type f | filter_log_build)
 popd > /dev/null || exit 1
 if [[ "${#content_of_subject_dir[@]}" -gt 1 ]] ; then
   if [[ "$edits" == "true" ]] ; then LABEL="INFO" ; else LABEL="WARNING" ; fi
@@ -846,34 +1138,105 @@ if [[ "${#content_of_subject_dir[@]}" -gt 1 ]] ; then
     echo "$LABEL: Found ${#content_of_subject_dir[@]} files in subject directory \$SUBJECTS_DIR/$subject:"
     files=("${content_of_subject_dir[@]:0:6}")
     if [[ "${#content_of_subject_dir[@]}" -gt 6 ]] ; then files+=("...") ; fi
-    echo " Potentially Overwriting: ${files[*]}"
+    echo "  Potentially Overwriting: ${files[*]}"
   } | tee -a "$seg_log"
 fi
 
 asegdkt_segfile_manedit=$(add_file_suffix "$asegdkt_segfile" "manedit")
 
-if [[ "$run_seg_pipeline" == "1" ]]
+# ============= Copying the input into the subject directory ==================
+# Runs for both pipelines, so that a segmentation-only run leaves behind the rawavg a later
+# surface-only run on the same directory needs.
+# This is deliberately before the LIT module, which replaces $t1 with the inpainted image: rawavg
+# feeds the gray/white contrast, and measuring that on inpainted voxels would report synthetic
+# tissue. Sampling the original is the better of the two; masking the lesion out of the contrast
+# computation would be better still and is not done here.
+# --base and --long archive no T1: their $t1 is not a user input but an image the pipeline built
+# itself, and long_prepare_template.sh already archived the time point inputs it was built from.
+# A --long T2 is the user's own image, so copy_input.py archives it all the same.
+# --base needs no rawavg either, since it skips pctsurfcon, the one consumer.
+if [[ -n "$t1" ]] && [[ -f "$t1" ]] && [[ "$base" != "true" ]]
 then
+  echo "MODULE: Input copy" >> "$exec_time_log"
+  {
+    cmd=($python "${fastsurfercnndir}/copy_input.py" --t1 "$t1" --sd "$sd" --sid "$subject")
+    if [[ -n "$t2" ]] && [[ -f "$t2" ]] ; then cmd+=(--t2 "$t2") ; fi
+    if [[ "$long" == "true" ]] ; then cmd+=(--rawavg_only) ; fi
+    echo "INFO: Copying the input to $subject_dir/mri/orig and creating rawavg..."
+    echo_quoted "${cmd[@]}"
+    "${wrap[@]}" "${cmd[@]}" 2>&1
+    exit $?  # this will only terminate the subshell
+  } | tee -a "$seg_log"
+  if [[ "${PIPESTATUS[0]}" != 0 ]]
+  then
+    echo "ERROR: Copying the input failed!" | tee -a "$seg_log"
+    exit 1
+  fi
+fi
+
+if [[ "$run_seg_pipeline" == "true" ]]
+then
+  # ============= Running LIT Inpainting ========================================
+  if [[ "$run_lit_module" == "true" ]]
+  then
+      echo "MODULE: LIT (lesion inpainting)" >> "$exec_time_log"
+      {
+        echo "========================================================="
+        echo "Running LIT Inpainting..."
+        echo "========================================================="
+      } | tee -a "$seg_log"
+      cmd=($python -m neurolit.cli "--input_image" "$t1" "--lesion_mask" "$lesion_mask" "--sd" "$subject_dir" "--fastsurfer_dir")
+      if [[ "$native_image" != "false" ]] ; then cmd+=(--keepgeom) ; fi
+      echo_quoted "${cmd[@]}" | tee -a "$seg_log"
+      "${wrap[@]}" "${cmd[@]}" 2>&1 | tee -a "$seg_log"
+      exit_code="${PIPESTATUS[0]}"
+      if [[ "${exit_code}" != 0 ]]
+      then
+        echo "ERROR: LIT Inpainting failed!" | tee -a "$seg_log"
+        exit 1
+      fi
+      if [[ -f "$lit_inpainting_result" ]] && [[ -f "$lit_mask_output" ]]
+      then
+        lit_outputs_exist="true"
+        t1="$lit_inpainting_result"
+        {
+          echo "Using inpainted T1: $t1"
+          echo "========================================================="
+        } | tee -a "$seg_log"
+      else
+        {
+          echo "ERROR: Incomplete LIT outputs detected after inpainting."
+          echo "  Expected both $lit_inpainting_result and $lit_mask_output."
+        } | tee -a "$seg_log"
+        exit 1
+      fi
+  fi
+
+
+  echo "SEGMENTATION PIPELINE" >> "$exec_time_log"
+  echo "=====================" >> "$exec_time_log"
+
   # "============= Running FastSurferCNN (Creating Segmentation aparc.DKTatlas.aseg.mgz) ==============="
   # use FastSurferCNN to create cortical parcellation + anatomical segmentation into 95 classes.
 
-  if [[ "$run_asegdkt_module" == "1" ]]
+  if [[ "$run_asegdkt_module" == "true" ]]
   then
-    cmd=($python "$fastsurfercnndir/run_prediction.py" --t1 "$t1"
-         --asegdkt_segfile "$asegdkt_segfile" --conformed_name "$conformed_name"
-         --brainmask_name "$mask_name" --aseg_name "$aseg_segfile" --sid "$subject"
-         --seg_log "$seg_log" --vox_size "$vox_size" --batch_size "$batch_size"
-         --viewagg_device "$viewagg" --device "$device" --threads "$threads_seg")
+    echo "MODULE: FastSurferVINN aseg+DKT segmentation" >> "$exec_time_log"
+    cmd=($python "$fastsurfercnndir/run_prediction.py" --t1 "$t1" --sid "$subject" --asegdkt_segfile "$asegdkt_segfile"
+         --conformed_name "$conformed_name" --brainmask_name "$mask_name" --seg_log "$seg_log" --vox_size "$vox_size"
+         --aseg_name "$aseg_segfile" --batch_size "$batch_size" --viewagg_device "$viewagg" --device "$device"
+         --threads "$threads_seg")
     # specify the subject dir $sd, if asegdkt_segfile explicitly starts with it
-    if [[ "$sd" == "${asegdkt_segfile:0:${#sd}}" ]]; then cmd=("${cmd[@]}" --sd "$sd"); fi
+    if [[ "$sd" == "${asegdkt_segfile:0:${#sd}}" ]] ; then cmd+=(--sd "$sd") ; fi
+    if [[ "$native_image" != "false" ]] ; then cmd+=(--orientation native --image_size fov) ; fi
     echo_quoted "${cmd[@]}" | tee -a "$seg_log"
-    "${cmd[@]}"
+    "${wrap[@]}" "${cmd[@]}"
     exit_code="${PIPESTATUS[0]}"
     if [[ "${exit_code}" == 2 ]]
     then
       echo "ERROR: FastSurfer asegdkt segmentation failed QC checks." | tee -a "$seg_log"
       exit 1
-    elif [[ "${exit_code}" -ne 0 ]]
+    elif [[ "${exit_code}" != 0 ]]
     then
       echo "ERROR: FastSurfer asegdkt segmentation failed." | tee -a "$seg_log"
       exit 1
@@ -883,17 +1246,16 @@ then
       if [[ "$edits" == "true" ]]
       then
         {
-          echo "INFO: $asegdkt_segfile_manedit (manedit file for <asegdkt_segfile>) detected,"
-          echo "  supersedes $asegdkt_segfile <asegdkt_segfile> for creation of $aseg_segfile"
-          echo "  and $mask_name!"
+          echo "INFO: $asegdkt_segfile_manedit (manedit file for <asegdkt_segfile>) detected, supersedes"
+          echo "  $asegdkt_segfile <asegdkt_segfile> for creation of $aseg_segfile and $mask_name!"
         } | tee -a "$seg_log"
         asegdkt_segfile="$asegdkt_segfile_manedit"
         cmd=($python "$fastsurfercnndir/reduce_to_aseg.py" -i "$asegdkt_segfile" -o "$aseg_segfile"
              --outmask "$mask_name" --fixwm)
         echo_quoted "${cmd[@]}" | tee -a "$seg_log"
-        "${cmd[@]}" | tee -a "$seg_log"
+        "${wrap[@]}" "${cmd[@]}" | tee -a "$seg_log"
         exit_code="${PIPESTATUS[0]}"
-        if [[ "${exit_code}" -ne 0 ]]
+        if [[ "${exit_code}" != 0 ]]
         then
           echo "ERROR: Reduction of asegdkt to aseg failed." | tee -a "$seg_log"
           exit 1
@@ -907,117 +1269,159 @@ then
       fi
     fi
   fi
-  if [[ -n "$t2" ]]
-  then
-    {
-      echo "INFO: Copying T2 file to ${copy_name_T2}..."
-      cmd=("nib-convert" "$t2" "$copy_name_T2")
-      echo_quoted "${cmd[@]}"
-      "${cmd[@]}" 2>&1
 
-      echo "INFO: Robust scaling (partial conforming) of T2 image..."
-      cmd=($python "${fastsurfercnndir}/data_loader/conform.py" --no_strict_lia
-           --no_iso_vox --no_img_size -i "$t2" -o "$conformed_name_t2")
-      echo_quoted "${cmd[@]}"
-      "${cmd[@]}" 2>&1
-      echo "Done."
-    } | tee -a "$seg_log"
-  fi
-
-  if [[ "$run_biasfield" == "1" ]]
+  if [[ "$run_biasfield" == "true" ]]
   then
+    echo "MODULE: Biasfield correction" >> "$exec_time_log"
     {
       # this will always run, since norm_name is set to subject_dir/mri/orig_nu.mgz, if it is not passed/empty
-      cmd=($python "${reconsurfdir}/N4_bias_correct.py" "--in" "$conformed_name"
-           --rescale "$norm_name" --aseg "$aseg_segfile" --threads "$threads_seg")
+      cmd=($python "${reconsurfdir}/N4_bias_correct.py" "--in" "$conformed_name" --rescale "$norm_name"
+           --aseg "$aseg_segfile" --threads "$threads_seg")
       echo "INFO: Running N4 bias-field correction..."
       echo_quoted "${cmd[@]}"
-      "${cmd[@]}" 2>&1
+      "${wrap[@]}" "${cmd[@]}" 2>&1
+      exit $?  # this will only terminate the subshell
     } | tee -a "$seg_log"
-    if [[ "${PIPESTATUS[0]}" -ne 0 ]]
+    if [[ "${PIPESTATUS[0]}" != 0 ]]
     then
       echo "ERROR: Biasfield correction failed!" | tee -a "$seg_log"
       exit 1
     fi
+  fi
 
+  # Outside the biasfield block: the registration reads the biasfield corrected image, but does
+  # not need a freshly computed one, so --no_biasfield can reuse what an earlier run wrote.
+  if [[ "$run_talairach_registration" == "true" ]]
+  then
+    if [[ ! -f "$norm_name" ]]
+    then
+      {
+        echo "ERROR: --tal_reg needs the biasfield corrected image, but $norm_name does not exist."
+        echo "  Drop --no_biasfield to compute it, or pass --norm_name to point at an existing one."
+      } | tee -a "$seg_log"
+      exit 1
+    fi
+    cmd=("$reconsurfdir/talairach-reg.sh" "$seg_log" --py "$python" --asegdkt_segfile "$asegdkt_segfile"
+         --dir "$subject_dir/mri" --conformed_name "$conformed_name" --norm_name "$norm_name")
+    # $sd/$baseid, not $basedir: this script only ever sets baseid (from --long), while basedir
+    # belongs to recon-surf.sh, so it expanded empty here and talairach-reg.sh got `--long ""`,
+    # which it rejects with "ERROR: Argument (--long) must be a dir". Built as recon-surf.sh:275
+    # does. Only reachable with --tal_reg and --long together, which is why it went unnoticed.
+    if [[ "$long" == "true" ]] ; then cmd+=(--long "$sd/$baseid") ; fi
+    if [[ "$edits" == "true" ]] ; then cmd+=(--edits) ; fi
+    if [[ "$atlas3T" == "true" ]] ; then cmd+=(--3T) ; fi
+    {
+      echo "INFO: Running talairach registration..."
+      echo_quoted "${cmd[@]}"
+    } | tee -a "$seg_log"
+    "${wrap[@]}" "${cmd[@]}"
+    if [[ "${PIPESTATUS[0]}" != 0 ]]
+    then
+      echo "ERROR: Talairach registration failed!" | tee -a "$seg_log"
+      exit 1
+    fi
+  fi
+
+  # Keyed on the files they are computed from, not on whether the segmentation module ran in
+  # this call, so --tal_reg can be added to a finished subject and the eTIV measures are written
+  # without recomputing the segmentation. Partial volume correction needs the biasfield image.
+  if [[ -f "$norm_name" ]] && [[ -f "$asegdkt_segfile" ]] && [[ -f "$aseg_segfile" ]] &&
+     [[ -f "$mask_name" ]]
+  then
+    # a local, not mask_name itself: that one is handed to recon-surf.sh further down, and which
+    # mask the surfaces are built from is not this block's decision to make
+    mask_for_measure="$mask_name"
+    mask_name_manedit=$(add_file_suffix "$mask_name" "manedit")
+    if [[ -e "$mask_name_manedit" ]] ; then mask_for_measure="$mask_name_manedit" ; fi
+    cmd=($python "${fastsurfercnndir}/segstats.py" --segfile "$asegdkt_segfile" --normfile "$norm_name"
+         --lut "$fastsurfercnndir/config/FreeSurferColorLUT.txt" --sd "${sd}" --sid "${subject}"
+         --threads "$threads_seg" --empty --excludeid 0
+         --ids 2 4 5 7 8 10 11 12 13 14 15 16 17 18 24 26 28 31 41 43 44 46 47 49 50 51 52 53 54 58 60 63 77
+               251 252 253 254 255
+               1002 1003 1005 1006 1007 1008 1009 1010 1011 1012 1013 1014 1015 1016 1017 1018 1019 1020
+               1021 1022 1023 1024 1025 1026 1027 1028 1029 1030 1031 1034 1035
+               2002 2003 2005 2006 2007 2008 2009 2010 2011 2012 2013 2014 2015 2016 2017 2018 2019 2020
+               2021 2022 2023 2024 2025 2026 2027 2028 2029 2030 2031 2034 2035
+         --segstatsfile "$asegdkt_vinn_statsfile"
+         measures --compute "Mask($mask_for_measure)" "BrainSeg" "BrainSegNotVent" "SupraTentorial" "SupraTentorialNotVent"
+                            "SubCortGray" "rhCerebralWhiteMatter" "lhCerebralWhiteMatter" "CerebralWhiteMatter"
+    )
     if [[ "$run_talairach_registration" == "true" ]]
     then
-      cmd=("$reconsurfdir/talairach-reg.sh" "$seg_log"
-           --dir "$sd/$subject/mri" --conformed_name "$conformed_name" --norm_name "$norm_name")
-      if [[ "$long" == "1" ]] ; then cmd+=(--long "$basedir") ; fi
-      if [[ "$edits" == "1" ]] ; then cmd+=(--edits) ; fi
-      if [[ "$atlas3T" == "true" ]] ; then cmd+=(--3T) ; fi
-      {
-        echo "INFO: Running talairach registration..."
-        echo_quoted "${cmd[@]}"
-      } | tee -a "$seg_log"
-      "${cmd[@]}"
-      if [[ "${PIPESTATUS[0]}" -ne 0 ]]
-      then
-        echo "ERROR: Talairach registration failed!" | tee -a "$seg_log"
-        exit 1
-      fi
+      cmd+=("EstimatedTotalIntraCranialVol" "BrainSegVol-to-eTIV" "MaskVol-to-eTIV")
     fi
-
-    if [[ "$run_asegdkt_module" ]]
+    {
+      echo_quoted "${cmd[@]}"
+      "${wrap[@]}" "${cmd[@]}" 2>&1
+      exit $?  # this will only terminate the subshell
+    } | tee -a "$seg_log"
+    if [[ "${PIPESTATUS[0]}" != 0 ]]
     then
-      mask_name_manedit=$(add_file_suffix "$mask_name" "manedit")
-      if [[ -e "$mask_name_manedit" ]] ; then mask_name="$mask_name_manedit" ; fi
-      cmd=($python "${fastsurfercnndir}/segstats.py" --segfile "$asegdkt_segfile"
-           --segstatsfile "$asegdkt_statsfile" --normfile "$norm_name"
-           --threads "$threads_seg" --empty --excludeid 0
-           --sd "${sd}" --sid "${subject}"
-           --ids 2 4 5 7 8 10 11 12 13 14 15 16 17 18 24 26 28 31 41 43 44 46 47
-                 49 50 51 52 53 54 58 60 63 77 251 252 253 254 255 1002 1003 1005
-                 1006 1007 1008 1009 1010 1011 1012 1013 1014 1015 1016 1017 1018
-                 1019 1020 1021 1022 1023 1024 1025 1026 1027 1028 1029 1030 1031
-                 1034 1035 2002 2003 2005 2006 2007 2008 2009 2010 2011 2012 2013
-                 2014 2015 2016 2017 2018 2019 2020 2021 2022 2023 2024 2025 2026
-                 2027 2028 2029 2030 2031 2034 2035
-           --lut "$fastsurfercnndir/config/FreeSurferColorLUT.txt"
-           measures --compute "Mask($mask_name)" "BrainSeg" "BrainSegNotVent"
-                              "SupraTentorial" "SupraTentorialNotVent"
-                              "SubCortGray" "rhCerebralWhiteMatter"
-                              "lhCerebralWhiteMatter" "CerebralWhiteMatter"
-           # make sure to read white matter hypointensities from the
-           )
-      if [[ "$run_talairach_registration" == "true" ]]
-      then
-        cmd+=("EstimatedTotalIntraCranialVol" "BrainSegVol-to-eTIV" "MaskVol-to-eTIV")
-      fi
-      {
-        echo_quoted "${cmd[@]}"
-        "${cmd[@]}" 2>&1
-      } | tee -a "$seg_log"
-      if [[ "${PIPESTATUS[0]}" -ne 0 ]]
-      then
-        echo "ERROR: asegdkt statsfile generation failed!" | tee -a "$seg_log"
-        exit 1
-      fi
+      echo "ERROR: asegdkt statsfile generation failed!" | tee -a "$seg_log"
+      exit 1
     fi
-  fi  # [[ "$run_biasfield" == "1" ]]
+    # create a symlink of the stats file for the old file name
+    # at this point, $asegdkt_vinn_statsfile might be an absolute path, which causes problems in containers, so make
+    # the path relative, if both statsfiles are in $subject_dir (which will be almost always).
+    if [[ "$asegdkt_vinn_statsfile" == "$subject_dir/"* ]] && [[ "$asegdkt_statsfile" == "$subject_dir/"* ]]
+    then asegdkt_vinn_statsfile_=$(relative_to "$python" "$asegdkt_statsfile" "$asegdkt_vinn_statsfile")
+    else asegdkt_vinn_statsfile_=$asegdkt_vinn_statsfile
+    fi
+    softlink_or_copy "$asegdkt_vinn_statsfile_" "$asegdkt_statsfile" "$seg_log"
+    # create the aseg only statsfile. No mask here: it imports every measure from the file above,
+    # including Mask, so it needs no mask of its own
+    cmd=($python "${fastsurfercnndir}/segstats.py" --segfile "$aseg_segfile" --normfile "$norm_name"
+         --lut "$fastsurfercnndir/config/FreeSurferColorLUT.txt" --sd "${sd}" --sid "${subject}"
+         --threads "$threads_seg" --empty --excludeid 0
+         --ids 2 4 3 5 7 8 10 11 12 13 14 15 16 17 18 24 26 28 31 41 42 43 44 46 47 49 50 51 52 53 54 58 60 63 77
+         --segstatsfile "$aseg_vinn_statsfile"
+         measures --import "all" --file "$asegdkt_vinn_statsfile"
+    )
+    {
+      echo_quoted "${cmd[@]}"
+      "${wrap[@]}" "${cmd[@]}" 2>&1
+      exit $?  # this will only terminate the subshell
+    } | tee -a "$seg_log"
+    if [[ "${PIPESTATUS[0]}" != 0 ]]
+    then
+      echo "ERROR: asegdkt statsfile generation failed!" | tee -a "$seg_log"
+      exit 1
+    fi
+  fi
 
   if [[ -n "$t2" ]]
   then
-    if [[ "$run_biasfield" == "1" ]]
+    echo "MODULE: T2 preprocessing" >> "$exec_time_log"
+    {
+      echo "INFO: Robust scaling (partial conforming) of T2 image..."
+      cmd=($python "${fastsurfercnndir}/data_loader/conform.py" --orientation native --vox_size any --img_size any
+           -i "$t2" -o "$conformed_name_t2")
+      echo_quoted "${cmd[@]}"
+      "${wrap[@]}" "${cmd[@]}" 2>&1
+      exit_code=$?
+      echo "Done."
+      exit $exit_code  # this will only terminate the subshell
+    } | tee -a "$seg_log"
+    if [[ "${PIPESTATUS[0]}" != 0 ]] ; then echo "ERROR: Robust scaling of T2 failed!" | tee -a "$seg_log" ; exit 1 ; fi
+    if [[ "$run_biasfield" == "true" ]]
     then
       # ... we have a t2 image, bias field-correct it (save robustly scaled uchar)
-      cmd=($python "${reconsurfdir}/N4_bias_correct.py" "--in" "$copy_name_T2"
-           --out "$norm_name_t2" --threads "$threads_seg" --uchar)
+      cmd=($python "${reconsurfdir}/N4_bias_correct.py" "--in" "$rawavg_name_t2" --out "$norm_name_t2"
+           --threads "$threads_seg" --uchar)
       {
         echo "INFO: Running N4 bias-field correction of the t2..."
         echo_quoted "${cmd[@]}"
       } | tee -a "$seg_log"
-      "${cmd[@]}" 2>&1 | tee -a "$seg_log"
-      if [[ "${PIPESTATUS[0]}" -ne 0 ]]
+      "${wrap[@]}" "${cmd[@]}" 2>&1 | tee -a "$seg_log"
+      if [[ "${PIPESTATUS[0]}" != 0 ]]
       then
         echo "ERROR: T2 Biasfield correction failed!" | tee -a "$seg_log"
         exit 1
       fi
     else
       # no biasfield, but a t2 is passed; presumably, this is biasfield corrected
-      cmd=($python "${fastsurfercnndir}/data_loader/conform.py" --no_strict_lia
-           --no_iso_vox --no_img_size "$t2" "$norm_name_t2")
+      cmd=($python "${fastsurfercnndir}/data_loader/conform.py" --orientation native --vox_size any --img_size any
+           -i "$t2" -o "$norm_name_t2")
       {
         echo "INFO: Robustly rescaling $t2 to uchar ($norm_name_t2), which is"
         echo "  assumed to already be biasfield-corrected."
@@ -1025,78 +1429,265 @@ then
         echo "  passed T2 image is properly scaled and typed. T2 needs to be uchar and"
         echo "  robustly scaled (see FastSurferCNN/utils/data_loader/conform.py)!"
       } | tee -a "$seg_log"
-      "${cmd[@]}" 2>&1 | tee -a "$seg_log"
+      "${wrap[@]}" "${cmd[@]}" 2>&1 | tee -a "$seg_log"
+      if [[ "${PIPESTATUS[0]}" != 0 ]]
+      then
+        echo "ERROR: Rescaling the T2 failed!" | tee -a "$seg_log"
+        exit 1
+      fi
+    fi
+
+    hypvinn_t2="$norm_name_t2"
+    # In a longitudinal time point, --reg_mode none says the T2 is co-registered with the T1 passed
+    # for this time point, but HypVINN gets that T1 resampled into template space. So the T2 gets the
+    # transform long_prepare_template.sh used for the T1, resliced onto exactly the T1 the HypVINN
+    # call below reads, after which the two share a grid and there is nothing left to register.
+    if [[ "$long" == "true" ]] && [[ "$hypvinn_regmode" == "none" ]]
+    then
+      tp_to_base_lta="$sd/$baseid/mri/transforms/${subject}_to_${baseid}.lta"
+      if [[ ! -f "$tp_to_base_lta" ]]
+      then
+        echo "ERROR: With --reg_mode none, the T2 is mapped into template space by $tp_to_base_lta," | tee -a "$seg_log"
+        echo "  which long_prepare_template.sh writes, but it does not exist." | tee -a "$seg_log"
+        exit 1
+      fi
+      if [[ "$run_biasfield" == "true" ]] ; then hypvinn_t1="$norm_name" ; else hypvinn_t1="$t1" ; fi
+      hypvinn_t2="$subject_dir/mri/T2_nu.base.mgz"
+      cmd=(mri_convert -at "$tp_to_base_lta" --reslice_like "$hypvinn_t1" -rt cubic "$norm_name_t2" "$hypvinn_t2")
+      {
+        echo "INFO: Mapping the T2 into template space with the transform of this time point's T1..."
+        echo_quoted "${cmd[@]}"
+        "${wrap[@]}" "${cmd[@]}" 2>&1
+        exit $?  # this will only terminate the subshell
+      } | tee -a "$seg_log"
+      if [[ "${PIPESTATUS[0]}" != 0 ]]
+      then
+        echo "ERROR: Mapping the T2 into template space failed!" | tee -a "$seg_log"
+        exit 1
+      fi
     fi
   fi
 
-  if [[ "$run_cereb_module" == "1" ]]
+  if [[ "$run_cc_module" == "true" ]]
   then
-    if [[ "$run_biasfield" == "1" ]]
+    # ============================= CC SEGMENTATION ============================================
+
+    echo "MODULE: FastSurfer-CC Corpus Callosum processing" >> "$exec_time_log"
+    # generate file names of for the analysis
+    callosum_upright_seg="$subject_dir/mri/callosum.CC.upright.mgz"
+    callosum_upright_seg_manedit="$(add_file_suffix "$callosum_upright_seg" "manedit")"
+    callosum_seg_manedit="$(add_file_suffix "$callosum_seg" "manedit")"
+    if [[ -f "$callosum_seg_manedit" ]] && [[ ! -f "$callosum_upright_seg_manedit" ]]
+    then
+      {
+        echo "ERROR: Legacy original-space CC edit $callosum_seg_manedit detected without"
+        echo "  $callosum_upright_seg_manedit. Edit the upright segmentation instead; the"
+        echo "  original-space manedit file is generated automatically during the edit rerun."
+      } | tee -a "$seg_log"
+      exit 1
+    fi
+    if [[ -f "$callosum_upright_seg_manedit" ]]
+    then
+      if [[ "$edits" == "true" ]]
+      then
+        cc_flags+=(--segmentation_manedit "$callosum_upright_seg_manedit")
+      else
+        {
+          echo "ERROR: $callosum_upright_seg_manedit (manedit file for the upright CC segmentation) detected,"
+          echo "  but --edits was not passed. Delete the manedit file or add --edits."
+        } | tee -a "$seg_log"
+        exit 1
+      fi
+    fi
+    # generate callosum segmentation, mesh, shape and downstream measure files
+    cmd=($python "$CorpusCallosumDir/fastsurfer_cc.py" --sd "$sd" --sid "$subject" --seg_log "$seg_log"
+         "--threads" "$threads_seg" "--conformed_name" "$conformed_name" "--aseg_name" "$aseg_segfile"
+         "--segmentation_in_orig" "$callosum_seg" "${cc_flags[@]}")
+    echo_quoted "${cmd[@]}" | tee -a "$seg_log"
+    # The upright and acpc transforms this writes come out of a decomposition, so which vectorised
+    # kernels numpy and OpenBLAS pick decides their last digits, and the curvature measures derived
+    # from them amplify that into percent. Same pinning as the spherical projection and the
+    # talairach registration. In a subshell, so the rest of this script keeps the kernels it had.
+    if pins=$($python "${reconsurfdir}/pin_cpu_dispatch.py") ; then
+      echo "$pins" | tee -a "$seg_log"  # what was pinned, and any warning, as shell comments
+    else
+      {
+        echo "WARNING: could not pin the cpu dispatch, so the callosum shape measures may not"
+        echo "  reproduce on other hardware."
+      } | tee -a "$seg_log"
+      pins=""
+    fi
+    (
+      eval "$pins"
+      "${wrap[@]}" "${cmd[@]}"  # no tee, directly logging to $seg_log
+    )
+    exit_code=$?
+    if [[ "$exit_code" != 0 ]] ; then
+      echo "ERROR: FastSurferCC corpus callosum analysis failed!" | tee -a "$seg_log"
+      exit "$exit_code"
+    fi
+    if [[ "$edits" == "true" ]] && [[ -f "$callosum_upright_seg_manedit" ]]
+    then
+      callosum_seg="$callosum_seg_manedit"
+    fi
+    {
+      # add CC into aparc.DKTatlas+aseg.deep.mgz and aseg.auto.mgz as mri_cc did before.
+      cmd=($python "$CorpusCallosumDir/paint_cc_into_pred.py" -in_cc "$callosum_seg" -in_pred "$asegdkt_segfile"
+           "-out" "$asegdkt_withcc_segfile" "-aseg" "$aseg_auto_segfile")
+      if [[ "$native_image" != "false" ]] ; then cmd+=(--keepgeom) ; fi
+      echo_quoted "${cmd[@]}"
+      "${wrap[@]}" "${cmd[@]}"
+      if [[ "${PIPESTATUS[0]}" != 0 ]] ; then echo "ERROR: asegdkt cc inpainting failed!" ; exit 1 ; fi
+    } 2>&1 | tee -a "$seg_log"
+    # forward the subshell exit to the main script. Capture first: the [[ ]] below overwrites
+    # PIPESTATUS, so re-reading it inside the branch exited 0 and the failure was reported as success
+    exit_code="${PIPESTATUS[0]}"
+    if [[ "$exit_code" != 0 ]]; then exit "$exit_code"; fi
+  fi
+
+  # Keyed on the files they read rather than on run_cc_module, like the asegdkt and aseg stats
+  # above and for the same reason: both carry eTIV, so adding --tal_reg to a subject that is
+  # already processed has to rewrite them without the corpus callosum being segmented again. The
+  # normfile is needed because they are partial volume corrected, and the asegdkt statsfile
+  # because the first of the two imports its measures; the block above writes it in a full run,
+  # but these two are guarded separately now and should not assume what ran before them.
+  if [[ -f "$norm_name" ]] && [[ -f "$asegdkt_withcc_segfile" ]] && [[ -f "$aseg_auto_segfile" ]] &&
+     [[ -f "$asegdkt_vinn_statsfile" ]]
+  then
+    {
+      cmd=($python "${fastsurfercnndir}/segstats.py" --segfile "$asegdkt_withcc_segfile" --normfile "$norm_name"
+           --lut "$fastsurfercnndir/config/FreeSurferColorLUT.txt" --sd "${sd}" --sid "${subject}"
+           --ids 2 4 5 7 8 10 11 12 13 14 15 16 17 18 24 26 28 31 41 43 44 46 47 49 50 51 52 53
+                 54 58 60 63 77 251 252 253 254 255
+                 1002 1003 1005 1006 1007 1008 1009 1010 1011 1012 1013 1014 1015 1016 1017 1018
+                 1019 1020 1021 1022 1023 1024 1025 1026 1027 1028 1029 1030 1031 1034 1035
+                 2002 2003 2005 2006 2007 2008 2009 2010 2011 2012 2013 2014 2015 2016 2017 2018
+                 2019 2020 2021 2022 2023 2024 2025 2026 2027 2028 2029 2030 2031 2034 2035
+           --threads "$threads_seg" --empty --excludeid 0
+           --segstatsfile "$asegdkt_withcc_vinn_statsfile"
+           measures
+           # the following measures are unaffected by CC and do not need to be recomputed
+           --import SubCortGray Mask
+      )
+      if [[ "$run_talairach_registration" == "true" ]]
+      then
+        # eTIV comes from the talairach transform and Mask is imported above, so neither they nor
+        # their ratio change with the corpus callosum
+        cmd+=("EstimatedTotalIntraCranialVol" "MaskVol-to-eTIV")
+      fi
+      cmd+=(--file "$asegdkt_vinn_statsfile"
+            # recompute the measures changes coming from CC inpainting (only SubCortGray does not change)
+            --compute BrainSeg BrainSegNotVent SupraTentorial SupraTentorialNotVent
+                      rhCerebralWhiteMatter lhCerebralWhiteMatter CerebralWhiteMatter
+      )
+      if [[ "$run_talairach_registration" == "true" ]]
+      then
+        # computed, not imported: BrainSeg changes with the corpus callosum, so the ratio has to
+        # follow the value recomputed above rather than be copied from the file without it
+        cmd+=("BrainSegVol-to-eTIV")
+      fi
+      echo_quoted "${cmd[@]}"
+      "${wrap[@]}" "${cmd[@]}"
+      exit_code=${PIPESTATUS[0]}
+      if [[ "$exit_code" != 0 ]] ; then
+        echo "ERROR: asegdkt statsfile ($asegdkt_withcc_segfile) generation failed!"
+        exit "$exit_code"
+        # this will only terminate the subshell
+      fi
+    } 2>&1 | tee -a "$seg_log"
+    # forward the subshell exit to the main script. Capture first: the [[ ]] below overwrites
+    # PIPESTATUS, so re-reading it inside the branch exited 0 and the failure read as success
+    exit_code="${PIPESTATUS[0]}"
+    if [[ "$exit_code" != 0 ]]; then exit "$exit_code"; fi
+
+    {
+      cmd=($python "${fastsurfercnndir}/segstats.py" --segfile "$aseg_auto_segfile" --normfile "$norm_name"
+           --lut "$fastsurfercnndir/config/FreeSurferColorLUT.txt" --sd "${sd}" --sid "${subject}"
+           --threads "$threads_seg" --empty --excludeid 0
+           --ids 2 4 3 5 7 8 10 11 12 13 14 15 16 17 18 24 26 28 31 41 42 43 44 46 47 49 50 51 52 53 54 58 60 63 77
+                 251 252 253 254 255
+           --segstatsfile "$aseg_auto_statsfile"
+           measures --import "all" --file "$asegdkt_withcc_vinn_statsfile"
+      )
+      echo_quoted "${cmd[@]}"
+      "${wrap[@]}" "${cmd[@]}" 2>&1
+      if [[ "${PIPESTATUS[0]}" != 0 ]] ; then echo "ERROR: aseg statsfile ($aseg_auto_segfile) failed!" ; exit 1 ; fi
+    } | tee -a "$seg_log"
+    if [[ "${PIPESTATUS[0]}" != 0 ]] ; then exit 1; fi # forward subshell exit to main script
+  fi
+
+  if [[ "$run_cereb_module" == "true" ]]
+  then
+    echo "MODULE: CerebNet cerebellum segmentation" >> "$exec_time_log"
+    # the normfile, not run_biasfield: it is only read for the partial volume corrected statistics,
+    # and the image an earlier run wrote serves as well as one computed here
+    if [[ -f "$norm_name" ]]
     then
       cereb_flags+=(--norm_name "$norm_name" --cereb_statsfile "$cereb_statsfile")
     else
       {
-        echo "INFO: Running CerebNet without generating a statsfile, since biasfield"
-        echo "  correction deactivated '--no_biasfield'..."
+        echo "INFO: Running CerebNet without generating a statsfile, since the biasfield"
+        echo "  corrected image ($norm_name) does not exist..."
       } | tee -a "$seg_log"
     fi
 
-    cmd=($python "$cerebnetdir/run_prediction.py" --t1 "$t1"
-         --asegdkt_segfile "$asegdkt_segfile" --conformed_name "$conformed_name"
-         --cereb_segfile "$cereb_segfile" --seg_log "$seg_log" --async_io
-         --batch_size "$batch_size" --viewagg_device "$viewagg" --device "$device"
-         --threads "$threads_seg" "${cereb_flags[@]}")
-    # specify the subject dir $sd, if asegdkt_segfile explicitly starts with it
-    if [[ "$sd" == "${cereb_segfile:0:${#sd}}" ]] ; then cmd=("${cmd[@]}" --sd "$sd"); fi
+    cmd=($python "$cerebnetdir/run_prediction.py" --t1 "$t1" --asegdkt_segfile "$asegdkt_segfile" --seg_log "$seg_log"
+         --conformed_name "$conformed_name" --cereb_segfile "$cereb_segfile" --async_io --batch_size "$batch_size"
+         --viewagg_device "$viewagg" --device "$device" --threads "$threads_seg" "${cereb_flags[@]}")
+    # specify the subject dir $sd, if cereb_segfile explicitly starts with it
+    if [[ "$sd" == "${cereb_segfile:0:${#sd}}" ]] ; then cmd+=(--sd "$sd"); fi
+    if [[ "$native_image" != "false" ]] ; then cmd+=(--orientation native --image_size fov --vox_size none) ; fi
     echo_quoted "${cmd[@]}" | tee -a "$seg_log"
-    "${cmd[@]}"  # no tee, directly logging to $seg_log
-    if [[ "${PIPESTATUS[0]}" -ne 0 ]]
+    "${wrap[@]}" "${cmd[@]}"  # no tee, directly logging to $seg_log
+    if [[ "${PIPESTATUS[0]}" != 0 ]]
     then
       echo "ERROR: Cerebellum Segmentation failed!" | tee -a "$seg_log"
       exit 1
     fi
   fi
 
-  if [[ "$run_hypvinn_module" == "1" ]]
+  if [[ "$run_hypvinn_module" == "true" ]]
   then
-        # currently, the order of the T2 preprocessing only is registration to T1w
-    cmd=($python "$hypvinndir/run_prediction.py" --sd "${sd}" --sid "${subject}"
-         "${hypvinn_flags[@]}" --reg_mode "$hypvinn_regmode" --threads "$threads_seg" --async_io
-         --batch_size "$batch_size" --seg_log "$seg_log" --device "$device"
-         --viewagg_device "$viewagg" --t1)
-    if [[ "$run_biasfield" == "1" ]]
+    echo "MODULE: HypVINN hypothalamus segmentation" >> "$exec_time_log"
+    # currently, the order of the T2 preprocessing only is registration to T1w
+    # before --t1, which takes the value appended below
+    cmd=($python "$hypvinndir/run_prediction.py" --sd "${sd}" --sid "${subject}" --reg_mode "$hypvinn_regmode"
+         "${hypvinn_flags[@]}" --threads "$threads_seg" --async_io --batch_size "$batch_size" --seg_log "$seg_log"
+         --device "$device" --viewagg_device "$viewagg"
+         --hypo_segfile "$hypo_segfile" --hypo_statsfile "$hypo_statsfile" --t1)
+    if [[ "$run_biasfield" == "true" ]]
     then
       cmd+=("$norm_name")
-      if [[ -n "$t2" ]] ; then cmd+=(--t2 "$norm_name_t2"); fi
+      if [[ -n "$t2" ]] ; then cmd+=(--t2 "$hypvinn_t2") ; fi
     else
       {
         echo "WARNING: We strongly recommend to *not* exclude the biasfield (--no_biasfield)"
         echo "  with the hypothal module!"
       } | tee -a "$seg_log"
       cmd+=("$t1")
-      if [[ -n "$t2" ]] ; then cmd+=(--t2 "$t2"); fi
+      if [[ -n "$t2" ]] ; then cmd+=(--t2 "$hypvinn_t2") ; fi
     fi
     echo_quoted "${cmd[@]}" | tee -a "$seg_log"
-    "${cmd[@]}"
-    if [[ "${PIPESTATUS[0]}" -ne 0 ]]
+    "${wrap[@]}" "${cmd[@]}" # no tee, directly logging to $seg_log
+    if [[ "${PIPESTATUS[0]}" != 0 ]]
     then
       echo "ERROR: Hypothalamus Segmentation failed!" | tee -a "$seg_log"
       exit 1
     fi
   fi
 
-#    if [[ ! -f "$merged_segfile" ]]
-#      then
-#        ln -s -r "$asegdkt_segfile" "$merged_segfile"
-#    fi
 else # not running segmentation pipeline
   # Replace asegdkt_segfile and aseg_segfile variables with manedit file here,
   # if the manedit exists, so recon-surf uses the manedit file.
   if [[ -e "$asegdkt_segfile_manedit" ]] ; then asegdkt_segfile="$asegdkt_segfile_manedit" ; fi
 fi
 
-if [[ "$run_surf_pipeline" == "1" ]]
+if [[ "$run_surf_pipeline" == "true" ]]
 then
+
+  echo "SURFACE RECONSTRUCTION PIPELINE" >> "$exec_time_log"
+  echo "===============================" >> "$exec_time_log"
+
   if [[ "$threads_surf" == "max" ]]; then threads_surf="$(nproc)" ; fi
   if [[ "$threads_surf" == "0" ]]; then threads_surf=1 ; fi
   # ============= Running recon-surf (surfaces, thickness etc.) ===============
@@ -1106,9 +1697,56 @@ then
   cmd=("./recon-surf.sh" --sid "$subject" --sd "$sd" --t1 "$conformed_name" --mask_name "$mask_name"
        --asegdkt_segfile "$asegdkt_segfile" --threads "$threads_surf" --py "$python" "${surf_flags[@]}")
   echo_quoted "${cmd[@]}" | tee -a "$seg_log"
-  "${cmd[@]}"
-  if [[ "${PIPESTATUS[0]}" -ne 0 ]] ; then exit 1 ; fi
+  "${wrap[@]}" "${cmd[@]}" # no tee, this gets logged to recon-surf.log from inside recon-surf.sh
+  if [[ "${PIPESTATUS[0]}" != 0 ]]
+  then
+    echo "ERROR: Surface reconstruction failed! See recon-surf log: $subject_dir/scripts/recon-surf.log" | \
+      tee -a "$seg_log"
+    exit 1
+  fi
   popd > /dev/null || return
+fi
+
+# ============= Running LIT Postprocessing ====================================
+if [[ "$lit_outputs_exist" == "true" ]]
+then
+    {
+      echo "========================================================="
+      echo "Detected LIT outputs; running LIT postprocessing..."
+      echo "  $lit_inpainting_result"
+      echo "  $lit_mask_output"
+      echo "========================================================="
+    } | tee -a "$seg_log"
+
+    lit_post_cmd=($python -m neurolit.scripts.lesion_postprocessing --subject-id "$subject" --subjects-dir "$sd")
+
+    if [[ "$run_surf_pipeline" != "true" ]] && [[ "$run_biasfield" != "true" ]]
+    then
+        {
+          echo "INFO: Running LIT postprocessing with --skip-segstats because"
+          echo "  --seg_only and --no_biasfield were passed."
+          echo "  Lesion mapping, lesion reports, surface masking, and surface statistics"
+          echo "  will still be attempted, but volumetric segstats regeneration is skipped."
+        } | tee -a "$seg_log"
+        lit_post_cmd+=(--skip-segstats)
+    fi
+
+    # If surface pipeline was not run, skip surface masking
+    if [[ "$run_surf_pipeline" != "true" ]]
+    then
+        lit_post_cmd+=(--skip-surface-masking)
+    fi
+
+    echo "MODULE: LIT (lesion inpainting, postprocessing step)" >> "$exec_time_log"
+    echo_quoted "${lit_post_cmd[@]}" | tee -a "$seg_log"
+    "${wrap[@]}" "${lit_post_cmd[@]}" 2>&1 | tee -a "$seg_log"
+
+    if [[ "${PIPESTATUS[0]}" != 0 ]]
+    then
+      echo "ERROR: LIT Postprocessing failed!" | tee -a "$seg_log"
+      exit 1
+    fi
+    echo "========================================================="
 fi
 
 ########################################## End ########################################################

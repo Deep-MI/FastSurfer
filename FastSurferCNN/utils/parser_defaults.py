@@ -1,4 +1,4 @@
-# Copyright 2022 Image Analysis Lab, German Center for Neurodegenerative Diseases (DZNE), Bonn
+# Copyright 2022 DeepMI Lab, German Center for Neurodegenerative Diseases (DZNE), Bonn
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -21,32 +21,37 @@ Contains the ALL_FLAGS dictionary, which can be used as follows to add default f
 >>> allows_root = args.root  # instead of the default dest args.allow_root
 
 Values can also be extracted by
->>> print(ALL_FLAGS["allow_root"](dict, dest="root")
->>> # {'flag': '--allow_root', 'flags': ('--allow_root',), 'action': 'store_true',
->>> #  'dest': 'root', 'help': 'Allow execution as root user.'}
+>>> print(ALL_FLAGS["seg_log"](dict, dest="log_file")
+>>> # {'flag': '--seg_log', 'flags': ('--seg_log',), 'type': str, default='', 'dest': 'log_file',
+>>> #  'help': 'Absolute path to file in which run logs will be saved. If not set, logs will not be saved.'}
 """
 
 import argparse
 import types
-from collections.abc import Iterable, Mapping
+from argparse import _ActionsContainer
+from collections.abc import Callable, Iterable, Mapping
 from dataclasses import Field, dataclass
 from pathlib import Path
 from typing import Literal, Optional, Protocol, TypeVar, get_args, get_origin
 
 from FastSurferCNN.utils import PLANES, Plane
+from FastSurferCNN.utils.arg_types import VALID_ORIENTATIONS, OrientationType, unquote_str
 from FastSurferCNN.utils.arg_types import float_gt_zero_and_le_one as __conform_to_one
-from FastSurferCNN.utils.arg_types import unquote_str
+from FastSurferCNN.utils.arg_types import img_size as __image_size
+from FastSurferCNN.utils.arg_types import orientation as __orientation
 from FastSurferCNN.utils.arg_types import vox_size as __vox_size
 from FastSurferCNN.utils.dataclasses import field, get_field
-from FastSurferCNN.utils.threads import get_num_threads
+from FastSurferCNN.utils.parallel import get_num_threads, set_num_threads
+
+T_AddArgs = TypeVar("T_AddArgs", bound="CanAddArguments")
+
 
 FASTSURFER_ROOT = Path(__file__).parents[2]
 PLANE_SHORT = {"checkpoint": "ckpt", "config": "cfg"}
 PLANE_HELP = {
-    "checkpoint": "{} checkpoint to load",
-    "config": "Path to the {} config file",
+    "checkpoint": "{} checkpoint to load.",
+    "config": "Path to the {} config file ('none' deactivates the view).",
 }
-VoxSize = Literal["min"] | float
 
 
 class CanAddArguments(Protocol):
@@ -166,26 +171,26 @@ class SubjectDirectoryConfig:
     conf_name: str = field(
         default="mri/orig.mgz",
         help="Name under which the conformed input image will be saved, in the same directory as the segmentation (the "
-             "input image is always conformed first, if it is not already conformed). The original input image is "
-             "saved in the output directory as $id/mri/orig/001.mgz. Default: mri/orig.mgz.",
+             "input image is always conformed first, if it is not already conformed). Default: mri/orig.mgz.",
         flags=("--conformed_name",),
     )
 
-    in_dir: Optional[Path] = field(  # noqa: UP007
+    in_dir: Optional[Path] = field(  # noqa: UP045
         flags=("--in_dir",),
         default=None,
         help="Directory in which input volume(s) are located. Optional, if full path is defined for --t1.",
     )
-    csv_file: Optional[Path] = field(  # noqa: UP007
+    csv_file: Optional[Path] = field(  # noqa: UP045
         flags=("--csv_file",),
         default=None,
         help="Csv-file with subjects to analyze (alternative to --tag)",
     )
-    sid: Optional[str] = field(  # noqa: UP007
+    sid: Optional[str] = field(  # noqa: UP045
         flags=("--sid",),
         default=None,
-        help="Optional: directly set the subject id to use. Can be used for single subject input. For multi-subject "
-             "processing, use remove suffix if sid is not second to last element of input file passed to --t1",
+        help="The subject id to use, if not passed we try to extract the subject id from the path passed to --t1. "
+             "For multi-subject processing, use --remove_suffix if sid is not the second to last element of input file "
+             "passed to --t1.",
     )
     search_tag: str = field(
         flags=("--tag",),
@@ -206,10 +211,9 @@ class SubjectDirectoryConfig:
         help="Optional: remove suffix from path definition of input file to yield correct subject name (e.g. "
              "/ses-x/anat/ for BIDS or /mri/ for FreeSurfer input). Default: do not remove anything.",
     )
-    out_dir: Optional[Path] = field(  # noqa: UP007
+    out_dir: Optional[Path] = field(  # noqa: UP045
         default=None,
-        help="Directory in which evaluation results should be written. Will be created if it does not exist. Optional "
-             "if full path is defined for --pred_name.",
+        help="Directory in which evaluation results should be written. Will be created if it does not exist.",
     )
 
 
@@ -251,8 +255,7 @@ ALL_FLAGS = {
     "device": __arg(
         "--device",
         default="auto",
-        help="Select device to run inference on: cpu, or cuda (= Nvidia gpu) or specify a certain gpu (e.g. cuda:1), "
-             "Default: auto",
+        help="Select device to run inference on: cpu, or cuda (= Nvidia gpu) or specify a certain gpu (e.g. cuda:1)"
     ),
     "viewagg_device": __arg(
         "--viewagg_device",
@@ -273,12 +276,7 @@ ALL_FLAGS = {
         fieldname="search_tag",
     ),
     "csv_file": __arg("--csv_file", dc=SubjectDirectoryConfig),
-    "batch_size": __arg(
-        "--batch_size",
-        type=int,
-        default=1,
-        help="Batch size for inference. Default=1"
-    ),
+    "batch_size": __arg("--batch_size", type=int, default=1, help="Batch size for inference. Default=1"),
     "sd": __arg("--sd", dc=SubjectDirectoryConfig, fieldname="out_dir"),
     "qc_log": __arg(
         "--qc_log",
@@ -296,7 +294,28 @@ ALL_FLAGS = {
         help="Choose the primary voxelsize to process, must be either a number between 0 and 1 (below 0.7 is "
              "experimental) or 'min' (default). A number forces processing at that specific voxel size, 'min' "
              "determines the voxel size from the image itself (conforming to the minimum voxel size, or 1 if the "
-             "minimum voxel size is above 0.95mm). ",
+             "minimum voxel size is above 0.95mm). 'any' will try to keep the voxel size unchanged (even anisotropic, "
+             "which is experimental).",
+    ),
+    "orientation": __arg(
+        "--orientation",
+        choices=VALID_ORIENTATIONS,
+        type=__orientation,
+        dest="orientation",
+        metavar="{native,XXX,soft-XXX}",
+        default="lia",
+        help="Select the target affine format for output, native: input defined by input image, soft-XXX (e.g. "
+             "soft-lia): store as XXX, but do not interpolate, XXX (e.g. lia): force XXX, affine is only 0 or +-1. "
+             "Default: lia (required by the surface pipeline).",
+    ),
+    "image_size": __arg(
+        "--image_size",
+        type=__image_size,
+        dest="image_size",
+        default="auto",
+        help="Select how the image should be conformed. A positive integer yields a cube of that size, 'fov' yields "
+             "dimensions, so the field of view stays consistent, 'auto' yields a cube of dimensions fully containing "
+             "the field of view (default).",
     ),
     "conform_to_1mm_threshold": __arg(
         "--conform_to_1mm_threshold",
@@ -323,7 +342,7 @@ ALL_FLAGS = {
         "--threads",
         dest="threads",
         default=get_num_threads(),
-        type=int,
+        type=set_num_threads,
         help=f"Number of threads to use (defaults to number of hardware threads: {get_num_threads()})",
     ),
     "async_io": __arg(
@@ -334,8 +353,6 @@ ALL_FLAGS = {
              "log, but speed up the segmentation specifically for slow file systems.",
     ),
 }
-
-T_AddArgs = TypeVar("T_AddArgs", bound=CanAddArguments)
 
 
 def add_arguments(parser: T_AddArgs, flags: Iterable[str]) -> T_AddArgs:
@@ -369,9 +386,7 @@ def add_arguments(parser: T_AddArgs, flags: Iterable[str]) -> T_AddArgs:
         if add_flag is not None:
             add_flag(parser)
         else:
-            raise ValueError(
-                f"The flag '{flag}' is not defined in {add_arguments.__qualname__}."
-            )
+            raise ValueError(f"The flag '{flag}' is not defined in {add_arguments.__qualname__}.")
     return parser
 
 
@@ -404,8 +419,12 @@ def add_plane_flags(
     argparse.ArgumentParser
         The parser object.
     """
+    configtype: Literal["checkpoint", "config"]
     if configtype not in PLANE_SHORT:
         raise ValueError("type must be either config or checkpoint.")
+
+    def cast_type(__value: str) -> Path | None:
+        return None if configtype == "config" and (not bool(__value) or __value.lower() == "none") else Path(__value)
 
     from FastSurferCNN.utils.checkpoint import load_checkpoint_config_defaults
     defaults = load_checkpoint_config_defaults(configtype, defaults_path)
@@ -422,9 +441,37 @@ def add_plane_flags(
         plane_short = plane[: index + 2]
         parser.add_argument(
             f"--{PLANE_SHORT[configtype]}_{plane_short}",
-            type=Path,
+            type=cast_type,
             dest=f"{PLANE_SHORT[configtype]}_{plane_short}",
             help=PLANE_HELP[configtype].format(plane),
             default=path,
         )
     return parser
+
+
+def modify_argument(parser: _ActionsContainer, option_string: str, callback: Callable[[argparse.Action], None]) -> bool:
+    """
+    Modify the Action object of a specific action found by its options string.
+
+    Parameters
+    ----------
+    parser : argparse._ActionContainer
+        The Action container to find the action in.
+    option_string : str
+        The option string to find the action by.
+    callback : callable[[argparse.Action]]
+        The callback to modify the action.
+
+    Returns
+    -------
+    bool
+        Whether the action could be found.
+    """
+    for action in parser._actions:
+        if option_string in action.option_strings:
+            callback(action)
+            return True
+    for action_container in parser._action_groups:
+        if modify_argument(action_container, option_string, callback):
+            return True
+    return False

@@ -50,6 +50,8 @@ class Renderer(SphinxRenderer):
 
     def update_section_level_state(self, section: nodes.section, level: int) -> None:
         """This method is fixed such that """
+        # this is the parent level from the included document (so if we can propagate levels relatively into the new
+        # doc) -- this also means we can get negative levels, if we start with a high level heading
         parent_level = max(
             section_level
             for section_level in self._level_to_section
@@ -75,7 +77,18 @@ class Renderer(SphinxRenderer):
             self._heading_base = level
             new_level = 0
 
-        super().update_section_level_state(section, new_level)
+        try:
+            super().update_section_level_state(section, new_level)
+        except ValueError as e:
+            msg = (f"Cannot fix heading level {level} to {new_level}: {e}, likely there is a heading with an incorrect "
+                   f"heading level, i.e. uses heading '##' but should be using '###' or higher!")
+            from myst_parser.warnings_ import MystWarnings
+            self.create_warning(
+                msg,
+                MystWarnings.MD_HEADING_NON_CONSECUTIVE,
+                line=section.line,
+                append_to=self.current_node,
+            )
 
     def _handle_relative_docs(self, destination: str) -> str:
         from os.path import relpath, normpath

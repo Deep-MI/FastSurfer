@@ -1,16 +1,20 @@
-# This workflow file is a reusable workflow that will process a single T1 image with docker.
-# The docker image can be built by workflow build-docker or on dockerhub (input image).
-# The image will be downloaded
-# The build artifact includes the image in docker-image.tar and the name of the image in image_name.env
+# Compares one processed subject against reference data with the pipelinetest pytest suite.
+# The calling job has to have checked this repository out, and either processed the subject on the
+# same runner or produced the artifact that load-processed fetches.
 
-name: 'Run Fastsurfer'
-description: 'Runs FastSurfer'
+name: 'Run pipelinetest'
+description: 'Runs the pipelinetest suite against reference data'
 
 inputs:
   subject-id:
     type: string
     description: "The name of the case folder"
     required: true
+  artifact-id:
+    type: string
+    description: >
+      Name for the uploaded JUnit artifact and its file, defaulting to subject-id. Should carry no dot.
+    default: ""
   subjects-dir:
     type: string
     description: "Path to the subjects-dir"
@@ -23,24 +27,33 @@ inputs:
     required: true
     type: string
     description: "The url to the reference file to download for comparison"
+  junit-dir:
+    default: /tmp
+    type: string
+    description: >
+      Directory the JUnit-XML file is written to. It is named after its artifact, so that files
+      downloaded from several runs sit next to each other.
 
 runs:
   using: "composite"
   steps:
-    - uses: actions/checkout@v4
-    - name: Setup Python 3.10
-      uses: actions/setup-python@v5
+    - name: Resolve the artifact and JUnit file names
+      shell: bash
+      env:
+        ARTIFACT_ID: ${{ inputs.artifact-id }}
+        SUBJECT_ID: ${{ inputs.subject-id }}
+        JUNIT_DIR: ${{ inputs.junit-dir }}
+      run: |
+        # Short sha: the full 40 characters make the downloaded name unreadable and carry no more
+        # information. Same scheme as the processed-data artifact in run-fastsurfer.
+        artifact="fastsurfer-${GITHUB_SHA::8}-junit-${ARTIFACT_ID:-$SUBJECT_ID}"
+        mkdir -p "$JUNIT_DIR"
+        echo "FS_JUNIT_ARTIFACT=$artifact" >> "$GITHUB_ENV"
+        echo "FS_JUNIT_FILE=$JUNIT_DIR/$artifact.xml" >> "$GITHUB_ENV"
+    - name: Setup uv and Python 3.10
+      uses: astral-sh/setup-uv@v10.2.0
       with:
         python-version: '3.10'
-        architecture: 'x64'
-        cache: 'pip' # caching pip dependencies
-    - name: Install dependencies
-      shell: bash
-      run: |
-        echo "::group::Create python environment"
-        python -m pip install --progress-bar off --upgrade pip setuptools wheel
-        python -m pip install --progress-bar off .[quicktest]
-        echo "::endgroup::"
     - name: Download and unpack reference data
       shell: bash
       env:
@@ -49,24 +62,113 @@ runs:
       run: |
         echo "::group::Prepare processed and reference data"
         mkdir -p $REF_DIR
-        curl -k "$CASE_HREF" -o "$REF_DIR/ref-download-data"
+        if [[ -z "$CASE_HREF" ]] ; then
+          echo "CASE_HREF is empty, so the reference data cannot be downloaded. If this is a"
+          echo "  pull_request run on a fork, it cannot have the secrets."
+          exit 1
+        fi
+        # --fail, so that an error page is not unpacked as if it were the reference archive.
+        # --retry-all-errors as well as --retry, which on its own covers only 5xx, 408 and 429 and
+        # so not the connection resets and stalled handshakes the host also produces.
+        # --speed-limit with --speed-time, because neither --connect-timeout nor --retry bounds a
+        # transfer that stalls after the handshake: curl would block to the job timeout without ever
+        # returning the error a retry needs. A rate floor rather than --max-time, which would also
+        # cut a download that is merely slow.
+        curl --fail -k --retry 5 --retry-all-errors --retry-delay 10 --connect-timeout 30 \
+          --speed-limit 1000 --speed-time 60 \
+          "$CASE_HREF" -o "$REF_DIR/ref-download-data"
         tar xf "$REF_DIR/ref-download-data" -C "$REF_DIR"
         rm -f "$REF_DIR/ref-download-data"
         echo "::endgroup::"
     - name: Recover Case data
-      uses: ./.github/actions/load-processed
+      uses: Deep-MI/FastSurfer/.github/actions/load-processed@dev
       with:
         subject-id: ${{ inputs.subject-id }}
+        # without this the download asks for the subject-id name, which run-fastsurfer did not use
+        artifact-id: ${{ inputs.artifact-id }}
         subjects-dir: ${{ inputs.subjects-dir }}
     # run pytest checks for data consistency/quality
     - name: Run pytest
+      # id, so the grading step below can read whether the tolerances held
+      id: pytest
       env:
         PYTHON_PATH: .
         FASTSURFER_HOME: ${{ github.workspace }}
         REF_DIR: ${{ inputs.reference-dir }}
       shell: bash
+      continue-on-error: true  # pytest only exits with code 0, if all tests pass
       run: |
         echo "::group::Run tests"
-        python -m pytest test/quick_test
+        flags=("--junit-xml=$FS_JUNIT_FILE")
+        if [[ "$ACTION_RUNNER_DEBUG" == "true" ]]
+        then 
+          flags+=(-vv --log_cli_level=DEBUG)
+        fi
+        uv run --extra pipelinetest python -m pytest "${flags[@]}" test/pipelinetest
+        echo "::endgroup::"
+    - name: Upload the the JUnit XML file as an artifact
+      uses: actions/upload-artifact@v7
+      with:
+        name: ${{ env.FS_JUNIT_ARTIFACT }}
+        path: ${{ env.FS_JUNIT_FILE }}
+    - name: Grade this run against the reference
+      env:
+        FASTSURFER_HOME: ${{ github.workspace }}
+        REF_DIR: ${{ inputs.reference-dir }}
+        SUBJECTS_DIR: ${{ inputs.subjects-dir }}
+        PYTEST_OUTCOME: ${{ steps.pytest.outcome }}
+      shell: bash
+      # The verdict for the whole run, in three grades, because "drifted" and "broke" call for
+      # different responses:
+      #   green   every compared output is identical, as a rerun on the same code should be
+      #   yellow  outputs differ but every one is inside its tolerance. Drift worth a look, not a
+      #           failure. Widening a tolerance later is a decision, not something to hide.
+      #   red     a tolerance was exceeded, an expected file is missing, or the comparison could
+      #           not run at all. A change of this size, such as a new module, needs the reference
+      #           rebuilt rather than waved through.
+      #
+      # Last, so that the JUnit upload above has already happened: a failing step skips the rest.
+      run: |
+        echo "::group::Compare every output against the reference"
+        # no --subject: the reference tarball names its own directory, which the suite discovers
+        # rather than assumes, and compare_subjects does the same and says so if it cannot.
+        # An if, so the exit code is read rather than ending the step under `bash -e`.
+        if uv run --extra pipelinetest python tools/compare_subjects.py \
+             "$REF_DIR" "$SUBJECTS_DIR" > /tmp/compare.txt 2>&1
+        then compared=0 ; else compared=$? ; fi
+        cat /tmp/compare.txt
         echo "::endgroup::"
 
+        summary="$(tail -n 1 /tmp/compare.txt)"
+        report() {
+          {
+            echo "### $1"
+            echo ""
+            echo "$summary"
+            echo ""
+            echo "<details><summary>Full comparison</summary>"
+            echo ""
+            echo '```'
+            cat /tmp/compare.txt
+            echo '```'
+            echo ""
+            echo "</details>"
+          } >> "$GITHUB_STEP_SUMMARY"
+        }
+
+        if [[ "$compared" -ge 2 ]] ; then
+          echo "::error title=Cannot compare against the reference::$summary"
+          report "Cannot compare against the reference"
+          exit 1
+        fi
+        if [[ "$PYTEST_OUTCOME" != "success" ]] ; then
+          echo "::error title=Outputs are beyond tolerance::$summary. See the pipelinetest results check."
+          report "Outputs are beyond tolerance"
+          exit 1
+        fi
+        if [[ "$compared" -eq 1 ]] ; then
+          echo "::warning title=Outputs drifted, within tolerance::$summary"
+          report "Outputs drifted, within tolerance"
+          exit 0
+        fi
+        echo "Every compared output is identical to the reference."

@@ -1,0 +1,27 @@
+default_threshold: 0.01
+lut: FastSurferCNN/config/FreeSurferColorLUT.txt
+
+measure_thresholds:
+  BrainSeg: 0.1
+  BrainSegNotVent: 0.1
+  VentricleChoroidVol: 0.1
+  lhCortex: 0.1
+  rhCortex: 0.1
+  Cortex: 0.1
+  lhCerebralWhiteMatter: 0.1
+  rhCerebralWhiteMatter: 0.1
+  CerebralWhiteMatter: 0.1
+  SubCortGray: 0.1
+  TotalGray: 0.1
+  SupraTentorial: 0.1
+  SupraTentorialNotVent: 0.1
+  Mask: 0.1
+  BrainSegVol-to-eTIV: 0.1
+  MaskVol-to-eTIV: 0.1
+  lhSurfaceHoles: 0.1
+  rhSurfaceHoles: 0.1
+  SurfaceHoles: 0.1
+  EstimatedTotalIntraCranialVol: 0.1
+
+thresholds:
+  structure: 0.1

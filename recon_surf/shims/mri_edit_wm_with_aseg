@@ -1,0 +1,112 @@
+#!/bin/bash
+
+# Copyright 2026 DeepMI Lab, German Center for Neurodegenerative Diseases (DZNE), Bonn
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Selects whether mri_edit_wm_with_aseg runs its MTL path step.
+#
+# remove_paths_to_cortex() inside that binary only runs when the aseg it is handed is MRI_UCHAR:
+# it clones the aseg's type into its working volumes and then mixes MRIvox, which is uchar only,
+# with MRIgetVoxVal. FreeSurfer's own asegs are int, so the step never runs for them. FastSurfer's
+# are uchar, so it has been running here, and a storage decision in an unrelated module has been
+# deciding an anatomical correction. Handing the binary an int copy makes the choice explicit and
+# leaves aseg.presurf.mgz on disk untouched, which matters because mris_place_surface and
+# mris_ca_label read that same file later and must not see a different type.
+#
+# This is a shim rather than a call site change because recon-all invokes the binary internally,
+# so there is nothing in recon-surf.sh to wrap. It is reached by putting this directory ahead of
+# FREESURFER_HOME/bin on PATH.
+#
+# FASTSURFER_WM_MTL_PATHS:
+#   skip (default) hand over an int copy, so the step does not run, as upstream
+#   keep            pass everything through untouched, the behaviour FastSurfer had before
+
+set -uo pipefail
+
+mode="${FASTSURFER_WM_MTL_PATHS:-skip}"
+
+if [[ -z "${FREESURFER_HOME:-}" ]] ; then
+  echo "ERROR: $(basename "$0") shim: FREESURFER_HOME is not set, cannot find the real binary." >&2
+  exit 1
+fi
+real="$FREESURFER_HOME/bin/mri_edit_wm_with_aseg"
+convert="$FREESURFER_HOME/bin/mri_convert"
+if [[ ! -x "$real" ]] ; then
+  echo "ERROR: $(basename "$0") shim: $real is missing or not executable." >&2
+  exit 1
+fi
+
+args=("$@")
+
+# Fewer than four arguments is --help or a usage error, which the binary answers itself.
+if [[ "$mode" != "skip" ]] || [[ ${#args[@]} -lt 4 ]] ; then
+  if [[ "$mode" != "skip" ]] && [[ "$mode" != "keep" ]] ; then
+    echo "WARNING: FASTSURFER_WM_MTL_PATHS='$mode' is not 'skip' or 'keep', passing through." >&2
+  fi
+  exec "$real" "${args[@]}"
+fi
+
+# The binary has stand-alone modes that return before the MTL path step, and whose arguments are
+# laid out differently: -sa-fix-ento-wm takes no aseg at all, -fix-scm-ha-only takes one but runs
+# a different function. Neither is on FastSurfer's path, and rewriting either would substitute a
+# volume that is not an aseg, so hand them over untouched.
+for arg in "${args[@]}" ; do
+  case "$arg" in
+    -sa-fix-ento-wm|-fix-scm-ha-only) exec "$real" "${args[@]}" ;;
+  esac
+done
+
+# Locate the aseg by name rather than by position, so that options may be added or reordered
+# ahead of it. Matching the start of the basename, not a substring: the output volume is called
+# wm.asegedit.mgz and must never be picked.
+aseg_index=-1
+found=0
+for i in "${!args[@]}" ; do
+  if [[ "$(basename -- "${args[$i]}")" == aseg* ]] && [[ -f "${args[$i]}" ]] ; then
+    aseg_index=$i
+    found=$(( found + 1 ))
+  fi
+done
+
+if [[ $found -eq 0 ]] ; then
+  echo "ERROR: $(basename "$0") shim: no aseg among the arguments, and this is not one of the" >&2
+  echo "  stand-alone modes. Passing through would silently run the MTL path step." >&2
+  echo "  Arguments were: ${args[*]}" >&2
+  exit 1
+fi
+if [[ $found -gt 1 ]] ; then
+  echo "ERROR: $(basename "$0") shim: more than one argument looks like an aseg, so which one" >&2
+  echo "  to convert is ambiguous. Arguments were: ${args[*]}" >&2
+  exit 1
+fi
+
+tmpdir="$(mktemp -d)" || exit 1
+trap 'rm -rf "$tmpdir"' EXIT
+aseg_int="$tmpdir/aseg_int.mgz"
+
+# A failure here must be loud. Falling through to the unconverted aseg would silently re-enable the
+# step, which is the failure mode this shim exists to remove.
+if ! "$convert" -odt int "${args[$aseg_index]}" "$aseg_int" > "$tmpdir/convert.log" 2>&1 ; then
+  echo "ERROR: $(basename "$0") shim: converting the aseg to int failed:" >&2
+  cat "$tmpdir/convert.log" >&2
+  exit 1
+fi
+
+echo "INFO: handing mri_edit_wm_with_aseg an int copy of ${args[$aseg_index]}, so the MTL path"
+echo "  step is skipped as it is in FreeSurfer (FASTSURFER_WM_MTL_PATHS=$mode). Expect the"
+echo "  'voxels added to wm to prevent paths from MTL structures to cortex' line to read 0."
+
+args[$aseg_index]="$aseg_int"
+"$real" "${args[@]}"
+exit $?

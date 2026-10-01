@@ -1,4 +1,4 @@
-# Copyright 2019 Image Analysis Lab, German Center for Neurodegenerative Diseases (DZNE), Bonn
+# Copyright 2019 DeepMI Lab, German Center for Neurodegenerative Diseases (DZNE), Bonn
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -98,7 +98,7 @@ class Inference:
         ckpt : str
             String or os.PathLike object containing the name to the checkpoint file (Default value = "").
         lut : str, np.ndarray, DataFrame, optional
-             Lookup table for mapping (Default value = None).
+             Lookup table for mapping.
         """
         # Set random seed from configs.
         np.random.seed(cfg.RNG_SEED)
@@ -154,9 +154,7 @@ class Inference:
             device = self.default_device
 
         # Set up model
-        self._model_not_init = build_model(
-            self.cfg
-        )  # ~ model = FastSurferCNN(params_network)
+        self._model_not_init = build_model(self.cfg)  # ~ model = FastSurferCNN(params_network)
         self._model_not_init.to(device)
         self.device = None
 
@@ -181,9 +179,7 @@ class Inference:
             The desired device of the parameters and buffers in this module (Default value = None).
         """
         if self.model_parallel:
-            raise RuntimeError(
-                "Moving the model to other devices is not supported for multi-device models."
-            )
+            raise RuntimeError("Moving the model to other devices is not supported for multi-device models.")
         _device = self.default_device if device is None else device
         self.device = _device
         self.model.to(device=_device)
@@ -194,7 +190,7 @@ class Inference:
 
         Parameters
         ----------
-        ckpt : Union[str, os.PathLike]
+        ckpt : str, os.PathLike
             String or os.PathLike object containing the name to the checkpoint file.
         """
         logger.info(f"Loading checkpoint {ckpt}")
@@ -203,19 +199,17 @@ class Inference:
         # If device is None, the model has never been loaded (still in random initial configuration)
         if self.device is None:
             self.device = self.default_device
+        load_device = self.device
 
         # workaround for mps (directly loading to map_location=mps results in zeros)
-        device = self.device
         if self.device.type == "mps":
-            self.model.to("cpu")
-            device = "cpu"
-        else:
-            # make sure the model is, where it is supposed to be
-            self.model.to(self.device)
+            load_device = "cpu"
+        # make sure the model is, where it is supposed to be
+        self.model.to(load_device)
 
         # WARNING: weights_only=False can cause unsafe code execution, but here the
         # checkpoint can be considered to be from a safe source
-        model_state = torch.load(ckpt, map_location=device, weights_only=False)
+        model_state = torch.load(ckpt, map_location=load_device, weights_only=False)
         self.model.load_state_dict(model_state["model_state"])
 
         # workaround for mps (move the model back to mps)
@@ -291,20 +285,6 @@ class Inference:
         """
         return self.cfg.MODEL.WIDTH
 
-    def get_max_size(self) -> int | tuple[int, int]:
-        """
-        Return the max size.
-
-        Returns
-        -------
-        int | tuple[int, int]
-            The maximum size, either a single value or a tuple (width, height).
-        """
-        if self.cfg.MODEL.OUT_TENSOR_WIDTH == self.cfg.MODEL.OUT_TENSOR_HEIGHT:
-            return self.cfg.MODEL.OUT_TENSOR_WIDTH
-        else:
-            return self.cfg.MODEL.OUT_TENSOR_WIDTH, self.cfg.MODEL.OUT_TENSOR_HEIGHT
-
     def get_device(self) -> torch.device:
         """
         Return the device.
@@ -335,7 +315,7 @@ class Inference:
             Validation loader.
         out_scale : Optional
             Output scale (Default value = None).
-        out : Optional[torch.Tensor]
+        out : torch.Tensor, optional
             Previous prediction tensor (Default value = None).
 
         Returns
@@ -366,14 +346,10 @@ class Inference:
         log_batch_idx = None
         with logging_redirect_tqdm():
             try:
-                for batch_idx, batch in tqdm(
-                    enumerate(val_loader), total=len(val_loader), unit="batch"
-                ):
+                for batch_idx, batch in tqdm(enumerate(val_loader), total=len(val_loader), unit="batch"):
                     log_batch_idx = batch_idx
                     # move data to the model device
-                    images, scale_factors = batch["image"].to(self.device), batch[
-                        "scale_factor"
-                    ].to(self.device)
+                    images, scale_factors = batch["image"].to(self.device), batch["scale_factor"].to(self.device)
 
                     # predict the current batch, outputs logits
                     pred = self.model(images, scale_factors, out_scale)
@@ -382,32 +358,24 @@ class Inference:
 
                     # check if we need a special mapping (e.g. as for sagittal)
                     if self.get_plane() == "sagittal":
-                        pred = map_prediction_sagittal2full(
-                            pred, num_classes=self.get_num_classes(), lut=self.lut
-                        )
+                        pred = map_prediction_sagittal2full(pred, num_classes=self.get_num_classes(), lut=self.lut)
 
                     # permute the prediction into the out slice order
-                    pred = pred.permute(*self.permute_order[plane]).to(
-                        out.device
-                    )  # the to-operation is implicit
+                    pred = pred.permute(*self.permute_order[plane]).to(out.device)  # the to-operation is implicit
 
                     # cut prediction to the image size
                     pred = pred[pred_ii]
 
                     # add prediction logits into the output (same as multiplying probabilities)
                     ii[index_of_current_plane] = slice(start_index, end_index)
-                    out[tuple(ii)].add_(pred, alpha=self.alpha.get(plane, 0.4))
+                    out[tuple(ii)].add_(pred.half(), alpha=self.alpha.get(plane, 0.4))
                     start_index = end_index
 
             except:
-                logger.exception(
-                    f"Exception in batch {log_batch_idx} of {plane} inference."
-                )
+                logger.error(f"Exception in batch {log_batch_idx + 1} of {plane} inference.")
                 raise
             else:
-                logger.info(
-                    f"Inference on {batch_idx + 1} batches for {plane} successful"
-                )
+                logger.info(f"Inference on {log_batch_idx + 1} batches for {plane} successful")
 
         return out
 
@@ -420,7 +388,7 @@ class Inference:
         orig_zoom: npt.NDArray,
         out: torch.Tensor | None = None,
         out_res: int | None = None,
-        batch_size: int = None,
+        batch_size: int | None = None,
     ) -> torch.Tensor:
         """
         Run the loaded model on the data (T1) from orig_data and
@@ -440,12 +408,12 @@ class Inference:
             Updated output tensor (Default = None).
         out_res : Optional[int]
             Output resolution (Default value = None).
-        batch_size : int
-            Batch size (Default = None).
+        batch_size : int, optional
+            Batch size.
 
         Returns
         -------
-        toch.Tensor
+        torch.Tensor
             Prediction probability tensor.
         """
         # Set up DataLoader
@@ -467,8 +435,7 @@ class Inference:
         out = self.eval(init_pred, test_data_loader, out=out, out_scale=out_res)
         time_delta = time.time() - start
         logger.info(
-            f"{self.cfg.DATA.PLANE.capitalize()} inference on {img_filename} finished in "
-            f"{time_delta:0.4f} seconds"
+            f"{self.cfg.DATA.PLANE.capitalize()} inference on {img_filename} finished in {time_delta:0.4f} seconds"
         )
 
         return out

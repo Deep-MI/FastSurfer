@@ -1,22 +1,105 @@
 
 # set the binpath variable
-if [ -z "$FASTSURFER_HOME" ]
-then
-  binpath="$( cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )/"
-else
-  binpath="$FASTSURFER_HOME/recon_surf/"
+if [[ -z "$FASTSURFER_HOME" ]] ; then binpath="$( cd -- "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 ; pwd -P )/"
+else binpath="$FASTSURFER_HOME/recon_surf/"
 fi
 export binpath
 
+# if FREESURFER_HOME is not set, fall back to the pruned FreeSurfer installation shipped with the
+# macOS package (uses binpath, not FASTSURFER_HOME directly, since FASTSURFER_HOME may not be set
+# yet if functions.sh is sourced standalone)
+if [[ -z "$FREESURFER_HOME" ]] && [[ -f "$(dirname "$binpath")/fs-pruned/build-stamp.txt" ]]
+then
+  FREESURFER_HOME="$(dirname "$binpath")/fs-pruned"
+  export FREESURFER_HOME
+  # recon-surf.sh invokes FreeSurfer binaries (mri_convert, recon-all, ...) by bare name, relying on
+  # PATH from SetUpFreeSurfer.sh, so FREESURFER_HOME alone is not enough
+  source "$FREESURFER_HOME/SetUpFreeSurfer.sh" > /dev/null
+  echo "INFO: \$FREESURFER_HOME was not set, using the pruned FreeSurfer installation shipped with FastSurfer at $FREESURFER_HOME"
+fi
+
 # fs_time command from fs60, fs72 fails in parallel mode, use local one
-# also check for failure (e.g. on mac it fails)
-timecmd="${binpath}fs_time"
-$timecmd echo testing &> /dev/null
-if [ "${PIPESTATUS[0]}" -ne 0 ] ; then
-  echo "time command failing, not using time..."
-  timecmd=""
+# also check for failure (e.g. on mac it fails, so we cannot use it there)
+if "${binpath}fs_time" --no-load echo testing &> /dev/null ; then timecmd="${binpath}fs_time"
+else timecmd="" ; echo "INFO: Testing fs_time was not successful, not reporting per-command runtimes."
 fi
 export timecmd
+
+if [[ "$(locale decimal_point)" != "." ]] ; then export LC_NUMERIC="en_US.UTF-8" ; fi
+if [[ "$(locale decimal_point)" != "." ]] ; then
+  echo "WARNING: Could not change \$LC_NUMERIC, but FastSurfer requires decimal_point=., please configure your locale"
+  echo "  to use a '.' decimal_point, e.g. export LC_NUMERIC=en_US.UTF-8 !"
+fi
+
+function check_create_subjects_dir_properties()
+{
+  # 1: subjects_dir
+  if [[ -z "$1" ]]
+  then
+    echo "ERROR: No subject directory defined via --sd. This is required!"
+    exit 1
+  elif [[ ! -d "$1" ]]
+  then
+    echo "INFO: The subject directory did not exist, creating it now."
+    if [[ "$(id -u)" == 0 ]] ; then echo "WARNING: Creating as root!" ; fi
+    if ! mkdir -p "$1" ; then echo "ERROR: directory creation failed" ; exit 1; fi
+  else
+    if stat --version > /dev/null 2> /dev/null ; then # linux (GNU version of stat, supports --version)
+      user_group=$(stat -c "%u:%g" "$1")
+      world_access=$(stat -c "%a" "$1" | tail -c 2)
+    else # macOS (BSD version of stat)
+      user_group=$(stat -f "%u:%g" "$1")
+      world_access=$(stat -f "%p" "$1" | tail -c 2)
+    fi
+    if [[ "$user_group" == "0:0" ]] && [[ "$(id -u)" != "0" ]] && [[ "$world_access" -lt 6 ]]
+    then
+      echo "ERROR: The subject directory ($1) is owned by root and is not writeable."
+      echo "  FastSurfer cannot write results! This can happen if the directory is created"
+      echo "  by docker. Make sure to create the directory before invoking docker!"
+      exit 1
+    fi
+  fi
+}
+
+function time_it()
+{
+  # parameters
+  # $1 : timing file
+  # $* : cmd  (command to run)
+
+  # wraps cmd with fs_time, but fs_time's timing information (the output of fs_time) is stored to the
+  # timing file ($1) instead of stdout. If cmd is using fs_time itself, the FSLOAD environment variable
+  # is read and the appropriate --load/--no-load argument is passed to fs_time inside cmd.
+  local TF="$1"
+  shift
+  local cmd=("$@")
+  if [[ -n "$timecmd" ]]
+  then
+    timecmd_pos=-1
+    for (( i=0; i<${#cmd[@]}; i++)) ; do if [ "${cmd[i]}" == "$timecmd" ]; then timecmd_pos=$i ; break ; fi ; done
+    if [ "$timecmd_pos" -gt -1 ] ; then
+      if [[ "$FSLOAD" == 1 ]] ; then a="--load" ; else a="--no-load" ; fi
+      cmd=("${cmd[@]:0:$timecmd_pos}" "$a" "${cmd[@]:$timecmd_pos}")
+    fi
+    # timecmd is non-empty here, so time/fs_time does not fail
+    printf -v key "%s\n-> " "$(echo_quoted "${cmd[@]}")"
+    "${binpath}fs_time" -k "$key" --no-load -o "$TF" -a "${cmd[@]}"
+  else
+    # No warning here: an empty timecmd is the expected state wherever fs_time does not work (macOS,
+    # where /usr/bin/time is BSD and has no -f), and the INFO above already says so once when
+    # functions.sh is sourced. Repeating it per timed command only buries the real output.
+    "${cmd[@]}"
+  fi
+  # Capture the status before testing it. A test is itself a command, so it overwrites PIPESTATUS:
+  # reading PIPESTATUS again inside the branch yields the status of the test (0), not of cmd, which
+  # made this exit 0 on failure, stopping the pipeline while reporting success.
+  #
+  # Return rather than exit, so the caller reports which step failed before it stops. A function's
+  # exit ends the shell it runs in, which is the caller for a plain call but only a subshell inside
+  # a pipeline, so exiting here silently skipped the caller's error message wherever the call was
+  # not piped. Every call site checks the status.
+  return "${PIPESTATUS[0]}"
+}
 
 function RunIt()
 {
@@ -33,7 +116,7 @@ function RunIt()
     run_it_cmdf "$LF" "$CMDF" $cmd
   else
     run_it "$LF" $cmd
-    if [ "${PIPESTATUS[0]}" -ne 0 ] ; then exit 1 ; fi
+    if [[ "${PIPESTATUS[0]}" != 0 ]] ; then exit 1 ; fi
   fi
 }
 
@@ -46,7 +129,7 @@ function run_it()
   shift
   echo_quoted "$@" | tee -a "$LF"
   $timecmd "$@" 2>&1 | tee -a "$LF"
-  if [ "${PIPESTATUS[0]}" -ne 0 ] ; then exit 1 ; fi
+  if [[ "${PIPESTATUS[0]}" != 0 ]] ; then exit 1 ; fi
 }
 
 function run_it_cmdf()
@@ -59,28 +142,31 @@ function run_it_cmdf()
   local CMDF=$2
   shift
   shift
-  cmd="$(echo_quoted "$@" | tee -a "$LF")"
+  local cmd
+  cmd="$(echo_quoted "$@")"
   printf -v tmp %q "$cmd"
-  echo "echo $tmp" | tee -a "$CMDF"
+  echo "echo $tmp" >> "$CMDF"
   echo "$timecmd $cmd" | tee -a "$CMDF"
-  echo "if [ \${PIPESTATUS[0]} -ne 0 ] ; then exit 1 ; fi" >> "$CMDF"
+  echo "if [[ \${PIPESTATUS[0]} != 0 ]] ; then exit 1 ; fi" >> "$CMDF"
 }
 
 function RunBatchJobs()
 {
-# parameters
-# $1 : LF
-# $2 ... : CMDFS
-  local LOG_FILE=$1
+  # parameters
+  # $1 : LF
+  # $2 ... : CMDFS
   # launch jobs found in command files (shift past first logfile arg).
   # job output goes to a logfile named after the command file, which
   # later gets appended to LOG_FILE
+
+  local LOG_FILE=$1
 
   echo
   echo "RunBatchJobs: Logfile: $LOG_FILE"
 
   local PIDS=()
   local LOGS=()
+  local CMDFS=()
   shift
   local JOB
   local LOG
@@ -88,42 +174,81 @@ function RunBatchJobs()
     echo "RunBatchJobs: CMDF: $cmdf"
     chmod u+x "$cmdf"
     JOB="$cmdf"
-    LOG=$cmdf.log
-    echo "" >& "$LOG"
-    echo " $JOB" >> "$LOG"
-    echo "" >> "$LOG"
+    LOG="$cmdf.log"
+    printf "\n %s\n\n" "$JOB" > "$LOG"
     exec "$JOB" >> "$LOG" 2>&1 &
-    PIDS=("${PIDS[@]}" "$!")
-    LOGS=("${LOGS[@]}" "$LOG")
+    PIDS+=("$!")
+    CMDFS+=("$JOB")
+    LOGS+=("$LOG")
+  done
 
-  done
   # wait till all processes have finished
-  local PIDS_STATUS=()
-  for pid in "${PIDS[@]}"; do
-    echo "Waiting for PID $pid of (${PIDS[*]}) to complete..."
-    wait "$pid"
-    PIDS_STATUS=("${PIDS_STATUS[@]}" "$?")
-  done
-  # now append their logs to the main log file
-  for log in "${LOGS[@]}"
+  local unsuccessful=()
+  for i in $(seq "${#PIDS[@]}")
   do
-    cat "$log" >> "$LOG_FILE"
-    rm -f "$log"
-  done
-  echo "PIDs (${PIDS[*]}) completed and logs appended."
-  # and check for failures
-  for pid_status in "${PIDS_STATUS[@]}"
-  do
-    if [ "$pid_status" != "0" ] ; then
-      exit 1
+    echo "Waiting for PID ${PIDS[i-1]} of (${PIDS[*]}) to complete..."
+    wait "${PIDS[i-1]}"
+    status="$?"
+    # now append their logs to the main log file
+    tee -a "$LOG_FILE" < "${LOGS[i-1]}"
+    rm -f "${LOGS[i-1]}"
+    if [[ "$status" != "0" ]]
+    then
+      unsuccessful+=($((i - 1)))
+      {
+        echo "ERROR: The script ${CMDFS[i-1]} (PID: ${PIDS[i-1]}) did not complete successfully!"
+        echo "========================================"
+        echo ""
+      } | tee -a "$LOG_FILE"
     fi
   done
+  # and check for failures
+  if [[ "${#unsuccessful}" == 0 ]]
+  then
+    echo "PIDs (${PIDS[*]}) completed successfully! Their logs have been appended." | tee -a "$LOG_FILE"
+  else
+    echo "PIDs (${unsuccessful[*]}) of (${PIDS[*]}) have NOT completed successfully! All logs appended." | \
+      tee -a "$LOG_FILE"
+    exit 1
+  fi
+}
+
+function auto_detect_fs_license()
+{
+  # USAGE: auto_detect_fs_license <what needs the license>
+  local what_needs_license="$1"
+  local msg="T${what_needs_license:6} require(s) a FreeSurfer License"
+  if [[ -z "$FS_LICENSE" ]]
+  then
+    msg="$msg, but no license was provided via --fs_license or the FS_LICENSE environment variable"
+    if [[ "$DO_NOT_SEARCH_FS_LICENSE_IN_FREESURFER_HOME" != "true" ]] && [[ -n "$FREESURFER_HOME" ]]
+    then
+      echo "WARNING: $msg. Checking common license files in \$FREESURFER_HOME."
+      for filename in "license.dat" "license.txt" ".license"
+      do
+        if [[ -f "$FREESURFER_HOME/$filename" ]]
+        then
+          echo "  Trying with '$FREESURFER_HOME/$filename', specify a license with --fs_license to overwrite."
+          export FS_LICENSE="$FREESURFER_HOME/$filename"
+          break
+        fi
+      done
+      if [[ -z "$FS_LICENSE" ]]; then echo "ERROR: No license found..." ; exit 1 ; fi
+    else
+      echo "ERROR: $msg."
+      exit 1
+    fi
+  elif [[ ! -f "$FS_LICENSE" ]]
+  then
+    echo "ERROR: $msg, but the provided path is not a file: $FS_LICENSE."
+    exit 1
+  fi
 }
 
 function check_allow_root()
 {
   # Will check, if --allow_root is in arguments (to this function) and print an error message
-  # as well as exit.
+  # as well as exit. Also checks for the default docker user, which indicates a missing --user mapping.
   # Examples:
   # check_allow_root --arg 0 -> message and exit
   #
@@ -150,44 +275,74 @@ function check_allow_root()
       echo "  If you want to force running as root, you may pass --allow_root to $(basename "$BASH_ARGV0")."
       exit 1
     fi
+  elif [[ -n "${FASTSURFER_DOCKER_DEFAULT_USER:-}" ]] \
+    && [[ "$(id -un 2> /dev/null || true)" == "$FASTSURFER_DOCKER_DEFAULT_USER" ]]
+  then
+    echo "ERROR: You are trying to run '$(basename "$BASH_ARGV0")' as the default FastSurfer docker user"
+    echo "  '$FASTSURFER_DOCKER_DEFAULT_USER'. This usually means the container was started without mapping"
+    echo "  your host user into the container."
+    echo "  Please run docker with '-u \$(id -u):\$(id -g)' (see https://docs.docker.com/engine/reference/run/#user)."
+    exit 1
   fi
 }
 
 function softlink_or_copy()
 {
+  # Creates a symlink at file pointing to target; if that fails, for example because symlinks are not supported by the
+  # file system, copy the file instead. The baseline call is `ln -sf $1 $2 >> $3`.
   # params
-  # 1: file
-  # 2: target
+  # 1: link target (or file copy source) -> path to target of link / absolute or relative but relative to **file**!!
+  # 2: link (or file copy destination) -> path to link file / absolute or relative to cwd
   # 3: logfile
   # 4: cmdf
-  local LF="$3"
-  local ln_cmd=(ln -sf "$1" "$2")
-  local cp_cmd=(cp "$1" "$2")
+  local LF="$3" link_tgt_cp_src="$1" link_cp_dest="$2"
+  if [[ $# -lt 3 ]] || [[ -z "$LF" ]] ; then echo "WARNING: Parameter 3 of softlink_or_copy missing!" ; fi
+  local ln_cmd=(ln -sf "$link_tgt_cp_src" "$link_cp_dest")
   if [[ $# -eq 4 ]]
   then
     local CMDF=$4
     {
       echo "echo $(echo_quoted "${ln_cmd[@]}")"
       echo "$timecmd $(echo_quoted "${ln_cmd[@]}")"
-      echo "if [ \${PIPESTATUS[0]} -ne 0 ]"
+      echo "if [[ \${PIPESTATUS[0]} != 0 ]]"
       echo "then"
-      echo "  echo $(echo_quoted "${cp_cmd[@]}")"
-      echo "  $timecmd $(echo_quoted "${cp_cmd[@]}")"
-      echo "  if [ \${PIPESTATUS[0]} -ne 0 ] ; then exit 1 ; fi"
+      if [[ "$link_tgt_cp_src" != /* ]] ; then # relative path, defined with respect to $link_cp_dest
+        echo "  src=\$(dirname $(echo_quoted "$link_cp_dest"))/$(echo_quoted "$link_tgt_cp_src")"
+      else
+        echo "  src=$(echo_quoted "$link_tgt_cp_src")"
+      fi
+      echo "  echo \"cp \\\"\$src\\\" $(echo_quoted "$link_cp_dest")\""
+      echo "  $timecmd cp \"\$src\" $(echo_quoted "$link_cp_dest")"
+      echo "  if [[ \${PIPESTATUS[0]} != 0 ]] ; then exit 1 ; fi"
       echo "fi"
     } | tee -a "$CMDF"
   else
     {
       echo_quoted "${ln_cmd[@]}"
       $timecmd "${ln_cmd[@]}" 2>&1
-      if [ "${PIPESTATUS[0]}" -ne 0 ]
+      if [[ "${PIPESTATUS[0]}" != 0 ]]
       then
-        echo_quoted "${cp_cmd[@]}"
-        $timecmd "${cp_cmd[@]}" 2>&1
-        if [ "${PIPESTATUS[0]}" -ne 0 ] ; then exit 1 ; fi
+        if [[ "$link_tgt_cp_src" != /* ]] ; then link_tgt_cp_src="$(dirname "$2")/$link_tgt_cp_src" ; fi # relative path
+        echo_quoted "cp" "$link_tgt_cp_src" "$link_cp_dest"
+        $timecmd "cp" "$link_tgt_cp_src" "$link_cp_dest" 2>&1
+        if [[ "${PIPESTATUS[0]}" != 0 ]] ; then exit 1 ; fi
       fi
     } | tee -a "$LF"
+    if [[ "${PIPESTATUS[0]}" != 0 ]]; then exit 1; fi # forward subshell exit to main script
   fi
+}
+
+function relative_to()
+{
+  # Generate a relative path from $2 to $3, so `ln -s $(relative_to python /path/src /path/target) /path/src` is valid.
+  # params
+  # $1: python executable
+  # $2: base path whose directory is used as the starting point (e.g., the link path; start dir is dirname($2))
+  # $3: target path to compute the relative path to (normal shell quoting is allowed)
+  script=('import sys, os'
+          'base, target = sys.argv[sys.argv.index("-c")+1:]'
+          'print(os.path.relpath(target, start=os.path.dirname(base)))')
+  $1 -c "$(printf "%s\n" "${script[@]}")" "$2" "$3"
 }
 
 function echo_quoted()

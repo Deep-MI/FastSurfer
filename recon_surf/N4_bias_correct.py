@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright 2023 Image Analysis Lab, German Center for Neurodegenerative Diseases (DZNE), Bonn
+# Copyright 2023 DeepMI Lab, German Center for Neurodegenerative Diseases (DZNE), Bonn
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -80,12 +80,6 @@ If a brain mask (--mask) is passed, the center is placed at the centroid of the
 brainmask. 
 
 One of --mask, --tal, --aseg must be passed to achieve rescaling.
-
-Original Author: Martin Reuter
-Date: Mar-18-2022
-
-Modified: David Kügler
-Date: Feb-27-2024
 """
 
 HELP_VERBOSITY = "Logging verbosity: 0 (none), 1 (normal), 2 (debug)"
@@ -228,7 +222,7 @@ def options_parse():
     parser.add_argument(
         "--version",
         action="version",
-        version="$Id: N4_bias_correct.py,v 2.1 2024/02/27 20:02:08 mreuter,dkuegler Exp $"
+        version="%(prog)s, part of FastSurfer, see 'run_fastsurfer.sh --version'"
     )
     return parser.parse_args()
 
@@ -647,7 +641,7 @@ def main(
     itk_image, image_header = iio.readITKimage(
         str(invol),
         sitk.sitkFloat32,
-        with_header=True,
+        return_header=True,
     )
 
     # read mask (as uchar)
@@ -657,7 +651,7 @@ def main(
         itk_mask: sitk.Image | None = iio.readITKimage(
             str(mask),
             sitk.sitkUInt8,
-            with_header=False
+            return_header=False
         )
         # binarize mask
         itk_mask = cast(sitk.Image, itk_mask > 0)
@@ -732,7 +726,7 @@ def main(
 
             logger.info(f"normalize WM to {target_wm:.1f} (find WM from aseg)")
             # only grab the white matter
-            itk_aseg = iio.readITKimage(str(aseg), with_header=False)
+            itk_aseg = iio.readITKimage(str(aseg), return_header=False)
 
             itk_bfcorr_image = normalize_wm_aseg(
                 itk_bfcorr_image,

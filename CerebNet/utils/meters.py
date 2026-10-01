@@ -1,4 +1,4 @@
-# Copyright 2022 Image Analysis Lab, German Center for Neurodegenerative Diseases (DZNE), Bonn
+# Copyright 2022 DeepMI Lab, German Center for Neurodegenerative Diseases (DZNE), Bonn
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -20,9 +20,9 @@ import numpy as np
 import torch
 
 from CerebNet.data_loader.data_utils import GRAY_MATTER, VERMIS_NAMES
-from CerebNet.utils.metrics import DiceScore, dice_score, hd, volume_similarity
 from CerebNet.utils.misc import plot_confusion_matrix, plot_predictions
 from FastSurferCNN.utils import logging
+from FastSurferCNN.utils.metrics import DiceScore, dice_score, hd, volume_similarity
 
 logger = logging.get_logger(__name__)
 

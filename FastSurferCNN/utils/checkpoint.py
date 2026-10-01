@@ -1,4 +1,4 @@
-# Copyright 2022 Image Analysis Lab, German Center for Neurodegenerative Diseases (DZNE), Bonn
+# Copyright 2022 DeepMI Lab, German Center for Neurodegenerative Diseases (DZNE), Bonn
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,10 +14,13 @@
 
 # IMPORTS
 import os
+import sys
 from collections.abc import MutableSequence
 from functools import lru_cache
 from pathlib import Path
+from time import sleep
 from typing import TYPE_CHECKING, Literal, TypedDict, cast, overload
+from uuid import uuid4
 
 import requests
 import torch
@@ -35,10 +38,6 @@ else:
 
 LOGGER = logging.getLogger(__name__)
 
-# Defaults
-YAML_DEFAULT = FASTSURFER_ROOT / "FastSurferCNN/config/checkpoint_paths.yaml"
-
-
 class CheckpointConfigDict(TypedDict, total=False):
     url: list[str]
     checkpoint: dict[Plane, Path]
@@ -49,7 +48,7 @@ CheckpointConfigFields = Literal["checkpoint", "config", "url"]
 
 
 @lru_cache
-def load_checkpoint_config(filename: Path | str = YAML_DEFAULT) -> CheckpointConfigDict:
+def load_checkpoint_config(filename: Path | str) -> CheckpointConfigDict:
     """
     Load the plane dictionary from the yaml file.
 
@@ -88,21 +87,21 @@ def load_checkpoint_config(filename: Path | str = YAML_DEFAULT) -> CheckpointCon
 
 @overload
 def load_checkpoint_config_defaults(
-        filetype: Literal["checkpoint", "config"],
-        filename: str | Path = YAML_DEFAULT,
+        configtype: Literal["checkpoint", "config"],
+        filename: str | Path,
 ) -> dict[Plane, Path]: ...
 
 
 @overload
 def load_checkpoint_config_defaults(
         configtype: Literal["url"],
-        filename: str | Path = YAML_DEFAULT,
+        filename: str | Path,
 ) -> list[str]: ...
 
 @lru_cache
 def load_checkpoint_config_defaults(
         configtype: CheckpointConfigFields,
-        filename: str | Path = YAML_DEFAULT,
+        filename: str | Path,
 ) -> dict[Plane, Path] | list[str]:
     """
     Get the default value for a specific plane or the url.
@@ -172,6 +171,23 @@ def get_checkpoint(ckpt_dir: str, epoch: int) -> str:
         ckpt_dir, f"Epoch_{epoch:05d}_training_state.pkl"
     )
     return checkpoint_dir
+
+
+def get_config_file(module: str) -> Path:
+    """
+    Returns the path to the checkpoint_paths.yaml file of `module`.
+
+    Parameters
+    ==========
+    module : str
+        The FastSurfer module name.
+
+    Returns
+    =======
+    Path
+        The path to the checkpoint_paths.yaml file of `module`.
+    """
+    return FASTSURFER_ROOT / module / "config/checkpoint_paths.yaml"
 
 
 def get_checkpoint_path(
@@ -329,6 +345,21 @@ def remove_ckpt(ckpt: str | Path):
         pass
 
 
+# A read timeout, unlike a connect timeout, bounds the gap between received chunks. Without one a
+# server that accepts the connection and then stops sending leaves this hanging with nothing to
+# time it out, which in a docker build means hanging until the job's own limit.
+DOWNLOAD_TIMEOUT = (5, 60)  # (connect, read) in seconds
+# Attempts per url before moving to the next one. The urls are alternative hosts, so falling through
+# already covers one being down; this covers the transfer itself breaking, which is what the hosts
+# actually do, and it is the only thing protecting the last url in the list.
+DOWNLOAD_ATTEMPTS = 3
+DOWNLOAD_BACKOFF = 5.0  # seconds before the second attempt, doubled for each one after
+# Statuses where the host is up but is refusing for now, which is what an overloaded host returns
+# and is worth another attempt. Every other status, 404 and 403 in particular, is the same answer
+# every time, so the next url is the faster move.
+DOWNLOAD_RETRY_STATUS = frozenset({429, 500, 502, 503, 504})
+
+
 def download_checkpoint(
         checkpoint_name: str,
         checkpoint_path: str | Path,
@@ -337,7 +368,10 @@ def download_checkpoint(
     """
     Download a checkpoint file.
 
-    Raises an HTTPError if the file is not found or the server is not reachable.
+    Each url is tried up to DOWNLOAD_ATTEMPTS times, backing off between attempts, for a broken
+    transfer or a status in DOWNLOAD_RETRY_STATUS. Any other status moves straight to the next url.
+    Raises an ExceptionGroup, or a RuntimeError before Python 3.11 and whenever no host answered at
+    all, once every url has been exhausted.
 
     Parameters
     ----------
@@ -348,34 +382,81 @@ def download_checkpoint(
     urls : list[str]
         List of URLs of checkpoint hosting sites.
     """
-    response = None
+    responses = []
     for url in urls:
-        try:
-            LOGGER.info(f"Downloading checkpoint {checkpoint_name} from {url}")
-            response = requests.get(
-                url + "/" + checkpoint_name,
-                verify=True,
-                timeout=(5, None),  # (connect timeout: 5 sec, read timeout: None)
-            )
+        # this url's own reply, so that exhausting the attempts here does not read the reply of
+        # the url before it
+        reply = None
+        for attempt in range(1, DOWNLOAD_ATTEMPTS + 1):
+            try:
+                LOGGER.info(f"Downloading checkpoint {checkpoint_name} from {url}")
+                reply = requests.get(
+                    url + "/" + checkpoint_name,
+                    verify=True,
+                    timeout=DOWNLOAD_TIMEOUT,
+                )
+                if reply.ok or reply.status_code not in DOWNLOAD_RETRY_STATUS:
+                    break  # a settled answer, and it decides whether to try the next url
+                reason = f"Server {url} answered {reply.status_code}"
+
+            except requests.exceptions.RequestException as e:
+                reason = f"Server {url} not reachable ({type(e).__name__}): {e}"
+                if isinstance(e.response, requests.Response):
+                    reply = e.response
+
+            # the transport broke or the host asked for later, and another attempt fixes either
+            LOGGER.warning(reason)
+            if attempt < DOWNLOAD_ATTEMPTS:
+                delay = DOWNLOAD_BACKOFF * 2 ** (attempt - 1)
+                LOGGER.info(
+                    f"Retrying {url} in {delay:.0f}s ({attempt} of {DOWNLOAD_ATTEMPTS} used)"
+                )
+                sleep(delay)
+        # one entry per url rather than per attempt, so the error below reads as a list of hosts
+        if reply is not None:
+            responses.append(reply)
             # Raise error if file does not exist:
-            response.raise_for_status()
-            break
+            if reply.ok:
+                break
 
-        except requests.exceptions.RequestException as e:
-            LOGGER.warning(f"Server {url} not reachable ({type(e).__name__}): {e}")
-            if isinstance(e, requests.exceptions.HTTPError):
-                LOGGER.warning(f"Response code: {e.response.status_code}")
-
-    if response is None:
-        links = ', '.join(u.removeprefix('https://')[:22] + "..." for u in urls)
-        raise requests.exceptions.RequestException(
-            f"Failed downloading the checkpoint {checkpoint_name} from {links}."
-        )
+    # if no request was successful, raise an error with all responses
+    if not any(_response.ok for _response in responses):
+        import textwrap
+        # the urls, because a transport failure leaves no response to report below
+        message = (f"Could not download checkpoint {checkpoint_name} from any of "
+                   f"{', '.join(urls)}.")
+        exceptions = []
+        for _response in responses:
+            message += f"\n\nResponse code from {_response.url}: {_response.status_code}"
+            message += f"\nResponse text:\n{textwrap.indent(_response.text, '    ')}"
+            if sys.version_info >= (3, 11):
+                try:
+                    _ = _response.raise_for_status()
+                except Exception as e:
+                    exceptions.append(e)
+        # ExceptionGroup is introduced in Python 3.11
+        # exceptions is empty when every url failed in transport, which leaves no response to
+        # raise_for_status, and an ExceptionGroup must hold at least one exception
+        if sys.version_info >= (3, 11) and exceptions:
+            raise ExceptionGroup(message, exceptions)  # noqa: F821
+        else:
+            raise RuntimeError(message, responses)
     else:
-        response.raise_for_status()  # Raise error if no server is reachable
-
-    with open(checkpoint_path, "wb") as f:
-        f.write(response.content)
+        response = next(r for r in responses if r.ok)
+        checkpoint_path = Path(checkpoint_path)
+        temporary_path = checkpoint_path.with_name(
+            f".{checkpoint_path.name}.{uuid4().hex}.tmp"
+        )
+        try:
+            # Opening a unique file with ``xb`` preserves the permissions dictated by
+            # the process umask and prevents concurrent downloads from sharing a
+            # temporary file. The same-directory replace atomically publishes the
+            # checkpoint only after it has been written and closed completely.
+            with open(temporary_path, "xb") as f:
+                f.write(response.content)
+            os.replace(temporary_path, checkpoint_path)
+        finally:
+            temporary_path.unlink(missing_ok=True)
 
 
 def check_and_download_ckpts(checkpoint_path: Path | str, urls: list[str]) -> None:
@@ -386,7 +467,7 @@ def check_and_download_ckpts(checkpoint_path: Path | str, urls: list[str]) -> No
     ----------
     checkpoint_path : Path, str
         Path of the file in which the checkpoint will be saved.
-    urls : list[str]
+    urls : list of str
         URLs of checkpoint hosting site.
     """
     if not isinstance(checkpoint_path, Path):
@@ -406,7 +487,7 @@ def get_checkpoints(*checkpoints: Path | str, urls: list[str]) -> None:
     ----------
     *checkpoints : Path, str
         Paths of the files in which the checkpoint will be saved.
-    urls : Path, str
+    urls : list of str
         URLs of checkpoint hosting sites.
     """
     try:

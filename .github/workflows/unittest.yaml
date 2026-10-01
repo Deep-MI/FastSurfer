@@ -1,0 +1,210 @@
+name: test
+
+# File: unittest.yaml
+# Functionality: runs the unit tests under test/, one job per directory, plus the shell tests
+# under the bash macOS ships.
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.number }}-${{ github.event.ref }}
+  # Superseded pull request runs are worth cancelling, runs on dev are not: a cancelled run saves
+  # no cache, and warming the cache is the only reason dev is a trigger at all.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+on:
+  pull_request:
+  # Not for the coverage, which the pull_request run already gives: every change reaches dev
+  # through a pull request, and that event checks out the merge ref, so the merged result is what
+  # was tested. This is for the pip cache. A run can restore caches from its own branch, the
+  # default branch, or, for a pull request, its base branch. Without a run on dev this workflow's
+  # cache only ever exists at pull-request scope, which no other pull request can read, so every
+  # one of them downloads torch and the rest of the install from scratch.
+  push:
+    branches: [dev]
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  attestations: read
+  checks: read
+  contents: read
+  deployments: read
+  issues: read
+  discussions: read
+  packages: read
+  pages: read
+  pull-requests: write
+  repository-projects: read
+  security-events: read
+  statuses: read
+
+jobs:
+  unit-test:
+    name: 'linux unit tests'
+    runs-on: ubuntu-latest
+    # A bound on a hung test, not a budget: the tests take seconds and the install is the rest.
+    timeout-minutes: 20
+    # One job, not one per test/<name> directory. Splitting them saved nothing, because they ran in
+    # parallel and the wall clock was set by whichever job installed the project. It also cost
+    # coverage: the directories that skipped the install had no numpy or torch, so every test
+    # guarded on those silently skipped, including the ones that check the dispatch pin and the
+    # host fingerprint. Installing once and running the lot is cheaper and tests more.
+    #
+    # test/lint is deliberately absent: it only reads files and belongs with the other style
+    # checks, so it runs in the much lighter code-style workflow.
+    # test/shell also runs on macOS below, which is the only place /bin/bash is 3.2.
+    steps:
+      - uses: actions/checkout@v7
+      - name: Setup Python 3.10 (oldest supported)
+        uses: actions/setup-python@v7
+        with:
+          # deliberately NOT tool.python.version (the shipped default): this job pins the lower
+          # bound from project.requires-python so that the supported-version claim stays tested.
+          # Bump this only when requires-python itself is raised.
+          python-version: '3.10'
+          architecture: 'x64'
+          cache: 'pip' # caching pip dependencies
+      - name: Install dependencies
+        shell: bash
+        run: |
+          echo "::group::Create python environment"
+          python -m pip install --progress-bar off --upgrade pip setuptools wheel
+          # the same python environment as the pipeline test, so the tests guarded on numpy and
+          # torch actually run rather than skipping
+          python -m pip install --progress-bar off .[pipelinetest]
+          echo "::endgroup::"
+      - name: Resolve the artifact and JUnit file names
+        shell: bash
+        run: |
+          # Short sha: the full 40 characters make the downloaded name unreadable and carry no more
+          # information. The file is named after its artifact, so that files downloaded from several
+          # runs sit next to each other.
+          artifact="fastsurfer-${GITHUB_SHA::8}-junit-linux"
+          echo "FS_JUNIT_ARTIFACT=$artifact" >> "$GITHUB_ENV"
+          echo "FS_JUNIT_FILE=/tmp/$artifact.xml" >> "$GITHUB_ENV"
+      # run pytest checks for data consistency/quality
+      - name: Run pytest
+        env:
+          FASTSURFER_HOME: ${{ github.workspace }}
+        shell: bash
+        # No continue-on-error: a failing test has to fail the job by itself. Routing that through
+        # the annotation step instead would rest on fail_on_failure working under annotate_only,
+        # which the action does not document. The steps after this one run on !cancelled(), so the
+        # report is still produced and uploaded when a test fails.
+        run: |
+          echo "::group::Run tests"
+          # No PYTHONPATH: the project is installed, and PYTHONPATH precedes site-packages, so
+          # setting it would leave the installed package untested and import the working tree.
+          flags=("--junit-xml=$FS_JUNIT_FILE")
+          if [[ "$ACTION_RUNNER_DEBUG" == "true" ]]
+          then 
+            flags+=(-vv --log_cli_level=DEBUG)
+          fi
+          # One invocation, so a single report covers all three and the summary counts add up.
+          # test_brun_bash32.py is not collected here: every test in it needs /bin/bash to be 3.2,
+          # which no linux runner has, so collecting it only produced seven skips. The macOS job
+          # below is where it runs. Its own skipif stays, for a developer running the directory on
+          # linux by hand.
+          python -m pytest "${flags[@]}" test/image test/shell test/utils \
+            --ignore=test/shell/test_brun_bash32.py
+          echo "::endgroup::"
+      - name: Upload the JUnit XML file as an artifact
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ env.FS_JUNIT_ARTIFACT }}
+          path: ${{ env.FS_JUNIT_FILE }}
+          # a missing report means the run died before writing one, which is a failure of this job
+          # rather than something to note and carry on from
+          if-no-files-found: error
+      - name: Annotate the results into the check
+        if: ${{ !cancelled() }}
+        uses: mikepenz/action-junit-report@v6
+        with:
+          report_paths: ${{ env.FS_JUNIT_FILE }}
+          # Unused while annotate_only is set, since that suppresses the check run this names.
+          # Kept distinct, and distinguishing first, so it is already correct if annotate_only goes.
+          check_name: 'linux unit test results'
+          fail_on_failure: 'true'
+          fail_on_parse_error: 'true'
+          # pytest always writes the xml, so this only fires if the file went missing, which would
+          # otherwise be reported as a pass
+          require_tests: 'true'
+          # here, we only add the annotations, the fail-state cannot be set here by this action because the github token
+          # does not have the required permissions in PRs from forks.
+          # See: https://github.com/mikepenz/action-junit-report?tab=readme-ov-file#pr-run-permissions
+          annotate_only: 'true'
+
+  macos-shell-test:
+    # the platform leads, parallel with 'linux unit tests' above, since that is what differs
+    name: 'macos shell tests (bash 3.2)'
+    # The only place /bin/bash is 3.2, which is what test/shell guards: every shipped script selects
+    # it through its own shebang, so a bash-4-only construct breaks macOS while passing on Linux.
+    #
+    # test/shell and no more, deliberately. It is the one directory whose behaviour depends on the
+    # platform: bash 3.2 here, and fs_time and time_it both branch on it. test/image is numerical
+    # and platform neutral, and test/utils would need the project installing, so torch built for
+    # arm64, on a runner billed at ten times the linux rate, to cover one Darwin branch in
+    # host_info. The whole directory rather than named files, so a new test file is picked up here
+    # without anyone remembering to add it.
+    runs-on: macos-15
+    timeout-minutes: 20  # the same bound as the job above, for the same reason
+    steps:
+      - uses: actions/checkout@v7
+      - name: Setup Python
+        uses: actions/setup-python@v7
+        # no `architecture`, unlike the job above: these runners are arm64
+        with:
+          python-version: '3.10'
+      - name: Install pytest
+        shell: bash
+        run: python -m pip install --progress-bar off --upgrade pip pytest
+      - name: Report the bash version, and fail if it is no longer 3.x
+        # A deliberate tripwire. If Apple ever ships bash 4+ as /bin/bash the functional tests would
+        # silently skip and this guard would rot unnoticed, which is how it drifted before.
+        run: |
+          /bin/bash -c 'echo "/bin/bash is ${BASH_VERSION}"'
+          /bin/bash -c 'test "${BASH_VERSINFO[0]}" -eq 3' || {
+            echo "::error::/bin/bash is no longer 3.x; revisit test/shell and the mapfile workarounds"
+            exit 1
+          }
+      - name: Resolve the artifact and JUnit file names
+        shell: bash
+        run: |
+          # -macos, because the ubuntu job above also runs test/shell and would otherwise claim the
+          # same artifact name for a different platform's result.
+          artifact="fastsurfer-${GITHUB_SHA::8}-junit-shell-macos"
+          echo "FS_JUNIT_ARTIFACT=$artifact" >> "$GITHUB_ENV"
+          echo "FS_JUNIT_FILE=/tmp/$artifact.xml" >> "$GITHUB_ENV"
+      - name: Run pytest
+        env:
+          FASTSURFER_HOME: ${{ github.workspace }}
+        shell: bash
+        # No continue-on-error, as in the linux job: a failing test fails this step, and the two
+        # steps below run on !cancelled() so the report is still written and annotated.
+        #
+        # the whole directory: the bash 3.2 tests only do anything here, and fs_time branches on
+        # the platform, so this is the run that covers its macOS half. The ubuntu job above covers
+        # the linux half of both.
+        run: python -m pytest -v --junit-xml="$FS_JUNIT_FILE" test/shell
+      - name: Upload the JUnit XML file as an artifact
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ env.FS_JUNIT_ARTIFACT }}
+          path: ${{ env.FS_JUNIT_FILE }}
+          if-no-files-found: error
+      - name: Annotate the results into the check
+        if: ${{ !cancelled() }}
+        # Without this the only record of a failure here is the raw log, which makes a bash 3.2
+        # regression the least visible failure in the repository, and this job exists to catch
+        # exactly the drift nobody is watching for.
+        uses: mikepenz/action-junit-report@v6
+        with:
+          report_paths: ${{ env.FS_JUNIT_FILE }}
+          # unused while annotate_only is set, as in the job above
+          check_name: 'macos shell test results (bash 3.2)'
+          fail_on_failure: 'true'
+          fail_on_parse_error: 'true'
+          require_tests: 'true'
+          # as in the job above: the fail-state cannot be set from a pull request opened on a fork
+          annotate_only: 'true'

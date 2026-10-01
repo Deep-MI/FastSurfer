@@ -1,0 +1,34 @@
+#!/bin/bash
+set -e
+
+# Remove a previous installation of this exact version before the payload is laid down.
+#
+# A component package replaces the files it carries but never removes files that are no longer in
+# it, so reinstalling after a change that drops something leaves the old copy behind -- e.g. a
+# virtual environment from before the python distribution was bundled, complete with a config
+# pointing at a path that no longer exists. The install directory is version-suffixed and entirely
+# package-owned (the docs direct the FreeSurfer license to the user's home directory precisely
+# because this tree is root-owned), so wiping it is safe and makes an install deterministic.
+#
+# Only this directory is removed. The applet bundle next to it is left alone: the Installer treats
+# bundles as single components and replaces them wholesale.
+
+FASTSURFER_HOME="<fastsurfer_home_dir>"
+
+# Refuse to run on anything but the intended path. A failed substitution or an empty variable would
+# otherwise turn the removal below into something catastrophic.
+case "$FASTSURFER_HOME" in
+  /Applications/FastSurfer?*)
+    ;;
+  *)
+    echo "ERROR: refusing to remove '$FASTSURFER_HOME': not a FastSurfer install directory." >&2
+    echo "  This indicates a broken installer build; please report it." >&2
+    exit 1
+    ;;
+esac
+
+if [[ -d "$FASTSURFER_HOME" ]]
+then
+  echo "Removing the existing installation at $FASTSURFER_HOME"
+  rm -rf "$FASTSURFER_HOME"
+fi

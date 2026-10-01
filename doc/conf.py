@@ -2,28 +2,40 @@
 #
 # For the full list of built-in configuration values, see the documentation:
 # https://www.sphinx-doc.org/en/master/usage/configuration.html
-
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
 
-import inspect
-from importlib import import_module
-import sys
+import importlib
+import io
 import os
+import re
+import sys
 from pathlib import Path
 
-# here i added the relative path because sphinx was not able
-# to locate FastSurferCNN module directly for autosummary
-sys.path.append(os.path.dirname(__file__) + "/..")
-sys.path.append(os.path.dirname(__file__) + "/../recon_surf")
-sys.path.append(os.path.dirname(__file__) + "/sphinx_ext")
+# relative path so sphinx can locate the different modules directly for autosummary
+sys.path.append(str(Path(__file__).parents[1]))
+sys.path.append(str(Path(__file__).parents[1] / "recon_surf"))
+sys.path.append(str(Path(__file__).parent / "sphinx_ext"))
+
+from resolve_links import LinkCodeResolver
+from FastSurferCNN.version import main as _version_info, parse_build_file
 
 project = "FastSurfer"
 author = "FastSurfer Developers"
-copyright = f"2020, {author}"
-gh_url = "https://github.com/deep-mi/FastSurfer"
+copyright = f"2020-2026, {author}"
+gh_url = "https://github.com/Deep-MI/FastSurfer"
 
+# run the version script and save in build dir
+_streambuf = io.StringIO()
+_version_info(file=_streambuf)
+_version_dict = parse_build_file(_streambuf)
+
+# the commit, not the branch: `git_branch` needs a non-empty `sections` to be filled in at all, and
+# actions/checkout leaves a detached HEAD where `git branch --show-current` is empty anyway. The
+# hash is optional in the version line, so fall back to a ref that exists rather than to nothing.
+commit = _version_dict["git_hash"] or "dev"
+version = _version_dict["version"]
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
@@ -73,6 +85,17 @@ suppress_warnings = [
 # create anchors for which headings?
 myst_heading_anchors = 7
 
+# myst extensions
+myst_enable_extensions = {
+    "substitution",
+}
+
+# configure substitutions
+myst_substitutions = {
+    # for now, the FASTSURFER_VERSION is hard-coded to 2.4.0
+    "FASTSURFER_VERSION": version,
+}
+
 templates_path = ["_templates"]
 exclude_patterns = [
     "_build",
@@ -98,6 +121,7 @@ default_role = "py:obj"
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 html_theme = "furo"
 html_static_path = ["_static"]
+html_js_files = ["doc-version-link.js"]  # points the announcement bar at the sibling doc tree
 html_title = project
 html_show_sphinx = False
 
@@ -117,6 +141,36 @@ html_theme_options = {
         },
     ],
 }
+
+# doc.yml publishes each build to gh-pages under the ref it was built from, so that ref is what
+# says whether this tree documents a release. It is read from the environment rather than from git,
+# because actions/checkout leaves a detached HEAD and `git branch --show-current` is empty there.
+# The tag pattern matches the release tags this project actually uses, all of them X.Y.Z. A tag
+# with a suffix falls through to the development wording, which is the safe way round. doc.yml
+# publishes no tags today, so only "stable" reaches this in practice.
+publish_ref = os.environ.get("GITHUB_REF_NAME", "")
+documents_a_release = publish_ref == "stable" or re.fullmatch(r"v\d+\.\d+\.\d+", publish_ref) is not None
+
+# The announcement bar is the only site-wide notice furo offers, so it also carries the link to the
+# other published tree. The href here is a fallback that is only correct at the tree root;
+# doc-version-link.js rewrites it for the page it actually ends up on.
+_other_tree = "dev" if documents_a_release else "stable"
+_other_link = (
+    f'<a href="../{_other_tree}/" data-doc-tree="{_other_tree}">{_other_tree} documentation</a>'
+)
+
+if documents_a_release:
+    html_theme_options["announcement"] = (
+        f"This documents the latest release. The {_other_link} covers changes that are not "
+        "released yet."
+    )
+else:
+    # Every other build, the dev tree included, describes code ahead of the newest release.
+    html_theme_options["announcement"] = (
+        "You are reading the documentation of the development version. It may describe features "
+        f"and options that are not part of a release yet. See the {_other_link} for the latest "
+        "release."
+    )
 
 
 # -- autosummary -------------------------------------------------------------
@@ -201,6 +255,7 @@ numpydoc_validation_exclude = {  # regex to ignore during docstring check
     r"\.__iter__",
     r"\.__div__",
     r"\.__neg__",
+    r'\.WarmupCosineLR\.step$',  # Exclude due to error in inherited step
 }
 
 # -- sphinxcontrib-bibtex ----------------------------------------------------
@@ -209,60 +264,22 @@ bibtex_bibfiles = ["./references.bib"]
 # -- sphinx.ext.linkcode -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/extensions/linkcode.html
 
-#  Alternative method for linking to code by Osama, not sure which one is better
-from urllib.parse import quote
+def import_from_path(module_name, file_path):
+    spec = importlib.util.spec_from_file_location(module_name, file_path)
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[module_name] = module
+    spec.loader.exec_module(module)
+    return module
 
-# https://github.com/python-websockets/websockets/blob/e217458ef8b692e45ca6f66c5aeb7fad0aee97ee/docs/conf.py#L102-L134
-def linkcode_resolve(domain, info):
-    # Check if the domain is Python, if not return None
-    if domain != "py":
-        return None
-    if not info["module"]:
-        return None
+# linking at the commit rather than at a branch keeps the line numbers in each link matching the
+# code that was documented, however far the branch moves afterwards
+linkcode_resolve = LinkCodeResolver(gh_url, commit)
 
-    # Import the module using the module information
-    mod = import_module(info["module"])
-
-    # Check if the fullname contains a ".", indicating it's a method or attribute of
-    # a class
-    if "." in info["fullname"]:
-        objname, attrname = info["fullname"].split(".")
-        # Get the object from the module
-        obj = getattr(mod, objname)
-        try:
-            # Try to get the attribute from the object
-            obj = getattr(obj, attrname)
-        except AttributeError:
-            # If the attribute doesn't exist, return None
-            return None
-    else:
-        # If the fullname doesn't contain a ".", get the object directly from the module
-        obj = getattr(mod, info["fullname"])
-
-    try:
-        # Try to get the source file and line numbers of the object
-        lines, first_line = inspect.getsourcelines(obj)
-    except TypeError:
-        # If the object is not a Python object that has a source file, return None
-        return None
-
-    # Replace "." with "/" in the module name to construct the file path
-    filename = quote(info["module"].replace(".", "/"))
-    # If the filename doesn't start with "tests", add a "/" at the beginning
-    if not filename.startswith("tests"):
-        filename = "/" + filename
-
-    # Construct the URL that points to the source code of the object on GitHub
-    return f"{gh_url}/blob/dev{filename}.py#L{first_line}-L{first_line + len(lines) - 1}"
-
-# Which domains to search in to create links in markdown texts
-# myst_ref_domains = ["myst", "std", "py"]
-
-
-_re_script_dirs = "fastsurfercnn|cerebnet|recon_surf|hypvinn"
+_re_script_dirs = "fastsurfercnn|cerebnet|recon_surf|hypvinn|corpuscallosum"
 _up = "^/\\.\\./"
 _end = "(\\.md)?(#.*)?$"
 
+# -- sphinx_ext.fix_links -----------------------------------------------------
 # re_reference_target=(regex) => used in missing-reference
 fix_links_target = {
     # all regexpr are ignorecase, individual replacements are applied until no further
@@ -271,7 +288,7 @@ fix_links_target = {
     "^/?(.*)#(.*)ubuntu-(\\d{2})(\\d{2})": ("/\\1#\\2ubuntu-\\3-\\4",),
     f"{_up}readme{_end}": ("/index.rst\\1", "/overview/intro.rst\\1"),
     "^/overview/intro(#.*)?$": ("/overview/index.rst\\2",),
-    f"{_up}(singularity|docker)/readme{_end}": ("/overview/\\1.rst\\2",),
+    f"{_up}/tools/docker/readme{_end}": ("/overview/docker.rst\\2",),
     f"{_up}({_re_script_dirs})/readme{_end}": ("/scripts/\\1.rst\\2",),
     f"{_up}license": ("/overview/license.rst",),
 }

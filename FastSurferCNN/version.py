@@ -1,12 +1,17 @@
 #!/bin/python
 
 import argparse
+import io
 import re
 import shutil
 import subprocess
-from collections.abc import Sequence
+from collections.abc import Iterable, Sequence
 from concurrent.futures import Future, ThreadPoolExecutor
+from functools import lru_cache
+from hashlib import md5
+from os import PathLike
 from pathlib import Path
+from time import perf_counter
 from typing import Any, Literal, TextIO, TypedDict, cast, get_args
 
 
@@ -87,8 +92,7 @@ def section(arg: str) -> str:
         return arg
     else:
         raise argparse.ArgumentTypeError(
-            "The section argument must be 'all', or any combination of "
-            "'+branch', '+checkpoints', '+git' and '+pip'."
+            "The section argument must be 'all', or any combination of '+branch', '+checkpoints', '+git' and '+pip'."
         )
 
 
@@ -136,6 +140,7 @@ def make_parser():
     return parser
 
 
+@lru_cache
 def has_git():
     """
     Determine whether FastSurfer is installed as a git directory.
@@ -209,7 +214,7 @@ def print_build_file(
 def main(
     sections: str = "",
     project_file: TextIO | None = None,
-    build_cache: TextIO | bool | None = None,
+    build_cache: TextIO | Literal[False] | None = None,
     file: TextIO | None = None,
     prefer_cache: bool = False,
 ) -> str | int:
@@ -232,31 +237,26 @@ def main(
     python packages:
     ==========
     Package         Version    Location   [Installer]
-    <package name>  <version>  <path>     <pip|conda>
+    <package name>  <version>  <path>     <pip|...>
     ...]
     ```
 
-    $PROJECT_ROOT is the root directory of the project determined as the parent to this
-    file's directory.
+    $PROJECT_ROOT is the root directory of the project determined as the parent to this file's directory.
 
     Parameters
     ----------
     sections : str
-        String describing which sections the output should include. Can be 'all' or a
-        concatenated list of '+branch', '+checkpoints', '+git', and '+pip', e.g.
-        '+git+checkpoints'.
-        The order does not matter, '+checkpoints', '+git' or '+pip' also implicitly
-        activate '+branch'.
+        String describing which sections the output should include. Can be 'all' or a concatenated list of '+branch',
+        '+checkpoints', '+git', and '+pip', e.g. '+git+checkpoints'.
+        The order does not matter, '+checkpoints', '+git' or '+pip' also implicitly activate '+branch'.
     project_file : TextIO, optional
-        A file-like object to read the projects toml file, with the '[project]' section
-        with a 'version' attribute. Defaults to $PROJECT_ROOT/pyproject.toml.
+        A file-like object to read the projects toml file, with the '[project]' section with a 'version' attribute.
+        Defaults to $PROJECT_ROOT/pyproject.toml.
     build_cache : False, TextIO, optional
-        A file-like object to read cached version information, the format should be
-        formatted like the output of `main`. Defaults to $PROJECT_ROOT/BUILD.info.
-        If build_cache is False, it is ignored.
+        A file-like object to read cached version information, the format should be formatted like the output of `main`.
+        If build_cache is None, it defaults to $PROJECT_ROOT/BUILD.info; if it is False, it is ignored.
     file : TextIO, optional
-        A file-like object to write the output to, defaults to stdout if None or not
-        passed.
+        A file-like object to write the output to, defaults to stdout if None or not passed.
     prefer_cache : bool, default=False
         Whether to prefer information from the `build_cache` over online generation.
 
@@ -273,9 +273,8 @@ def main(
 
     if prefer_cache and not has_build_cache:
         return (
-            "Trying to force the use of cached version information (--prefer_cache), "
-            "but no build information file was passed found at the default location "
-            f"({DEFAULTS.BUILD_TXT})."
+            "Trying to force the use of cached version information (--prefer_cache), but no build information file was "
+            f"passed found at the default location ({DEFAULTS.BUILD_TXT})."
         )
 
     if sections == "all":
@@ -291,17 +290,13 @@ def main(
         futures["version"] = pool.submit(read_and_close_version, project_file)
         # if we do not have git, try VERSION file else git sha and branch
         if has_git() and not prefer_cache:
-            futures["git_hash"] = Popen(
-                ["git", "rev-parse", "--short", "HEAD"], **kw_root
-            ).as_future(pool)
+            git_rev_parse_cmd = ["git", "rev-parse", "--short", "HEAD"]
+            futures["git_hash"] = Popen(git_rev_parse_cmd, **kw_root).as_future(pool, timeout=10.0)
             if sections != "":
-                futures["git_branch"] = Popen(
-                    ["git", "branch", "--show-current"], **kw_root
-                ).as_future(pool)
+                git_branch_current_cmd = ["git", "branch", "--show-current"]
+                futures["git_branch"] = Popen(git_branch_current_cmd, **kw_root).as_future(pool, timeout=10.0)
             if "+git" in sections:
-                futures["git_status"] = pool.submit(
-                    filter_git_status, Popen(["git", "status", "-s", "-b"], **kw_root)
-                )
+                futures["git_status"] = pool.submit(filter_git_status, Popen(["git", "status", "-sb"], **kw_root))
         else:
             # we go not have git, try loading the build cache
             build_cache_required = True
@@ -312,43 +307,49 @@ def main(
         if "+checkpoints" in sections and not prefer_cache:
 
             def calculate_md5_for_checkpoints() -> "MessageBuffer":
-                from glob import glob
-
-                files = glob(str(DEFAULTS.PROJECT_ROOT / "checkpoints" / "*"))
-                shorten = len(str(DEFAULTS.PROJECT_ROOT)) + 1
-                files = [f[shorten:] for f in files]
-                return Popen(["md5sum"] + files, **kw_root).finish()
+                files = list(map(str, cast(Iterable[Path], DEFAULTS.PROJECT_ROOT.glob("checkpoints/*"))))
+                if len(files) == 0:
+                    return MessageBuffer(out=b"", err=b"No checkpoints found.", retcode=0, runtime=0.0)
+                # hashlib rather than the md5sum binary, which macOS did not ship until recently:
+                # the checkpoints are hundreds of MB, so read them in chunks. The output format is
+                # md5sum's, two spaces between hash and path, so BUILD.info is unchanged.
+                start = perf_counter()
+                lines = []
+                for checkpoint_file in files:
+                    digest = md5(usedforsecurity=False)
+                    with open(checkpoint_file, "rb") as checkpoint:
+                        while chunk := checkpoint.read(1 << 22):
+                            digest.update(chunk)
+                    lines.append(f"{digest.hexdigest()}  {checkpoint_file}\n")
+                out = "".join(lines).encode("utf-8")
+                return MessageBuffer(out=out, err=b"", retcode=0, runtime=perf_counter() - start)
 
             futures["checkpoints"] = pool.submit(calculate_md5_for_checkpoints)
 
         if "+pip" in sections and not prefer_cache:
             pip_command = "-m pip list --verbose --no-cache-dir --no-color --disable-pip-version-check"
-            futures["pypackages"] = PyPopen(pip_command.split(" "), **kw_root).as_future(pool)
+            futures["pypackages"] = PyPopen(pip_command.split(" "), **kw_root).as_future(pool, timeout=10.0)
 
     if build_cache_required and build_cache is not False:
-        build_cache: VersionDict = futures.pop("build_cache").result()
+        build_cache: VersionDict = cast(VersionDict, futures.pop("build_cache").result())
     else:
         build_cache: VersionDict = get_default_version_info()
 
     build_file_kwargs = {}
 
     try:
-        version = futures.pop("version").result()
+        version = cast(str, futures.pop("version").result())
     except OSError:
         version = build_cache["version"]
 
-    def __future_or_cache(
-        key: VersionDictKeys, futures: dict[str, Future[Any]], cache: VersionDict,
-    ) -> str:
+    def __future_or_cache(key: VersionDictKeys, futures: dict[str, Future[Any]], cache: VersionDict) -> str:
         future: None | Future[Any] = futures.get(key, None)
         if future is not None:
             returnmsg = future.result()
             if isinstance(returnmsg, str):
                 return returnmsg
             elif returnmsg.retcode != 0:
-                raise RuntimeError(
-                    f"The calculation/determination of {key} has failed."
-                )
+                raise RuntimeError(f"The calculation/determination of {key} has failed.")
             return returnmsg.out_str("utf-8").strip()
         elif key in cache:
             # fill from cache
@@ -364,13 +365,9 @@ def main(
             raise RuntimeError(f"Could not find a valid value for {key}!" + add_msg)
 
     try:
-        build_file_kwargs["git_hash"] = __future_or_cache(
-            "git_hash", futures, build_cache
-        )
+        build_file_kwargs["git_hash"] = __future_or_cache("git_hash", futures, build_cache)
         if sections != "":
-            build_file_kwargs["git_branch"] = __future_or_cache(
-                "git_branch", futures, build_cache
-            )
+            build_file_kwargs["git_branch"] = __future_or_cache("git_branch", futures, build_cache)
         keys: Sequence[VersionDictKeys] = ("git_status", "checkpoints", "pypackages")
         for key in keys:
             if DEFAULTS.VERSION_SECTIONS[key][0] in sections:
@@ -401,65 +398,60 @@ def get_default_version_info() -> VersionDict:
     }
 
 
-def parse_build_file(build_file: TextIO | None) -> VersionDict:
+def parse_build_file(build_file: TextIO | io.StringIO | None) -> VersionDict:
     """Read and parse a build file (same as output of `main`).
 
-    Read and parse a file with version information in the format that is also the
-    output of the `main` function. The format is documented in `main`.
+    Read and parse a file with version information in the format that is also the output of the `main` function. The
+    format is documented in `main`.
 
     Parameters
     ----------
-    build_file : TextIO, optional
+    build_file : TextIO, io.StringIO, optional
         File-like object, will be closed.
 
     Returns
     -------
     VersionDict
-        Dictionary with keys 'version_line', 'version', 'git_hash', 'git_branch',
-        'checkpoints', 'git_status', and 'pypackages'. The last 3 are optional and may
-        be missing depending on the content of the file.
+        Dictionary with keys 'version_line', 'version', 'git_hash', 'git_branch', 'checkpoints', 'git_status', and
+        'pypackages'. The last 3 are optional and may be missing depending on the content of the file.
 
     Notes
     -----
     See also main.
     """
-    file_cache: VersionDict = {}
+    file_cache: VersionDict = get_default_version_info()
     if build_file is None:
         try:
-            build_file = open(DEFAULTS.BUILD_TXT)
+            _build_file = open(DEFAULTS.BUILD_TXT)
         except FileNotFoundError:
             return get_default_version_info()
-    file_cache["content"] = "".join(build_file.readlines())
-    if not build_file.closed:
-        build_file.close()
+    else:
+        _build_file = build_file
+    if isinstance(_build_file, io.StringIO) and hasattr(_build_file, "getvalue"):
+        file_cache["content"] = _build_file.getvalue()
+    else:
+        file_cache["content"] = "".join(_build_file.read())
+    if not _build_file.closed:
+        _build_file.close()
     section_pattern = re.compile("\n={3,}\n")
     file_cache["version_line"], *rest = section_pattern.split(file_cache["content"], 1)
-    version_regex = re.compile(
-        "([a-zA-Z.0-9\\-]+)(\\+([0-9A-Fa-f]+))?(\\s+\\(([^)]+)\\))?\\s*"
-    )
+    version_regex = re.compile("([a-zA-Z.0-9\\-]+)(\\+([0-9A-Fa-f]+))?(\\s+\\(([^)]+)\\))?\\s*")
     hits = version_regex.search(file_cache["version_line"])
     if hits is None:
+        filename = getattr(build_file, "name", "<unnamed file>")
         raise RuntimeError(
-            f"The build file {build_file.name} has invalid formatting, version tag not "
-            f"recognized! First line was '{file_cache['version_line']}' and did "
-            f"not fit the pattern '{version_regex.pattern}'.",
+            f"The build file {filename} has invalid formatting, version tag not recognized! First line was "
+            f"'{file_cache['version_line']}' and did not fit the pattern '{version_regex.pattern}'.",
         )
-    (
-        file_cache["version"],
-        _,
-        file_cache["git_hash"],
-        _,
-        file_cache["git_branch"],
-    ) = hits.groups("")
-    if file_cache["git_hash"]:
-        file_cache["version_tag"] = file_cache["version"] + "+" + file_cache["git_hash"]
-    else:
-        file_cache["version_tag"] = file_cache["version"]
+    file_cache["version"], _, file_cache["git_hash"], _, file_cache["git_branch"] = hits.groups("")
+
+    file_cache["version_tag"] = file_cache["version"] + (f"+{file_cache['git_hash']}" if file_cache["git_hash"] else "")
 
     def get_section_name_by_header(header: str) -> str | None:
         for name, info in DEFAULTS.VERSION_SECTIONS.items():
             if info[1] == header:
                 return name
+        return None
 
     while len(rest) > 0:
         section_header, section_content, *rest = section_pattern.split(rest[0], 2)
@@ -522,7 +514,7 @@ def filter_git_status(git_process) -> str:
     str
         The git status string filtered to exclude lines containing "__pycache__".
     """
-    finished_process = git_process.finish()
+    finished_process = git_process.finish(timeout=10.0)
     if finished_process.retcode != 0:
         raise RuntimeError("Failed git status command")
     git_status_text = finished_process.out_str("utf-8")
@@ -531,7 +523,7 @@ def filter_git_status(git_process) -> str:
     )
 
 
-def read_and_close_version(project_file: TextIO | None = None) -> str:
+def read_and_close_version(project_file: TextIO | PathLike | None = None) -> str:
     """
     Read and close the version from the pyproject file. Also fill default.
 
@@ -539,7 +531,7 @@ def read_and_close_version(project_file: TextIO | None = None) -> str:
 
     Parameters
     ----------
-    project_file : TextIO, optional
+    project_file : TextIO, PathLike, optional
         Project file.
 
     Returns
@@ -552,11 +544,17 @@ def read_and_close_version(project_file: TextIO | None = None) -> str:
     See also FastSurferCNN.version.read_version_from_project_file
     """
     if project_file is None:
-        project_file = open(DEFAULTS.PROJECT_TOML)
+        _project_file = open(DEFAULTS.PROJECT_TOML)
+    elif hasattr(project_file, "read"):
+        _project_file = cast(TextIO, project_file)
+    elif isinstance(project_file, PathLike | Path):
+        _project_file = open(project_file)
+    else:
+        raise TypeError("project_file must be TextIO, PathLike, or None!")
     try:
-        version = read_version_from_project_file(project_file)
+        version = read_version_from_project_file(_project_file)
     finally:
-        project_file.close()
+        _project_file.close()
     return version
 
 

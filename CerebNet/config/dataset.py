@@ -56,9 +56,9 @@ _C.TRAIN_CSV_FILE_PATH = "train_split.csv"
 # Csv-file listing subjects to include in file validation
 _C.VAL_CSV_FILE_PATH = "val_split.csv"
 
-# Default name of original images. FreeSurfer orig.mgz is default (mri/orig.mgz)
-# or native_t1.nii for image in native space
-_C.IMAGE_NAME = "mri/orig/001.mgz"
+# Default name of original images. FastSurfer's copy of the input is the default (mri/rawavg.mgz);
+# the conformed image (mri/orig.mgz) or native_t1.nii for image in native space also work
+_C.IMAGE_NAME = "mri/rawavg.mgz"
 
 # Name of the cerebellum sub-segmentation file,
 # SUIT labels: suit_fs_merged_cleaned.mgz

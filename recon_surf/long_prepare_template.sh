@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Copyright 2024 AI in Medical Imaging, German Center for Neurodegenerative Diseases (DZNE), Bonn
+# Copyright 2024 DeepMI Lab, German Center for Neurodegenerative Diseases (DZNE), Bonn
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -66,7 +66,7 @@ interpol="cubic"    # for the final interpolation of all time points in median i
 robust_template_avg_arg=1  # median for template creation (if more than 1 time point)
 
 # default arguments
-python="python3.10 -s" # avoid user-directory package inclusion
+python="python3 -s" # avoid user-directory package inclusion
 sd="$SUBJECTS_DIR"
 
 # init variables that need to be passed
@@ -108,10 +108,10 @@ FLAGS:
                             (smallest per-direction voxel size) in the T1w
                             image:
                               If the minimal voxel size is bigger than 0.98mm,
-                                the image is conformed to 1mm isometric.
+                                the image is conformed to 1mm isotropic.
                               If the minimal voxel size is smaller or equal to
                                 0.98mm, the T1w image will be conformed to
-                                isometric voxels of that voxel size.
+                                isotropic voxels of that voxel size.
                             The voxel size (whether set manually or derived)
                             determines whether the surfaces are processed with
                             highres options (below 1mm) or not.
@@ -161,17 +161,21 @@ case $key in
   --tid) tid="$1" ; shift ;;
   --tpids) while [[ $# -gt 0 ]] && [[ $1 != -* ]] ; do tpids+=("$1") ; shift ; done ;;
   --t1s) while [[ $# -gt 0 ]] && [[ $1 != -* ]] ; do t1s+=("$1") ; shift ; done ;;
-  --sd) sd="$1" ; export SUBJECTS_DIR="$1" ; shift  ;;
+  --sd) export SUBJECTS_DIR="$1" ; shift  ;;
   # these flags are passed through to run_prediction.py
   --vox_size|--device|--viewagg_device|--conform_to_1mm_threshold) run_pred_flags+=("$key" "$1") ; shift ;;
   --threads|--threads_seg) run_pred_flags+=("--threads" "$1") ; shift ;;
   --batch) run_pred_flags+=("--batch_size" "$1") ; shift ;;
   # these known arguments get ignored
   --aseg_name|--conformed_name|--asegdkt_segfile|--brainmask_name|--seg_log|--qc_log|--parallel|--threads_surf) shift ;;
-  --no_cereb|--no_hypothal|--no_biasfield|--3t) shift ;;
-  --async_io) ;;
+  --norm_name|--reg_mode|--cereb_segfile) shift ;;
+  # no additional argument
+  --no_cc|--no_cereb|--no_hypothal|--no_biasfield|--3t|--edits|--async_io|--tal_reg|--allow_root|--qc_snap) ;;
   --fs_license) export FS_LICENSE="$1" ; shift ;;
-  --remove_suffix) echo "ERROR: The --remove_suffix option is not supported by long_prepare_template.sh" ; exit 1 ;;
+  --remove_suffix|--keepgeom|--native_image|--t2)
+    echo "ERROR: The $key option is not supported by long_prepare_template.sh"
+    exit 1
+    ;;
   -h|--help) usage ; exit ;;
   --py) python="$1" ; shift ;;
   *)    # unknown options also get ignored, but also print warnings
@@ -220,25 +224,7 @@ then
 fi
 
 # check that SUBJECTS_DIR exists
-if [[ -z "$SUBJECTS_DIR" ]]
-then
-  echo "ERROR: No subject directory defined via --sd. This is required!"
-  exit 1;
-fi
-if [[ ! -d "${sd}" ]]
-then
-  echo "INFO: The subject directory did not exist, creating it now."
-  if ! mkdir -p "$SUBJECTS_DIR" ; then echo "ERROR: directory creation failed" ; exit 1; fi
-fi
-if [[ "$(stat -c "%u:%g" "$SUBJECTS_DIR")" == "0:0" ]] && [[ "$(id -u)" != "0" ]] && \
-  [[ "$(stat -c "%a" "$SUBJECTS_DIR" | tail -c 2)" -lt 6 ]]
-then
-  echo "ERROR: The subject directory ($SUBJECTS_DIR) is owned by root and is not writable."
-  echo "  FastSurfer cannot write results! This can happen if the directory is created by"
-  echo "  docker. Make sure to create the directory before invoking docker!"
-  exit 1;
-fi
-
+check_create_subjects_dir_properties "$SUBJECTS_DIR"
 
 ################################## SETUP and LOGFILE ##############################
 
@@ -248,7 +234,7 @@ LF="$SUBJECTS_DIR/$tid/scripts/long_prepare_template.log"
 mkdir -p "$(dirname "$LF")"
 
 export PYTHONPATH
-PYTHONPATH="$FASTSURFER_HOME$([[ -n "$PYTHONPATH" ]] && echo ":$PYTHONPATH")"
+PYTHONPATH="$FASTSURFER_HOME$([[ -n "$PYTHONPATH" ]] && echo ":$PYTHONPATH" || echo "")"
 
 ## make sure +eo are unset
 set +eo > /dev/null
@@ -276,6 +262,9 @@ echo "Log file for long_prepare_template" >> "$LF"
   echo ""
   cat "$FREESURFER_HOME/build-stamp.txt" 2>&1
   uname -a  2>&1
+  # --torch because neuroreg imports it, so the registration steps below run torch kernels
+  # --fingerprint records what this host computes, for comparing two runs later
+  $python "$FASTSURFER_HOME/FastSurferCNN/host_info.py" --torch --fingerprint 2>&1
 } | tee -a "$LF"
 
 
@@ -343,10 +332,13 @@ for ((i=0;i<${#tpids[@]};++i)); do
   echo "${tpids[i]} with T1 ${t1s[i]}" | tee -a "$LF"
   mdir="$SUBJECTS_DIR/$tid/long-inputs/${tpids[i]}"
   mkdir -p "$mdir"
-  # Import (copy) raw inputs (convert to extension format)
-  t1input=$mdir/cross_input${extension}
-  cmd="mri_convert ${t1s[i]} $t1input"
-  RunIt "$cmd" "$LF"
+  # Import the raw input. copy_input.py archives it verbatim as mri/orig/001.<ext>, which is the
+  # only copy of a time point input the longitudinal stream keeps, and writes mri/rawavg.mgz beside
+  # it. Everything downstream reads the rawavg, so it is an .mgz whatever arrived.
+  cmda=($python "$fastsurfercnndir/copy_input.py" --t1 "${t1s[i]}"
+        --sd "$SUBJECTS_DIR/$tid/long-inputs" --sid "${tpids[i]}")
+  run_it "$LF" "${cmda[@]}"
+  t1input="$mdir/mri/rawavg.mgz"
   
   # conform !!!!!!! should we conform to some common value, determined from all time points?? !!!!!!
   # this is relevant if input resolutions different (which they should not), currently conform min may not work as expected
@@ -369,10 +361,6 @@ for ((i=0;i<${#tpids[@]};++i)); do
          --seg_log "$seg_log" "${run_pred_flags[@]}")
   run_it "$LF" "${cmda[@]}"
 
-  # remove mri subdirectory (run_prediction creates 001 there)
-  cmda=(rm -rf "$mdir/mri")
-  run_it "$LF" "${cmda[@]}"
-  
   # mask is binary, we need to use on conformed image:
   cmda=(mri_mask "$conformed_name" "$mask_name" "$mdir/cross_brainmask${extension}")
   run_it "$LF" "${cmda[@]}"
@@ -457,10 +445,7 @@ fi # more than one time point
 odir=${SUBJECTS_DIR}/$tid/mri/transforms
 for s in "${tpids[@]}"
 do
-  cmd="mri_concatenate_lta -invert1"
-  cmd="$cmd $odir/${s}_to_${tid}.lta"
-  cmd="$cmd identity.nofile"
-  cmd="$cmd $odir/${tid}_to_${s}.lta"
+  cmd="$python -m neuroreg.cli.lta invert $odir/${s}_to_${tid}.lta $odir/${tid}_to_${s}.lta"
   RunIt "$cmd" "$LF"
 done
 
@@ -469,7 +454,7 @@ for ((i=0;i<${#tpids[@]};++i))
 do
   mdir="$SUBJECTS_DIR/$tid/long-inputs/${tpids[i]}"
   # map orig to base space
-  cmd="mri_convert -at ${ltaXforms[$i]} -rt $interpol $mdir/cross_input${extension} $mdir/long_conform${extension}"
+  cmd="mri_convert -at ${ltaXforms[$i]} -rt $interpol $mdir/mri/rawavg.mgz $mdir/long_conform${extension}"
   RunIt "$cmd" "$LF"
 done
 

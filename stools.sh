@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# script for functions used by srun_fastsurfer.sh and srun_freesufer.sh
+# script for functions used by srun_fastsurfer.sh and brun_freesufer.sh
 
 function read_cases ()
 {
@@ -83,7 +83,7 @@ function check_hpc_work ()
     echo "The hpc_work directory $1 is not defined or does not exists."
     exit 1
   fi
-  if [[ "$#" -gt 1 ]] && [[ "$2" == "true" ]] && [[ "$(ls $1 | wc -w)" -gt "0" ]]; then
+  if [[ "$#" -gt 1 ]] && [[ "$2" == "true" ]] && [[ "$(ls "$1" | wc -w)" -gt "0" ]]; then
     echo "The hpc_work directory $1 not empty."
     exit 1
   fi
@@ -103,6 +103,7 @@ function check_out_dir ()
     else exit 1; fi
   fi
 }
+
 function check_singularity_image ()
 {
   #param1 singularity_image
@@ -111,65 +112,81 @@ function check_singularity_image ()
     exit 1
   fi
 }
+
 function check_fs_license ()
 {
   #param1 fs_license
   if [[ -z "$1" ]] || [[ ! -f "$1" ]]; then
-    echo "Cannot find the FreeSurfer license (--fs_license, at \"$1\")"
-    exit 1
+    if [[ -f "$(dirname "${BASH_SOURCE[0]}")/recon_surf/functions.sh" ]]; then
+      echo "Searching for FreeSurfer license, cannot find the FreeSurfer license (--fs_license, at \"$1\")..."
+      source "$(dirname "${BASH_SOURCE[0]}")/recon_surf/functions.sh"
+      auto_detect_fs_license " and the SLURM script"
+      # lowercase fs_license => variable in srun_fastsurfer.sh; uppercase => environment and in auto_detect_fs_license
+      # shellcheck disable=SC2153
+      export fs_license="$FS_LICENSE"
+    else
+      echo "ERROR: Cannot find the FreeSurfer license (--fs_license, at \"$1\")!"
+      exit 1
+    fi
   fi
 }
+
 function check_cases_in_out_dir ()
 {
   #param1 out_dir
   #param2 cases
   #param3 optional: true/false jobarray defined (default: false)
-  if [[ "$#" -gt 2 ]] && [[ "$3" == "true" ]]
-  then
-    jobarray_defined="true"
-  else
-    jobarray_defined="false"
-  fi
+  if [[ "$#" -gt 2 ]] && [[ "$3" == "true" ]] ; then jobarray_defined="true" ; else jobarray_defined="false" ; fi
   case_already_exists=""
   for subject in $2
   do
     subject_id=$(echo "$subject" | cut -d= -f1)
-    if [[ -e "$1/$subject_id" ]]
-    then
-      case_already_exists="$case_already_exists, $subject_id"
-    fi
+    if [[ -e "$1/$subject_id" ]] ; then case_already_exists="$case_already_exists, $subject_id" ; fi
   done
   if [[ "$case_already_exists" != "" ]]
   then
-    echo "Some cases already exist in $1 (${case_already_exists:2})"
+    echo "WARNING: Some cases already exist in $1 (${case_already_exists:2})"
     if [[ "$jobarray_defined" == "true" ]]
     then
       echo "This list does not filter for the --slurm_jobarray argument!"
     fi
-    read -r -p "Continue AND OVERWRITE those results? [y/N]" -n 1 retval
-    echo ""
-    if [[ "$retval" == "y" ]] || [[ "$retval" == "Y" ]] ; then export cleanup_mode="cp";
-    else exit 1; fi
+    # read returns non-zero at EOF, which is a different situation from a declined prompt, so the
+    # answer and the absence of one are handled apart. The test is read's exit status rather than
+    # whether stdin is a terminal, so an answer piped in is still an answer.
+    if read -r -p "Continue AND OVERWRITE those results? [y/N]" -n 1 retval ; then
+      echo ""
+      if [[ "$retval" == "y" ]] || [[ "$retval" == "Y" ]] ; then export cleanup_mode="cp";
+      else exit 1; fi
+    else
+      echo "" >&2
+      echo "ERROR: no input to answer that question with (not an interactive shell)." >&2
+      echo "       Remove the existing cases, or pipe 'y' in to overwrite them." >&2
+      exit 1
+    fi
   fi
 }
+
 function check_seg_surf_only ()
 {
   #param1 seg_only
   #param2 surf_only
   if [[ "$1" == "true" ]] && [[ "$2" == "true" ]]; then
-    echo "Selecting both --seg_only and --surf_only is invalid!"
+    echo "ERROR: Selecting both --seg_only and --surf_only is invalid!"
     exit 1
   fi
 }
+
 function check_subject_images ()
 {
   #param1 data dir
   #param2 cases
-  if [[ "$#" -lt 2 ]]; then >&2 echo "check_subject_images is missing parameters!"; exit 1; fi
+  if [[ "$#" -lt 2 ]]; then >&2 echo "ERROR: check_subject_images is missing parameters!"; exit 1; fi
   missing_subject_ids=""
   missing_subject_imgs=""
   symlink_subject_imgs=""
   data_dir="$1"
+  #remove training /
+  while [[ "${data_dir:$((${#data_dir} - 1))}" == "/" ]] ; do data_dir=${data_dir:0:$((${#data_dir} - 1))} ; done
   OLD_IFS=$IFS
   IFS=$'\n'
   for subject in $2
@@ -196,7 +213,6 @@ function check_subject_images ()
         arg0="${arg:0:${#data_dir}}"
         if [[ "$real_data" != "$(realpath "$arg0")" ]] || [[ "${real_arg:${#real_data}}" != "${arg:${#data_dir}}" ]] # this is a symlink
         then
-          echo ":$(realpath "$arg"):=?=:$arg:"
           if [[ $first_img == 1 ]]; then missing_subject_ids+=", $subject_id" ; first_img=0 ; fi
           symlink_subject_imgs+=", $arg => $(realpath "$arg")"
         fi
@@ -208,8 +224,8 @@ function check_subject_images ()
   done
   if [[ -n "$missing_subject_ids" ]]
   then
-    condition=$([[ -n "$missing_subject_imgs" ]] && echo " or missing")
-    condition+=$([[ -n "$symlink_subject_imgs" ]] && echo " or symlinks")
+    condition=$([[ -n "$missing_subject_imgs" ]] && echo " or missing" || echo "")
+    condition+=$([[ -n "$symlink_subject_imgs" ]] && echo " or symlinks" || echo "")
     echo "$([[ "${condition:4:1}" == m ]] && echo "ERROR" || echo "WARNING"): Some images are ${condition:4}!"
     echo "Subject IDs: ${missing_subject_ids:2}"
     if [[ -n "$missing_subject_imgs" ]] ; then echo "Missing files: ${missing_subject_imgs:2}" ; fi
@@ -301,8 +317,7 @@ function make_cleanup_job ()
     echo "success=true"
     echo "for p in \${pids[@]};"
     echo "do"
-    echo "  wait \$p"
-    echo "  if [[ \"\$?\" != 0 ]] ; then success=false; fi"
+    echo "  wait \$p || success=false"
     echo "done"
     echo "if [[ \$success == true ]]"
     echo "then"
@@ -312,28 +327,30 @@ function make_cleanup_job ()
       echo "  rm -R $hpc_work"
     else
       echo "  rm -R $hpc_work/images"
-      echo "  rm $hpc_work/scripts"
-      echo "  rm $hpc_work/cases"
-      echo "  rm $hpc_work/logs"
+      echo "  rm -R $hpc_work/scripts"
+      echo "  rm -R $hpc_work/cases"
+      echo "  rm -R $hpc_work/logs"
     fi
     echo "else"
     echo "  echo \"Cleanup finished with errors!\""
+    echo "  exit 1"
     echo "fi"
-  } > $clean_cmd_file
+  } > "$clean_cmd_file"
 
-  chmod +x $clean_cmd_file
-  echo "sbatch --parsable ${clean_slurm_sched[*]}" | tee -a $logfile
-  echo "--- sbatch script $clean_cmd_filename ---"
-  cat $clean_cmd_file
+  chmod +x "$clean_cmd_file"
+  echo "sbatch --parsable ${clean_slurm_sched[*]}" | tee -a "$logfile"
+  echo "--- sbatch script $clean_cmd_file ---"
+  cat "$clean_cmd_file"
   echo "--- end of script ---"
 
   if [[ "$submit_jobs" == "false" ]]
   then
-    echo "Not submitting the Cleanup Jobs to slurm (--dry)." | tee -a $logfile
+    echo "Not submitting the Cleanup Jobs to slurm (--dry)." | tee -a "$logfile"
     export clean_jobid=CLEAN_JOB_ID
   else
-    export clean_jobid=$(sbatch --parsable ${clean_slurm_sched[*]})
-    echo "Submitted Cleanup Jobs $clean_jobid" | tee -a $logfile
+    clean_jobid=$(sbatch --parsable "${clean_slurm_sched[@]}")
+    export clean_jobid
+    echo "Submitted Cleanup Jobs $clean_jobid" | tee -a "$logfile"
   fi
 }
 
@@ -372,28 +389,35 @@ function make_copy_job ()
     echo "#!/bin/bash"
     echo "IFS=''"
     echo "mkdir -p $hpc_work/cases"
+    echo "pids=()"
     echo "while read subject; do"
     echo "  subject_id=\$(echo \"\$subject\" | cut -d= -f1)"
     echo "  echo \"cp -R -t \\\"$hpc_work/cases/\\\" \\\"$out_dir/\$subject_id\\\" &\""
     echo "  cp -R -t \"$hpc_work/cases/\" \"$out_dir/\$subject_id\" &"
+    echo "  pids+=(\$!)"
     echo "done < $subject_list"
     echo "echo \"Waiting to copy data... (will be confirmed by 'Finished!')\""
-    echo "wait"
+    echo "success=true"
+    echo "for p in \"\${pids[@]}\" ; do wait \"\$p\" || success=false ; done"
+    echo "if [[ \$success != true ]] ; then echo \"ERROR: Copying the cases failed!\" ; exit 1 ; fi"
     echo "echo \"Finished!\""
-  } > $copy_cmd_file
+  } > "$copy_cmd_file"
 
-  chmod +x $copy_cmd_file
+  chmod +x "$copy_cmd_file"
   echo "sbatch --parsable ${copy_slurm_sched[*]}" | tee -a "$logfile"
   echo "--- sbatch script $copy_cmd_filename ---"
-  cat $copy_cmd_file
+  cat "$copy_cmd_file"
   echo "--- end of script ---"
 
-  if [[ "$#" -gt 3 ]] && [[ "$4" == "false" ]]
+  if [[ "$#" -gt 4 ]] && [[ "$5" == "false" ]]
   then
     echo "Not submitting the Copyseg Job to slurm (--dry)." | tee -a "$logfile"
     export copy_jobid=COPY_JOB_ID
   else
-    export copy_jobid=$(sbatch --parsable ${copy_slurm_sched[*]})
+    # slurm fails a job whose log directory does not exist
+    mkdir -p "$out_dir/slurm/logs"
+    copy_jobid=$(sbatch --parsable "${copy_slurm_sched[@]}")
+    export copy_jobid
     echo "Submitted Copyseg Job $copy_jobid" | tee -a "$logfile"
   fi
 }
@@ -403,6 +427,7 @@ function first_non_empty_arg ()
   # returns the first argument to the function that was not empty
   for i in "$@" ; do if [[ -n "$i" ]] ; then echo "$i" ; break ; fi ; done
 }
+
 function print_status ()
 {
   #param1 subject_id
@@ -418,6 +443,7 @@ function print_status ()
   fi
   echo "$subject_id: $text"
 }
+
 function prepend ()
 {
   #param1 string to prepend to every line
@@ -425,6 +451,7 @@ function prepend ()
   IFS=""
   while read -r line ; do echo "${1}${line}" ; done
 }
+
 function append ()
 {
   #param1 string to append to every line

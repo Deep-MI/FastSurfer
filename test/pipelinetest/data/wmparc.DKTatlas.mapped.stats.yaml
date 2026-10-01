@@ -1,0 +1,16 @@
+default_threshold: 0.01
+lut: FastSurferCNN/config/FreeSurferColorLUT.txt
+
+measure_thresholds:
+  VentricleChoroidVol: 0.1
+  lhCerebralWhiteMatter: 0.1
+  rhCerebralWhiteMatter: 0.1
+  CerebralWhiteMatter: 0.1
+  Mask: 0.1
+
+thresholds:
+  # The wm-* structures are a projection from the surface into the white matter. Folding makes that
+  # projection volatile: a branch that touches a neighbour closes off early, so a gyral label can
+  # gain or lose a fifth of its volume without anything upstream being wrong. Wide enough to let
+  # that through, still tight enough to catch a structure that doubles or halves.
+  structure: 0.2

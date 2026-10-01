@@ -1,4 +1,4 @@
-# Copyright 2019 Image Analysis Lab, German Center for Neurodegenerative Diseases (DZNE), Bonn
+# Copyright 2019 DeepMI Lab, German Center for Neurodegenerative Diseases (DZNE), Bonn
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,6 +17,7 @@
 import math
 import optparse
 import sys
+from pathlib import Path
 
 import nibabel.freesurfer.io as fs
 import numpy as np
@@ -59,12 +60,6 @@ Dependencies:
 
     Nibabel to read and write FreeSurfer surface meshes
     http://nipy.org/nibabel/
-
-
-Original Author: Martin Reuter
-Date: Jan-18-2016
-
-
 """
 
 h_input = "path to input surface"
@@ -77,11 +72,10 @@ def options_parse():
     Returns
     -------
     options
-        object holding options
-
+        Object holding options.
     """
     parser = optparse.OptionParser(
-        version="$Id: spherically_project,v 1.1 2017/01/30 20:42:08 ltirrell Exp $",
+        version="%prog, part of FastSurfer, see 'run_fastsurfer.sh --version'",
         usage=HELPTEXT,
     )
     parser.add_option("--input", "-i", dest="input_surf", help=h_input)
@@ -113,19 +107,18 @@ def tria_spherical_project(
     Parameters
     ----------
     tria : TriaMesh
-        Triangle Mesh
-    flow_iter : int
-        Mean curv flow iterations (3 should be enough). Defaults to 3
-    debug : bool
-        Whether to print EV info to the file debug.ev. Defaults to False
-    use_cholmod : bool
-        Try to use the Cholesky decomposition from the cholmod. Defaults to True
+        Triangle Mesh.
+    flow_iter : int, default=3
+        Mean curv flow iterations (3 should be enough).
+    debug : bool, default=False
+        Whether to print EV info to the file debug.ev.
+    use_cholmod : bool, default=True
+        Try to use the Cholesky decomposition from the cholmod.
 
     Returns
     -------
-    trianew
-        Triangle Mesh spherically projected
-
+    triamesh
+        Triangle Mesh spherically projected.
     """
     if not tria.is_closed():
         raise ValueError("Error: Can only project closed meshes!")
@@ -145,7 +138,7 @@ def tria_spherical_project(
         return area
 
     fem = Solver(tria, lump=False, use_cholmod=use_cholmod)
-    evals, evecs = fem.eigs(k=4)
+    evals, evecs = fem.eigs(k=4, rng=0)
 
     if debug:
         data = dict()
@@ -265,9 +258,7 @@ def tria_spherical_project(
     # do a few mean curvature flow euler steps to make more convex
     # three should be sufficient
     if flow_iter > 0:
-        tflow = tria_mean_curvature_flow(
-            TriaMesh(vn, tria.t), max_iter=flow_iter, use_cholmod=use_cholmod
-        )
+        tflow = tria_mean_curvature_flow(TriaMesh(vn, tria.t), max_iter=flow_iter, use_cholmod=use_cholmod)
         vn = tflow.v
 
     # project to sphere and scaled to have the same scale/origin as FS:
@@ -304,26 +295,23 @@ def tria_spherical_project(
 
 
 def spherically_project_surface(
-        insurf: str,
-        outsurf: str,
-        use_cholmod: bool = True
+        insurf: Path | str,
+        outsurf: Path | str,
+        use_cholmod: bool = True,
 ) -> None:
     """Take path to insurf, spherically projects it, outputs it to outsurf.
 
     Parameters
     ----------
-    insurf : str
-        Path to input surface file
-    outsurf : str
-        Path to output surface file
-    use_cholmod : bool
-        Try to use the Cholesky decomposition from the cholmod. Defaults to True
-
+    insurf : Path, str
+        Path to input surface file.
+    outsurf : Path, str
+        Path to output surface file.
+    use_cholmod : bool, default=True
+        Try to use the Cholesky decomposition from the cholmod.
     """
     surf = fs.read_geometry(insurf, read_metadata=True)
-    projected = tria_spherical_project(
-        TriaMesh(surf[0], surf[1]), flow_iter=3, use_cholmod=use_cholmod
-    )
+    projected = tria_spherical_project(TriaMesh(surf[0], surf[1]), flow_iter=3, use_cholmod=use_cholmod)
     fs.write_geometry(outsurf, projected.v, projected.t, volume_info=surf[2])
 
 

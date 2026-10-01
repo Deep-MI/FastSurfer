@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Copyright 2024 Image Analysis Lab, German Center for Neurodegenerative Diseases (DZNE), Bonn
+# Copyright 2024 DeepMI Lab, German Center for Neurodegenerative Diseases (DZNE), Bonn
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -19,8 +19,9 @@
 
 function usage()
 {
-  echo "talairach-reg.sh <logfile> --dir <mri-directory> --conformed_name <conformed image file> --norm_name <norm name>"
-  echo "                 [--edits] [--long <basedir>] [--3T]"
+  echo "talairach-reg.sh <logfile> --dir <mri-directory> --conformed_name <conformed image file>"
+  echo "                 --norm_name <norm name> [--asegdkt_segfile <aseg dkt file>|--long <basedir>]"
+  echo "                 [--edits] [--3T] [--py <python cmd>]"
 }
 
 function checkdir()
@@ -48,6 +49,8 @@ function checkfile()
 long="false"
 edits="false"
 atlas3T="false"
+python="python3 -s"
+
 
 LF="$1"
 shift
@@ -65,6 +68,8 @@ case $key in
   --conformed_name) if checkfile "$1" ; then exit 1 ; fi ; conformed_name="$1" ; shift ;;
   --norm_name) if checkfile "$1" ; then exit 1 ; fi ; norm_name="$1" ; shift ;;
   --long) if checkdir "$1" ; then exit 1 ; fi ; long="true" ; basedir="$1" ; shift ;;
+  --py) python="$1" ; shift ;;
+  --asegdkt_segfile) if checkfile "$1" ; then exit 1; fi ; asegdkt_segfile="$1" ; shift ;;
   --edits) edits="true" ;;
   --3t) atlas3T="true" ;;
   *) echo "ERROR: Unrecognized argument $key!" ; usage ; exit 1 ;;
@@ -80,6 +85,11 @@ do
     exit 1
   fi
 done
+
+if [[ "$long" != "true" ]] && [[ -z "$asegdkt_segfile" ]] ; then
+  echo "ERROR: --asegdkt_segfile is a required argument for non-longitudinal processing, but no value was passed!"
+  exit 1
+fi
 
 if [ -z "$FASTSURFER_HOME" ]
 then
@@ -100,6 +110,7 @@ mkdir -p "$mdir/tmp"
 pushd "$mdir" > /dev/null || ( echo "Could not change to $mdir!" | tee -a "$LF" && exit 1)
 
 tal_file="$mdir/transforms/talairach"
+intermediate_tal_file="$mdir/transforms/pre2tal_avi"
 if [[ "$edits" == "true" ]] && [[ -f "$tal_file.xfm" ]] && { [[ ! -f "$tal_file.auto.xfm" ]] || \
   [[ -f "$tal_file.auto.xfm" ]] && [[ "$(md5sum "$tal_file.xfm")" != "$(md5sum "$tal_file.auto.xfm")" ]] ; }
 then
@@ -113,6 +124,8 @@ then
   {
     echo "ERROR: Running talairach registration on top of an existing registration file, but edits is false."
     echo "  Either delete $tal_file.xfm or add the --edits flag."
+    echo "  The usual reason this file is here is that the surface pipeline already ran, which"
+    echo "  always computes a talairach registration, so adding --tal_reg afterwards finds one."
   } | tee -a "$LF"
   exit 1
 else
@@ -128,6 +141,29 @@ else
   if [[ "$long" == "true" ]] ; then
     # longitudinal processing
 
+    # A time point takes the transforms from the base rather than computing its own, so the base
+    # has to have them already. Checked together and up front, because a bare cp failure here reads
+    # as a missing file rather than as a missing step.
+    missing_tal=()
+    for tal_from_base in talairach.lta talairach.auto.xfm talairach.xfm.lta ; do
+      if [[ ! -f "$basedir/mri/transforms/$tal_from_base" ]] ; then
+        missing_tal+=("$tal_from_base")
+      fi
+    done
+    if [[ "${#missing_tal[@]}" -gt 0 ]] ; then
+      # kept word for word the same as the earlier check in run_fastsurfer.sh, so the two do not
+      # drift into describing the same problem differently
+      baseid="$(basename "$basedir")"
+      {
+        echo "ERROR: The base $baseid has no talairach registration, missing ${missing_tal[*]}"
+        echo "  in $basedir/mri/transforms. A longitudinal time point copies these from the"
+        echo "  base, so the base has to be segmented with --tal_reg first. With"
+        echo "  long_fastsurfer.sh that is the template_seg stage, or directly:"
+        echo "    run_fastsurfer.sh --sid $baseid --base --seg_only --tal_reg ..."
+      } | tee -a "$LF"
+      exit 1
+    fi
+
     # copy all talairach transforms from base (as we are in same space)
     # this also fixes eTIV across time (if FreeSurfer scaling method is used)
     cmd=(cp "$basedir/mri/transforms/talairach.lta" "$tal_file.lta")
@@ -142,8 +178,47 @@ else
       exit 1
     fi
 
+    # segreg ends in a Schur decomposition, and a decomposition turns a last-bit difference in
+    # its input into a visible one in its output. numpy and OpenBLAS pick their kernels from the
+    # CPU features they find at import, so without this the transform below differs in its last
+    # digits between an Intel and an AMD runner, and everything concatenated from it inherits that.
+    # LAPACK is what does the work here, which is why the torch and MKL pins the pipeline test sets
+    # do not cover it. Same reasoning and same pinning as the spherical projection.
+    #
+    # Prefixed onto the python calls rather than exported, so the FreeSurfer binaries in between
+    # keep the kernels they would have chosen: their outputs already reproduce across vendors, and
+    # OPENBLAS_CORETYPE names an x86 core, which is not a value to hand an aarch64 build untested.
+    # Warnings go straight to the log, because every line on stdout becomes a variable here.
+    pin=()
+    if pins=$($python "${binpath}pin_cpu_dispatch.py" --env 2>>"$LF") ; then
+      while IFS= read -r line ; do
+        if [[ -n "$line" ]] ; then pin+=("$line") ; fi
+      done <<< "$pins"
+      if [[ ${#pin[@]} -gt 0 ]] ; then
+        echo "pinning the cpu dispatch for the registration: ${pin[*]}" | tee -a "$LF"
+        pin=(env "${pin[@]}")
+      fi
+    else
+      {
+        echo "WARNING: could not pin the cpu dispatch, so this registration may not reproduce"
+        echo "  on other hardware."
+      } | tee -a "$LF"
+    fi
+
+    # compute prealignment
+    prealigned_lta=$mdir/transforms/segreg_prealigned.lta
+    reference_centroids=mni_icbm152_t1_tal_nlin_asym_09c
+    cmd=("${pin[@]}" $python -m "neuroreg.cli.segreg" --seg "$asegdkt_segfile" --lta "$prealigned_lta" --dof 12
+         --centroids "$reference_centroids")
+    run_it "$LF" "${cmd[@]}"
+
+    prealigned_name=$mdir/segreg_prealigned.mgz
+    target_geom="$FREESURFER_HOME/average/mni305.cor.mgz" # only used for its conformed 1mm header; does not imply registration to this template
+    cmd=(mri_convert --apply_transform "$prealigned_lta" --reslice_like "$target_geom" "$norm_name" "$prealigned_name")
+    run_it "$LF" "${cmd[@]}"
+
     # talairach.xfm: compute talairach full head (25sec)
-    cmd=(talairach_avi --i "$norm_name" --xfm "$mdir/transforms/talairach.auto.xfm")
+    cmd=(talairach_avi --i "$prealigned_name" --xfm "$intermediate_tal_file.auto.xfm")
     if [[ "$atlas3T" == "true" ]]
     then
       echo "INFO: Using the 3T atlas for talairach registration."
@@ -152,6 +227,30 @@ else
       echo "INFO: Using the default atlas (1.5T) for talairach registration."
     fi
     run_it "$LF" "${cmd[@]}"
+
+    # convert intermediate xfm to lta (must be done before removing prealigned_name, which provides src geometry)
+    intermediate_talairach_lta=$intermediate_tal_file.auto.xfm.lta
+    cmd=("${pin[@]}" $python -m "neuroreg.cli.lta" convert
+         "$intermediate_tal_file.auto.xfm" "$intermediate_talairach_lta"
+         --src-img "$prealigned_name"
+         --dst-img "$FREESURFER_HOME/average/mni305.cor.mgz"
+         --out-type vox2vox)
+    run_it "$LF" "${cmd[@]}"
+
+    # remove the temporary prealigned file, as it is not needed anymore, is large-ish and redundant with the lta file
+    run_it "$LF" rm -f "$prealigned_name"
+
+    # concatenate prealign and talairach transforms
+
+    concatenated_lta=$tal_file.auto.xfm.lta
+
+    cmd=("${pin[@]}" $python -m "neuroreg.cli.lta" concat "$prealigned_lta" "$intermediate_talairach_lta" "$concatenated_lta")
+    run_it "$LF" "${cmd[@]}"
+
+    concatenated_xfm=$mdir/transforms/talairach.auto.xfm
+    cmd=("${pin[@]}" $python -m "neuroreg.cli.lta" convert "$concatenated_lta" "$concatenated_xfm")
+    run_it "$LF" "${cmd[@]}"
+
   fi
 
   # ALWAYS create copy
@@ -165,8 +264,11 @@ else
     # regular processing (cross and base)
 
     # talairach.lta: convert to lta
-    cmd=(lta_convert --src "$conformed_name" --trg "$FREESURFER_HOME/average/mni305.cor.mgz"
-         --inxfm "$tal_file.xfm" --outlta "$tal_file.xfm.lta" --subject fsaverage --ltavox2vox)
+    cmd=("${pin[@]}" $python -m "neuroreg.cli.lta" convert
+         "$tal_file.xfm" "$tal_file.xfm.lta"
+         --src-img "$conformed_name"
+         --dst-img "$FREESURFER_HOME/average/mni305.cor.mgz"
+         --out-type vox2vox)
     run_it "$LF" "${cmd[@]}"
 
     # FS would here create better nu.mgz using talairach transform (finds wm and maps it to approx 110)
@@ -200,4 +302,4 @@ fi
 cmd=(mri_add_xform_to_header -c "$tal_file.xfm" "$src_nu_file" "$mdir/nu.mgz")
 run_it "$LF" "${cmd[@]}"
 
-popd > /dev/null || return
+popd > /dev/null || exit $?

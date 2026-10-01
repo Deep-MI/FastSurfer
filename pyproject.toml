@@ -4,13 +4,13 @@ build-backend = 'setuptools.build_meta'
 
 [project]
 name = 'fastsurfer'
-version = '2.5.0-dev'
+version = '2.6.0-dev0'
 description = 'A fast and accurate deep-learning based neuroimaging pipeline'
 readme = 'README.md'
-license = {file = 'LICENSE'}
+license = { file = 'LICENSE' }
 requires-python = '>=3.10'
-authors = [{name = 'Martin Reuter et al.'}]
-maintainers = [{name = 'FastSurfer Developers'}]
+authors = [{ name = 'FastSurfer Developers' }]
+maintainers = [{ name = 'FastSurfer Developers' }]
 keywords = [
     'python',
     'Deep learning',
@@ -27,17 +27,25 @@ classifiers = [
     'Programming Language :: Python :: 3.10',
     'Programming Language :: Python :: 3.11',
     'Programming Language :: Python :: 3.12',
+    'Programming Language :: Python :: 3.13',
     'Natural Language :: English',
     'License :: OSI Approved :: Apache Software License',
     'Intended Audience :: Science/Research',
 ]
 dependencies = [
     'h5py>=3.7',
-    'lapy>=1.1.0',
+    'lapy>=1.5.0',
+    'libigl>=2.6.0', # needed for the cortical ribbon
     'matplotlib>=3.7.1',
-    'nibabel>=5.1.0',
-    'numpy>=1.25,<2',
+    'meshpy>=2025.1.1', # needed for FastSurfer-CC
+    'monai>=1.4.0', # needed for FastSurfer-CC
+    'neuroreg>=0.6.2', # needed for registration / etiv
+    'nibabel>=5.4.0', # needed to fix a bug in nibabel
+    'numpy>=1.25',
+    'packaging',
     'pandas>=1.5.3',
+    'pip>=25.0',
+    'pyrr>=0.10.3', # needed for FastSurfer-CC
     'pyyaml>=6.0',
     'requests>=2.31.0',
     'scikit-image>=0.19.3',
@@ -45,17 +53,27 @@ dependencies = [
     'scipy>=1.10.1,!=1.13.0',
     'simpleitk>=2.2.1',
     'tensorboard>=2.12.1',
-    'torch>=2.0.1',
+    'torch==2.7.*', # pinned to 2.7, so compatibility to CUDA 11 is ensured for same torch version
     'torchio>=0.18.83',
-    'torchvision>=0.15.2',
+    'torchvision>=0.22.1,<0.23',
     'tqdm>=4.65',
     'yacs>=0.1.8',
 ]
 
 [project.optional-dependencies]
+qc = [
+    'whippersnappy>=2.1',
+]
+lit = [
+    'neurolit>=0.6.1',
+]
+container = [
+    'fastsurfer[qc]',
+    'fastsurfer[lit]',
+]
 doc = [
+    'fastsurfer[qc]',
     'furo!=2023.8.17',
-    'matplotlib',
     'memory-profiler',
     'myst-parser',
     'numpydoc',
@@ -64,7 +82,8 @@ doc = [
     'sphinx>=7.3,<8',
     'sphinxcontrib-bibtex',
     'sphinxcontrib-programoutput',
-    'sphinx-argparse',
+    # 0.6.0 breaks parallel builds; 0.6.1 emits warnings for unrelated MyST links.
+    'sphinx-argparse<0.6',
     'sphinx-copybutton',
     'sphinx-design',
     'sphinx-gallery',
@@ -73,23 +92,23 @@ doc = [
     'nbsphinx',
     'IPython', # For syntax highlighting in notebooks
     'ipykernel',
-    'scikit-image',
-    'torchvision',
-    'scikit-learn',
 ]
 style = [
     'bibclean',
     'codespell',
     'pydocstyle[toml]',
     'ruff',
+    'ty',
 ]
-quicktest = [
+pipelinetest = [
     'pytest>=8.2.2',
 ]
 all = [
     'fastsurfer[doc]',
     'fastsurfer[style]',
-    'fastsurfer[quicktest]',
+    'fastsurfer[qc]',
+    'fastsurfer[lit]',
+    'fastsurfer[pipelinetest]',
 ]
 full = [
     'fastsurfer[all]',
@@ -97,23 +116,75 @@ full = [
 
 [project.urls]
 homepage = 'https://fastsurfer.org'
-documentation = 'https://fastsurfer.org'
+documentation = 'https://deep-mi.org/FastSurfer/stable'
 source = 'https://github.com/Deep-MI/FastSurfer'
 tracker = 'https://github.com/Deep-MI/FastSurfer/issues'
 
-[tool.setuptools]
-packages = ['FastSurferCNN','CerebNet','recon_surf']
+[tool.python]
+# The single exact python version FastSurfer is built and shipped with.
+#
+# Who uses it today:
+#   - tools/Docker/build.py reads this key and passes it to the build as PYTHON_VERSION.
+#   - tools/macos_build/build_release_package.sh reads it to fetch the relocatable standalone
+#     CPython it bundles into the installer, and substitutes it into the paths that name the
+#     version: python/bin/python<version>, python/lib/python<version>/site-packages.
+#   - Two places keep a hardcoded copy because neither can read this file: the ARG PYTHON_VERSION
+#     default in tools/Docker/Dockerfile (a Dockerfile cannot parse toml) and the python-version
+#     in .github/workflows/pipelinetest.yaml (that step provides the interpreter which then reads
+#     this file). test/lint/test_python_version.py asserts both against this key.
+#   - NOT .github/workflows/unittest.yaml, which pins the requires-python floor on purpose.
+#
+# This key is deliberately separate from project.requires-python, which answers a different
+# question: requires-python is the support *floor*, a range, and is what pip enforces for anyone
+# doing `pip install fastsurfer`. This key is the one *exact* version we build against, which a
+# range cannot express -- wheels are cp3XX-tagged, so anything shipping a pre-resolved
+# environment needs an exact version.
+#
+# Raising this version also requires updating the following, none of which can read this key:
+#   - requirements.txt, regenerated for the new interpreter (tools/update_requirements.sh)
+#   - the two hardcoded copies listed above (CI will fail if you miss one)
+#   - the version quoted in user-facing docs: doc/overview/INSTALL.md (native installation only;
+#     the macOS package bundles this interpreter, so its requirements quote no python version),
+#     README.md, Tutorial/README.md
+version = "3.12"
+
+[tool.freesurfer]
+version = "7.4.1"
+# The following URLs use the {version} placeholder, which should be replaced
+# with the actual version string using Python's .format(version=...).
+[tool.freesurfer.urls]
+linux = "https://surfer.nmr.mgh.harvard.edu/pub/dist/freesurfer/{version}/freesurfer-linux-ubuntu22_amd64-{version}.tar.gz"
+macOS = "https://surfer.nmr.mgh.harvard.edu/pub/dist/freesurfer/{version}/freesurfer-macOS-darwin_x86_64-{version}.tar.gz"
+
+[tool.setuptools.packages.find]
+# an explicit `packages = [...]` list is not recursive, so it silently dropped every subpackage
+# (FastSurferCNN.utils, CerebNet.models, ...) and, since it was added, CorpusCallosum as well
+include = ['FastSurferCNN*', 'CerebNet*', 'CorpusCallosum*', 'HypVINN*', 'recon_surf*']
+
+[tool.setuptools.package-data]
+# without this, only .py files are installed, and the package cannot find its own configs at
+# runtime (checkpoint_paths.yaml, the network configs, the color lookup tables, ...).
+# The shell scripts are needed because Python code reads them, e.g.
+# recon_surf/long_compat_segmentHA.py parses recon-surf.sh for the supported FreeSurfer version
+# while building its argument parser.
+'*' = ['*.yaml', '*.tsv', '*.txt', '*.json', '*.csv', '*.sh']
 
 [tool.pydocstyle]
 convention = 'numpy'
 ignore-decorators = '(copy_doc|property|.*setter|.*getter|pyqtSlot|Slot)'
 match = '^(?!setup|__init__|test_).*\.py'
-match-dir = '^FastSurferCNN.*,^CerebNet.*,^recon-surf.*'
+# match-dir is a single regex matched against each directory name while walking (not a list): an
+# allow-list of the package roots would also prune their subdirectories (utils, models, config,
+# ...), so exclude the non-package directories instead
+match-dir = '^(?!\.|__pycache__$|build$|checkpoints$|doc$|Documentation$|env$|test$|tools$|Tutorial$).*'
 add_ignore = 'D100,D104,D107'
 
 [tool.ruff]
 line-length = 120
 target-version = "py310"
+# recon_surf/fs_time is python, but carries no .py suffix because the pipeline invokes it as a
+# command; without this ruff would skip it
+extend-include = ["recon_surf/fs_time"]
 extend-exclude = [
     "build",
     "checkpoints",
@@ -124,12 +195,13 @@ extend-exclude = [
 [tool.ruff.lint]
 # https://docs.astral.sh/ruff/linter/#rule-selection
 select = [
-    "E",   # pycodestyle
-    "F",   # Pyflakes
-    "UP",  # pyupgrade
-    "B",   # flake8-bugbear
-    "I",   # isort
+    "E", # pycodestyle
+    "F", # Pyflakes
+    "UP", # pyupgrade
+    "B", # flake8-bugbear
+    "I", # isort
     # "SIM", # flake8-simplify
+    "NPY201", # numpy 2
 ]
 
 [tool.ruff.lint.per-file-ignores]
@@ -156,4 +228,3 @@ exclude_lines = [
     'if __name__ == .__main__.:',
 ]
 precision = 2
-

@@ -1,6 +1,6 @@
 #!/bin/python
 
-# Copyright 2023 Image Analysis Lab, German Center for Neurodegenerative Diseases(DZNE), Bonn
+# Copyright 2023 DeepMI Lab, German Center for Neurodegenerative Diseases (DZNE), Bonn
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,15 +14,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import io
 import subprocess
 from collections.abc import Generator, Sequence
 from concurrent.futures import Executor, Future
 from dataclasses import dataclass
 from datetime import datetime
 from functools import partialmethod
-
-# TODO: python3.9+
-# from collections.abc import Generator
+from typing import IO, AnyStr
 
 
 @dataclass
@@ -65,6 +64,35 @@ class MessageBuffer:
     def err_str(self, encoding="utf-8"):
         return self.err.decode(encoding=encoding)
 
+    def forward_output(
+        self,
+        file: io.TextIOBase | None = None,
+        encoding: str = "utf-8",
+        out_prefix: str = "",
+        err_prefix: str = "!",
+    ):
+        """
+        Forward the content of this MessageBuffer to a file or stream.
+
+        Parameters
+        ----------
+        file : IO.TextIO, optional
+            The file or stream to which the output should be forwarded (defaults to stdout).
+        encoding : str, default="utf-8"
+            Charset to encode.
+        out_prefix : str, default=""
+            String to prefix lines from the stdout output.
+        err_prefix : str, default="!"
+            String to prefix lines from the stderr output.
+        """
+        if file is None:
+            from sys import stdout
+            file = stdout
+        for line in self.out_str(encoding=encoding).splitlines():
+            print(f"{out_prefix}{line}", file=file)
+        for line in self.err_str(encoding=encoding).splitlines():
+            print(f"{err_prefix}{line}", file=file)
+
 
 class Popen(subprocess.Popen):
     """
@@ -72,33 +100,46 @@ class Popen(subprocess.Popen):
     """
     _starttime: datetime | None = None
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, args, /, **kwargs):
         self._starttime = datetime.now()
-        super().__init__(*args, **kwargs)
+        super().__init__(args, **kwargs)
 
     def messages(self, timeout: float) -> Generator[MessageBuffer, None, None]:
+        """
+
+        Parameters
+        ----------
+        timeout : float
+            Time in seconds to wait, before checking if the process is still alive.
+
+        Yields
+        ------
+        MessageBuffer
+            A MessageBuffer object with stdout and stderr information.
+        """
         from subprocess import TimeoutExpired
 
+        yielded_returncode = None
         start = self._starttime or datetime.now()
         while self.poll() is None:
             try:
                 stdout, stderr = self.communicate(timeout=timeout)
+                yielded_returncode = self.returncode
                 yield MessageBuffer(
                     out=stdout if stdout else b"",
                     err=stderr if stderr else b"",
-                    retcode=self.returncode,
+                    retcode=yielded_returncode,
                     runtime=(datetime.now() - start).total_seconds(),
                 )
             except TimeoutExpired:
                 pass
 
-        _stdout = (
-            b"" if self.stdout is None or self.stdout.closed else self.stdout.read()
-        )
-        _stderr = (
-            b"" if self.stderr is None or self.stderr.closed else self.stderr.read()
-        )
-        if _stderr != b"" or _stdout != b"":
+        def data_to_read(file: IO[AnyStr] | None) -> bool:
+            return file is not None and not file.closed
+
+        _stdout = self.stdout.read() if data_to_read(self.stdout) else b""
+        _stderr = self.stderr.read() if data_to_read(self.stderr) else b""
+        if _stderr != b"" or _stdout != b"" or yielded_returncode is None:
             yield MessageBuffer(
                 out=_stdout,
                 err=_stderr,
@@ -139,7 +180,7 @@ class Popen(subprocess.Popen):
 
     def finish(self, timeout: float = None) -> MessageBuffer:
         """
-        `finish`'s behavior is similar to `subprocess.dry_run`.
+        `finish`\'s behavior is similar to `subprocess.dry_run`.
 
         `finish` waits `timeout` seconds, and forces termination after. By default,
         waits unlimited `timeout=None`. In either case, all messages in stdout and
@@ -175,7 +216,7 @@ class Popen(subprocess.Popen):
             msg.retcode = self.returncode
         return msg
 
-    def as_future(self, pool: Executor, timeout: float = None) -> Future:
+    def as_future(self, pool: Executor, timeout: float | None = None) -> Future:
         """
         Similar to `finish` in its application, but as non-blocking Future.
 
@@ -183,6 +224,8 @@ class Popen(subprocess.Popen):
         ----------
         pool : Executor
             A concurrent.futures.Executor, usually a ThreadPoolExecutor.
+        timeout : float, optional
+            Time in seconds to wait, before returning to host process (None: unlimited).
 
         Returns
         -------
@@ -199,9 +242,49 @@ class Popen(subprocess.Popen):
     async def async_finish(self, timeout: float = None) -> MessageBuffer:
         return self.finish(timeout)
 
+    def forward_output(
+        self,
+        file: io.TextIOBase | None = None,
+        encoding: str = "utf-8",
+        timeout: float | None = None,
+        out_prefix: str = "",
+        err_prefix: str = "!",
+    ) -> MessageBuffer:
+        """
+        Forwards the stdout and stderr every timeout to file. Returns the full output as a MessageBuffer object.
+
+        Parameters
+        ----------
+        file : IO.TextIO, optional
+            The file or stream to which the output should be forwarded.
+        encoding : str, default="utf-8"
+            Charset to encode.
+        timeout : float, optional
+            Interval to let the child process, before returning to the parent (this) process.
+        out_prefix : str, default=""
+            String to prefix lines from the stdout output.
+        err_prefix : str, default="!"
+            String to prefix lines from the stderr output.
+
+        Returns
+        -------
+        MessageBuffer
+            Full stdout, stderr and returncode.
+        """
+        done = MessageBuffer()
+        for outputs in self.messages(timeout=timeout):
+            outputs.forward_output(
+                file=file,
+                encoding=encoding,
+                out_prefix=out_prefix,
+                err_prefix=err_prefix,
+            )
+            done += outputs
+        return done
+
 
 class PyPopen(Popen):
-    def __init__(self, args: Sequence[str], *_args, **kwargs):
+    def __init__(self, args: Sequence[str], /, **kwargs):
         """
         Create a python process with same flags, and additional args.
 
@@ -209,7 +292,7 @@ class PyPopen(Popen):
         ----------
         args : Sequence[str]
             Arguments to python process.
-        additional arguments as in subprocess.Popen
+        additional keyword arguments as in subprocess.Popen
 
         See Also
         --------
@@ -235,5 +318,5 @@ class PyPopen(Popen):
         flags = "".join(k for k, v in all_flags.items() if getattr(sys.flags, v) == 1)
         flags = [] if len(flags) == 0 else ["-" + flags]
         super().__init__(
-            [sys.executable] + flags + list(args), *_args, **kwargs
+            [sys.executable] + flags + list(args), **kwargs
         )

@@ -1,0 +1,31 @@
+# Opens Terminal with the FastSurfer console. build_release_package.sh compiles this into the
+# FastSurfer applet with osacompile.
+#
+# `do script` runs this text in whatever shell Terminal is configured to start, which need not
+# understand the setup script, so exec an explicit bash and give it the script as its init file.
+# `exec` and `env` are spelled the same way in sh, bash, zsh, tcsh and fish, so this works from any
+# of them. FASTSURFER_CONSOLE tells the script that ~/.bashrc has not been read;
+# BASH_SILENCE_DEPRECATION_WARNING suppresses Apple's "zsh is the default now" notice, which is
+# noise for a console that is bash on purpose. Both must be set before bash starts, hence `env`.
+set console to "exec /usr/bin/env FASTSURFER_CONSOLE=1 BASH_SILENCE_DEPRECATION_WARNING=1 /bin/bash --init-file '/Applications/<fastsurfer>/macos_setup_fastsurfer.sh'"
+
+if application "Terminal" is running then
+	# a new window, so none of the user's open windows is taken over
+	tell application "Terminal" to do script console
+else
+	# launching Terminal opens its first window by itself, so the console goes there rather than
+	# into a second one. Waited for, but not forever: with no window after 5 s, open one.
+	tell application "Terminal"
+		activate
+		repeat 50 times
+			if (exists window 1) then exit repeat
+			delay 0.1
+		end repeat
+		if (exists window 1) then
+			do script console in window 1
+		else
+			do script console
+		end if
+	end tell
+end if
+tell application "Terminal" to activate

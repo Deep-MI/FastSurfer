@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Copyright 2023 Image Analysis Lab, German Center for Neurodegenerative Diseases (DZNE), Bonn
+# Copyright 2023 DeepMI Lab, German Center for Neurodegenerative Diseases (DZNE), Bonn
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -36,6 +36,9 @@ partition_seg=""
 extra_singularity_options=""
 extra_singularity_options_surf=""
 extra_singularity_options_seg=""
+extra_slurm_options=""
+extra_slurm_options_surf=""
+extra_slurm_options_seg=""
 email=""
 pattern="*.{nii.gz,nii,mgz}"
 subject_list=""
@@ -43,7 +46,10 @@ subject_list_awk_code_sid="\$1"
 subject_list_awk_code_args="\$2"
 subject_list_delim="="
 jobarray=""
-timelimit_seg=10
+timelimit_seg=""  # empty means take the default for the device the segmentation runs on
+# segmentation is much slower without a GPU
+timelimit_seg_gpu=15
+timelimit_seg_cpu=30
 # 1mm can take 1h per hemi plus 1h extra on a single core (depending on cpu speed)
 timelimit_surf=$((4 * 60))
 # the memory required for the surface and the segmentation pipeline depends on the
@@ -70,12 +76,11 @@ srun_fastsurfer.sh [--data <directory to search images>]
     [--num_cases_per_task <number>] [--cpu_only] [--num_cpus_per_task <number of cpus to allocate for seg>]
     [--time_seg <timelimit>] [--time_surf <timelimit>] [--mem_seg <number (GB)>] [--mem_surf <number (GB)>]
     [--partition <slurm partition>] [--partition_seg <slurm partition>] [--partition_surf <slurm partition>]
+    [--extra_slurm_options <sbatch options>] [--extra_slurm_options_seg <sbatch options>]
+    [--extra_slurm_options_surf <sbatch options>]
     [--slurm_jobarray <jobarray specification>] [--skip_cleanup] [--email <email address>] [--debug] [--dry] [--help]
     [<additional fastsurfer options>]
 
-Author:   David Kügler, david.kuegler@dzne.de
-Date:     Nov 3, 2023
-Version:  1.0
 License:  Apache License, Version 2.0
 
 Documentation of Options:
@@ -154,9 +159,16 @@ SLURM-related options:
 --partition_seg <comma-separated-list-of-partitions>, and
 --partition_surf <...list>: partition(s) to schedule all or only segmentation or surface reconstruction, respectively:
   It is recommended to select nodes/partitions with GPUs for segmentation. default: slurm default partition
+--extra_slurm_options <sbatch options>,
+--extra_slurm_options_seg <sbatch options>, and
+--extra_slurm_options_surf <sbatch options>: Extra options passed to the sbatch call; value needs to be double-quoted
+  for multiple arguments, e.g. --extra_slurm_options_seg "--reservation=my_res --qos=high". These options do not support
+  nested quotes and are split on whitespace to separate parameters. Does not affect cleanup and copy jobs.
 --time_seg <timelimit>, and
 --time_surf <timelimit>: a per-image time limit for individual the segmentation and surface reconstruction steps,
-  respectively. <timelimit> must be a number in minutes, default seg: ${timelimit_seg}min, surf: ${timelimit_surf}min.
+  respectively. <timelimit> must be a number in minutes, default seg: ${timelimit_seg_gpu}min on gpu and
+  ${timelimit_seg_cpu}min on cpu, surf: ${timelimit_surf}min.
+  The cpu default assumes the default --num_cpus_per_task, raise --time_seg when requesting fewer cpus.
 --mem_seg <number (GB)>, and
 --mem_surf <number (GB)>: the memory to allocate for GPU/CPU-based segmentation (default: $mem_seg_cpu/$mem_seg_gpu GB),
   and surface reconstruction (default: $mem_surf).
@@ -244,17 +256,24 @@ case $key in
     ;;
   --partition_seg) partition_seg="$1" ; shift ;;
   --partition_surf) partition_surf="$1" ; shift ;;
+  --extra_slurm_options) extra_slurm_options="$extra_slurm_options $1" ; shift ;;
+  --extra_slurm_options_seg) extra_slurm_options_seg="$extra_slurm_options_seg $1" ; shift ;;
+  --extra_slurm_options_surf) extra_slurm_options_surf="$extra_slurm_options_surf $1" ; shift ;;
   --extra_singularity_options)
     # make key lowercase
     lower_value=$(echo "$1" | tr '[:upper:]' '[:lower:]')
-    if [[ "$lower_value" =~ seg=* ]] ; then extra_singularity_options_seg=${1:4} ; warn_old --extra_singularity_options
-    elif [[ "$lower_value" =~ surf=* ]] ; then extra_singularity_options_surf=${1:5} ; warn_old --extra_singularity_options
-    else extra_singularity_options=$1
+    if [[ "$lower_value" =~ seg=* ]] ; then
+      extra_singularity_options_seg="$extra_singularity_options_seg ${1:4}"
+      warn_old --extra_singularity_options
+    elif [[ "$lower_value" =~ surf=* ]] ; then
+      extra_singularity_options_surf="$extra_singularity_options_surf ${1:5}"
+      warn_old --extra_singularity_options
+    else extra_singularity_options="$extra_singularity_options $1"
     fi
     shift
     ;;
-  --extra_singularity_options_seg) extra_singularity_options_seg=$1 ; shift ;;
-  --extra_singularity_options_surf) extra_singularity_options_surf=$1 ; shift ;;
+  --extra_singularity_options_seg) extra_singularity_options_seg="$extra_singularity_options_seg $1" ; shift ;;
+  --extra_singularity_options_surf) extra_singularity_options_surf="$extra_singularity_options_surf $1" ; shift ;;
   --time)
     # make key lowercase
     lower_value=$(echo "$1" | tr '[:upper:]' '[:lower:]') ; warn_old --time
@@ -295,6 +314,7 @@ tmpLF=$(mktemp)
 LF=$tmpLF
 
 function log() { echo "$@" | tee -a "$LF" ; }
+# shellcheck disable=SC2059
 function logf() { printf "$@" | tee -a "$LF" ; }
 
 log "Log of FastSurfer SLURM script"
@@ -336,6 +356,7 @@ then
 else
   # all debug messages go into logfile no matter what, but here, not to the console
   function debug () { echo "$@" >> "$LF" ;  }
+  # shellcheck disable=SC2059
   function debugf () { printf "$@" >> "$LF" ;  }
   if [[ "$submit_jobs" == "false" ]]
   then
@@ -383,6 +404,7 @@ do
   fi
 done
 debugf "$newline\n"
+# the following stat command is not compatible with macOS, but srun_fastsurfer is not expected to be
 shell=$(stat -c %N "/proc/$$/exe" | cut -d">" -f2 | tail -c +3 | head -c -2)
 debug "Running in shell $shell: $($shell --version 2>/dev/null | head -n 1)"
 debug ""
@@ -398,13 +420,25 @@ check_fs_license "$fs_license"
 check_seg_surf_only "$seg_only" "$surf_only"
 check_out_dir "$out_dir"
 
-if [[ "$cpu_only" == "true" ]] && [[ "$timelimit_seg" -lt 6 ]]
+if [[ -n "$timelimit_seg" ]] && [[ ! "$timelimit_seg" =~ ^[0-9]+$ ]]
+then
+  echo "ERROR: The segmentation time limit must be a number of minutes, got '$timelimit_seg'."
+  exit 1
+elif [[ -z "$timelimit_seg" ]]
+then
+  if [[ "$cpu_only" == "true" ]] ; then timelimit_seg="$timelimit_seg_cpu"
+  else timelimit_seg="$timelimit_seg_gpu"
+  fi
+fi
+
+# a time limit sized for the gpu is too short on the cpu
+if [[ "$cpu_only" == "true" ]] && [[ "$timelimit_seg" -le "$timelimit_seg_gpu" ]]
 then
   log "WARNING!!!"
   log "------------------------------------------------------------------------"
   log "You specified the segmentation shall be performed on the cpu, but the"
-  log "time limit per segmentation is less than 6 minutes (default is optimized "
-  log "for GPU acceleration @ 5 minutes). This is very likely insufficient!"
+  log "time limit per segmentation is $timelimit_seg minutes, which is sized for a gpu (cpu"
+  log "default: ${timelimit_seg_cpu}min). This is very likely insufficient!"
   log "------------------------------------------------------------------------"
 fi
 
@@ -419,7 +453,7 @@ fi
 wait # for directories to be made
 
 # step one: copy singularity image to hpc
-all_cases_file="/$hpc_work/scripts/subject_list"
+all_cases_file="$hpc_work/scripts/subject_list"
 
 log "cp \"$singularity_image\" \"$hpc_work/images/fastsurfer.sif\""
 script_dir="$(dirname "$THIS_SCRIPT")"
@@ -427,7 +461,7 @@ log "cp \"$script_dir/brun_fastsurfer.sh\" \"$script_dir/stools.sh\" \"$hpc_work
 log "cp \"$fs_license\" \"$hpc_work/scripts/.fs_license\""
 log "Create Status/Success file at $hpc_work/scripts/subject_success"
 
-tofile="cat"
+tofile=("cat")
 if [[ "$submit_jobs" == "true" ]]
 then
   cp "$singularity_image" "$hpc_work/images/fastsurfer.sif" &
@@ -435,7 +469,7 @@ then
   cp "$fs_license" "$hpc_work/scripts/.fs_license" &
   log "#Status/Success file of srun_fastsurfer-run $(date)" > "$hpc_work/scripts/subject_success" &
 
-  tofile="tee $all_cases_file"
+  tofile=("tee" "$all_cases_file")
 fi
 
 # step two: copy input data to hpc
@@ -451,9 +485,9 @@ then
     log ""
   fi
 
-  cases=$(translate_cases "$in_dir" "$subject_list" "/source" "${subject_list_delim}" "${subject_list_awk_code_sid}" "${subject_list_awk_code_args}" | $tofile)
+  cases=$(translate_cases "$in_dir" "$subject_list" "/source" "${subject_list_delim}" "${subject_list_awk_code_sid}" "${subject_list_awk_code_args}" | "${tofile[@]}")
 else
-  cases=$(read_cases "$in_dir" "$pattern" "/source" | $tofile)
+  cases=$(read_cases "$in_dir" "$pattern" "/source" | "${tofile[@]}")
 fi
 num_cases=$(echo "$cases" | wc -l)
 
@@ -476,7 +510,12 @@ then
 fi
 
 cleanup_mode="mv"
-if [[ "$do_cleanup" == "true" ]]
+if [[ "$do_cleanup" == "true" ]] && [[ "$surf_only" == "true" ]]
+then
+  # the cases in --sd are the input of --surf_only, so the results can only be copied back over them
+  cleanup_mode="cp"
+  log "Copying the surface results back into the existing cases in $out_dir."
+elif [[ "$do_cleanup" == "true" ]]
 then
   if [[ -n "$jobarray" ]]; then jobarray_defined="true"
   else jobarray_defined="false"
@@ -518,6 +557,10 @@ then
     slurm_email=("${slurm_email[@]}" --mail-type "END,FAIL,ARRAY_TASKS")
   fi
 fi
+# sbatch only accepts options before the script file, so these are inserted there, splitting
+# the option strings at whitespace into individual sbatch arguments
+read -r -a slurm_extra_seg <<< "$extra_slurm_options $extra_slurm_options_seg"
+read -r -a slurm_extra_surf <<< "$extra_slurm_options $extra_slurm_options_surf"
 jobarray_size="$(($((num_cases - 1)) / num_cases_per_task + 1))"
 real_num_cases_per_task="$(($((num_cases - 1)) / jobarray_size + 1))"
 if [[ "$jobarray_size" -gt 1 ]]
@@ -548,6 +591,7 @@ then
   seg_cmd_filename=$hpc_work/scripts/slurm_cmd_seg.sh
   if [[ "$submit_jobs" == "true" ]] ; then seg_cmd_file=$seg_cmd_filename ; else seg_cmd_file=$(mktemp) ; fi
 
+  IFS=" "
   slurm_part_=$(first_non_empty_arg "$partition_seg" "$partition")
   if [[ -z "$slurm_part_" ]] ; then slurm_partition=() ; else slurm_partition=(-p "$slurm_part_") ; fi
   {
@@ -555,6 +599,13 @@ then
     echo "module load singularity"
     echo "singularity exec --nv -B \"$hpc_work:/data,$in_dir:/source:ro\" --no-mount home,cwd\\"
     echo "  --cleanenv --env TQDM_DISABLE=1 \\"
+    if [[ "$cpu_only" != "true" ]] ; then
+      # slurm names the allocated GPU in CUDA_VISIBLE_DEVICES and --cleanenv drops it, so the
+      # assignment is passed back in explicitly. cuda then exposes that GPU alone, renumbered to
+      # index 0, and the job computes on the card it was given. Only if set: an empty value
+      # would hide every GPU.
+      echo "  \${CUDA_VISIBLE_DEVICES+--env CUDA_VISIBLE_DEVICES=\"\$CUDA_VISIBLE_DEVICES\"} \\"
+    fi
     if [[ -n "$extra_singularity_options" ]] || [[ -n "$extra_singularity_options_seg" ]] ; then
       echo "  $extra_singularity_options $extra_singularity_options_seg \\"
     fi
@@ -573,17 +624,15 @@ then
   fi
   # note that there can be a decent startup cost for each run, running multiple cases
   # per task significantly reduces this
-  seg_slurm_sched=("--mem=${mem_seg}G" "--cpus-per-task=$num_cpus_per_task"
+  seg_slurm_sched=("--mem=${mem_seg}G" "--cpus-per-task=$num_cpus_per_task" -J "FastSurfer-Seg-$USER"
                    --time=$((timelimit_seg * real_num_cases_per_task + 5))
-                   "${slurm_partition[@]}" "${slurm_email[@]}"
-                   "${jobarray_option[@]}" -J "FastSurfer-Seg-$USER"
-                   -o "$hpc_work/logs/seg_%A_%a.log" "$seg_cmd_filename")
-  if [[ "$cpu_only" == "true" ]]
-  then
-    debug "Schedule SLURM job without gpu"
-  else
-    seg_slurm_sched=(--gpus=1 "${seg_slurm_sched[@]}")
+                   "${slurm_partition[@]}" "${slurm_email[@]}" "${jobarray_option[@]}"
+                   -o "$hpc_work/logs/seg_%A_%a.log")
+  if [[ "$cpu_only" == "true" ]] ; then debug "Schedule SLURM job without gpu"
+  else seg_slurm_sched+=(--ntasks=1 --gpus-per-task=1)
   fi
+  # append slurm_extra_seg arguments after the (optional) GPU request, then the script to execute
+  seg_slurm_sched+=("${slurm_extra_seg[@]}" "$seg_cmd_filename")
   log "chmod +x $seg_cmd_filename"
   chmod +x "$seg_cmd_file"
   log "sbatch --parsable ${seg_slurm_sched[*]}"
@@ -630,13 +679,9 @@ then
                            "${fastsurfer_surf_options[@]}"
                            "${POSITIONAL_FASTSURFER[@]}")
   surf_cmd_filename=$hpc_work/scripts/slurm_cmd_surf.sh
-  if [[ "$submit_jobs" == "true" ]]; then surf_cmd_file=$surf_cmd_filename
-  else surf_cmd_file=$(mktemp)
-  fi
+  if [[ "$submit_jobs" == "true" ]]; then surf_cmd_file=$surf_cmd_filename ; else surf_cmd_file=$(mktemp) ; fi
   mem_per_core=$((mem_surf / num_cpus_surf))
-  if [[ "$mem_surf" -gt "$((mem_per_core * num_cpus_surf))" ]]; then
-    mem_per_core=$((mem_per_core+1))
-  fi
+  if [[ "$mem_surf" -gt "$((mem_per_core * num_cpus_surf))" ]]; then mem_per_core=$((mem_per_core+1)) ; fi
   slurm_part_=$(first_non_empty_arg "$partition_surf" "$partition")
   if [[ -z "$slurm_part_" ]] ; then slurm_partition=() ; else slurm_partition=(-p "$slurm_part_") ; fi
   {
@@ -663,7 +708,8 @@ then
                     "--nodes=1-$real_num_cases_per_task" "--hint=nomultithread"
                     "${jobarray_option[@]}" "$surf_depend"
                     -J "FastSurfer-Surf-$USER" -o "$hpc_work/logs/surf_%A_%a.log"
-                    "${slurm_partition[@]}" "${slurm_email[@]}" "$surf_cmd_filename")
+                    "${slurm_partition[@]}" "${slurm_email[@]}" "${slurm_extra_surf[@]}"
+                    "$surf_cmd_filename")
   chmod +x "$surf_cmd_file"
   log "sbatch --parsable ${surf_slurm_sched[*]}"
   echo "--- sbatch script $surf_cmd_filename ---"

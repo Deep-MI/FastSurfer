@@ -1,55 +1,118 @@
-name: MAN deploy-docker
+name: Build and release macOS packages
 
 on:
-#  release:
-#    types:
-#      - published
+  release:
+    types:
+      - published
   workflow_dispatch:
 
-jobs:
-  deploy-gpu:
-    runs-on: ubuntu-latest
-    timeout-minutes: 120
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
-      - name: Login to Docker
-        uses: docker/login-action@v2
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
-      - name: Build Docker image GPU
-        run: python Docker/build.py --device cuda --tag ${{ secrets.DOCKERHUB_USERNAME }}/fastsurfer:gpu-${{ github.event.release.tag_name }}
-      - name: Add additional tags
-        run: |
-          docker tag ${{ secrets.DOCKERHUB_USERNAME }}/fastsurfer:gpu-${{ github.event.release.tag_name }} ${{ secrets.DOCKERHUB_USERNAME }}/fastsurfer:gpu-latest
-          docker tag ${{ secrets.DOCKERHUB_USERNAME }}/fastsurfer:gpu-${{ github.event.release.tag_name }} ${{ secrets.DOCKERHUB_USERNAME }}/fastsurfer:latest
-      - name: Push Docker image GPU
-        run: docker push --all-tags ${{ secrets.DOCKERHUB_USERNAME }}/fastsurfer:gpu-${{ github.event.release.tag_name }}
-  deploy-cpu:
-    runs-on: ubuntu-latest
-    timeout-minutes: 120
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
-      - name: Login to Docker
-        uses: docker/login-action@v2
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
-      - name: Build Docker image CPU
-        run: python Docker/build.py --device cpu --tag ${{ secrets.DOCKERHUB_USERNAME }}/fastsurfer:cpu-${{ github.event.release.tag_name }}
-      - name: Add additional tags
-        run: |
-          docker tag ${{ secrets.DOCKERHUB_USERNAME }}/fastsurfer:cpu-${{ github.event.release.tag_name }} ${{ secrets.DOCKERHUB_USERNAME }}/fastsurfer:cpu-latest
-      - name: Push Docker image CPU
-        run: docker push --all-tags ${{ secrets.DOCKERHUB_USERNAME }}/fastsurfer:cpu-${{ github.event.release.tag_name }}
+permissions:
+  contents: write
 
+jobs:
+  deploy-mac:
+    # arm only: PyTorch ships no macOS x86_64 wheels after 2.2, so the bundled environment cannot be
+    # resolved for Intel at all (see doc/overview/INSTALL.md, which points Intel users at Docker).
+    # uv resolves the python and wheels for the host, so re-adding intel needs an intel runner too;
+    # build_release_package.sh fails the build on a mismatch.
+    runs-on: macos-15
+    timeout-minutes: 60
+    strategy:
+      matrix:
+        arch: [arm]
+    steps:
+      - name: Get repository name.
+        run: echo "FASTSURFER_DIR=$GITHUB_WORKSPACE" >> $GITHUB_ENV
+      - name: Checkout repository
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: Set up python environment
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.10'
+      - name: install dependencies
+        run: |
+          python -m venv .venv
+          echo "VIRTUAL_ENV=$GITHUB_WORKSPACE/.venv" >> "$GITHUB_ENV"
+          echo "$GITHUB_WORKSPACE/.venv/bin" >> "$GITHUB_PATH"
+          . .venv/bin/activate
+          python -m pip install --upgrade pip
+          # tomli is used by read_toml.py (python 3.10 here has no stdlib tomllib)
+          python -m pip install tomli
+          
+          # update system to the newest version, not pin pointing package version on purpose
+          brew update  
+          brew upgrade || true
+          brew list aria2 >/dev/null 2>&1 || brew install aria2
+          # uv fetches the relocatable standalone python and the dependencies that get bundled
+          # into the package (see the BUNDLED PYTHON ENVIRONMENT section of the build script)
+          brew list uv >/dev/null 2>&1 || brew install uv
+      - name: Resolve cache keys
+        id: fs_cache
+        run: |
+          fs_version=$(python3 tools/read_toml.py --file pyproject.toml --key tool.freesurfer.version)
+          url_template=$(python3 tools/read_toml.py --file pyproject.toml --key tool.freesurfer.urls.macOS)
+          fs_url="${url_template//\{version\}/$fs_version}"
+          url_hash=$(echo -n "$fs_url" | shasum -a 256 | cut -c1-16)
+          # Cache directories are resolved here, in a shell, so $HOME is expanded once and the same
+          # absolute path is used by both actions/cache and the build.
+          echo "cache_dir=$HOME/.cache/fastsurfer-fs-pruned" >> "$GITHUB_OUTPUT"
+          echo "uv_cache_dir=$HOME/.cache/fastsurfer-uv" >> "$GITHUB_OUTPUT"
+          echo "checkpoints_dir=$HOME/.cache/fastsurfer-checkpoints" >> "$GITHUB_OUTPUT"
+          echo "url_hash=$url_hash" >> "$GITHUB_OUTPUT"
+          # the bundled python version, so the uv cache is invalidated when it is bumped
+          echo "python_version=$(python3 tools/read_toml.py --file pyproject.toml --key tool.python.version)" >> "$GITHUB_OUTPUT"
+      - name: Cache pruned FreeSurfer
+        uses: actions/cache@v6
+        with:
+          path: ${{ steps.fs_cache.outputs.cache_dir }}
+          # bumps on a FreeSurfer version/URL change (url_hash) or a change to what gets pruned
+          # (install_fs_pruned.sh). No arch in the key: FreeSurfer ships one darwin_x86_64 build that
+          # both a future intel job and today's arm job (via Rosetta) would download
+          key: fs-pruned-${{ hashFiles('tools/build/install_fs_pruned.sh') }}-${{ steps.fs_cache.outputs.url_hash }}
+      - name: Cache uv downloads
+        uses: actions/cache@v6
+        with:
+          path: ${{ steps.fs_cache.outputs.uv_cache_dir }}
+          # the standalone python distribution and the dependency wheels. Keyed on the python
+          # version and the pinned dependency set, so it is reused until either actually changes;
+          # per-arch because the wheels are platform specific.
+          key: uv-${{ matrix.arch }}-py${{ steps.fs_cache.outputs.python_version }}-${{ hashFiles('requirements.txt', 'pyproject.toml') }}
+          restore-keys: |
+            uv-${{ matrix.arch }}-py${{ steps.fs_cache.outputs.python_version }}-
+      - name: Cache checkpoints
+        uses: actions/cache@v6
+        with:
+          path: ${{ steps.fs_cache.outputs.checkpoints_dir }}
+          # the network weights, bundled into the package so a fresh install needs no download.
+          # The filenames are version stamped, so the checkpoint config is the key.
+          key: checkpoints-${{ hashFiles('*/config/checkpoint_paths.yaml') }}
+      - name: package app for ${{ matrix.arch }}
+        env:
+          FS_PRUNED_CACHE_DIR: ${{ steps.fs_cache.outputs.cache_dir }}
+          UV_CACHE_DIR: ${{ steps.fs_cache.outputs.uv_cache_dir }}
+          FASTSURFER_CHECKPOINTS_DIR: ${{ steps.fs_cache.outputs.checkpoints_dir }}
+        run: tools/macos_build/build_release_package.sh ${{ matrix.arch }}
+      # So a workflow_dispatch run on any branch produces a downloadable installer without publishing
+      # a release. Skipped for releases, where the package is attached to the release itself below.
+      - name: Upload the installer as a build artifact
+        if: github.event_name != 'release'
+        uses: actions/upload-artifact@v7
+        with:
+          name: FastSurfer-macos-darwin_${{ matrix.arch }}-${{ github.sha }}
+          path: tools/macos_build/installer/*.pkg
+          if-no-files-found: error
+          # a .pkg is already compressed, so re-zipping it only costs minutes
+          compression-level: 0
+          retention-days: 14
+      - name: Move assets.
+        if: github.event_name == 'release' && github.event.action == 'published'
+        run: |
+          mkdir assets
+          mv tools/macos_build/installer/* assets/
+      - name: Upload release assets.
+        uses: softprops/action-gh-release@v3.0.3
+        if: github.event_name == 'release' && github.event.action == 'published'
+        with:
+          files: ${{ env.FASTSURFER_DIR }}/assets/*

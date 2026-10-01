@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Copyright 2023 Image Analysis Lab, German Center for Neurodegenerative Diseases (DZNE), Bonn
+# Copyright 2023 DeepMI Lab, German Center for Neurodegenerative Diseases (DZNE), Bonn
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -29,7 +29,7 @@ parallel_pipelines="1"
 num_parallel_surf="1"
 num_parallel_seg="1"
 statusfile=""
-python="python3.10 -s"
+python="python3 -s"
 
 function usage()
 {
@@ -48,9 +48,6 @@ brun_fastsurfer.sh [...] [--batch "<i>/<n>"] [--parallel <N>|max] [--parallel_se
     [--run_fastsurfer <script to run fastsurfer>] [--statusfile <filename>] [--debug] [--help]
     [<additional run_fastsurfer.sh options>]
 
-Author:   David Kügler, david.kuegler@dzne.de
-Date:     Nov 6, 2023
-Version:  1.0
 License:  Apache License, Version 2.0
 
 Documentation of Options:
@@ -62,6 +59,11 @@ i. a list passed through stdin of the format (one subject per line)
 ---
 ii. a subject_list file using the same format (use Ctrl-D to end the input), or
 iii. a list of subjects directly passed (this does not support subject-specific parameters)
+
+A path or parameter that contains a space has to be quoted or escaped as it would be in the shell,
+i.e. '/data/my subject/t1.mgz', "/data/my subject/t1.mgz" or /data/my\ subject/t1.mgz. Single
+quotes are the simplest, because everything inside them is taken literally, including backslashes.
+No expansion is performed in either kind of quotes, so a \$ or a \` is just that character.
 
 --batch "<i>/<n>": run the i-th of n batches (starting at 1) of the full list of subjects
   (default: 1/1, == run all). "slurm_task_id" is a valid option for "<i>".
@@ -125,12 +127,26 @@ function warn_old()
   echo "  use --parallel <n>, --parallel_seg <n>, or --parallel_surf <n>!"
 }
 
+function get_running_jobs()
+{
+  # the pids of the still-running background jobs, in $running_jobs.
+  # `jobs -pr` runs in a subshell here but still reports this shell's jobs, verified on bash 3.2 and
+  # 5.3. read rather than mapfile, which is bash 4+ while macOS ships bash 3.2 as /bin/bash.
+  running_jobs=()
+  local pid
+  while IFS= read -r pid ; do running_jobs+=("$pid") ; done < <(jobs -pr)
+}
+
 # PARSE Command line
 inputargs=("$@")
 POSITIONAL=()
 res_device="auto"
 res_viewagg_device="auto"
-SED_CLEANUP_SUBJECTS='s/\r$//;s/\s*\r\s*/\n/g;s/\s*$//;/^\s*$/d'
+# [[:space:]] rather than \s, and a backslash-escaped literal newline rather than \n: both are GNU
+# extensions. BSD/macOS sed read \s as the letter s, so it stripped a trailing "s" from every
+# subject line while leaving trailing whitespace and blank lines in place.
+SED_CLEANUP_SUBJECTS='s/\r$//;s/[[:space:]]*\r[[:space:]]*/\
+/g;s/[[:space:]]*$//;/^[[:space:]]*$/d'
 prev_ifs="$IFS"
 i=0
 while [[ $# -gt 0 ]]
@@ -149,8 +165,12 @@ case $key in
       echo "ERROR: Could not find the subject list $1!"
       exit 1
     fi
-    # append the subjects in the listfile (cleanup first) to the subjects array
-    mapfile -t -O ${#subjects} subjects < <(sed "$SED_CLEANUP_SUBJECTS" "$1")
+    # append the subjects in the listfile (cleanup first) to the subjects array.
+    # read rather than mapfile, which is bash 4+ while macOS ships bash 3.2; appending mirrors what
+    # mapfile's -O ${#subjects[@]} did. The `|| [[ -n ... ]]` keeps the last line of a file that has
+    # no final newline, which read alone would report as a failure and drop, unlike mapfile.
+    while IFS= read -r subject_line || [[ -n "$subject_line" ]]
+    do subjects+=("$subject_line") ; done < <(sed "$SED_CLEANUP_SUBJECTS" "$1")
     subjects_stdin="false"
     shift # past value
     ;;
@@ -235,7 +255,7 @@ function get_device_list()
   if [[ "$1" =~ ^(cpu|mps|auto|cuda)$ ]] || [[ "$1" =~ ^cuda:[0-9]+(,[0-9]+)*$ ]] ; then list=",$1"
   elif [[ "$1" =~ ^cuda:[0-9]+([-,][0-9]+(-[0-9]+)?)* ]] ; then
     IFS="," ; host=${1:0:5}
-    for i in ${1:5} ; do IFS="-" ; v=($i) ; list+=",$(seq -s"," "${v[0]}" "$(("${v[1]}" - 1))")" ; done
+    for i in ${1:5} ; do IFS="-" ; v=($i) ; list+=",$(seq -s"," "${v[0]}" "${v[1]}")" ; done
   else
     echo "ERROR: Invalid format for device|viewagg_device: $1 must be auto|cpu|mps|cuda[:X[,Y][-Z]...]"
     exit 1
@@ -254,7 +274,7 @@ function get_device_list()
 if [[ "$num_parallel_seg" != 1 ]] && [[ "$surf_only" != "true" ]] && [[ "$res_device" =~ ^auto|cuda$ ]]
 then
   # device is auto or cuda, auto-detect the device count and make it match with num_parallel_seg
-  detected_devices=$($python -c "import torch.cuda.device_count as d ; print(*range(d()), sep=',')")
+  detected_devices=$($python -c "from torch.cuda import device_count as d ; print(*range(d()), sep=',')")
   _devices=($detected_devices)
   num_devices="${#_devices[@]}"
   echo "INFO: Auto-detecting CUDA-capable devices to parallelize segmentation, found $num_devices device(s)."
@@ -276,7 +296,9 @@ then
   if [[ -t 0 ]] || [[ "$debug" == "true" ]]; then
     echo "Reading subjects from stdin, press Ctrl-D to end input (one subject per line)"
   fi
-  mapfile -t -O ${#subjects[@]} subjects < <(sed "$SED_CLEANUP_SUBJECTS")
+  # as for --subject_list: keep a final line that the producer did not terminate with a newline
+  while IFS= read -r subject_line || [[ -n "$subject_line" ]]
+  do subjects+=("$subject_line") ; done < <(sed "$SED_CLEANUP_SUBJECTS")
 fi
 
 echo "$THIS_SCRIPT ${inputargs[*]}"
@@ -405,13 +427,25 @@ function run_single()
   # |
   # *: POSITIONAL_FASTSURFER
 
-  local subject_id="<undefined>" mode="" args=() do_seg=1 do_surf=1 skip=0 parallel cmd status=unknown statustext
-  local debug="$2" statusfile="$3" parallel_pipelines="$4" num_parallel_seg="$5" num_parallel_surf="$6"
+  local subject_id="<undefined>" mode="" args=() do_seg="true" do_surf="true" skip="false" parallel cmd status=unknown
+  local debug="$2" statusfile="$3" parallel_pipelines="$4" num_parallel_seg="$5" num_parallel_surf="$6" statustext
   local run_fastsurfer=() POSITIONAL_FASTSURFER=()
   local position=0 arg image_path="<undefined>" returncode=0
-  local regex="\(\(\\\\.\|[^'\"[:space:]\\\\]\+\|'\([^']*\|''\)*'\|\"\([^\"\\\\]\+\|\\\\.\)*\"\)\+\).*"
+  # One shell-style token: a backslash-escaped character, a run of characters needing no quoting, or
+  # a single- or double-quoted string. Matched with bash's own =~ (an ERE) below rather than `expr`,
+  # whose BRE needed the GNU-only \| and \+: BSD/macOS expr rejects those and returned an empty
+  # string for every input, so no subject parameters parsed at all there.
+  # Built from pieces because a single quote cannot appear inside a single-quoted string.
+  local sq="'"
+  local escaped='\\.'
+  local plain='[^'"$sq"'"[:space:]\]+'
+  local single="$sq"'([^'"$sq"']*|'"$sq$sq"')*'"$sq"
+  local double='"([^"\]+|\\.)*"'
+  local token_re="^(($escaped|$plain|$single|$double)+)"
   subject_id=$(echo "$1" | cut -d= -f1)
-  image_parameters=$(echo "$1" | cut -d= -f2-1000 --output-delimiter="=")
+  # no --output-delimiter: it is GNU-only, so BSD/macOS cut rejects it and this silently produced an
+  # empty string, losing the t1 path. cut -f already joins with the input delimiter, as stools.sh does.
+  image_parameters=$(echo "$1" | cut -d= -f2-1000)
   for run in {1..6}; do shift ; done
   for i in "$@" ; do shift; if [[ "$i" == "|" ]] ; then break ; fi ; run_fastsurfer+=("$i") ; done
   POSITIONAL_FASTSURFER=("$@")
@@ -420,15 +454,18 @@ function run_single()
   while [[ "$position" -le "${#image_parameters}" ]]
   do
     if [[ -z "${image_parameters:$position}" ]]; then position=$((${#image_parameters} + 1)); continue ; fi
-    arg="$(expr "${image_parameters:$position} " : "$regex")"
+    if [[ "${image_parameters:$position} " =~ $token_re ]] ; then arg="${BASH_REMATCH[1]}" ; else arg="" ; fi
     if [[ -z "$arg" ]]
     then
       # could not parse
       echo "ERROR: Could not parse the line ${image_parameters:$position}, maybe incorrect quoting or escaping?"
       exit 1
     else
-      # arg parsed
-      if [[ "$position" == "0" ]]; then image_path=$arg ; else args+=("$arg") ; fi
+      # arg parsed, position is an integer.
+      # unquote for the value we pass on, but advance by the length of the source token: arg still
+      # holds the quotes and escapes, and $unquoted is usually shorter.
+      unquote "$arg"
+      if [[ "$position" == "0" ]]; then image_path="$unquoted" ; else args+=("$unquoted") ; fi
       position=$((position + ${#arg}))
     fi
     while [[ "${image_parameters:$position:1}" == " " ]] ; do position=$((position + 1)) ; done
@@ -441,16 +478,18 @@ function run_single()
       exit 1
     fi
   done
+  # check if --seg_only or --surf_only are in the general or the subject-specific arguments, set mode, do_seg and
+  # do_surf accordingly
   for i in "${POSITIONAL_FASTSURFER[@]}" "${args[@]}"; do
-    if [[ "$i" == "--seg_only" ]] ; then mode="$i" ; do_surf=0
-    elif [[ "$i" == "--surf_only" ]] ; then mode="$i" ; do_seg=0
+    if [[ "$i" == "--seg_only" ]] ; then mode="$i" ; do_surf="false"
+    elif [[ "$i" == "--surf_only" ]] ; then mode="$i" ; do_seg="false"
     fi
   done
-  if [[ "$do_seg" == 0 ]] && [[ "$do_surf" == 0 ]]
+  if [[ "$do_seg" == "false" ]] && [[ "$do_surf" == "false" ]]
   then
     echo "INFO: Skipping subject_id $subject_id (deselected)"
-    skip=1
-  elif [[ -n "$statusfile" ]] && [[ "$do_surf" == 1 ]] && [[ "$do_seg" == 0 ]]
+    skip="true"
+  elif [[ -n "$statusfile" ]] && [[ "$do_surf" == "true" ]] && [[ "$do_seg" == "false" ]]
   then
     ## if status in statusfile is "Failed" last, skip this
     prev_ifs="$IFS" ; IFS=''
@@ -459,9 +498,9 @@ function run_single()
       subject="$(echo "$line" | cut -d" " -f1)"
       if [[ "$subject" == "$subject_id:" ]] ; then
         statustext="${line:$((${#subject} + 1))}"
-        if [[ "${statustext}" =~ ^Failed[[:space:]](--seg_only|seg|both) ]] ; then status=failed
+        if [[ "${statustext}" =~ ^Failed[[:space:]](--seg_only|seg|both) ]] ; then status="failed"
         elif [[ "${statustext}" =~ ^Finished[[:space:]](--seg_only|seg|both)[[:space:]]success ]] ; then
-          status=success
+          status="success"
         fi
       fi
       IFS=""
@@ -471,30 +510,73 @@ function run_single()
     then
       echo "INFO: Skipping $subject_id's surface recon because the segmentation failed."
       echo "$subject_id: Skipping surface recon (failed segmentation)" >> "$statusfile"
-      skip=1
+      skip="true"
     fi
   fi
   # if we are not skipping this, process
-  if [[ "$skip" == 0 ]]
+  if [[ "$skip" == "false" ]]
   then
     cmd=("${run_fastsurfer[@]}" --t1 "$image_path" "${POSITIONAL_FASTSURFER[@]}" "${args[@]}")
     if [[ "$debug" == "true" ]] ; then echo "DEBUG:" "${cmd[@]}" ; fi
-    # multiple subjects in parallel is possible, then parallel = 1, else parallel = 0
-    if [[ "$num_parallel_seg" == "max" ]] || [[ "$parallel_pipelines" == 2 ]] && [[ "$num_parallel_surf" == "max" ]]
-    then parallel=1 # one of "running pipeline" is max
-    else parallel=$([[ $((num_parallel_seg + (parallel_pipelines - 1) * num_parallel_surf)) == 2 ]] && echo 0 || echo 1)
+    # multiple subjects in parallel is possible, then parallel = "true", else parallel = "false"
+    if [[ "$num_parallel_seg" == "max" ]] || \
+       { [[ "$parallel_pipelines" == 2 ]] && [[ "$num_parallel_surf" == "max" ]] ; }
+    then parallel="true" # one of "running pipeline" is max
+    else parallel=$([[ $((num_parallel_seg + (parallel_pipelines - 1) * num_parallel_surf)) == 2 ]] && echo "false" || echo "true")
     fi
-    if [[ "$parallel" == 1 ]] ; then "${cmd[@]}" | prepend "$subject_id: " ; else "${cmd[@]}" ; fi
+    if [[ "$parallel" == "true" ]] ; then "${cmd[@]}" | prepend "$subject_id: " ; else "${cmd[@]}" ; fi
     returncode="${PIPESTATUS[0]}"
     if [[ -n "$statusfile" ]] ; then print_status "$subject_id" "$mode" "$returncode" >> "$statusfile"; fi
     if [[ "$returncode" != 0 ]]; then echo "WARNING: $subject_id finished with exit code $returncode!" ; fi
   fi
+  # print the #@#!NEXT-SUBJECT token for the processing loop to trigger the next subject's processing
+  # also include subject_id and image_parameters for debugging and verbosity
   echo "#@#!NEXT-SUBJECT:$subject_id=$image_parameters"
 }
 
+function unquote()
+{
+  # remove one level of shell quoting from $1, result in $unquoted.
+  # The tokenizer in run_single matches the source text of a token, so the quotes and escapes are
+  # still in it: '/d/a b.mgz' arrived at --t1 with the quotes attached and no such file exists. This
+  # does what the shell would do, without eval, which would run substitutions from a subject list.
+  # A literal backslash in a filename consequently has to be written \\, as in any shell.
+  local rest="$1" out="" chunk sq="'"
+  # the only characters a backslash escapes inside double quotes
+  local dq_escapable='$`"\'
+  while [[ -n "$rest" ]]
+  do
+    case "$rest" in
+      "\\"?*)
+        # backslash escape: take the next character as-is
+        out="$out${rest:1:1}" ; rest="${rest:2}" ;;
+      "'"*)
+        # single quotes: everything up to the next one is literal
+        rest="${rest:1}" ; chunk="${rest%%$sq*}" ; out="$out$chunk" ; rest="${rest:$((${#chunk} + 1))}" ;;
+      '"'*)
+        # double quotes: literal, except that a backslash escapes one of $ ` " \ only. Before any
+        # other character it stays, as in the shell, where "a\ b" keeps its backslash.
+        rest="${rest:1}"
+        while [[ -n "$rest" ]] && [[ "${rest:0:1}" != '"' ]]
+        do
+          if [[ "${rest:0:1}" == "\\" ]] && [[ -n "${rest:1:1}" ]] \
+             && [[ "$dq_escapable" == *"${rest:1:1}"* ]]
+          then out="$out${rest:1:1}" ; rest="${rest:2}"
+          else out="$out${rest:0:1}" ; rest="${rest:1}"
+          fi
+        done
+        rest="${rest:1}" ;;
+      *)
+        out="$out${rest:0:1}" ; rest="${rest:1}" ;;
+    esac
+  done
+  unquoted="$out"
+}
+
+# this function returns an integer, with 1 meaning "is not a numbered device" (to be used in if statements)
 function is_numbered_device() { if [[ "$1" =~ ^auto|cpu|mps|cuda$ ]] ; then return 1 ; else return 0 ; fi }
 
-# this is a handler to convert the device name to a number
+# this is a handler to convert the device name to a number, effectively only removing the "cuda:" prefix
 function device2number() { echo "${1:5}" ; }
 
 timeout_read_token=5
@@ -513,9 +595,10 @@ function process_by_token()
   # |
   # *: POSITIONAL_FASTSURFER
 
-  local subject_id max_processes subject_buffer=() read_in=1 returncode spawn_task=1 mode="$1" line device_ready=0
+  local subject_id max_processes subject_buffer=() read_in="true" returncode spawn_task="true" mode="$1" line
   local timeout_read_token="$2" debug="$3" statusfile="$4" parallel_pipelines="$5" num_parallel_seg="$6" this_args=()
-  local num_parallel_surf="$7" device=() vdevice=() regx="^cuda:[0-9]+," parallel_warn=0 res_args=() prev_ifs="$IFS"
+  local num_parallel_surf="$7" device=() vdevice=() regx="^cuda:[0-9]+," parallel_warn="false" res_args=()
+  local device_ready=0 prev_ifs="$IFS"
   IFS=","
   if [[ "$8" =~ $regx ]] ; then for e in ${8:5} ; do device+=("${8:0:5}$e") ; done ; else device=("$8") ; fi
   if [[ "$9" =~ $regx ]] ; then for e in ${9:5} ; do vdevice+=("${9:0:5}$e") ; done ; else vdevice=("$9") ; fi
@@ -525,14 +608,29 @@ function process_by_token()
   local run_single_args=("$debug" "$statusfile" "$parallel_pipelines" "$num_parallel_seg" "$num_parallel_surf" "$@")
 
   if [[ "$mode" == "surf" ]] ; then max_processes="$num_parallel_surf" ; else max_processes="$num_parallel_seg" ; fi
-  while [[ "$read_in" == 1 ]] || [[ "${#subject_buffer[@]}" -gt 0 ]]
+  while [[ "$read_in" == "true" ]] || [[ "${#subject_buffer[@]}" -gt 0 ]]
   do
-    if [[ "$read_in" == 1 ]]
+    # this loop performs three tasks/main steps as long as i. we are still reading input (read_in) or ii. have subjects
+    # in the buffer:
+    # 1. read input and add to subject_buffer,
+    # 2. check if we are at the process limit (if we want to process the next case),
+    # 3. process the next case from the buffer.
+
+    # initialize res_args
+    res_args=()
+    # 1. read input and add to subject_buffer
+    #    we read from stdin (piping in input from iterate_subjects_with_token) or other process_by_token processes,
+    #    if the input "sends" EOF, we stop reading (read_in="false"),
+    #    if the input line starts with the token "#@#!NEXT-SUBJECT:", we extract the case data, which follows after the
+    #    token, and add it to the subject_buffer -- the queue of cases waiting to be processed.
+    #    if the line does not start with the token, we print it directly to stdout, making sure the output of a "parent"
+    #    process_by_token gets forwarded to the console output for debugging and logging purposes.
+    if [[ "$read_in" == "true" ]]
     then
       IFS=""
       read -r -t "$timeout_read_token" line
       returncode="$?"
-      if [[ "$returncode" == 1 ]] ; then read_in=0 # EOF, terminate looking at for input
+      if [[ "$returncode" == 1 ]] ; then read_in="false" # EOF, terminate looking at for input
       elif [[ "$returncode" == 0 ]] ; then # successfully read a line
         if [[ "${line:0:17}" == "#@#!NEXT-SUBJECT:" ]] ; then
           if [[ "$debug" == "true" ]] ; then echo "DEBUG: $mode-subject ${line:17}" ; fi
@@ -543,43 +641,73 @@ function process_by_token()
       fi
     fi
 
+    # 2. check if we are at the process limit (if we want to process the next case)
+    #    check the number of child processes with jobs -pr,
+    #    if the child process count is below the limit (max_processes), we want to spawn a new process, i.e. set
+    #    spawn_task="true"
+    #    if the child process count is at the limit and we are still reading input (read_in="true"), we do not spawn a
+    #    new process, i.e. set spawn_task="false", but return to step 1: keep reading the input.
+    #    if the child process count is at the limit, but we are no longer reading the input (read_in="false"), we first
+    #    want to wait for a currently running child process to finish and then spawn the next process.
     # check job count
-    if [[ "$max_processes" == "max" ]] ; then spawn_task=1
+    if [[ "$max_processes" == "max" ]] ; then spawn_task="true"
     else
-      mapfile -t running_jobs < <(jobs -pr)
-      if [[ "${#running_jobs[@]}" -lt "$max_processes" ]] ; then spawn_task=1
-      elif [[ "$read_in" == 0 ]] ; then wait "${running_jobs[@]}" # wait for any task to finish (std is already closed)
-      else spawn_task=0
+      get_running_jobs
+      if [[ "${#running_jobs[@]}" -lt "$max_processes" ]] ; then spawn_task="true"
+      elif [[ "$read_in" == "false" ]] ; then wait "${running_jobs[@]}" # wait for any task to finish (stdin is closed)
+      else spawn_task="false"
       fi
     fi
 
-    # if can spawn and has job in queue, start a job
-    if [[ "$spawn_task" == 1 ]] && [[ "${#subject_buffer[@]}" -gt 0 ]]
+    # 3. process the next case from the buffer
+    #    if we want to spawn a new process (spawn_task="true") and we have cases in the subject_buffer, we need to
+    #    find an available device (if we have multiple devices) and then spawn a new process for the next case in the
+    #    buffer with the appropriate device assignment. So Substep 3.1 is to find an available device and substep 3.2 is
+    #    to spawn the next process with the appropriate device assignment.
+    if [[ "$spawn_task" == "true" ]] && [[ "${#subject_buffer[@]}" -gt 0 ]]
     then
+      # Substep 3.1: find an available device (if we have multiple devices)
+      # if mode is surf, we do not need to check for device availability, surface processing is only CPU-based.
+      # if mode is seg, need to find an available device for both per-view inference and the view aggregation
+      #   in both cases, have the list of available devices in the device and vdevice arrays, and we keep track of the
+      #   device assignments to child processes in the used_device and used_vdevice arrays. If the child process exists,
+      #   the device is still in use. If the child process does not exist, the device is available, and we remove the
+      #   assignment.
       if [[ "$mode" == "surf" ]] ; then device_ready=2 ; dev="cpu" ; vdev="cpu"
       else
         device_ready=0
+        # Substep 3.1a: Find a device for per-view inference, if device are available, we increase device_ready by 1.
         if [[ "${#device[@]}" -gt 1 ]] ; then
           # go through device assignments, if the processes finished, release the device assignment
           for name in "${device[@]}" ; do
             i="$(device2number "$name")"
             if [[ -z "${used_device[i]}" ]] || [[ -z "$(ps --no-headers "${used_device[i]}")" ]] ; then
-              res_args=("--device" "$name") ; used_device[i]=""; device_ready=$((device_ready + 1)) ; dev="$name" ; break
+              res_args+=("--device" "$name")
+              used_device[i]=""
+              device_ready=$((device_ready + 1))
+              dev="$name"
+              break
             fi
           done
-        else device_ready=$((device_ready + 1)) ; res_args=("--device" "${device[0]}")
+        else device_ready=$((device_ready + 1)) ; res_args+=("--device" "${device[0]}") ; dev="${device[0]}"
         fi
+        # Substep 3.1b: Find a device for view aggregation, if device are available, we increase device_ready by 1.
         if [[ "${#vdevice[@]}" -gt 1 ]] ; then
           # go through viewagg device assignments, if the processes finished, release the device assignment
           for name in "${vdevice[@]}" ; do
             i="$(device2number "$name")"
             if [[ -z "${used_vdevice[i]}" ]] || [[ -z "$(ps --no-headers "${used_vdevice[i]}")" ]] ; then
-              res_args=("--viewagg_device" "$name") ; used_vdevice[i]="" ; device_ready=$((device_ready + 1)) ; vdev="$name" ; break
+              res_args+=("--viewagg_device" "$name")
+              used_vdevice[i]=""
+              device_ready=$((device_ready + 1))
+              vdev="$name"
+              break
             fi
           done
-        else device_ready=$((device_ready + 1)) ; res_args=("--viewagg_device" "${vdevice[0]}")
+        else device_ready=$((device_ready + 1)) ; res_args+=("--viewagg_device" "${vdevice[0]}") ; vdev="${vdevice[0]}"
         fi
       fi
+      # at this point, device_ready is greater than 1, we have sufficient resources to start the next process.
       if [[ "$device_ready" -gt 1 ]]
       then
         subject_id=$(echo "${subject_buffer[0]}" | cut -d= -f1)
@@ -592,26 +720,28 @@ function process_by_token()
         else run_single "${subject_buffer[0]}" "${this_args[@]}" &
         fi
         pid=$!
-        # if dev or vdev is a numbered device, add it to the used devices list (multiple devices)
+        # if dev or vdev is a numbered device, add the child process id to the used devices list (multiple devices)
         if is_numbered_device "$dev" ; then i=$(device2number "$dev") ; used_device[i]="$pid" ; fi
         if is_numbered_device "$vdev" ; then i=$(device2number "$vdev") ; used_vdevice[i]="$pid" ; fi
+        # remove the first item from the subject_buffer
         subject_buffer=("${subject_buffer[@]:1}")
       else
-        if [[ $parallel_warn == 1 ]] ; then
+        # we have not reached the process limit, but could not find available devices...
+        if [[ $parallel_warn == "true" ]] ; then
           echo "WARNING: All devices are in use for parallel seg processing!"
         else
-          echo "WARNING: All devices are in use, make sure you are trying to use more parallel seg processes than"
+          echo "WARNING: All devices are in use, make sure you are not trying to use more parallel seg processes than"
           echo "  you have devices passed in --device AND --viewagg_device., e.g. '--device cuda:0,1 --viewagg_device"
           echo "  cpu --parallel_seg 2' is fine, but '--device cuda:0,1 --parallel_seg 3' or"
           echo "  '--viewagg_device cuda:0,1 --parallel_seg 3' will cause issues."
-          parallel_warn=1
+          parallel_warn="true"
         fi
         # wait for a device to become available
         sleep 5
       fi
-    fi
+    fi # if can spawn and has job in queue
   done
-  mapfile -t running_jobs < <(jobs -pr)
+  get_running_jobs
   # wait for jobs to finish
   if [[ "$debug" == "true" ]]
   then
@@ -627,6 +757,7 @@ function process_by_token()
 
 function filter_token()
 {
+  # just remove the lines with the #@#!NEXT-SUBJECT: token from the output.
   IFS=""
   while read -r line ; do if [[ "${line:0:17}" != "#@#!NEXT-SUBJECT:" ]] ; then echo "$line" ; fi ; done
 }

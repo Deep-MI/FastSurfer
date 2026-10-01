@@ -1,4 +1,4 @@
-# Copyright 2019 Image Analysis Lab, German Center for Neurodegenerative Diseases (DZNE), Bonn
+# Copyright 2019 DeepMI Lab, German Center for Neurodegenerative Diseases (DZNE), Bonn
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,6 +14,7 @@
 
 # IMPORTS
 import time
+from collections.abc import Callable, Sequence
 from typing import Optional
 
 import h5py
@@ -35,12 +36,14 @@ class MultiScaleOrigDataThickSlices(Dataset):
     Load MRI-Image and process it to correct format for network inference.
     """
 
+    zoom : npt.NDArray[float]
+
     def __init__(
             self,
             orig_data: npt.NDArray,
-            orig_zoom: npt.NDArray,
+            orig_zoom: npt.NDArray[float] | Sequence[float],
             cfg: yacs.config.CfgNode,
-            transforms: Optional = None
+            transforms: Callable[[npt.NDArray[float]], npt.NDArray[float]] | None = None,
     ):
         """
         Construct object.
@@ -50,31 +53,30 @@ class MultiScaleOrigDataThickSlices(Dataset):
         orig_data : npt.NDArray
             Original Data.
         orig_zoom : npt.NDArray
-            Original zoomfactors.
+            Original zoom factors.
         cfg : yacs.config.CfgNode
             Configuration Node.
-        transforms : Optional
-            Transformer for the image. Defaults to None.
+        transforms : callable[[npt.NDArray[float]], npt.NDArray[float]], optional
+            Transforms for the image, defaults to no transformation.
         """
-        assert (
-                orig_data.max() > 0.8
-        ), f"Multi Dataset - orig fail, max removed {orig_data.max()}"
+        orig_max = orig_data.max()
+        assert orig_max > 0.8, f"Multi Dataset - orig fail, max removed {orig_max}"
         self.plane = cfg.DATA.PLANE
         self.slice_thickness = cfg.MODEL.NUM_CHANNELS // 2
         self.base_res = cfg.MODEL.BASE_RES
 
         if self.plane == "sagittal":
             orig_data = du.transform_sagittal(orig_data)
-            self.zoom = orig_zoom[::-1][:2]
+            self.zoom = np.asarray(orig_zoom)[[2, 1]]
             logger.info(f"Loading Sagittal with input voxelsize {self.zoom}")
 
         elif self.plane == "axial":
             orig_data = du.transform_axial(orig_data)
-            self.zoom = orig_zoom[::-1][:2]
+            self.zoom = np.asarray(orig_zoom)[[2, 0]]
             logger.info(f"Loading Axial with input voxelsize {self.zoom}")
 
         else:
-            self.zoom = orig_zoom[:2]
+            self.zoom = np.asarray(orig_zoom)[[0, 1]]
             logger.info(f"Loading Coronal with input voxelsize {self.zoom}")
 
         # Create thick slices
@@ -89,8 +91,6 @@ class MultiScaleOrigDataThickSlices(Dataset):
         Get scaling factor to match original resolution of input image to final resolution of FastSurfer base network.
 
         Input resolution is taken from voxel size in image header.
-        ToDO: This needs to be updated based on the plane we are looking at in case we
-        are dealing with non-isotropic images as inputs.
 
         Returns
         -------
@@ -236,9 +236,7 @@ class MultiScaleDataset(Dataset):
         Get scaling factor to match original resolution of input image to final resolution of FastSurfer base network.
 
         Input resolution is taken from voxel size in image header.
-        
-        ToDO: This needs to be updated based on the plane we are looking at in case we
-        are dealing with non-isotropic images as inputs.
+
 
         Parameters
         ----------
@@ -258,9 +256,7 @@ class MultiScaleDataset(Dataset):
         scale = self.base_res / img_zoom
 
         if self.gn_noise:
-            scale += (
-                torch.randn(1) * 0.1 + 0
-            )  # needs to be changed to torch.tensor stuff
+            scale += torch.randn(1) * 0.1 + 0  # needs to be changed to torch.tensor stuff
             scale = torch.clamp(scale, min=0.1)
 
         return scale
@@ -468,9 +464,6 @@ class MultiScaleDatasetVal(Dataset):
 
         Input resolution is taken from voxel size in image header.
         
-        ToDO: This needs to be updated based on the plane we are looking at in case we
-        are dealing with non-isotropic images as inputs.
-
         Parameters
         ----------
         img_zoom : np.ndarray
