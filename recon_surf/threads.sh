@@ -42,16 +42,59 @@ function positive_int()
   if [[ "$first" =~ ^[1-9][0-9]*$ ]] ; then echo "$first" ; fi
 }
 
+# a cgroup CPU quota, as docker --cpus sets it; variables so that tests can point them elsewhere
+cgroup_v2_cpu_max="/sys/fs/cgroup/cpu.max"
+cgroup_v1_cpu_quota="/sys/fs/cgroup/cpu/cpu.cfs_quota_us"
+cgroup_v1_cpu_period="/sys/fs/cgroup/cpu/cpu.cfs_period_us"
+# the CPUs a scheduler allocated to the job, for schedulers that do not also restrict the affinity
+scheduler_cpu_vars=(SLURM_CPUS_PER_TASK NSLOTS NCPUS LSB_DJOB_NUMPROC)
+
+function cgroup_cpu_quota()
+{
+  # Prints the cgroup CPU quota in whole CPUs, at least 1, or nothing if there is none.
+  local quota="" period="" rest
+  if [[ -r "$cgroup_v2_cpu_max" ]] ; then
+    read -r quota period rest < "$cgroup_v2_cpu_max"
+  elif [[ -r "$cgroup_v1_cpu_quota" ]] && [[ -r "$cgroup_v1_cpu_period" ]] ; then
+    read -r quota < "$cgroup_v1_cpu_quota" ; read -r period < "$cgroup_v1_cpu_period"
+  fi
+  # "max" in v2 and -1 in v1 mean no quota
+  if [[ -n "$(positive_int "$quota")" ]] && [[ -n "$(positive_int "$period")" ]] ; then
+    if [[ "$quota" -lt "$period" ]] ; then echo 1 ; else echo "$((quota / period))" ; fi
+  fi
+}
+
 function available_cpus()
 {
-  # The number of CPUs this process may use. Not plain nproc: GNU nproc returns OMP_NUM_THREADS
-  # when that is set, and macOS has no nproc.
-  local n=""
-  if command -v nproc > /dev/null ; then n="$(env -u OMP_NUM_THREADS -u OMP_THREAD_LIMIT nproc 2> /dev/null)" ; fi
-  if [[ -z "$(positive_int "$n")" ]] ; then n="$(sysctl -n hw.ncpu 2> /dev/null)" ; fi
-  if [[ -z "$(positive_int "$n")" ]] ; then n="$(getconf _NPROCESSORS_ONLN 2> /dev/null)" ; fi
-  if [[ -z "$(positive_int "$n")" ]] ; then n=1 ; fi
-  echo "$n"
+  # Sets cpus_available to the number of CPUs this process may use, cpus_reason to what lowered
+  # it below the machine's count, and cpus_allocated to true inside a cgroup quota or a scheduler
+  # job, both of which someone asked for. A lower CPU affinity alone is not an allocation.
+  # Not plain nproc: GNU nproc returns OMP_NUM_THREADS when that is set, and macOS has no nproc.
+  local total n quota var value
+  cpus_reason="" ; cpus_allocated="false"
+  total="$(positive_int "$(getconf _NPROCESSORS_ONLN 2> /dev/null)")"
+  if [[ -z "$total" ]] ; then total="$(positive_int "$(sysctl -n hw.ncpu 2> /dev/null)")" ; fi
+  if [[ -z "$total" ]] ; then total=1 ; fi
+  n=""
+  if command -v nproc > /dev/null ; then
+    n="$(positive_int "$(env -u OMP_NUM_THREADS -u OMP_THREAD_LIMIT nproc 2> /dev/null)")"
+  fi
+  if [[ -z "$n" ]] ; then n="$total"
+  elif [[ "$n" -lt "$total" ]] ; then cpus_reason="the CPU affinity"
+  fi
+  quota="$(cgroup_cpu_quota)"
+  if [[ -n "$quota" ]] ; then
+    cpus_allocated="true"
+    if [[ "$quota" -lt "$n" ]] ; then n="$quota" ; cpus_reason="the cgroup CPU quota" ; fi
+  fi
+  for var in "${scheduler_cpu_vars[@]}" ; do
+    value="$(positive_int "${!var}")"
+    if [[ -n "$value" ]] ; then
+      cpus_allocated="true"
+      if [[ "$value" -lt "$n" ]] ; then n="$value" ; cpus_reason="$var" ; fi
+    fi
+  done
+  cpus_available="$n"
 }
 
 function resolve_threads()
@@ -63,7 +106,8 @@ function resolve_threads()
   flag="$(echo "$1" | tr '[:upper:]' '[:lower:]')"
   threads_note=""
   if [[ "$flag" =~ ^(max|-[0-9]+|0+)$ ]] ; then
-    threads_budget="$(available_cpus)" ; threads_source="--threads $1"
+    available_cpus
+    threads_budget="$cpus_available" ; threads_source="--threads $1${cpus_reason:+, limited by $cpus_reason}"
   elif [[ -n "$flag" ]] ; then
     threads_budget="$(positive_int "$flag")" ; threads_source="--threads"
     if [[ "$threads_budget" != "$flag" ]] ; then
