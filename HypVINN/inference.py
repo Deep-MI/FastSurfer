@@ -318,6 +318,13 @@ class Inference:
         self.model.eval()
 
         start_index = 0
+        # View weights reproduce the original HypVINN aggregation bit for bit. get_prediction used
+        # `pred_prob += model.run(..., pred_prob, ...)`, but this method already adds each view into
+        # pred_prob in place and returns it, so the += doubled the accumulator after every view.
+        # With PLANES = (axial, coronal, sagittal) and base weights 0.4 / 0.4 / 0.2 this gave
+        # axial 0.4 * 8 = 3.2, coronal 0.4 * 4 = 1.6, sagittal 0.2 * 2 = 0.4 (8 : 4 : 1).
+        # The factors are powers of two, so the scaling is exact in float32. Do not "fix" them
+        # back to 0.4 / 0.4 / 0.2 without retraining or re-validating; that changes the segmentation.
         for _batch_idx, batch in tqdm(enumerate(val_loader), total=len(val_loader)):
 
             images = batch["image"].to(self.device)
