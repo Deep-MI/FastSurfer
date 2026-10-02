@@ -469,10 +469,9 @@
                            <span class="p">(</span><span class="o">--</span><span class="n">template_dir</span> <span class="n">TEMPLATE_DIR</span> <span class="o">|</span> <span class="o">--</span><span class="n">values_file</span> <span class="n">VALUES_FILE</span><span class="p">)</span>
                            <span class="o">--</span><span class="n">output_dir</span> <span class="n">OUTPUT_DIR</span> <span class="p">[</span><span class="o">--</span><span class="n">resolution</span> <span class="n">RESOLUTION</span><span class="p">]</span>
                            <span class="p">[</span><span class="o">--</span><span class="n">smoothing_window</span> <span class="n">SMOOTHING_WINDOW</span><span class="p">]</span>
-                           <span class="p">[</span><span class="o">--</span><span class="n">colormap</span> <span class="p">{</span><span class="n">red_to_blue</span><span class="p">,</span><span class="n">blue_to_red</span><span class="p">,</span><span class="n">red_to_yellow</span><span class="p">,</span><span class="n">yellow_to_red</span><span class="p">}]</span>
-                           <span class="p">[</span><span class="o">--</span><span class="n">color_range</span> <span class="n">MIN</span> <span class="n">MAX</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">legend</span> <span class="n">LEGEND</span><span class="p">]</span>
-                           <span class="p">[</span><span class="o">--</span><span class="n">mode</span> <span class="p">{</span><span class="n">thickness</span><span class="p">,</span><span class="n">p</span><span class="o">-</span><span class="n">value</span><span class="p">,</span><span class="n">icc</span><span class="p">}]</span> <span class="p">[</span><span class="o">--</span><span class="n">log_scale</span><span class="p">]</span>
-                           <span class="p">[</span><span class="o">--</span><span class="n">upper_threshold</span> <span class="n">VALUE</span><span class="p">]</span>
+                           <span class="p">[</span><span class="o">--</span><span class="n">colormap</span> <span class="n">COLORMAP</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">color_range</span> <span class="n">MIN</span> <span class="n">MAX</span><span class="p">]</span>
+                           <span class="p">[</span><span class="o">--</span><span class="n">legend</span> <span class="n">LEGEND</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">mode</span> <span class="p">{</span><span class="n">thickness</span><span class="p">,</span><span class="n">p</span><span class="o">-</span><span class="n">value</span><span class="p">,</span><span class="n">icc</span><span class="p">}]</span>
+                           <span class="p">[</span><span class="o">--</span><span class="n">log_scale</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">upper_threshold</span> <span class="n">VALUE</span><span class="p">]</span>
                            <span class="p">[</span><span class="o">--</span><span class="n">threshold_color</span> <span class="n">THRESHOLD_COLOR</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">title</span> <span class="n">TITLE</span><span class="p">]</span>
                            <span class="p">[</span><span class="o">--</span><span class="n">output_name</span> <span class="n">FILENAME</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">twoD</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">v</span><span class="p">]</span>
 </pre></div>
@@ -487,7 +486,7 @@
 <dd><p>One-column CSV containing values ordered anterior to posterior. The first row is treated as a header. Uses the bundled fsaverage contour and generates a 2D plot; no template directory is required.</p>
 </dd>
 <dt><kbd>--output_dir</kbd></dt>
-<dd><p>Directory for output files. Writes: cc_mesh.html - Interactive 3D mesh visualization (HTML file) midslice_2d.png - 2D midslice visualization of the corpus callosum cc_mesh.vtk - VTK mesh file format cc_mesh.fssurf - FreeSurfer surface file cc_mesh_overlay.curv - FreeSurfer curvature overlay file cc_mesh_snap.png - Screenshot/snapshot of the 3D mesh (requires whippersnappy&gt;=2.1). If template_dir does not contain orig.mgz and cc_up.lta, output_dir/mri/upright.mgz is used as the fallback reference when available; otherwise FreeSurfer surfaces are written without a reference space.</p>
+<dd><p>Directory for output files. Writes: cc_mesh.html - Interactive 3D mesh visualization (HTML file) midslice_2d.png - 2D midslice visualization of the corpus callosum cc_mesh.vtk - VTK mesh file format cc_mesh.fssurf - FreeSurfer surface file cc_mesh_overlay.curv - FreeSurfer curvature overlay file cc_mesh_snap.png - Screenshot/snapshot of the 3D mesh (requires whippersnappy&gt;=2.1). If template_dir does not contain orig.mgz and cc_up.lta, &lt;output_dir&gt;/mri/upright.mgz is used as the fallback reference when available; otherwise FreeSurfer surfaces are written without a reference space.</p>
 </dd>
 <dt><kbd>--resolution</kbd></dt>
 <dd><p>Legacy spacing in mm used when template contour files do not store slice positions.</p>
@@ -499,7 +498,7 @@
 </dd>
 <dt><kbd>--colormap</kbd></dt>
 <dd><p>Possible choices: red_to_blue, blue_to_red, red_to_yellow, yellow_to_red</p>
-<p>Colormap progression from lower to higher values.</p>
+<p>Colormap progression from lower to higher values: red_to_blue, blue_to_red, red_to_yellow or yellow_to_red.</p>
 <p>Default: <code class="docutils literal notranslate"><span class="pre">'red_to_yellow'</span></code></p>
 </dd>
 <dt><kbd>--color_range</kbd></dt>
@@ -546,18 +545,20 @@
 <h3>3D Visualization<a class="headerlink" href="#d-visualization" title="Link to this heading">¶</a></h3>
 <p>To visualize a 3D template generated by <code class="docutils literal notranslate"><span class="pre">fastsurfer_cc.py</span></code> (using <code class="docutils literal notranslate"><span class="pre">--slice_selection</span> <span class="pre">all</span> <span class="pre">--save_template_dir</span> <span class="pre">...</span></code>),
 point the script to the exported template directory:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python3<span class="w"> </span>-m<span class="w"> </span>CorpusCallosum.cc_visualization<span class="w"> </span><span class="se">\</span>
-<span class="w">    </span>--template_dir<span class="w"> </span>/data/templates/sub001/cc_template<span class="w"> </span><span class="se">\</span>
-<span class="w">    </span>--output_dir<span class="w"> </span>/data/visualizations/sub001
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span><span class="w"> </span><span class="nv">FASTSURFER_HOME</span><span class="o">=</span><span class="si">${</span><span class="nv">FASTSURFER_HOME</span><span class="k">:-</span><span class="p">/path/to/FastSurfer</span><span class="si">}</span>
+python3<span class="w"> </span><span class="nv">$FASTSURFER_HOME</span>/CorpusCallosum/cc_visualization.py<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--template_dir<span class="w"> </span><span class="nv">$HOME</span>/my_fastsurfer_analysis/subjectX/cc_template<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--output_dir<span class="w"> </span><span class="nv">$HOME</span>/my_fastsurfer_analysis/subjectX/cc_visualization
 </pre></div>
 </div>
 </section>
 <section id="id1">
 <h3>2D Visualization<a class="headerlink" href="#id1" title="Link to this heading">¶</a></h3>
 <p>To visualize a 2D template (using <code class="docutils literal notranslate"><span class="pre">--slice_selection</span> <span class="pre">middle</span> <span class="pre">--save_template_dir</span> <span class="pre">...</span></code>):</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python3<span class="w"> </span>-m<span class="w"> </span>CorpusCallosum.cc_visualization<span class="w"> </span><span class="se">\</span>
-<span class="w">    </span>--template_dir<span class="w"> </span>/data/templates/sub001/cc_template<span class="w"> </span><span class="se">\</span>
-<span class="w">    </span>--output_dir<span class="w"> </span>/data/visualizations/sub001<span class="w"> </span><span class="se">\</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span><span class="w"> </span><span class="nv">FASTSURFER_HOME</span><span class="o">=</span><span class="si">${</span><span class="nv">FASTSURFER_HOME</span><span class="k">:-</span><span class="p">/path/to/FastSurfer</span><span class="si">}</span>
+python3<span class="w"> </span><span class="nv">$FASTSURFER_HOME</span>/CorpusCallosum/cc_visualization.py<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--template_dir<span class="w"> </span><span class="nv">$HOME</span>/my_fastsurfer_analysis/subjectX/cc_template<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--output_dir<span class="w"> </span><span class="nv">$HOME</span>/my_fastsurfer_analysis/subjectX/cc_visualization<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--twoD
 </pre></div>
 </div>
@@ -569,9 +570,10 @@ as anterior-to-posterior and then posterior-to-anterior. Do not copy a JSON
 <p>To visualize a one-column CSV of p-values on the bundled fsaverage contour,
 where the first row is a header and the remaining rows contain positive values
 ordered from anterior to posterior:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python3<span class="w"> </span>-m<span class="w"> </span>CorpusCallosum.cc_visualization<span class="w"> </span><span class="se">\</span>
-<span class="w">    </span>--values_file<span class="w"> </span>/data/p_values.csv<span class="w"> </span><span class="se">\</span>
-<span class="w">    </span>--output_dir<span class="w"> </span>/data/visualizations<span class="w"> </span><span class="se">\</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span><span class="w"> </span><span class="nv">FASTSURFER_HOME</span><span class="o">=</span><span class="si">${</span><span class="nv">FASTSURFER_HOME</span><span class="k">:-</span><span class="p">/path/to/FastSurfer</span><span class="si">}</span>
+python3<span class="w"> </span><span class="nv">$FASTSURFER_HOME</span>/CorpusCallosum/cc_visualization.py<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--values_file<span class="w"> </span><span class="nv">$HOME</span>/my_fastsurfer_analysis/p_values.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--output_dir<span class="w"> </span><span class="nv">$HOME</span>/my_fastsurfer_analysis/visualizations<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--mode<span class="w"> </span>p-value<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--colormap<span class="w"> </span>yellow_to_red<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--log_scale<span class="w"> </span><span class="se">\</span>
@@ -587,7 +589,8 @@ such as <code class="docutils literal notranslate"><span class="pre">thickness</
 <p>For the default midslice metrics file, <code class="docutils literal notranslate"><span class="pre">jq</span></code> can create this input without
 changing the order:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>jq<span class="w"> </span>-r<span class="w"> </span><span class="s1">'"thickness", .thickness_profile[]'</span><span class="w"> </span><span class="se">\</span>
-<span class="w">    </span>stats/callosum.CC.midslice.json<span class="w"> </span>&gt;<span class="w"> </span>thickness_profile.csv
+<span class="w">    </span><span class="nv">$HOME</span>/my_fastsurfer_analysis/subjectX/stats/callosum.CC.midslice.json<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>&gt;<span class="w"> </span><span class="nv">$HOME</span>/my_fastsurfer_analysis/subjectX/thickness_profile.csv
 </pre></div>
 </div>
 <p>The same command can be run from a FastSurfer container without installing
@@ -597,13 +600,13 @@ FastSurfer or FreeSurfer on the host. From the directory containing
 
 docker<span class="w"> </span>run<span class="w"> </span>--rm<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--user<span class="w"> </span><span class="s2">"</span><span class="k">$(</span>id<span class="w"> </span>-u<span class="k">)</span><span class="s2">:</span><span class="k">$(</span>id<span class="w"> </span>-g<span class="k">)</span><span class="s2">"</span><span class="w"> </span><span class="se">\</span>
-<span class="w">    </span>--volume<span class="w"> </span><span class="s2">"</span><span class="nv">$PWD</span><span class="s2">/p_values.csv:/input/p_values.csv:ro"</span><span class="w"> </span><span class="se">\</span>
-<span class="w">    </span>--volume<span class="w"> </span><span class="s2">"</span><span class="nv">$PWD</span><span class="s2">/visualizations:/output"</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--volume<span class="w"> </span><span class="s2">"</span><span class="nv">$PWD</span><span class="s2">/p_values.csv:</span><span class="nv">$PWD</span><span class="s2">/p_values.csv:ro"</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--volume<span class="w"> </span><span class="s2">"</span><span class="nv">$PWD</span><span class="s2">/visualizations:</span><span class="nv">$PWD</span><span class="s2">/visualizations"</span><span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--entrypoint<span class="w"> </span>/fastsurfer/tools/Docker/entrypoint.sh<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>deepmi/fastsurfer:latest<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>python3<span class="w"> </span>/fastsurfer/CorpusCallosum/cc_visualization.py<span class="w"> </span><span class="se">\</span>
-<span class="w">    </span>--values_file<span class="w"> </span>/input/p_values.csv<span class="w"> </span><span class="se">\</span>
-<span class="w">    </span>--output_dir<span class="w"> </span>/output<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--values_file<span class="w"> </span><span class="s2">"</span><span class="nv">$PWD</span><span class="s2">/p_values.csv"</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--output_dir<span class="w"> </span><span class="s2">"</span><span class="nv">$PWD</span><span class="s2">/visualizations"</span><span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--mode<span class="w"> </span>p-value<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--colormap<span class="w"> </span>yellow_to_red<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--log_scale<span class="w"> </span><span class="se">\</span>
@@ -744,7 +747,7 @@ a separate FreeSurfer installation.</p>
     <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../_static/scripts/furo.js?v=46bd48cc"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
-    <script src="../_static/copybutton.js?v=f281be69"></script>
+    <script src="../_static/copybutton.js?v=1be11439"></script>
     <script src="../_static/design-tabs.js?v=f930bc37"></script>
     <script src="../_static/doc-version-link.js?v=e710a016"></script>
     </body>

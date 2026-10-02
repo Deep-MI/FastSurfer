@@ -473,7 +473,7 @@ which certain options can be selected and set via the command line:</p>
 <section id="general">
 <h2>General<a class="headerlink" href="#general" title="Link to this heading">¶</a></h2>
 <ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">--in_dir</span></code>: Path to the input volume directory (e.g <code class="docutils literal notranslate"><span class="pre">/your/path/to/ADNI/fs60</span></code>) or</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--in_dir</span></code>: Path to the input volume directory (e.g <code class="docutils literal notranslate"><span class="pre">$HOME/my_mri_data</span></code>) or</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">--csv_file</span></code>: Path to csv-file listing input volume directories</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">--t1</span></code>: name of the T1-weighted MRI_volume (like <code class="docutils literal notranslate"><span class="pre">mri_volume.mgz</span></code>, default: <code class="docutils literal notranslate"><span class="pre">orig.mgz</span></code>)</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">--conformed_name</span></code>: name of the conformed MRI_volume (the input volume is prepared for inference first and the
@@ -506,51 +506,53 @@ defined for <code class="docutils literal notranslate"><span class="pre">--t1</s
 <h2>Optional commands<a class="headerlink" href="#optional-commands" title="Link to this heading">¶</a></h2>
 <ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">--clean</span></code>: clean up segmentation after running it (optional)</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">--device</span> <span class="pre">&lt;str&gt;</span></code>:Device for processing (<em>auto</em>, <em>cpu</em>, <em>cuda</em>, <em>cuda:&lt;device_num&gt;</em>), where cuda means Nvidia GPU; you
-can select which one e.g. “cuda:1”. Default: “auto”, check GPU and then CPU</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">--viewagg_device</span> <span class="pre">&lt;str&gt;</span></code>: Define where the view aggregation should be run on.
-Can be <em>auto</em> or a device (see –device).
-By default (<em>auto</em>), the program checks if you have enough memory to run the view aggregation on the gpu.
+<li><p><code class="docutils literal notranslate"><span class="pre">--device</span> <span class="pre">&lt;torch_device&gt;</span></code>:Device for processing (<code class="docutils literal notranslate"><span class="pre">auto</span></code>, <code class="docutils literal notranslate"><span class="pre">cpu</span></code>, <code class="docutils literal notranslate"><span class="pre">cuda</span></code>, <code class="docutils literal notranslate"><span class="pre">cuda:&lt;device_num&gt;</span></code>), where cuda means Nvidia GPU; you
+can select which one e.g. <code class="docutils literal notranslate"><span class="pre">cuda:1</span></code>. Default: <code class="docutils literal notranslate"><span class="pre">auto</span></code>, check GPU and then CPU</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--viewagg_device</span> <span class="pre">&lt;torch_device&gt;</span></code>: Define where the view aggregation should be run on.
+Can be <code class="docutils literal notranslate"><span class="pre">auto</span></code> or a device (see <code class="docutils literal notranslate"><span class="pre">--device</span></code>).
+By default (<code class="docutils literal notranslate"><span class="pre">auto</span></code>), the program checks if you have enough memory to run the view aggregation on the gpu.
 The total memory is considered for this decision.
 If this fails, or you actively overwrote the check with setting <code class="docutils literal notranslate"><span class="pre">--viewagg_device</span> <span class="pre">cpu</span></code>, view agg is run on the cpu.
 Equivalently, if you define <code class="docutils literal notranslate"><span class="pre">--viewagg_device</span> <span class="pre">gpu</span></code>, view agg will be run on the gpu (no memory check will be done).</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">--batch_size</span></code>: Batch size for inference. Default=1</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--batch_size</span> <span class="pre">&lt;n&gt;</span></code>: Batch size for inference. Default: <code class="docutils literal notranslate"><span class="pre">1</span></code></p></li>
 </ul>
 </section>
 <section id="example-command-evaluation-single-subject">
 <h2>Example Command: Evaluation Single Subject<a class="headerlink" href="#example-command-evaluation-single-subject" title="Link to this heading">¶</a></h2>
-<p>To run the network on MRI-volumes of subjectX in <code class="docutils literal notranslate"><span class="pre">./data</span></code> (specified by <code class="docutils literal notranslate"><span class="pre">--t1</span></code> flag; e.g.
-<code class="docutils literal notranslate"><span class="pre">./data/subjectX/t1-weighted.nii.gz</span></code>), change into the <em>FastSurferCNN</em> directory and run the following commands:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python3<span class="w"> </span>run_prediction.py<span class="w"> </span><span class="se">\</span>
-<span class="w">          </span>--t1<span class="w"> </span>../data/subjectX/t1-weighted.nii.gz<span class="w"> </span><span class="se">\</span>
-<span class="w">          </span>--sd<span class="w"> </span>../output<span class="w"> </span><span class="se">\</span>
+<p>To run the network on MRI-volumes of subjectX in <code class="docutils literal notranslate"><span class="pre">$HOME/my_mri_data</span></code> (specified by <code class="docutils literal notranslate"><span class="pre">--t1</span></code> flag; e.g.
+<code class="docutils literal notranslate"><span class="pre">$HOME/my_mri_data/subjectX/t1_weighted.nii.gz</span></code>), run the following commands:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span><span class="w"> </span><span class="nv">FASTSURFER_HOME</span><span class="o">=</span><span class="si">${</span><span class="nv">FASTSURFER_HOME</span><span class="k">:-</span><span class="p">/path/to/FastSurfer</span><span class="si">}</span>
+python3<span class="w"> </span><span class="nv">$FASTSURFER_HOME</span>/FastSurferCNN/run_prediction.py<span class="w"> </span><span class="se">\</span>
+<span class="w">          </span>--t1<span class="w"> </span><span class="nv">$HOME</span>/my_mri_data/subjectX/t1_weighted.nii.gz<span class="w"> </span><span class="se">\</span>
+<span class="w">          </span>--sd<span class="w"> </span><span class="nv">$HOME</span>/my_fastsurfer_analysis<span class="w"> </span><span class="se">\</span>
 <span class="w">          </span>--t<span class="w"> </span>subjectX<span class="w"> </span><span class="se">\</span>
-<span class="w">          </span>--seg_log<span class="w"> </span>../output/temp_Competitive.log
+<span class="w">          </span>--seg_log<span class="w"> </span><span class="nv">$HOME</span>/my_fastsurfer_analysis/temp_Competitive.log
 </pre></div>
 </div>
 <p>The output will be stored in:</p>
 <ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">../output/subjectX/mri/aparc.DKTatlas+aseg.deep.mgz</span></code> (large segmentation)</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">../output/subjectX/mri/mask.mgz</span></code> (brain mask)</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">../output/subjectX/mri/aseg_noCC.mgz</span></code> (reduced segmentation)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">$HOME/my_fastsurfer_analysis/subjectX/mri/aparc.DKTatlas+aseg.deep.mgz</span></code> (large segmentation)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">$HOME/my_fastsurfer_analysis/subjectX/mri/mask.mgz</span></code> (brain mask)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">$HOME/my_fastsurfer_analysis/subjectX/mri/aseg_noCC.mgz</span></code> (reduced segmentation)</p></li>
 </ul>
 <p>Here the logfile “temp_Competitive.log” will include the logfiles of all subjects. If left out, the logs will be written to stdout</p>
 </section>
 <section id="example-command-evaluation-whole-directory">
 <h2>Example Command: Evaluation whole directory<a class="headerlink" href="#example-command-evaluation-whole-directory" title="Link to this heading">¶</a></h2>
-<p>To run the network on all subjects MRI-volumes in ./data, change into the <em>FastSurferCNN</em> directory and run the following command:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python3<span class="w"> </span>run_prediction.py<span class="w"> </span><span class="se">\</span>
-<span class="w">          </span>--in_dir<span class="w"> </span>../data<span class="w"> </span><span class="se">\</span>
-<span class="w">          </span>--sd<span class="w"> </span>../output<span class="w"> </span><span class="se">\</span>
-<span class="w">          </span>--seg_log<span class="w"> </span>../output/temp_Competitive.log
+<p>To run the network on all subjects MRI-volumes in <code class="docutils literal notranslate"><span class="pre">$HOME/my_mri_data</span></code>, run the following command:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span><span class="w"> </span><span class="nv">FASTSURFER_HOME</span><span class="o">=</span><span class="si">${</span><span class="nv">FASTSURFER_HOME</span><span class="k">:-</span><span class="p">/path/to/FastSurfer</span><span class="si">}</span>
+python3<span class="w"> </span><span class="nv">$FASTSURFER_HOME</span>/FastSurferCNN/run_prediction.py<span class="w"> </span><span class="se">\</span>
+<span class="w">          </span>--in_dir<span class="w"> </span><span class="nv">$HOME</span>/my_mri_data<span class="w"> </span><span class="se">\</span>
+<span class="w">          </span>--sd<span class="w"> </span><span class="nv">$HOME</span>/my_fastsurfer_analysis<span class="w"> </span><span class="se">\</span>
+<span class="w">          </span>--seg_log<span class="w"> </span><span class="nv">$HOME</span>/my_fastsurfer_analysis/temp_Competitive.log
 </pre></div>
 </div>
 <p>The output will be stored in:</p>
 <ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">../output/subjectX/mri/aparc.DKTatlas+aseg.deep.mgz</span></code> (large segmentation)</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">../output/subjectX/mri/mask.mgz</span></code> (brain mask)</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">../output/subjectX/mri/aseg_noCC.mgz</span></code> (reduced segmentation)</p></li>
-<li><p>and the log in <code class="docutils literal notranslate"><span class="pre">../output/temp_Competitive.log</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">$HOME/my_fastsurfer_analysis/subjectX/mri/aparc.DKTatlas+aseg.deep.mgz</span></code> (large segmentation)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">$HOME/my_fastsurfer_analysis/subjectX/mri/mask.mgz</span></code> (brain mask)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">$HOME/my_fastsurfer_analysis/subjectX/mri/aseg_noCC.mgz</span></code> (reduced segmentation)</p></li>
+<li><p>and the log in <code class="docutils literal notranslate"><span class="pre">$HOME/my_fastsurfer_analysis/temp_Competitive.log</span></code></p></li>
 </ul>
 </section>
 <section id="full-commandline-interface-of-fastsurfercnn-run-prediction-py">
@@ -571,8 +573,8 @@ Equivalently, if you define <code class="docutils literal notranslate"><span cla
                                        <span class="p">[</span><span class="o">--</span><span class="n">ckpt_sag</span> <span class="n">CKPT_SAG</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">cfg_ax</span> <span class="n">CFG_AX</span><span class="p">]</span>
                                        <span class="p">[</span><span class="o">--</span><span class="n">cfg_cor</span> <span class="n">CFG_COR</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">cfg_sag</span> <span class="n">CFG_SAG</span><span class="p">]</span>
                                        <span class="p">[</span><span class="o">--</span><span class="n">vox_size</span> <span class="n">VOX_SIZE</span><span class="p">]</span>
-                                       <span class="p">[</span><span class="o">--</span><span class="n">conform_to_1mm_threshold</span> <span class="n">CONFORM_TO_1MM_THRESHOLD</span><span class="p">]</span>
-                                       <span class="p">[</span><span class="o">--</span><span class="n">orientation</span> <span class="p">{</span><span class="n">native</span><span class="p">,</span><span class="n">XXX</span><span class="p">,</span><span class="n">soft</span><span class="o">-</span><span class="n">XXX</span><span class="p">}]</span>
+                                       <span class="p">[</span><span class="o">--</span><span class="n">conform_to_1mm_threshold</span> <span class="n">THRESHOLD</span><span class="p">]</span>
+                                       <span class="p">[</span><span class="o">--</span><span class="n">orientation</span> <span class="n">ORIENTATION</span><span class="p">]</span>
                                        <span class="p">[</span><span class="o">--</span><span class="n">image_size</span> <span class="n">IMAGE_SIZE</span><span class="p">]</span>
                                        <span class="p">[</span><span class="o">--</span><span class="n">device</span> <span class="n">DEVICE</span><span class="p">]</span>
                                        <span class="p">[</span><span class="o">--</span><span class="n">viewagg_device</span> <span class="n">VIEWAGG_DEVICE</span><span class="p">]</span>
@@ -625,7 +627,7 @@ Equivalently, if you define <code class="docutils literal notranslate"><span cla
 <p>Default: <code class="docutils literal notranslate"><span class="pre">'mri/aseg.auto_noCCseg.mgz'</span></code></p>
 </dd>
 <dt><kbd>--sd</kbd></dt>
-<dd><p>Directory in which evaluation results should be written. Will be created if it does not exist. Optional if full path is defined for –pred_name.</p>
+<dd><p>Directory in which evaluation results should be written. Will be created if it does not exist. Optional if full path is defined for –asegdkt_segfile.</p>
 </dd>
 <dt><kbd>--seg_log</kbd></dt>
 <dd><p>Absolute path to file in which run logs will be saved. If not set, logs will not be saved.</p>
@@ -669,7 +671,7 @@ Equivalently, if you define <code class="docutils literal notranslate"><span cla
 </dd>
 <dt><kbd>--orientation</kbd></dt>
 <dd><p>Possible choices: native, soft-ras, soft-rai, soft-rps, soft-rpi, soft-las, soft-lai, soft-lps, soft-lpi, soft-rsa, soft-rsp, soft-ria, soft-rip, soft-lsa, soft-lsp, soft-lia, soft-lip, soft-ars, soft-ari, soft-als, soft-ali, soft-prs, soft-pri, soft-pls, soft-pli, soft-asr, soft-asl, soft-air, soft-ail, soft-psr, soft-psl, soft-pir, soft-pil, soft-sra, soft-srp, soft-sla, soft-slp, soft-ira, soft-irp, soft-ila, soft-ilp, soft-sar, soft-sal, soft-spr, soft-spl, soft-iar, soft-ial, soft-ipr, soft-ipl, ras, rai, rps, rpi, las, lai, lps, lpi, rsa, rsp, ria, rip, lsa, lsp, lia, lip, ars, ari, als, ali, prs, pri, pls, pli, asr, asl, air, ail, psr, psl, pir, pil, sra, srp, sla, slp, ira, irp, ila, ilp, sar, sal, spr, spl, iar, ial, ipr, ipl</p>
-<p>Select the target affine format for output, native: input defined by input image, soft-XXX (e.g. soft-lia): store as XXX, but do not interpolate, XXX (e.g. lia): force XXX, affine is only 0 or +-1. Default: lia (required by the surface pipeline).</p>
+<p>Select the target affine format for output, native: input defined by input image, soft-&lt;orientation&gt; (e.g. soft-lia): store as &lt;orientation&gt;, but do not interpolate, &lt;orientation&gt; (e.g. lia): force &lt;orientation&gt;, affine is only 0 or +-1. Default: lia (required by the surface pipeline).</p>
 <p>Default: <code class="docutils literal notranslate"><span class="pre">lia</span></code></p>
 </dd>
 <dt><kbd>--image_size</kbd></dt>
@@ -681,7 +683,7 @@ Equivalently, if you define <code class="docutils literal notranslate"><span cla
 <p>Default: <code class="docutils literal notranslate"><span class="pre">'auto'</span></code></p>
 </dd>
 <dt><kbd>--viewagg_device</kbd></dt>
-<dd><p>Define the device, where the view aggregation should be run. By default, the program checks if you have enough memory to run the view aggregation on the gpu (cuda). The total memory is considered for this decision. If this fails, or you actively overwrote the check with setting &gt; –viewagg_device cpu &lt;, view agg is run on the cpu. Equivalently, if you define &gt; –viewagg_device cuda &lt;, view agg will be run on the gpu (no memory check will be done).</p>
+<dd><p>Define the device, where the view aggregation should be run. By default, the program checks if you have enough memory to run the view aggregation on the gpu (cuda). The total memory is considered for this decision. If this fails, or you actively overwrote the check with setting ‘–viewagg_device cpu’, view agg is run on the cpu. Equivalently, if you define ‘–viewagg_device cuda’, view agg will be run on the gpu (no memory check will be done).</p>
 <p>Default: <code class="docutils literal notranslate"><span class="pre">'auto'</span></code></p>
 </dd>
 <dt><kbd>--batch_size</kbd></dt>
@@ -788,7 +790,7 @@ Equivalently, if you define <code class="docutils literal notranslate"><span cla
     <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../_static/scripts/furo.js?v=46bd48cc"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
-    <script src="../_static/copybutton.js?v=f281be69"></script>
+    <script src="../_static/copybutton.js?v=1be11439"></script>
     <script src="../_static/design-tabs.js?v=f930bc37"></script>
     <script src="../_static/doc-version-link.js?v=e710a016"></script>
     </body>

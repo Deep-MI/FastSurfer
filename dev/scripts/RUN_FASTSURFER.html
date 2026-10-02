@@ -463,24 +463,27 @@
         <article role="main" id="furo-main-content">
           <section id="run-fastsurfer-sh">
 <h1>run_fastsurfer.sh<a class="headerlink" href="#run-fastsurfer-sh" title="Link to this heading">¶</a></h1>
-<p>Next, you will learn how to specify the <code class="docutils literal notranslate"><span class="pre">*fastsurfer-flags*</span></code> by replacing <code class="docutils literal notranslate"><span class="pre">*fastsurfer-flags*</span></code> with your specific options.
+<p>Next, you will learn how to specify the <code class="docutils literal notranslate"><span class="pre">&lt;fastsurfer_flags&gt;</span></code> by replacing <code class="docutils literal notranslate"><span class="pre">&lt;fastsurfer_flags&gt;</span></code> with your specific options.
 <code class="docutils literal notranslate"><span class="pre">run_fastsurfer.sh</span></code> is the central command of FastSurfer. In general, <code class="docutils literal notranslate"><span class="pre">run_fastsurfer.sh</span></code> is called once for each T1w MRI image that is to be processed and each call will result in one “Subject Folder” with segmentation maps, surfaces and statistics tables. If you want to process multiple images, you can either loop through the images yourself or use <a class="reference internal" href="BATCH.html"><span class="std std-doc">brun_fastsurfer.sh</span></a> or <a class="reference internal" href="SLURM.html"><span class="std std-doc">srun_fastsurfer.sh</span></a>, which are multi-subject extensions to <code class="docutils literal notranslate"><span class="pre">run_fastsurfer.sh</span></code>.</p>
-<p>On this page, we explain FastSurfer’s options, usually referred to as <code class="docutils literal notranslate"><span class="pre">&lt;*fastsurfer-flags*&gt;</span></code> in this documentation.
-The <code class="docutils literal notranslate"><span class="pre">&lt;*fastsurfer-flags*&gt;</span></code> will usually at least include the subject directory (<code class="docutils literal notranslate"><span class="pre">--sd</span></code>), the subject name/id (<code class="docutils literal notranslate"><span class="pre">--sid</span></code>) and the path to the input image (<code class="docutils literal notranslate"><span class="pre">--t1</span></code>). For example:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">$FASTSURFER_HOME</span>/run_fastsurfer.sh<span class="w"> </span>--sd<span class="w"> </span><span class="nv">$HOME</span>/my_fastsurfer_data<span class="w"> </span>--sid<span class="w"> </span>test_subject<span class="w"> </span>--t1<span class="w"> </span><span class="nv">$HOME</span>/my_mri_data/test_subject_t1.nii.gz<span class="w"> </span>--3T
+<p>On this page, we explain FastSurfer’s options, usually referred to as <code class="docutils literal notranslate"><span class="pre">&lt;fastsurfer_flags&gt;</span></code> in this documentation.
+The <code class="docutils literal notranslate"><span class="pre">&lt;fastsurfer_flags&gt;</span></code> will usually at least include the subject directory (<code class="docutils literal notranslate"><span class="pre">--sd</span></code>), the subject name/id (<code class="docutils literal notranslate"><span class="pre">--sid</span></code>) and the path to the input image (<code class="docutils literal notranslate"><span class="pre">--t1</span></code>). For example:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span><span class="w"> </span><span class="nv">FASTSURFER_HOME</span><span class="o">=</span><span class="si">${</span><span class="nv">FASTSURFER_HOME</span><span class="k">:-</span><span class="p">/path/to/FastSurfer</span><span class="si">}</span>
+<span class="nv">$FASTSURFER_HOME</span>/run_fastsurfer.sh<span class="w"> </span>--sd<span class="w"> </span><span class="nv">$HOME</span>/my_fastsurfer_analysis<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--sid<span class="w"> </span>subjectX<span class="w"> </span>--t1<span class="w"> </span><span class="nv">$HOME</span>/my_mri_data/subjectX/t1_weighted.nii.gz<span class="w"> </span>--3T
 </pre></div>
 </div>
 <p>Additionally, you can use <code class="docutils literal notranslate"><span class="pre">--seg_only</span></code> or <code class="docutils literal notranslate"><span class="pre">--surf_only</span></code> to only run a part of the pipeline or <code class="docutils literal notranslate"><span class="pre">--no_biasfield</span></code>, <code class="docutils literal notranslate"><span class="pre">--no_cereb</span></code>, <code class="docutils literal notranslate"><span class="pre">--no_hypothal</span></code>, <code class="docutils literal notranslate"><span class="pre">--no_cc</span></code>, and <code class="docutils literal notranslate"><span class="pre">--no_asegdkt</span></code> to switch off individual segmentation modules.
 Here, we have also added the <code class="docutils literal notranslate"><span class="pre">--3T</span></code> flag, which tells FastSurfer to register against the 3T atlas which is only relevant for the ICV estimation (eTIV).</p>
 <p>In the following, we give an overview of the most important options. You can view a <a class="reference internal" href="#full-list-of-flags"><span class="std std-ref">full list of options</span></a> with</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>./run_fastsurfer.sh<span class="w"> </span>--help
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span><span class="w"> </span><span class="nv">FASTSURFER_HOME</span><span class="o">=</span><span class="si">${</span><span class="nv">FASTSURFER_HOME</span><span class="k">:-</span><span class="p">/path/to/FastSurfer</span><span class="si">}</span>
+<span class="nv">$FASTSURFER_HOME</span>/run_fastsurfer.sh<span class="w"> </span>--help
 </pre></div>
 </div>
 <section id="required-arguments">
 <h2>Required arguments<a class="headerlink" href="#required-arguments" title="Link to this heading">¶</a></h2>
 <ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">--sd</span></code>: Output directory $SUBJECTS_DIR (equivalent to FreeSurfer setup –&gt; $SUBJECTS_DIR/sid/mri; $SUBJECTS_DIR/sid/surf … will be created).</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">--sid</span></code>: Subject ID for directory inside $SUBJECTS_DIR to be created ($SUBJECTS_DIR/sid/…)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--sd</span></code>: Output directory $SUBJECTS_DIR (equivalent to FreeSurfer setup –&gt; <code class="docutils literal notranslate"><span class="pre">$SUBJECTS_DIR/&lt;subject_id&gt;/mri</span></code>; <code class="docutils literal notranslate"><span class="pre">$SUBJECTS_DIR/&lt;subject_id&gt;/surf</span></code> … will be created).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--sid</span></code>: Subject ID for directory inside $SUBJECTS_DIR to be created (<code class="docutils literal notranslate"><span class="pre">$SUBJECTS_DIR/&lt;subject_id&gt;/...</span></code>)</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">--t1</span></code>: T1 full head input (does not need to be bias corrected, global path). The network was trained with conformed images (UCHAR, cubic volume, 0.7mm - 1mm voxels and standard slice orientation; typically 256x256x256 at 1mm and larger cubes for higher-resolution isotropic inputs). These specifications are checked in the run_prediction.py script and the image is automatically conformed if it does not comply. By default, outputs are written in the FastSurfer conform space used for segmentation, which closely follows FreeSurfer conforming in <code class="docutils literal notranslate"><span class="pre">mri_convert</span> <span class="pre">-c</span></code>. The <code class="docutils literal notranslate"><span class="pre">--keepgeom</span></code> path is the exception: it uses an internal soft-LIA reordering for the 2D networks and maps results back to native geometry before writing outputs.</p></li>
 </ul>
 <section id="conditionally-required">
@@ -497,15 +500,15 @@ Here, we have also added the <code class="docutils literal notranslate"><span cl
 <h3>Segmentation pipeline arguments<a class="headerlink" href="#segmentation-pipeline-arguments" title="Link to this heading">¶</a></h3>
 <ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">--seg_only</span></code>: Only run the brain segmentation pipeline and skip the surface pipeline.</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">--seg_log</span></code>: Name and location for the log-file for the segmentation. Default: $SUBJECTS_DIR/$sid/scripts/deep-seg.log</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--seg_log</span></code>: Name and location for the log-file for the segmentation. Default: <code class="docutils literal notranslate"><span class="pre">$SUBJECTS_DIR/&lt;subject_id&gt;/scripts/deep-seg.log</span></code></p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">--viewagg_device</span></code>: Define where the view aggregation should be run on. Can be “auto” or a device (see –device). By default, the program checks if you have enough memory to run the view aggregation on the GPU. The total memory is considered for this decision. If this fails, or you actively specify “cpu” view aggregation is run on the CPU. Equivalently, if you pass a different device, view aggregation will be run on that device (no memory check will be done).</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">--device</span></code>: Select device for neural network segmentation (<em>auto</em>, <em>cpu</em>, <em>cuda</em>, <em>cuda:&lt;device_num&gt;</em>, <em>mps</em>), where cuda means Nvidia GPU, you can select which one e.g. “cuda:1”. Default: “auto”, check GPU and then CPU. “mps” is for native MAC installs to use the Apple silicon (M-chip) GPU.</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">--asegdkt_segfile</span></code>: Name of the segmentation file, which includes the aparc+DKTatlas-aseg segmentations. Requires an ABSOLUTE Path! Default location: $SUBJECTS_DIR/$sid/mri/aparc.DKTatlas+aseg.deep.mgz</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--asegdkt_segfile</span></code>: Name of the segmentation file, which includes the aparc+DKTatlas-aseg segmentations. Requires an ABSOLUTE Path! Default location: <code class="docutils literal notranslate"><span class="pre">$SUBJECTS_DIR/&lt;subject_id&gt;/mri/aparc.DKTatlas+aseg.deep.mgz</span></code></p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">--no_cereb</span></code>: Switch off the cerebellum sub-segmentation.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">--no_hypothal</span></code>: Skip the hypothalamus segmentation.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">--no_cc</span></code>: Skip the segmentation and analysis of the corpus callosum.</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">--lesion_mask</span> <span class="pre">&lt;path</span> <span class="pre">to</span> <span class="pre">file&gt;</span></code>: Path to a binary lesion mask in the same space as the T1 input. If provided, FastSurfer will wrap the segmentation and surface pipelines with lesion inpainting using LIT. This experimental feature is useful for images with tumors or other large lesions; review LIT-modified outputs before downstream use.</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">--cereb_segfile</span></code>: Name of the cerebellum segmentation file. Requires an ABSOLUTE Path! Default location: $SUBJECTS_DIR/$sid/mri/cerebellum.CerebNet.nii.gz</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--lesion_mask</span> <span class="pre">&lt;lesion_mask_path&gt;</span></code>: Path to a binary lesion mask in the same space as the T1 input. If provided, FastSurfer will wrap the segmentation and surface pipelines with lesion inpainting using LIT. This experimental feature is useful for images with tumors or other large lesions; review LIT-modified outputs before downstream use.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--cereb_segfile</span></code>: Name of the cerebellum segmentation file. Requires an ABSOLUTE Path! Default location: <code class="docutils literal notranslate"><span class="pre">$SUBJECTS_DIR/&lt;subject_id&gt;/mri/cerebellum.CerebNet.nii.gz</span></code></p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">--no_biasfield</span></code>: Deactivate the biasfield correction and calculation of partial volume-corrected statistics in the segmentation modules. HypVINN does run but expects that biasfields are corrected externally.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">--native_image</span></code> or <code class="docutils literal notranslate"><span class="pre">--keepgeom</span></code>: <strong>Only supported for <code class="docutils literal notranslate"><span class="pre">--seg_only</span></code></strong>. Preserve the native image geometry (orientation, image size, and voxel size) for saved outputs. Internally, FastSurfer may temporarily reorder/flip the image to a soft-LIA layout so the 2D networks still see the expected plane ordering, but written outputs stay in native geometry; only intensity scaling and dtype conversion are applied as needed. This also includes experimental support for anisotropic images (no extreme anisotropy).</p></li>
 </ul>
@@ -534,7 +537,7 @@ If the minimal voxel size is bigger than 0.98mm, the image is conformed to 1mm i
 If the minimal voxel size is smaller or equal to 0.98mm, the T1w image will be conformed to isotropic voxels of that voxel size.
 The voxel size (whether set manually or derived) determines whether the surfaces are processed with highres options (below 1mm) or not.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">--py</span></code>: Command for python, used in both pipelines. Default: python3</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">--conformed_name</span></code>: Name of the file in which the conformed input image will be saved. Default location: $SUBJECTS_DIR/$sid/mri/orig.mgz</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--conformed_name</span></code>: Name of the file in which the conformed input image will be saved. Default location: <code class="docutils literal notranslate"><span class="pre">$SUBJECTS_DIR/&lt;subject_id&gt;/mri/orig.mgz</span></code></p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">-h</span></code>, <code class="docutils literal notranslate"><span class="pre">--help</span></code>: Prints help text</p></li>
 </ul>
 </section>
@@ -573,7 +576,8 @@ would slow every segmentation down for everyone, and most runs do not need to ma
 machine.</p>
 <p><strong>So a default run is not reproducible across machines.</strong> If you need that, set all of them
 yourself for the whole run:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># the numpy and OpenBLAS values depend on the host, so read them from the helper</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span><span class="w"> </span><span class="nv">FASTSURFER_HOME</span><span class="o">=</span><span class="si">${</span><span class="nv">FASTSURFER_HOME</span><span class="k">:-</span><span class="p">/path/to/FastSurfer</span><span class="si">}</span>
+<span class="c1"># the numpy and OpenBLAS values depend on the host, so read them from the helper</span>
 <span class="nb">eval</span><span class="w"> </span><span class="s2">"</span><span class="k">$(</span>python<span class="w"> </span><span class="nv">$FASTSURFER_HOME</span>/recon_surf/pin_cpu_dispatch.py<span class="k">)</span><span class="s2">"</span>
 <span class="nb">export</span><span class="w"> </span><span class="nv">ATEN_CPU_CAPABILITY</span><span class="o">=</span>avx2<span class="w"> </span><span class="nv">ONEDNN_MAX_CPU_ISA</span><span class="o">=</span>AVX2<span class="w"> </span><span class="nv">MKL_CBWR</span><span class="o">=</span>COMPATIBLE
 </pre></div>
@@ -599,18 +603,25 @@ features on different hosts.</p>
 statistics and labels rather than raw bytes, and reports how large each difference is. <code class="docutils literal notranslate"><span class="pre">diff</span></code> and
 checksums are no use here, because the headers record timestamps and the command line, so identical
 runs still differ byte for byte.</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>tools/compare_subjects.py<span class="w"> </span><span class="nv">$SUBJECTS_DIR</span>/subject_a<span class="w"> </span><span class="nv">$SUBJECTS_DIR</span>/subject_b
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span><span class="w"> </span><span class="nv">FASTSURFER_HOME</span><span class="o">=</span><span class="si">${</span><span class="nv">FASTSURFER_HOME</span><span class="k">:-</span><span class="p">/path/to/FastSurfer</span><span class="si">}</span>
+<span class="nb">export</span><span class="w"> </span><span class="nv">SUBJECTS_DIR</span><span class="o">=</span><span class="nv">$HOME</span>/my_fastsurfer_analysis
+python<span class="w"> </span><span class="nv">$FASTSURFER_HOME</span>/tools/compare_subjects.py<span class="w"> </span><span class="nv">$SUBJECTS_DIR</span>/subject_a<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span><span class="nv">$SUBJECTS_DIR</span>/subject_b
 </pre></div>
 </div>
 </section>
 </section>
+<section id="troubleshooting">
+<h2>Troubleshooting<a class="headerlink" href="#troubleshooting" title="Link to this heading">¶</a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">run_fastsurfer.sh</span></code> calls <code class="docutils literal notranslate"><span class="pre">python3</span></code> by default. If <code class="docutils literal notranslate"><span class="pre">python3</span></code> is not the python version your FastSurfer environment was
+set up with, pass that one with <code class="docutils literal notranslate"><span class="pre">--py</span></code>, for example <code class="docutils literal notranslate"><span class="pre">--py</span> <span class="pre">python3.12</span></code>.</p>
+</section>
 <section id="full-list-of-flags">
 <h2>Full list of flags<a class="headerlink" href="#full-list-of-flags" title="Link to this heading">¶</a></h2>
-<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>$ ./run_fastsurfer.sh --help
-Setting ENV variable FASTSURFER_HOME to script directory /home/runner/work/FastSurfer/FastSurfer/src. 
-Change via environment to location of your choice if this is undesired (export FASTSURFER_HOME=/dir/to/FastSurfer)
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>./run_fastsurfer.sh --help
 
-Usage: run_fastsurfer.sh --sid &lt;sid&gt; --sd &lt;sdir&gt; --t1 &lt;t1_input&gt; [OPTIONS]
+Usage: run_fastsurfer.sh --sid &lt;subject_id&gt; --sd &lt;subjects_dir&gt; \
+                         --t1 &lt;t1_path&gt; [OPTIONS]
 
 run_fastsurfer.sh takes a T1 full head image and creates:
      (i)  a segmentation using FastSurferVINN (equivalent to FreeSurfer
@@ -619,18 +630,19 @@ run_fastsurfer.sh takes a T1 full head image and creates:
 
 FLAGS:
 
-  --fs_license &lt;license&gt;  Path to FreeSurfer license key file. Register at
+  --fs_license &lt;freesurfer_license_path&gt;
+                          Path to FreeSurfer license key file. Register at
                             https://surfer.nmr.mgh.harvard.edu/registration.html
                             for free to obtain it if you do not have FreeSurfer
                             installed already
-  --sid &lt;subjectID&gt;       Subject ID to create directory inside $SUBJECTS_DIR
+  --sid &lt;subject_id&gt;      Subject ID to create directory inside $SUBJECTS_DIR
   --sd  &lt;subjects_dir&gt;    Output directory $SUBJECTS_DIR (or pass via env var)
-  --t1  &lt;T1_input&gt;        T1 full head input (not bias corrected). Requires an
+  --t1  &lt;t1_path&gt;         T1 full head input (not bias corrected). Requires an
                             ABSOLUTE Path!
-  --lesion_mask &lt;mask_input&gt;
+  --lesion_mask &lt;lesion_mask_path&gt;
                           Lesion mask input for experimental lesion inpainting.
                             Requires an ABSOLUTE Path!
-  --asegdkt_segfile &lt;filename&gt;
+  --asegdkt_segfile &lt;asegdkt_segfile&gt;
                           Name of the segmentation file, which includes the
                           aparc+DKTatlas-aseg segmentations.
                           Requires an ABSOLUTE Path! Default location:
@@ -661,15 +673,15 @@ FLAGS:
                               mri/aparc.DKTatlas+aseg.deep.manedit.mgz
                               mri/mask.manedit.mgz
                               mri/callosum.CC.upright.manedit.mgz
-                            Surface: Disables check for existing recon-surf.sh run;
-                              edits of mri/wm.mgz and brain.finalsurfs.mgz
+                            Surface: Disables check for existing recon-surf.sh
+                              run; edits of mri/wm.mgz and brain.finalsurfs.mgz
                               as well as FreeSurfer-style WM control points.
-  --version &lt;info&gt;        Print version information and exit; &lt;info&gt; is optional.
-                            &lt;info&gt; may be empty, just prints the version number,
-                            +git_branch also prints the current branch, and any
-                            combination of +git, +checkpoints, +pip to print
-                            additional for the git status, the checkpoints and
-                            installed python packages.
+  --version &lt;info&gt;        Print version information and exit; &lt;info&gt; is
+                            optional. &lt;info&gt; may be empty, just prints the
+                            version number, +git_branch also prints the current
+                            branch, and any combination of +git, +checkpoints,
+                            +pip to print additional for the git status, the
+                            checkpoints and installed python packages.
   -h --help               Print Help
 
   PIPELINES:
@@ -678,19 +690,19 @@ FLAGS:
 SEGMENTATION PIPELINE:
   --seg_only              Run only FastSurferVINN (generate segmentation, do not
                             run surface pipeline)
-  --seg_log &lt;seg_log&gt;     Log-file for the segmentation (FastSurferVINN, CerebNet,
-                            HypVINN)
+  --seg_log &lt;seg_log&gt;     Log-file for the segmentation (FastSurferVINN,
+                            CerebNet, HypVINN)
                             Default: $SUBJECTS_DIR/$sid/scripts/deep-seg.log
-  --conformed_name &lt;conf.mgz&gt;
+  --conformed_name &lt;conformed_path&gt;
                           Name of the file in which the conformed input
                             image will be saved. Requires an ABSOLUTE Path!
                             Default location:
                             $SUBJECTS_DIR/$sid/mri/orig.mgz.
   --no_biasfield          Deactivate bias field correction. The stats files are
-                            partial volume-corrected, so they are only written if
-                            a biasfield corrected image already exists, for
+                            partial volume-corrected, so they are only written
+                            if a biasfield corrected image already exists, for
                             example from an earlier run.
-  --norm_name &lt;nu.mgz&gt;    Name of the biasfield corrected image
+  --norm_name &lt;norm_path&gt; Name of the biasfield corrected image
                             Default location:
                             $SUBJECTS_DIR/$sid/mri/orig_nu.mgz
   --tal_reg               Perform the talairach registration for eTIV estimates
@@ -711,10 +723,12 @@ SEGMENTATION PIPELINE:
                             processed subject the above stops rather than
                             replace it: delete mri/transforms/talairach.xfm
                             first, or add --edits to keep the existing one.
-  --native_image OR       Output all images and segmentations in the native image space
-  --keepgeom                with its image geometry (voxel size, dimensions, orientation).
-                            This setting is not compatible with the surface pipeline and
-                            implies --vox_size keep. Anisotropic voxels are experimental.
+  --native_image OR       Output all images and segmentations in the native
+  --keepgeom                image space with its image geometry (voxel size,
+                            dimensions, orientation). This setting is not
+                            compatible with the surface pipeline and implies
+                            --vox_size keep. Anisotropic voxels are
+                            experimental.
 
   MODULES:
   By default, all modules are run.
@@ -724,8 +738,9 @@ SEGMENTATION PIPELINE:
   break a later step.
 
   ASEGDKT MODULE:
-  --no_asegdkt            Skip the asegdkt segmentation (aseg+aparc/DKT segmentation)
-  --asegdkt_segfile &lt;filename&gt;
+  --no_asegdkt            Skip the asegdkt segmentation (aseg+aparc/DKT
+                            segmentation)
+  --asegdkt_segfile &lt;asegdkt_segfile&gt;
                           Name of the segmentation file, which includes the
                             aseg+aparc/DKTatlas segmentations.
                             Requires an ABSOLUTE Path! Default location:
@@ -734,8 +749,9 @@ SEGMENTATION PIPELINE:
                             biasfield corrected image already exists.
 
   CEREBELLUM MODULE:
-  --no_cereb              Skip the cerebellum segmentation (CerebNet segmentation)
-  --asegdkt_segfile &lt;seg_input&gt;
+  --no_cereb              Skip the cerebellum segmentation (CerebNet
+                            segmentation)
+  --asegdkt_segfile &lt;asegdkt_segfile&gt;
                           Name of the segmentation file (similar to aparc+aseg)
                             for cerebellum localization (typically the output of the
                             APARC module (see above). Requires an ABSOLUTE Path!
@@ -780,7 +796,7 @@ SEGMENTATION PIPELINE:
   --no_biasfield          Biasfield-corrected inputs are recommended for the
                             hypothalamus sub-segmentation. This option implies images
                             were corrected externally.
-  --t2 &lt;T2_input&gt;         *Optional* T2 full head input (must be externally biasfield
+  --t2 &lt;t2_path&gt;          *Optional* T2 full head input (must be externally biasfield
                             corrected when called with --no_biasfield). Requires an
                             ABSOLUTE Path!
   --reg_mode &lt;none|coreg|robust&gt;
@@ -799,7 +815,7 @@ SEGMENTATION PIPELINE:
 SURFACE PIPELINE:
   --surf_only             Run surface pipeline only. The segmentation input has
                             to exist already in this case.
-  --3T                    Use the 3T atlas for talairach registration (gives better
+  --3T                    Use the 3T atlas for talairach registration (gives batter
                             etiv estimates for 3T MR images, default: 1.5T atlas).
 
 Resource Options:
@@ -864,9 +880,9 @@ Resource Options:
                             be completed beforehand! No T2 can be passed. Also
                             no T1 is explicitly passed, as it is taken from
                             within the prepared template directory.
-  --long &lt;baseid&gt;         Longitudinal time point processing.
+  --long &lt;template_id&gt;    Longitudinal time point processing.
                             Requires the base (template) already exists in the
-                            same SUBJECTS_DIR under the SID &lt;baseid&gt;.
+                            same SUBJECTS_DIR under the SID &lt;template_id&gt;.
                             Processing is identical to the regular cross-sectional
                             pipeline for segmentation. Surface module skips
                             many steps and initializes from subject template.
@@ -991,6 +1007,7 @@ Reuter M, Schmansky NJ, Rosas HD, Fischl B. Within-subject template estimation
 <li><a class="reference internal" href="#across-machines">Across machines</a></li>
 </ul>
 </li>
+<li><a class="reference internal" href="#troubleshooting">Troubleshooting</a></li>
 <li><a class="reference internal" href="#full-list-of-flags">Full list of flags</a></li>
 </ul>
 </li>
@@ -1008,7 +1025,7 @@ Reuter M, Schmansky NJ, Rosas HD, Fischl B. Within-subject template estimation
     <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../_static/scripts/furo.js?v=46bd48cc"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
-    <script src="../_static/copybutton.js?v=f281be69"></script>
+    <script src="../_static/copybutton.js?v=1be11439"></script>
     <script src="../_static/design-tabs.js?v=f930bc37"></script>
     <script src="../_static/doc-version-link.js?v=e710a016"></script>
     </body>

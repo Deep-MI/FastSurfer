@@ -465,25 +465,31 @@
 <h1>SLURM: srun_fastsurfer.sh<a class="headerlink" href="#slurm-srun-fastsurfer-sh" title="Link to this heading">¶</a></h1>
 <section id="usage">
 <h2>Usage<a class="headerlink" href="#usage" title="Link to this heading">¶</a></h2>
-<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>$ ./srun_fastsurfer.sh --help
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>./srun_fastsurfer.sh --help
 Script to orchestrate resource-optimized FastSurfer runs on SLURM clusters.
 
 Usage:
-srun_fastsurfer.sh [--data &lt;directory to search images&gt;]
-    [--sd &lt;output directory&gt;] [--work &lt;work directory&gt;]
-    (--pattern &lt;search pattern for images&gt;|--subject_list &lt;path to subject_list file&gt;
-                                           [--subject_list_delim &lt;delimiter&gt;]
-                                           [--subject_list_awk_code_sid &lt;subject_id code&gt;]
-                                           [--subject_list_awk_code_t1 &lt;image_path code&gt;])
-    [--singularity_image &lt;path to fastsurfer singularity image&gt;] [--extra_singularity_options &lt;singularity options&gt;]
-    [--extra_singularity_options_seg &lt;singularity options&gt;] [--extra_singularity_options_surf &lt;singularity options&gt;]
-    [--num_cases_per_task &lt;number&gt;] [--cpu_only] [--num_cpus_per_task &lt;number of cpus to allocate for seg&gt;]
-    [--time_seg &lt;timelimit&gt;] [--time_surf &lt;timelimit&gt;] [--mem_seg &lt;number (GB)&gt;] [--mem_surf &lt;number (GB)&gt;]
-    [--partition &lt;slurm partition&gt;] [--partition_seg &lt;slurm partition&gt;] [--partition_surf &lt;slurm partition&gt;]
-    [--extra_slurm_options &lt;sbatch options&gt;] [--extra_slurm_options_seg &lt;sbatch options&gt;]
-    [--extra_slurm_options_surf &lt;sbatch options&gt;]
-    [--slurm_jobarray &lt;jobarray specification&gt;] [--skip_cleanup] [--email &lt;email address&gt;] [--debug] [--dry] [--help]
-    [&lt;additional fastsurfer options&gt;]
+srun_fastsurfer.sh [--data &lt;input_image_data_dir&gt;]
+    [--sd &lt;subjects_dir&gt;] [--work &lt;work_dir&gt;]
+    (--pattern &lt;search_pattern&gt;|--subjects_list &lt;subjects_list_path&gt;
+                                [--subjects_list_delim &lt;delimiter&gt;]
+                                [--subjects_list_awk_code_sid &lt;subject_id_code&gt;]
+                                [--subjects_list_awk_code_args &lt;args_code&gt;])
+    [--singularity_image &lt;sif_path&gt;]
+    [--extra_singularity_options &lt;singularity_flags&gt;]
+    [--extra_singularity_options_seg &lt;singularity_flags&gt;]
+    [--extra_singularity_options_surf &lt;singularity_flags&gt;]
+    [--num_cases_per_task &lt;number&gt;] [--cpu_only]
+    [--num_cpus_per_task &lt;num_cpus&gt;] [--time_seg &lt;timelimit&gt;]
+    [--time_surf &lt;timelimit&gt;] [--mem_seg &lt;memory_gb&gt;] [--mem_surf &lt;memory_gb&gt;]
+    [--partition &lt;partition_list&gt;] [--partition_seg &lt;partition_list&gt;]
+    [--partition_surf &lt;partition_list&gt;]
+    [--extra_slurm_options &lt;sbatch_flags&gt;]
+    [--extra_slurm_options_seg &lt;sbatch_flags&gt;]
+    [--extra_slurm_options_surf &lt;sbatch_flags&gt;]
+    [--slurm_jobarray &lt;jobarray_spec&gt;] [--skip_cleanup]
+    [--email &lt;email_address&gt;] [--debug] [--dry] [--help]
+    [&lt;fastsurfer_flags&gt;]
 
 License:  Apache License, Version 2.0
 
@@ -504,99 +510,122 @@ Data- and subject-related options:
 --work: directory with fast filesystem on cluster
   (default: $HPCWORK/fastsurfer-processing/&lt;date as YYMMDD-HHMMSS&gt;)
   NOTE: THIS SCRIPT considers this directory to be owned by this script and job!
-  No modifications should be made to the directory after the job is started until it is
-  finished (if the job fails, cleanup of this directory may be necessary) and it should be
-  empty!
+  No modifications should be made to the directory after the job is started
+  until it is finished (if the job fails, cleanup of this directory may be
+  necessary) and it should be empty!
 --data: (root) directory to search in for t1 files (default: current work directory).
---pattern: glob string to find image files in 'data directory' (default: *.{nii,nii.gz,mgz}),
-   for example '--data /data/ --pattern "*/*/mri/t1.nii.gz"'
-   will find all images of format /data/&lt;somefolder&gt;/&lt;otherfolder&gt;/mri/t1.nii.gz
---subject_list: alternative way to define cases to process, files are of format:
-  subject_id1=/path/to/t1.mgz
+--pattern: glob string to find image files in 'data directory' (default:
+   *.{nii,nii.gz,mgz}), for example '--data /data/ --pattern "*/*/mri/t1.nii.gz"'
+    will find all images of format /data/&lt;some_dir_name&gt;/&lt;other_dir_name&gt;/mri/t1.nii.gz
+--subjects_list: alternative way to define cases to process, files are of format:
+  ---
+  &lt;subject_id&gt;=&lt;t1_path&gt;
   ...
+  ---
   This option invalidates the --pattern option.
   May also add additional parameters like:
-  subject_id1=/path/to/t1.mgz --vox_size 1.0
---subject_list_delim: alternative delimiter in the file (default: "="). For example, if you
-  pass --subject_list_delim "," the subject_list file is parsed as a comma-delimited csv file.
---subject_list_awk_code_sid &lt;subject_id code&gt;: alternative way to construct the subject_id
-  from the row in the subject_list (default: '$1').
---subject_list_awk_code_args &lt;t1_path code&gt;: alternative way to construct the image_path and
-  additional parameters from the row in the subject_list (default: '$2'), other examples:
-  '$2/$1/mri/orig.mgz', where the first field (of the subject_list file) is the subject_id
-  and the second field is the containing folder, e.g. the study.
+  ---
+  &lt;subject_id&gt;=&lt;t1_path&gt; --vox_size 1.0
+  ---
+--subjects_list_delim: alternative delimiter in the file (default: "="). For
+  example, if you pass --subjects_list_delim "," the subjects list file is parsed
+  as a comma-delimited csv file.
+--subjects_list_awk_code_sid &lt;subject_id_code&gt;: alternative way to construct the
+  subject_id from the row in the subjects list (default: '$1').
+--subjects_list_awk_code_args &lt;args_code&gt;: alternative way to construct the
+  image_path and additional parameters from the row in the subjects list
+  (default: '$2'), other examples: '$2/$1/mri/orig.mgz', where the first
+  field (of the subjects list file) is the subject_id and the second field is the
+  containing folder, e.g. the study.
   Example for additional parameters:
-  --subject_list_delim "," --subject_list_awk_code_args '$2 " --vox_size " $4'
-  to implement from the subject_list line
+--subjects_list_delim "," --subjects_list_awk_code_args '$2 " --vox_size " $4'
+  to implement from the subjects list line
+  ---
   subject-101,raw/T1w-101A.nii.gz,study-1,0.9
-  to (additional arguments must be comma-separated)
-  --sid subject-101 --t1 &lt;data-path&gt;/raw/T1w-101A.nii.gz --vox_size 0.9
+  ---
+  to in effect (additional arguments must be comma-separated)
+  --sid subject-101 --t1 &lt;data_dir&gt;/raw/T1w-101A.nii.gz --vox_size 0.9
 
 FastSurfer options:
---fs_license: path to the freesurfer license (either absolute path or relative to pwd, for surfaces &amp; registration(s))
+--fs_license: path to the freesurfer license (either absolute path or relative
+  to pwd, for surfaces &amp; registration(s))
 --seg_only: only run the segmentation pipeline
---surf_only: only run the surface pipeline (--sd must contain previous --seg_only processing)
+--surf_only: only run the surface pipeline (--sd must contain previous
+  --seg_only processing)
 --***: also standard FastSurfer options can be passed, like --3T, --no_cereb, etc.
 
 Singularity-related options:
---singularity_image: Path to the singularity image to use for segmentation and surface
-  reconstruction (default: $HOME/singularity-images/fastsurfer.sif).
---extra_singularity_options &lt;extra-options&gt;,
---extra_singularity_options_seg &lt;extra-options&gt;, and
---extra_singularity_options_surf &lt;extra-option&gt;: Extra options to the Singularity exec call, needs to be double quoted
-  to allow quoted strings, e.g. --extra_singularity_options "-B /$(echo \"/path-to-weights\"):/fastsurfer/checkpoints".
+--singularity_image: Path to the singularity image to use for segmentation and
+  surface reconstruction (default: $HOME/singularity-images/fastsurfer.sif).
+--extra_singularity_options &lt;singularity_flags&gt;,
+--extra_singularity_options_seg &lt;singularity_flags&gt;, and
+--extra_singularity_options_surf &lt;singularity_flags&gt;: Extra options to the
+  Singularity exec call, needs to be double quoted to allow quoted strings, e.g.
+  --extra_singularity_options "-B /$(echo \"&lt;weights_dir&gt;\"):/fastsurfer/checkpoints".
 
 SLURM-related options:
---cpu_only: Do not request gpus for segmentation (only affects segmentation, default: request gpus).
---num_cpus_per_task: number of cpus to request for segmentation pipeline of FastSurfer (--seg_only),
-  (default: 16).
---num_cpus_per_case_surf: number of cpus to request for surface pipeline of FastSurfer (--surf_only),
-  (default: 2).
---num_cases_per_task: number of cases batched into one job (slurm jobarray), will process cases
-  in parallel, if num_cases_per_task is smaller than the total number of cases (default: 16).
---skip_cleanup: Do not schedule step 3, cleanup (which moves the data from --work to --sd, etc.,
-  default: do the cleanup).
---slurm_jobarray: a slurm-compatible list of jobs to run, this can be used to rerun segmentation cases
-  that have failed, for example '--slurm_jobarray 4,7' would only run the cases associated with a
-  (previous) run of srun_fastsurfer.sh, where log files '&lt;sd&gt;/logs/seg_*_{4,7}.log' indicate failure.
---partition &lt;comma-separated-list-of-partitions&gt;,
---partition_seg &lt;comma-separated-list-of-partitions&gt;, and
---partition_surf &lt;...list&gt;: partition(s) to schedule all or only segmentation or surface reconstruction, respectively:
-  It is recommended to select nodes/partitions with GPUs for segmentation. default: slurm default partition
---extra_slurm_options &lt;sbatch options&gt;,
---extra_slurm_options_seg &lt;sbatch options&gt;, and
---extra_slurm_options_surf &lt;sbatch options&gt;: Extra options passed to the sbatch call; value needs to be double-quoted
-  for multiple arguments, e.g. --extra_slurm_options_seg "--reservation=my_res --qos=high". These options do not support
-  nested quotes and are split on whitespace to separate parameters. Does not affect cleanup and copy jobs.
+--cpu_only: Do not request gpus for segmentation (only affects segmentation,
+  default: request gpus).
+--num_cpus_per_task: number of cpus to request for segmentation pipeline of
+  FastSurfer (--seg_only), (default: 16).
+--num_cpus_per_case_surf: number of cpus to request for surface pipeline of
+  FastSurfer (--surf_only), (default: 2).
+--num_cases_per_task: number of cases batched into one job (slurm jobarray),
+  will process cases in parallel, if num_cases_per_task is smaller than the
+  total number of cases (default: 16).
+--skip_cleanup: Do not schedule step 3, cleanup (which moves the data from
+  --work to --sd, etc., default: do the cleanup).
+--slurm_jobarray: a slurm-compatible list of jobs to run, this can be used to
+  rerun segmentation cases that have failed, for example '--slurm_jobarray 4,7'
+  would only run the cases associated with a (previous) run of
+  srun_fastsurfer.sh, where log files '&lt;subjects_dir&gt;/logs/seg_*_{4,7}.log'
+  indicate failure.
+--partition &lt;partition_list&gt;,
+--partition_seg &lt;partition_list&gt;, and
+--partition_surf &lt;partition_list&gt;: partition(s) to schedule all or only
+  segmentation or surface reconstruction, respectively:
+  It is recommended to select nodes/partitions with GPUs for segmentation.
+  default: slurm default partition
+--extra_slurm_options &lt;sbatch_flags&gt;,
+--extra_slurm_options_seg &lt;sbatch_flags&gt;, and
+--extra_slurm_options_surf &lt;sbatch_flags&gt;: Extra options passed to the sbatch
+  call; value needs to be double-quoted for multiple arguments, e.g.
+  --extra_slurm_options_seg "--reservation=my_res --qos=high". These options do
+  not support nested quotes and are split on whitespace to separate parameters.
+  Does not affect cleanup and copy jobs.
 --time_seg &lt;timelimit&gt;, and
---time_surf &lt;timelimit&gt;: a per-image time limit for individual the segmentation and surface reconstruction steps,
-  respectively. &lt;timelimit&gt; must be a number in minutes, default seg: 15min on gpu and
-  30min on cpu, surf: 240min.
-  The cpu default assumes the default --num_cpus_per_task, raise --time_seg when requesting fewer cpus.
---mem_seg &lt;number (GB)&gt;, and
---mem_surf &lt;number (GB)&gt;: the memory to allocate for GPU/CPU-based segmentation (default: 10/7 GB),
-  and surface reconstruction (default: 6).
+--time_surf &lt;timelimit&gt;: a per-image time limit for individual the segmentation
+  and surface reconstruction steps, respectively. &lt;timelimit&gt; must be a number
+  in minutes, default seg: 15min on gpu and
+   30min on cpu, surf: 240min.
+  The cpu default assumes the default --num_cpus_per_task, raise --time_seg when
+  requesting fewer cpus.
+--mem_seg &lt;memory_gb&gt;, and
+--mem_surf &lt;memory_gb&gt;: the memory to allocate for GPU/CPU-based segmentation
+  (default: 10/7 GB), and surface reconstruction (default: 6).
 --email: email address to send slurm status updates.
 
-Accepts additional FastSurfer options, such as --seg_only and --surf_only and only performs the
-respective pipeline.
+Accepts additional FastSurfer options, such as --seg_only and --surf_only and
+only performs the respective pipeline.
 This script will start three slurm jobs:
-1. a segmentation job (alternatively, if --surf_only, this copies previous segmentation data from
-  the subject directory (--sd)
+1. a segmentation job (alternatively, if --surf_only, this copies previous
+  segmentation data from the subject directory (--sd)
 2. a surface reconstruction job (skipped, if --seg_only)
-3. a cleanup job, that moves the data from the work directory (--work) to the subject directory
-  (--sd).
+3. a cleanup job, that moves the data from the work directory (--work) to the
+  subject directory (--sd).
 
-Jobs will be grouped into slurm job_arrays with serial segmentation and parallel surface
-reconstruction (via job arrays and job steps). This way, segmentation can be scheduled on machines
-with GPUs and surface reconstruction on machines without, while efficiently assigning cpus and gpus,
-see --partition flag.
-Note, that a surface reconstruction job will request up to a total of '&lt;num_cases_per_task&gt; * 2'
-cpus and '&lt;num_cases_per_task&gt; * 10G' memory per job. However, these can be distributed across
-'&lt;num_cases_per_task&gt;' nodes in parallel job steps.
+Jobs will be grouped into slurm job_arrays with serial segmentation and parallel
+surface reconstruction (via job arrays and job steps). This way, segmentation
+can be scheduled on machines with GPUs and surface reconstruction on machines
+without, while efficiently assigning cpus and gpus, see --partition flag.
+Note, that a surface reconstruction job will request up to a total of
+'&lt;num_cases_per_task&gt; * 2' cpus and '&lt;num_cases_per_task&gt; * 10G' memory per job.
+However, these can be distributed across '&lt;num_cases_per_task&gt;' nodes in
+parallel job steps.
 
-This tool requires functions in stools.sh and the brun_fastsurfer.sh scripts (expected in same
-folder as this script) in addition to the fastsurfer singularity image.
+This tool requires functions in stools.sh and the brun_fastsurfer.sh scripts
+(expected in same folder as this script) in addition to the fastsurfer
+singularity image.
 </pre></div>
 </div>
 </section>
@@ -606,40 +635,41 @@ folder as this script) in addition to the fastsurfer singularity image.
 <li><p>Did the run succeed?</p>
 <ol class="arabic">
 <li><p>Check whether all jobs are done (specifically the copy job).</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$<span class="w"> </span>squeue<span class="w"> </span>-u<span class="w"> </span><span class="nv">$USER</span><span class="w"> </span>--Format<span class="w"> </span>JobArrayID,Name,State,Dependency
-1750814_3<span class="w">           </span>FastSurfer-Seg-kueglRUNNING<span class="w">             </span><span class="o">(</span>null<span class="o">)</span>
-1750815_3<span class="w">           </span>FastSurfer-Surf-kuegPENDING<span class="w">             </span>aftercorr:1750814_*<span class="o">(</span>
-<span class="m">1750816</span><span class="w">             </span>FastSurfer-Cleanup-kPENDING<span class="w">             </span>afterany:1750815_*<span class="o">(</span>u
-1750815_1<span class="w">           </span>FastSurfer-Surf-kuegRUNNING<span class="w">             </span><span class="o">(</span>null<span class="o">)</span>
-1750815_2<span class="w">           </span>FastSurfer-Surf-kuegRUNNING<span class="w">             </span><span class="o">(</span>null<span class="o">)</span>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>squeue -u $USER --Format JobArrayID,Name,State,Dependency
+1750814_3           FastSurfer-Seg-kueglRUNNING             (null)
+1750815_3           FastSurfer-Surf-kuegPENDING             aftercorr:1750814_*(
+1750816             FastSurfer-Cleanup-kPENDING             afterany:1750815_*(u
+1750815_1           FastSurfer-Surf-kuegRUNNING             (null)
+1750815_2           FastSurfer-Surf-kuegRUNNING             (null)
 </pre></div>
 </div>
 <p>Here, jobs are not finished yet. The FastSurfer-Cleanup-$USER Job moves data to the subject directory (<code class="docutils literal notranslate"><span class="pre">--sd</span></code>).</p>
 </li>
-<li><p>Check whether there are subject folders and log files in the subject directory, <subject directory>/slurm/logs for
+<li><p>Check whether there are subject folders and log files in the subject directory, <code class="docutils literal notranslate"><span class="pre">&lt;subjects_dir&gt;/slurm/logs</span></code> for
 the latter.</p></li>
-<li><p>Check the subject_success file in <code class="docutils literal notranslate"><span class="pre">&lt;subject</span> <span class="pre">directory&gt;/slurm/scripts</span></code>. It should have a line for each subject for
-both parts of the FastSurfer pipeline, e.g. <code class="docutils literal notranslate"><span class="pre">&lt;subject</span> <span class="pre">id&gt;:</span> <span class="pre">Finished</span> <span class="pre">--seg_only</span> <span class="pre">successfully</span></code> or
-<code class="docutils literal notranslate"><span class="pre">&lt;subject</span> <span class="pre">id&gt;:</span> <span class="pre">Finished</span> <span class="pre">--surf_only</span> <span class="pre">successfully</span></code>! If one of these is missing, the job was likely killed by slurm
+<li><p>Check the subject_success file in <code class="docutils literal notranslate"><span class="pre">&lt;subjects_dir&gt;/slurm/scripts</span></code>. It should have a line for each subject for
+both parts of the FastSurfer pipeline, e.g. <code class="docutils literal notranslate"><span class="pre">&lt;subject_id&gt;:</span> <span class="pre">Finished</span> <span class="pre">--seg_only</span> <span class="pre">successfully</span></code> or
+<code class="docutils literal notranslate"><span class="pre">&lt;subject_id&gt;:</span> <span class="pre">Finished</span> <span class="pre">--surf_only</span> <span class="pre">successfully</span></code>! If one of these is missing, the job was likely killed by slurm
 (e.g. because of the time or the memory limit).</p></li>
 <li><p>For subjects that were unsuccessful (The subject_success will say so), check
-<code class="docutils literal notranslate"><span class="pre">&lt;subject</span> <span class="pre">directory&gt;/&lt;subject</span> <span class="pre">id&gt;/scripts/deep-seg.log</span></code> and
-<code class="docutils literal notranslate"><span class="pre">&lt;subject</span> <span class="pre">directory&gt;/&lt;subject</span> <span class="pre">id&gt;/scripts/recon-surf.log</span></code> to see what failed.
-Can be found by looking for <code class="docutils literal notranslate"><span class="pre">&quot;&lt;subject</span> <span class="pre">id&gt;:</span> <span class="pre">Failed</span> <span class="pre">&lt;--seg_only/--surf_only&gt;</span> <span class="pre">with</span> <span class="pre">exit</span> <span class="pre">code</span> <span class="pre">&lt;return</span> <span class="pre">code&gt;&quot;</span></code> in
-<code class="docutils literal notranslate"><span class="pre">&lt;subject</span> <span class="pre">directory&gt;/slurm/scripts/subject_success</span></code>.</p></li>
+<code class="docutils literal notranslate"><span class="pre">&lt;subject_dir&gt;/scripts/deep-seg.log</span></code> and
+<code class="docutils literal notranslate"><span class="pre">&lt;subject_dir&gt;/scripts/recon-surf.log</span></code> to see what failed.
+Can be found by looking for <code class="docutils literal notranslate"><span class="pre">&quot;&lt;subject_id&gt;:</span> <span class="pre">Failed</span> <span class="pre">--seg_only</span> <span class="pre">with</span> <span class="pre">exit</span> <span class="pre">code</span> <span class="pre">&lt;return_code&gt;&quot;</span></code> (or <code class="docutils literal notranslate"><span class="pre">--surf_only</span></code>) in
+<code class="docutils literal notranslate"><span class="pre">&lt;subjects_dir&gt;/slurm/scripts/subject_success</span></code>.</p></li>
 <li><p>For subjects that were terminated (missing in subject_success), find which job is associated with subject id
-<code class="docutils literal notranslate"><span class="pre">grep</span> <span class="pre">&quot;&lt;subject</span> <span class="pre">id&gt;&quot;</span> <span class="pre">slurm/logs/surf_*.log</span></code>, then look at the end of the job and the job step logs
-(<code class="docutils literal notranslate"><span class="pre">surf_XXX_YY.log</span></code> and <code class="docutils literal notranslate"><span class="pre">surf_XXX_YY_ZZ.log</span></code>). If slurm terminated the job, it will say so there. You can increase
-the time and memory budget in <code class="docutils literal notranslate"><span class="pre">srun_fastsurfer.sh</span></code> with <code class="docutils literal notranslate"><span class="pre">--time</span></code> and <code class="docutils literal notranslate"><span class="pre">--mem</span></code> flags.</p>
+<code class="docutils literal notranslate"><span class="pre">grep</span> <span class="pre">&quot;&lt;subject_id&gt;&quot;</span> <span class="pre">slurm/logs/surf_*.log</span></code>, then look at the end of the job and the job step logs
+(<code class="docutils literal notranslate"><span class="pre">surf_&lt;job_id&gt;_&lt;array_index&gt;.log</span></code> and <code class="docutils literal notranslate"><span class="pre">surf_&lt;job_id&gt;_&lt;array_index&gt;_&lt;step_id&gt;.log</span></code>). If slurm terminated the job, it
+will say so there. You can increase the time and memory budget in <code class="docutils literal notranslate"><span class="pre">srun_fastsurfer.sh</span></code> with <code class="docutils literal notranslate"><span class="pre">--time</span></code> and <code class="docutils literal notranslate"><span class="pre">--mem</span></code>
+flags.</p>
 <p>The following bash code snippet can help identify failed runs.</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>cd &lt;subject directory&gt;
-for sub in *
-do
-  if [[ -z "$(grep "$sub: Finished --surf" slurm/scripts/subject_success)" ]]
-  then
-    echo "$sub was terminated externally"
-  fi
-done
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span><span class="w"> </span><span class="nv">$HOME</span>/my_fastsurfer_analysis
+<span class="k">for</span><span class="w"> </span>sub<span class="w"> </span><span class="k">in</span><span class="w"> </span>*
+<span class="k">do</span>
+<span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="o">[[</span><span class="w"> </span>-z<span class="w"> </span><span class="s2">"</span><span class="k">$(</span>grep<span class="w"> </span><span class="s2">"</span><span class="nv">$sub</span><span class="s2">: Finished --surf"</span><span class="w"> </span>slurm/scripts/subject_success<span class="k">)</span><span class="s2">"</span><span class="w"> </span><span class="o">]]</span>
+<span class="w">  </span><span class="k">then</span>
+<span class="w">    </span><span class="nb">echo</span><span class="w"> </span><span class="s2">"</span><span class="nv">$sub</span><span class="s2"> was terminated externally"</span>
+<span class="w">  </span><span class="k">fi</span>
+<span class="k">done</span>
 </pre></div>
 </div>
 </li>
@@ -729,7 +759,7 @@ done
     <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../_static/scripts/furo.js?v=46bd48cc"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
-    <script src="../_static/copybutton.js?v=f281be69"></script>
+    <script src="../_static/copybutton.js?v=1be11439"></script>
     <script src="../_static/design-tabs.js?v=f930bc37"></script>
     <script src="../_static/doc-version-link.js?v=e710a016"></script>
     </body>

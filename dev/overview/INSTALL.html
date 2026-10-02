@@ -464,8 +464,8 @@
           <section id="installation">
 <h1>Installation<a class="headerlink" href="#installation" title="Link to this heading">¶</a></h1>
 <p>FastSurfer is a pipeline for the segmentation of human brain MRI data. It consists of two main components: the networks for the fast segmentation of an MRI (FastSurferVINN, CerebNet, …) and the recon_surf script for the efficient creation of surfaces and most files and statistics that also FreeSurfer provides.</p>
-<p>The preferred way of installing and running FastSurfer is via Singularity or Docker containers on a Linux host system (with a GPU). We provide pre-build images at Dockerhub for various application cases: i) for only the segmentation (both GPU and CPU), ii) for only the CPU-based recon-surf pipeline, and iii) for the full pipeline (GPU or CPU).</p>
-<p>We also provide information on a native install on some operating systems, but since dependencies may vary, this can produce results different from our testing environment and we may not be able to support you if things don’t work. Our testing is performed on Ubuntu 22.04 via our provided Docker images.</p>
+<p>The preferred way of installing and running FastSurfer is via Singularity or Docker containers on a Linux host system (with a GPU). We provide pre-built images at Dockerhub for NVIDIA GPUs (CUDA), for AMD GPUs (ROCm, experimental) and for CPU only; each image contains the full pipeline (segmentation and surface reconstruction).</p>
+<p>We also provide information on a native install on some operating systems, but since dependencies may vary, this can produce results different from our testing environment and we may not be able to support you if things don’t work. Our testing is performed on Ubuntu 24.04 via our provided Docker images.</p>
 <section id="linux">
 <h2>Linux<a class="headerlink" href="#linux" title="Link to this heading">¶</a></h2>
 <p>Recommended System Spec: 8 GB system memory, NVIDIA GPU with 8 GB graphics memory.</p>
@@ -473,8 +473,14 @@
 <p>Non-NVIDIA GPU architectures (AMD) are experimental and not officially supported, but seem to work well also.</p>
 <section id="singularity-or-apptainer">
 <h3>Singularity (or Apptainer)<a class="headerlink" href="#singularity-or-apptainer" title="Link to this heading">¶</a></h3>
-<p>Assuming you have singularity installed already (by a system admin), you can build a Singularity image easily from our Dockerhub images. Run this command from a directory where you want to store singularity images:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>singularity<span class="w"> </span>build<span class="w"> </span>fastsurfer-gpu.sif<span class="w"> </span>docker://deepmi/fastsurfer:latest
+<p>Assuming you have singularity installed already (by a system admin), you can build a Singularity image easily from our Dockerhub images. Run these commands to store the singularity image in <code class="docutils literal notranslate"><span class="pre">$HOME/my_singularity_images</span></code>:</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This documents the development version 2.6.0-dev0. Official Docker images only exist for releases, so the commands below use the latest release, 2.5.4, for its default CUDA version, 12.8. Images of 2.5.4 for other CUDA versions, ROCm and CPU are available on <a class="reference external" href="https://hub.docker.com/r/deepmi/fastsurfer/tags?name=v2.5.4">Docker Hub</a>. To run the development version, <a class="reference internal" href="docker.html"><span class="doc">build your own image</span></a>.</p>
+</div>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>mkdir<span class="w"> </span>-p<span class="w"> </span><span class="nv">$HOME</span>/my_singularity_images
+singularity<span class="w"> </span>build<span class="w"> </span><span class="nv">$HOME</span>/my_singularity_images/fastsurfer-2.5.4.sif<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>docker://deepmi/fastsurfer:cu128-v2.5.4
 </pre></div>
 </div>
 <p>Additionally, <a class="reference internal" href="SINGULARITY.html"><span class="std std-doc">the Singularity documentation</span></a> contains detailed directions for building your own Singularity images from Docker.</p>
@@ -483,28 +489,27 @@
 <section id="docker">
 <h3>Docker<a class="headerlink" href="#docker" title="Link to this heading">¶</a></h3>
 <p>This is very similar to Singularity. Assuming you have Docker installed (by a system admin) you just need to pull one of our pre-build Docker images from dockerhub:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>docker<span class="w"> </span>pull<span class="w"> </span>deepmi/fastsurfer:latest
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This documents the development version 2.6.0-dev0. Official Docker images only exist for releases, so the commands below use the latest release, 2.5.4, for its default CUDA version, 12.8. Images of 2.5.4 for other CUDA versions, ROCm and CPU are available on <a class="reference external" href="https://hub.docker.com/r/deepmi/fastsurfer/tags?name=v2.5.4">Docker Hub</a>. To run the development version, <a class="reference internal" href="docker.html"><span class="doc">build your own image</span></a>.</p>
+</div>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>docker<span class="w"> </span>pull<span class="w"> </span>deepmi/fastsurfer:cu128-v2.5.4
 </pre></div>
 </div>
 <p><a class="reference internal" href="EXAMPLES.html#example-2-fastsurfer-docker"><span class="std std-ref">Example 2</span></a> explains how to run FastSurfer (for the full pipeline you will also need a FreeSurfer .license file!) and you can find details on how to <a class="reference internal" href="docker.html"><span class="doc std std-ref">build your own image</span></a>.</p>
 <p>If you are using the <strong>rootless mode</strong>, you have to install the <a class="reference external" href="https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html">NVIDIA Container Toolkit</a> and follow the <a class="reference external" href="https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html#rootless-mode">configuration for the rootless mode</a>. Otherwise, running FastSurfer with Docker will give you this error message <code class="docutils literal notranslate"><span class="pre">docker:</span> <span class="pre">Error</span> <span class="pre">response</span> <span class="pre">from</span> <span class="pre">daemon:</span> <span class="pre">could</span> <span class="pre">not</span> <span class="pre">select</span> <span class="pre">device</span> <span class="pre">driver</span> <span class="pre">&quot;&quot;</span> <span class="pre">with</span> <span class="pre">capabilities:</span> <span class="pre">[[gpu]]</span></code>.</p>
 </section>
-<section id="native-ubuntu-20-04-or-ubuntu-22-04">
-<h3>Native (Ubuntu 20.04 or Ubuntu 22.04)<a class="headerlink" href="#native-ubuntu-20-04-or-ubuntu-22-04" title="Link to this heading">¶</a></h3>
-<p>In a native install you need to install all dependencies (distro packages, FreeSurfer in the supported version, python dependencies) yourself. Here we will walk you through what you need.</p>
+<section id="native-ubuntu">
+<h3>Native (Ubuntu)<a class="headerlink" href="#native-ubuntu" title="Link to this heading">¶</a></h3>
+<p>In a native install you need to install all dependencies (distro packages, FreeSurfer in the supported version, python dependencies) yourself. Here we will walk you through what you need. We tested FastSurfer 2.5.4 with Ubuntu 24.04 (the base of our Docker images).</p>
 <section id="system-packages">
 <h4>1. System Packages<a class="headerlink" href="#system-packages" title="Link to this heading">¶</a></h4>
 <p>You will need a few additional packages that may be missing on your system (for this you need sudo access or ask a system admin):</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo<span class="w"> </span>apt-get<span class="w"> </span>update<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>apt-get<span class="w"> </span>install<span class="w"> </span>-y<span class="w"> </span>--no-install-recommends<span class="w"> </span><span class="se">\</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo<span class="w"> </span>apt-get<span class="w"> </span>update<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>sudo<span class="w"> </span>apt-get<span class="w"> </span>install<span class="w"> </span>-y<span class="w"> </span>--no-install-recommends<span class="w"> </span><span class="se">\</span>
 <span class="w">      </span>wget<span class="w"> </span><span class="se">\</span>
 <span class="w">      </span>git<span class="w"> </span><span class="se">\</span>
 <span class="w">      </span>ca-certificates<span class="w"> </span><span class="se">\</span>
 <span class="w">      </span>file
-</pre></div>
-</div>
-<p>If you are using <strong>Ubuntu 20.04</strong>, you will need to upgrade to a newer version of libstdc++, as some ‘newer’ python packages need GLIBCXX 3.4.29, which is not distributed with Ubuntu 20.04 by default.</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo<span class="w"> </span>add-apt-repository<span class="w"> </span>-y<span class="w"> </span>ppa:ubuntu-toolchain-r/test
-sudo<span class="w"> </span>apt<span class="w"> </span>install<span class="w"> </span>-y<span class="w"> </span>g++-11
 </pre></div>
 </div>
 <p>You also need to have bash-3.2 or higher (check with <code class="docutils literal notranslate"><span class="pre">bash</span> <span class="pre">--version</span></code>).</p>
@@ -524,10 +529,11 @@ as <a class="reference external" href="https://docs.astral.sh/uv/getting-started
 <section id="fastsurfer">
 <h4>3. FastSurfer<a class="headerlink" href="#fastsurfer" title="Link to this heading">¶</a></h4>
 <p>Get FastSurfer from GitHub. Here you can decide if you want to install the current experimental “dev” version (which can be broken) or the “stable” branch (that has been tested thoroughly):</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span><span class="w"> </span>/path/to/install
-<span class="c1"># FastSurfer will get cloned to /path/to/install/FastSurfer</span>
-git<span class="w"> </span>clone<span class="w"> </span>--branch<span class="w"> </span>stable<span class="w"> </span>https://github.com/Deep-MI/FastSurfer.git
-<span class="nb">cd</span><span class="w"> </span>FastSurfer
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span><span class="w"> </span><span class="nv">FASTSURFER_HOME</span><span class="o">=</span><span class="si">${</span><span class="nv">FASTSURFER_HOME</span><span class="k">:-</span><span class="p">/path/to/FastSurfer</span><span class="si">}</span>
+<span class="c1"># FastSurfer will get cloned to $FASTSURFER_HOME</span>
+git<span class="w"> </span>clone<span class="w"> </span>--branch<span class="w"> </span>stable<span class="w"> </span>https://github.com/Deep-MI/FastSurfer.git<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span><span class="nv">$FASTSURFER_HOME</span>
+<span class="nb">cd</span><span class="w"> </span><span class="nv">$FASTSURFER_HOME</span>
 </pre></div>
 </div>
 </section>
@@ -535,23 +541,29 @@ git<span class="w"> </span>clone<span class="w"> </span>--branch<span class="w">
 <h4>4. Python environment<a class="headerlink" href="#python-environment" title="Link to this heading">¶</a></h4>
 <p>Create a new environment and install FastSurfer dependencies:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># make sure you are in the FastSurfer directory!</span>
-<span class="c1"># create a .venv environment directory inside /path/to/install/FastSurfer with the FastSurfer dependencies</span>
-<span class="c1"># the minimum required python version is 3.10</span>
+<span class="c1"># create a .venv environment directory inside the FastSurfer directory,</span>
+<span class="c1"># e.g., python 3.12 (recommended)</span>
 uv<span class="w"> </span>venv<span class="w"> </span>--python<span class="w"> </span>python3.12
-<span class="c1"># install packages with pinned versions from the last stable release (recommended)</span>
-uv<span class="w"> </span>pip<span class="w"> </span>sync<span class="w"> </span>requirements.txt
+<span class="c1"># install packages with pinned versions from the last stable release</span>
+<span class="c1"># (recommended, that is what we tested with)</span>
+<span class="c1"># uv pip sync only runs if uv pip compile succeeds</span>
+<span class="nv">resolved</span><span class="o">=</span><span class="k">$(</span>uv<span class="w"> </span>pip<span class="w"> </span>compile<span class="w"> </span>--no-build<span class="w"> </span>--torch-backend<span class="w"> </span>auto<span class="w"> </span>requirements.txt<span class="k">)</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>uv<span class="w"> </span>pip<span class="w"> </span>sync<span class="w"> </span>--no-build<span class="w"> </span>--torch-backend<span class="w"> </span>auto<span class="w"> </span>-<span class="w"> </span><span class="o">&lt;&lt;&lt;</span><span class="w"> </span><span class="s2">"</span><span class="nv">$resolved</span><span class="s2">"</span>
 </pre></div>
 </div>
-<p><code class="docutils literal notranslate"><span class="pre">uv</span></code> will also try to find the correct backend for your hardware, but you can manually specify the backend for testing purposes:</p>
+<p>To select the PyTorch backend manually, e.g. for testing, replace <code class="docutils literal notranslate"><span class="pre">auto</span></code> in both commands, for example with <code class="docutils literal notranslate"><span class="pre">cpu</span></code> or <code class="docutils literal notranslate"><span class="pre">cu128</span></code>:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># make sure you are in the FastSurfer directory!</span>
-uv<span class="w"> </span>pip<span class="w"> </span>sync<span class="w"> </span>requirements.txt<span class="w"> </span>--torch-backend<span class="w"> </span>cpu
+<span class="nv">resolved</span><span class="o">=</span><span class="k">$(</span>uv<span class="w"> </span>pip<span class="w"> </span>compile<span class="w"> </span>--no-build<span class="w"> </span>--torch-backend<span class="w"> </span>cpu<span class="w"> </span>requirements.txt<span class="k">)</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>uv<span class="w"> </span>pip<span class="w"> </span>sync<span class="w"> </span>--no-build<span class="w"> </span>--torch-backend<span class="w"> </span>cpu<span class="w"> </span>-<span class="w"> </span><span class="o">&lt;&lt;&lt;</span><span class="w"> </span><span class="s2">"</span><span class="nv">$resolved</span><span class="s2">"</span>
 </pre></div>
 </div>
 <blockquote>
-<div><p><strong>For developers:</strong> To install the latest compatible dependency versions instead of the pinned stable ones, replace <code class="docutils literal notranslate"><span class="pre">requirements.txt</span></code> with <code class="docutils literal notranslate"><span class="pre">pyproject.toml</span></code> in the commands above:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>uv<span class="w"> </span>pip<span class="w"> </span>sync<span class="w"> </span>pyproject.toml
+<div><p><strong>For developers:</strong> To install the latest compatible dependency versions instead of the pinned stable ones, resolve from <code class="docutils literal notranslate"><span class="pre">pyproject.toml</span></code>, optionally with extras such as <code class="docutils literal notranslate"><span class="pre">--extra</span> <span class="pre">doc</span></code> or <code class="docutils literal notranslate"><span class="pre">--extra</span> <span class="pre">all</span></code>:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">resolved</span><span class="o">=</span><span class="k">$(</span>uv<span class="w"> </span>pip<span class="w"> </span>compile<span class="w"> </span>--torch-backend<span class="w"> </span>auto<span class="w"> </span>--extra<span class="w"> </span>doc<span class="w"> </span>pyproject.toml<span class="k">)</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>uv<span class="w"> </span>pip<span class="w"> </span>sync<span class="w"> </span>--torch-backend<span class="w"> </span>auto<span class="w"> </span>-<span class="w"> </span><span class="o">&lt;&lt;&lt;</span><span class="w"> </span><span class="s2">"</span><span class="nv">$resolved</span><span class="s2">"</span>
 </pre></div>
 </div>
+<p>Leave out <code class="docutils literal notranslate"><span class="pre">--no-build</span></code> here: <code class="docutils literal notranslate"><span class="pre">bibtexparser</span></code>, which the <code class="docutils literal notranslate"><span class="pre">style</span></code> extra needs, only ships source code (pure Python, no compiler needed), and <code class="docutils literal notranslate"><span class="pre">--no-build</span></code> makes <code class="docutils literal notranslate"><span class="pre">uv</span></code> resolve different versions to avoid it. <code class="docutils literal notranslate"><span class="pre">bibtexparser</span></code> should be the only package <code class="docutils literal notranslate"><span class="pre">uv</span></code> builds (<code class="docutils literal notranslate"><span class="pre">Building</span> <span class="pre">bibtexparser</span></code>).</p>
 </div></blockquote>
 <p>You can now activate the FastSurfer environment with</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">source</span><span class="w"> </span>.venv/bin/activate
@@ -568,15 +580,15 @@ uv<span class="w"> </span>pip<span class="w"> </span>sync<span class="w"> </span
 </pre></div>
 </div>
 <p>You can also download all network checkpoint files (this should be done if you are installing for multiple users):</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># make sure you are in the FastSurfer directory!</span>
-python<span class="w"> </span>FastSurferCNN/download_checkpoints.py<span class="w"> </span>--all
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span><span class="w"> </span><span class="nv">FASTSURFER_HOME</span><span class="o">=</span><span class="si">${</span><span class="nv">FASTSURFER_HOME</span><span class="k">:-</span><span class="p">/path/to/FastSurfer</span><span class="si">}</span>
+python3<span class="w"> </span><span class="nv">$FASTSURFER_HOME</span>/FastSurferCNN/download_checkpoints.py<span class="w"> </span>--all
 </pre></div>
 </div>
-<p>Once all dependencies are installed, you are ready to run the FastSurfer segmentation-only (!!) pipeline by calling <code class="docutils literal notranslate"><span class="pre">./run_fastsurfer.sh</span> <span class="pre">--seg_only</span> <span class="pre">....</span></code> , see <a class="reference internal" href="EXAMPLES.html#example-3-native-fastsurfer-on-subjectx-with-parallel-processing-of-hemis"><span class="std std-ref">Example 3</span></a> for command line flags.</p>
+<p>Once all dependencies are installed, you are ready to run the FastSurfer segmentation-only (!!) pipeline by calling <code class="docutils literal notranslate"><span class="pre">run_fastsurfer.sh</span> <span class="pre">--seg_only</span> <span class="pre">...</span></code> , see <a class="reference internal" href="EXAMPLES.html#example-3-native-fastsurfer-on-subjectx-with-parallel-processing-of-hemis"><span class="std std-ref">Example 3</span></a> for command line flags.</p>
 </section>
 <section id="freesurfer">
 <h4>5. FreeSurfer<a class="headerlink" href="#freesurfer" title="Link to this heading">¶</a></h4>
-<p>To run the full pipeline, you will need to install FreeSurfer (we recommend and support version 7.4.1) according to their <a class="reference external" href="https://surfer.nmr.mgh.harvard.edu/fswiki/rel7downloads">Instructions</a>. There is a freesurfer email list, if you run into problems during this step.</p>
+<p>To run the full pipeline, you will need to install FreeSurfer (we recommend and support version 7.4.1) according to their <a class="reference external" href="https://surfer.nmr.mgh.harvard.edu/fswiki/rel7downloads">Instructions</a><!-- this link will need to be updated when we use FreeSurfer 8 -->. There is a freesurfer email list, if you run into problems during this step.</p>
 <p>Make sure, the <code class="docutils literal notranslate"><span class="pre">${FREESURFER_HOME}</span></code> environment variable is set, so FastSurfer finds the FreeSurfer binaries.</p>
 </section>
 </section>
@@ -584,14 +596,17 @@ python<span class="w"> </span>FastSurferCNN/download_checkpoints.py<span class="
 <h3>AMD GPUs (experimental)<a class="headerlink" href="#amd-gpus-experimental" title="Link to this heading">¶</a></h3>
 <p>We have successfully run the segmentation on an AMD GPU (Radeon Pro W6600) using ROCm. For this to work you need to make sure you are using a supported (or semi-supported) GPU and the correct kernel version. AMD kernel modules need to be installed on the host system according to ROCm installation instructions and additional groups need to be setup and your user added to them, see https://rocm.docs.amd.com/projects/install-on-linux/en/latest/ .</p>
 <p>Build the Docker container with ROCm support.</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>tools/Docker/build.py<span class="w"> </span>--device<span class="w"> </span>rocm<span class="w"> </span>--tag<span class="w"> </span>my_fastsurfer:rocm
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span><span class="w"> </span><span class="nv">FASTSURFER_HOME</span><span class="o">=</span><span class="si">${</span><span class="nv">FASTSURFER_HOME</span><span class="k">:-</span><span class="p">/path/to/FastSurfer</span><span class="si">}</span>
+python3<span class="w"> </span><span class="nv">$FASTSURFER_HOME</span>/tools/Docker/build.py<span class="w"> </span>--device<span class="w"> </span>rocm<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--tag<span class="w"> </span>my_fastsurfer:rocm
 </pre></div>
 </div>
-<p>You will need to add a couple of flags to your docker run command for AMD, see <a class="reference internal" href="EXAMPLES.html#example-2-fastsurfer-docker"><span class="std std-ref">Example 2</span></a> for <code class="docutils literal notranslate"><span class="pre">**other-docker-flags**</span></code> or <code class="docutils literal notranslate"><span class="pre">*&lt;*fastsurfer-flags*&gt;*</span></code>:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>docker<span class="w"> </span>run<span class="w"> </span>--cap-add<span class="o">=</span>SYS_PTRACE<span class="w"> </span>--security-opt<span class="w"> </span><span class="nv">seccomp</span><span class="o">=</span>unconfined<span class="w"> </span>--device<span class="o">=</span>/dev/kfd<span class="w"> </span><span class="se">\</span>
-<span class="w">        </span>--device<span class="o">=</span>/dev/dri<span class="w"> </span>--group-add<span class="w"> </span>video<span class="w"> </span>--ipc<span class="o">=</span>host<span class="w"> </span>--shm-size<span class="w"> </span>8G<span class="w"> </span><span class="se">\</span>
-<span class="w">        </span>**other-docker-flags**<span class="w"> </span>my_fastsurfer:rocm<span class="w"> </span><span class="se">\</span>
-<span class="w">                </span>**fastsurfer-flags**
+<p>You will need to add a couple of flags to your docker run command for AMD, see <a class="reference internal" href="EXAMPLES.html#example-2-fastsurfer-docker"><span class="std std-ref">Example 2</span></a> for <code class="docutils literal notranslate"><span class="pre">&lt;docker_flags&gt;</span></code> or <code class="docutils literal notranslate"><span class="pre">&lt;fastsurfer_flags&gt;</span></code>:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>docker run --cap-add=SYS_PTRACE --security-opt seccomp=unconfined \
+        --device=/dev/kfd --device=/dev/dri --group-add video \
+        --ipc=host --shm-size 8G \
+        &lt;docker_flags&gt; my_fastsurfer:rocm \
+                &lt;fastsurfer_flags&gt;
 </pre></div>
 </div>
 <p>Note, that this docker image is experimental, uses a different Python version and python packages, so results can differ from our validation results. Please do visual QC.</p>
@@ -608,7 +623,11 @@ python<span class="w"> </span>FastSurferCNN/download_checkpoints.py<span class="
 <p>First, install <a class="reference external" href="https://docs.docker.com/get-docker/">Docker Desktop for Mac</a>.
 Start it and set Memory to 15 GB under Preferences -&gt; Resources (or the largest you have, if you are below 15GB, it may fail).</p>
 <p>Second, pull one of our Docker containers. Open a terminal window and run:</p>
-<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>docker<span class="w"> </span>pull<span class="w"> </span>deepmi/fastsurfer:latest
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This documents the development version 2.6.0-dev0. Official Docker images only exist for releases, so the commands below use the latest release, 2.5.4, for its default CUDA version, 12.8. Images of 2.5.4 for other CUDA versions, ROCm and CPU are available on <a class="reference external" href="https://hub.docker.com/r/deepmi/fastsurfer/tags?name=v2.5.4">Docker Hub</a>. To run the development version, <a class="reference internal" href="docker.html"><span class="doc">build your own image</span></a>.</p>
+</div>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>docker<span class="w"> </span>pull<span class="w"> </span>deepmi/fastsurfer:cu128-v2.5.4
 </pre></div>
 </div>
 <p>Continue with the example in <a class="reference internal" href="EXAMPLES.html#example-2-fastsurfer-docker"><span class="std std-ref">Example 2</span></a>.</p>
@@ -635,7 +654,7 @@ official FreeSurfer build, which upstream currently ships for Intel only, so the
 executables run through Rosetta even in the Apple silicon package. Segmentation
 (<code class="docutils literal notranslate"><span class="pre">--seg_only</span></code>) does not use them and works without it. Most Macs already have Rosetta 2, and if not,
 you can install it once with:</p>
-<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>softwareupdate<span class="w"> </span>--install-rosetta
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>softwareupdate<span class="w"> </span>--install-rosetta
 </pre></div>
 </div>
 <p>Note this is the one step that does need an internet connection, so install it before you rely on
@@ -676,19 +695,27 @@ double-click the <code class="docutils literal notranslate"><span class="pre">.p
 is how it opens the console window. Allow it. If you declined, the applet cannot open the console
 until you allow it under <strong>System Settings &gt; Privacy &amp; Security &gt; Automation</strong>, by switching on
 <strong>Terminal</strong> below <strong>FastSurfer</strong>.</p>
-<p>In this console, you can run the full FastSurfer pipeline by typing and executing <code class="docutils literal notranslate"><span class="pre">run_fastsurfer.sh</span> <span class="pre">&lt;fastsurfer-flags&gt;</span></code>, where you replace <code class="docutils literal notranslate"><span class="pre">&lt;fastsurfer-flags&gt;</span></code> with the appropriate <a class="reference internal" href="intro.html"><span class="doc std std-ref">commandline flags of FastSurfer</span></a>, for example:</p>
-<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>run_fastsurfer.sh<span class="w"> </span>--seg_only<span class="w"> </span>--sd<span class="w"> </span>&lt;path/to/output/dir&gt;<span class="w"> </span>--sid<span class="w"> </span>&lt;subject_id&gt;<span class="w"> </span>--t1<span class="w"> </span>&lt;path/to/subjects/t1/image&gt;
+<p>In this console, you can run the full FastSurfer pipeline by typing and executing <code class="docutils literal notranslate"><span class="pre">run_fastsurfer.sh</span> <span class="pre">&lt;fastsurfer_flags&gt;</span></code>, where you replace <code class="docutils literal notranslate"><span class="pre">&lt;fastsurfer_flags&gt;</span></code> with the appropriate <a class="reference internal" href="intro.html"><span class="doc std std-ref">commandline flags of FastSurfer</span></a>, for example:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>run_fastsurfer.sh<span class="w"> </span>--seg_only<span class="w"> </span>--sd<span class="w"> </span><span class="nv">$HOME</span>/my_fastsurfer_analysis<span class="w"> </span>--sid<span class="w"> </span>subjectX<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--t1<span class="w"> </span><span class="nv">$HOME</span>/my_mri_data/subjectX/t1_weighted.nii.gz
 </pre></div>
 </div>
 <p>or, for the full pipeline:</p>
-<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>run_fastsurfer.sh<span class="w"> </span>--sd<span class="w"> </span>&lt;path/to/output/dir&gt;<span class="w"> </span>--sid<span class="w"> </span>&lt;subject_id&gt;<span class="w"> </span>--t1<span class="w"> </span>&lt;path/to/subjects/t1/image&gt;<span class="w"> </span>--fs_license<span class="w"> </span>~/fs_license.txt
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">freesurfer_license</span><span class="o">=</span><span class="si">${</span><span class="nv">freesurfer_license</span><span class="k">:-</span><span class="p">/path/to/your/freesurfer/license_file</span><span class="si">}</span>
+run_fastsurfer.sh<span class="w"> </span>--sd<span class="w"> </span><span class="nv">$HOME</span>/my_fastsurfer_analysis<span class="w"> </span>--sid<span class="w"> </span>subjectX<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--t1<span class="w"> </span><span class="nv">$HOME</span>/my_mri_data/subjectX/t1_weighted.nii.gz<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--fs_license<span class="w"> </span><span class="nv">$freesurfer_license</span>
 </pre></div>
 </div>
 <p>No <code class="docutils literal notranslate"><span class="pre">--device</span></code> flag is needed: the default already picks the Apple GPU (<code class="docutils literal notranslate"><span class="pre">mps</span></code>) where it is available
 and the CPU otherwise. Passing <code class="docutils literal notranslate"><span class="pre">--device</span> <span class="pre">mps</span></code> explicitly is an error on a Mac without an
 MPS-capable GPU, rather than falling back.</p>
 <p>You do not need to use the applet: in a bash or zsh Terminal window, you can set up exactly the same environment by sourcing the same script:</p>
-<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span><span class="nb">source</span><span class="w"> </span>/Applications/FastSurfer&lt;version&gt;/macos_setup_fastsurfer.sh
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This documents the development version 2.6.0-dev0. Official Docker images only exist for releases, so the commands below use the latest release, 2.5.4. To run the development version, <a class="reference internal" href="docker.html"><span class="doc">build your own image</span></a>.</p>
+</div>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">source</span><span class="w"> </span>/Applications/FastSurfer2.5.4/macos_setup_fastsurfer.sh
 </pre></div>
 </div>
 <p>The script is bash syntax, so from a shell that does not understand it, such as tcsh or fish, start a <code class="docutils literal notranslate"><span class="pre">bash</span></code> (or <code class="docutils literal notranslate"><span class="pre">zsh</span></code>) session first and source it in there.</p>
@@ -699,11 +726,11 @@ MPS-capable GPU, rather than falling back.</p>
 <p>A FreeSurfer license is only needed if you run the surface module (recon-surf) or, in segmentation-only mode, activate the Talairach registration via <code class="docutils literal notranslate"><span class="pre">--tal_reg</span></code> (used to estimate total intracranial volume, eTIV, in the stats files). Plain segmentation without <code class="docutils literal notranslate"><span class="pre">--tal_reg</span></code> does not need one.</p>
 <p>To get a license, <a class="reference external" href="https://surfer.nmr.mgh.harvard.edu/registration.html">register at the FreeSurfer website</a> to acquire a FreeSurfer license (for free).</p>
 <p>Unlike a native Linux/source install, do not rely on FastSurfer auto-detecting the license inside <code class="docutils literal notranslate"><span class="pre">$FREESURFER_HOME</span></code>: on macOS, <code class="docutils literal notranslate"><span class="pre">$FREESURFER_HOME</span></code> points at the pruned FreeSurfer bundled with the package (<code class="docutils literal notranslate"><span class="pre">$FASTSURFER_HOME/fs-pruned</span></code>), which is installed by the <code class="docutils literal notranslate"><span class="pre">.pkg</span></code> as <code class="docutils literal notranslate"><span class="pre">root</span></code> and is not writable by your user account. Instead, save the license file somewhere in your home directory and either pass it explicitly:</p>
-<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>run_fastsurfer.sh<span class="w"> </span>...<span class="w"> </span>--fs_license<span class="w"> </span>~/fs_license.txt
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>run_fastsurfer.sh ... --fs_license &lt;freesurfer_license_path&gt;
 </pre></div>
 </div>
-<p>or export it once per console session:</p>
-<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span><span class="w"> </span><span class="nv">FS_LICENSE</span><span class="o">=</span>~/fs_license.txt
+<p>or export it once per console session (FastSurfer auto-detects from this environment variable):</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span><span class="w"> </span><span class="nv">FS_LICENSE</span><span class="o">=</span>/path/to/your/freesurfer/license_file
 </pre></div>
 </div>
 <p>or, to have it set in every shell, add that line to your shell profile yourself (<code class="docutils literal notranslate"><span class="pre">~/.zprofile</span></code> for zsh, the macOS default; <code class="docutils literal notranslate"><span class="pre">~/.bash_profile</span></code> for bash). FastSurfer does not modify these files.</p>
@@ -711,7 +738,7 @@ MPS-capable GPU, rather than falling back.</p>
 <section id="apple-ai-accelerator-support">
 <h4>5. Apple AI Accelerator support<a class="headerlink" href="#apple-ai-accelerator-support" title="Link to this heading">¶</a></h4>
 <p>On modern M-Chips you can try the Apple Silicon AI Accelerator by passing <code class="docutils literal notranslate"><span class="pre">--device</span> <span class="pre">mps</span></code> for the segmentation module to make use of the fast GPU (when using <code class="docutils literal notranslate"><span class="pre">run_fastsurfer.sh</span></code>, FastSurfer sets <code class="docutils literal notranslate"><span class="pre">PYTORCH_ENABLE_MPS_FALLBACK=1</span></code> automatically on macOS unless you already set it):</p>
-<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>./run_fastsurfer.sh<span class="w"> </span>--seg_only<span class="w"> </span>--device<span class="w"> </span>mps<span class="w"> </span>....
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>run_fastsurfer.sh --seg_only --device mps ...
 </pre></div>
 </div>
 <p>This will be at least twice as fast as <code class="docutils literal notranslate"><span class="pre">--device</span> <span class="pre">cpu</span></code>. The fallback is needed because <code class="docutils literal notranslate"><span class="pre">aten::max_unpool2d</span></code> is not yet implemented for MPS; expect a one-time warning about it, which is harmless.</p>
@@ -729,7 +756,7 @@ so there is nothing else to clean up. Installations of other versions are indepe
 affected.</p>
 <p>Optionally, to also drop the installer’s receipt (bookkeeping only, it does not affect anything you
 run):</p>
-<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>sudo<span class="w"> </span>pkgutil<span class="w"> </span>--forget<span class="w"> </span>org.deep-mi.FastSurfer.&lt;version-without-dots&gt;_&lt;arch&gt;
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>sudo pkgutil --forget org.deep-mi.FastSurfer.&lt;version_without_dots&gt;_&lt;arch&gt;
 </pre></div>
 </div>
 <p><code class="docutils literal notranslate"><span class="pre">pkgutil</span> <span class="pre">--pkgs</span> <span class="pre">|</span> <span class="pre">grep</span> <span class="pre">-i</span> <span class="pre">fastsurfer</span></code> lists the exact identifiers.</p>
@@ -747,22 +774,29 @@ run):</p>
 </ul>
 <p>installed and running.</p>
 <p>After everything is installed, start Windows PowerShell and run the following command to pull the CPU Docker image (check on <a class="reference external" href="https://hub.docker.com/r/deepmi/fastsurfer/tags">dockerhub</a> what version tag is most recent for cpu):</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>docker<span class="w"> </span>pull<span class="w"> </span>deepmi/fastsurfer:cpu-latest
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This documents the development version 2.6.0-dev0. Official Docker images only exist for releases, so the commands below use the latest release, 2.5.4. To run the development version, <a class="reference internal" href="docker.html"><span class="doc">build your own image</span></a>.</p>
+</div>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>docker<span class="w"> </span>pull<span class="w"> </span>deepmi/fastsurfer:cpu-v2.5.4
 </pre></div>
 </div>
 <p>Now you can run Fastsurfer the same way as described in <a class="reference internal" href="EXAMPLES.html#example-2-fastsurfer-docker"><span class="std std-ref">Example 2</span></a> for the CPU build, for example:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>docker<span class="w"> </span>run<span class="w"> </span>-v<span class="w"> </span>C:/Users/user/my_mri_data:/data<span class="w"> </span><span class="se">\</span>
-<span class="w">           </span>-v<span class="w"> </span>C:/Users/user/my_fastsurfer_analysis:/output<span class="w"> </span><span class="se">\</span>
-<span class="w">           </span>-v<span class="w"> </span>C:/Users/user/my_fs_license_dir:/fs_license<span class="w"> </span><span class="se">\</span>
-<span class="w">           </span>--rm<span class="w"> </span>--user<span class="w"> </span><span class="k">$(</span>id<span class="w"> </span>-u<span class="k">)</span>:<span class="k">$(</span>id<span class="w"> </span>-g<span class="k">)</span><span class="w"> </span>deepmi/fastsurfer:cpu-latest<span class="w"> </span><span class="se">\</span>
-<span class="w">           </span>--fs_license<span class="w"> </span>/fs_license/license.txt<span class="w"> </span><span class="se">\</span>
-<span class="w">           </span>--t1<span class="w"> </span>/data/subjectX/orig.mgz<span class="w"> </span><span class="se">\</span>
-<span class="w">           </span>--device<span class="w"> </span>cpu<span class="w"> </span><span class="se">\</span>
-<span class="w">           </span>--sid<span class="w"> </span>subjectX<span class="w"> </span>--sd<span class="w"> </span>/output
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This documents the development version 2.6.0-dev0. Official Docker images only exist for releases, so the commands below use the latest release, 2.5.4. To run the development version, <a class="reference internal" href="docker.html"><span class="doc">build your own image</span></a>.</p>
+</div>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>docker<span class="w"> </span>run<span class="w"> </span>-v<span class="w"> </span>C:/Users/user/my_mri_data:/home/user/my_mri_data<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>-v<span class="w"> </span>C:/Users/user/my_fastsurfer_analysis:/home/user/my_fastsurfer_analysis<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>-v<span class="w"> </span>C:/path/to/your/freesurfer/license_file:/home/user/freesurfer_license<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--rm<span class="w"> </span>--user<span class="w"> </span><span class="k">$(</span>id<span class="w"> </span>-u<span class="k">)</span>:<span class="k">$(</span>id<span class="w"> </span>-g<span class="k">)</span><span class="w"> </span>deepmi/fastsurfer:cpu-v2.5.4<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--fs_license<span class="w"> </span>/home/user/freesurfer_license<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--t1<span class="w"> </span>/home/user/my_mri_data/subjectX/t1_weighted.nii.gz<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--device<span class="w"> </span>cpu<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--sid<span class="w"> </span>subjectX<span class="w"> </span>--sd<span class="w"> </span>/home/user/my_fastsurfer_analysis
 </pre></div>
 </div>
 <p>Note, the <a class="reference external" href="https://github.com/Deep-MI/FastSurfer#system-requirements">system requirements</a> of at least 8GB of RAM for the CPU version. If the process fails, check if your <a class="reference external" href="https://www.aleksandrhovhannisyan.com/blog/limiting-memory-usage-in-wsl-2/">WSL2 distribution has enough memory reserved</a>.</p>
-<p>This was tested using Windows 10 Pro version 21H1 and the WSL Ubuntu 20.04  distribution</p>
 </section>
 <section id="docker-gpu-version">
 <h3>Docker (GPU version)<a class="headerlink" href="#docker-gpu-version" title="Link to this heading">¶</a></h3>
@@ -775,18 +809,26 @@ run):</p>
 </ul>
 <p>Follow <a class="reference external" href="https://learn.microsoft.com/en-us/windows/ai/directml/gpu-cuda-in-wsl">Enable NVIDIA CUDA on WSL</a> to install the correct drivers and software.</p>
 <p>After everything is installed, start Windows PowerShell and run the following command to pull the GPU Docker image:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>docker<span class="w"> </span>pull<span class="w"> </span>deepmi/fastsurfer:latest
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This documents the development version 2.6.0-dev0. Official Docker images only exist for releases, so the commands below use the latest release, 2.5.4, for its default CUDA version, 12.8. Images of 2.5.4 for other CUDA versions, ROCm and CPU are available on <a class="reference external" href="https://hub.docker.com/r/deepmi/fastsurfer/tags?name=v2.5.4">Docker Hub</a>. To run the development version, <a class="reference internal" href="docker.html"><span class="doc">build your own image</span></a>.</p>
+</div>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>docker<span class="w"> </span>pull<span class="w"> </span>deepmi/fastsurfer:cu128-v2.5.4
 </pre></div>
 </div>
 <p>Now you can run Fastsurfer the same way as described in <a class="reference internal" href="EXAMPLES.html#example-2-fastsurfer-docker"><span class="std std-ref">Example 2</span></a>, for example:</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This documents the development version 2.6.0-dev0. Official Docker images only exist for releases, so the commands below use the latest release, 2.5.4, for its default CUDA version, 12.8. Images of 2.5.4 for other CUDA versions, ROCm and CPU are available on <a class="reference external" href="https://hub.docker.com/r/deepmi/fastsurfer/tags?name=v2.5.4">Docker Hub</a>. To run the development version, <a class="reference internal" href="docker.html"><span class="doc">build your own image</span></a>.</p>
+</div>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>docker<span class="w"> </span>run<span class="w"> </span>--gpus<span class="w"> </span>all<span class="w"> </span><span class="se">\</span>
-<span class="w">           </span>-v<span class="w"> </span>C:/Users/user/my_mri_data:/data<span class="w"> </span><span class="se">\</span>
-<span class="w">           </span>-v<span class="w"> </span>C:/Users/user/my_fastsurfer_analysis:/output<span class="w"> </span><span class="se">\</span>
-<span class="w">           </span>-v<span class="w"> </span>C:/Users/user/my_fs_license_dir:/fs_license<span class="w"> </span><span class="se">\</span>
-<span class="w">           </span>--rm<span class="w"> </span>--user<span class="w"> </span><span class="k">$(</span>id<span class="w"> </span>-u<span class="k">)</span>:<span class="k">$(</span>id<span class="w"> </span>-g<span class="k">)</span><span class="w"> </span>deepmi/fastsurfer:latest<span class="w"> </span><span class="se">\</span>
-<span class="w">           </span>--fs_license<span class="w"> </span>/fs_license/license.txt<span class="w"> </span><span class="se">\</span>
-<span class="w">           </span>--t1<span class="w"> </span>/data/subjectX/orig.mgz<span class="w"> </span><span class="se">\</span>
-<span class="w">           </span>--sid<span class="w"> </span>subjectX<span class="w"> </span>--sd<span class="w"> </span>/output
+<span class="w">    </span>-v<span class="w"> </span>C:/Users/user/my_mri_data:/home/user/my_mri_data<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>-v<span class="w"> </span>C:/Users/user/my_fastsurfer_analysis:/home/user/my_fastsurfer_analysis<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>-v<span class="w"> </span>C:/path/to/your/freesurfer/license_file:/home/user/freesurfer_license<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--rm<span class="w"> </span>--user<span class="w"> </span><span class="k">$(</span>id<span class="w"> </span>-u<span class="k">)</span>:<span class="k">$(</span>id<span class="w"> </span>-g<span class="k">)</span><span class="w"> </span>deepmi/fastsurfer:cu128-v2.5.4<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--fs_license<span class="w"> </span>/home/user/freesurfer_license<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--t1<span class="w"> </span>/home/user/my_mri_data/subjectX/t1_weighted.nii.gz<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--sid<span class="w"> </span>subjectX<span class="w"> </span>--sd<span class="w"> </span>/home/user/my_fastsurfer_analysis
 </pre></div>
 </div>
 <p>Note the <a class="reference external" href="https://github.com/Deep-MI/FastSurfer#system-requirements">system requirements</a> of at least 8 GB system memory and 2 GB graphics memory for the GPU version. If the process fails, check if your <a class="reference external" href="https://www.aleksandrhovhannisyan.com/blog/limiting-memory-usage-in-wsl-2/">WSL2 distribution has enough memory reserved</a>.</p>
@@ -859,7 +901,7 @@ run):</p>
 <li><a class="reference internal" href="#linux">Linux</a><ul>
 <li><a class="reference internal" href="#singularity-or-apptainer">Singularity (or Apptainer)</a></li>
 <li><a class="reference internal" href="#docker">Docker</a></li>
-<li><a class="reference internal" href="#native-ubuntu-20-04-or-ubuntu-22-04">Native (Ubuntu 20.04 or Ubuntu 22.04)</a><ul>
+<li><a class="reference internal" href="#native-ubuntu">Native (Ubuntu)</a><ul>
 <li><a class="reference internal" href="#system-packages">1. System Packages</a></li>
 <li><a class="reference internal" href="#uv-for-python">2. uv for python</a></li>
 <li><a class="reference internal" href="#fastsurfer">3. FastSurfer</a></li>
@@ -904,7 +946,7 @@ run):</p>
     <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../_static/scripts/furo.js?v=46bd48cc"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
-    <script src="../_static/copybutton.js?v=f281be69"></script>
+    <script src="../_static/copybutton.js?v=1be11439"></script>
     <script src="../_static/design-tabs.js?v=f930bc37"></script>
     <script src="../_static/doc-version-link.js?v=e710a016"></script>
     </body>

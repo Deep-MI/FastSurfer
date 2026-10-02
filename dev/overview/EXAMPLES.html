@@ -473,25 +473,35 @@ available in HPC settings. See our <a class="reference internal" href="SINGULARI
 you need to <a class="reference external" href="https://surfer.nmr.mgh.harvard.edu/registration.html">register at the FreeSurfer website</a> to acquire a
 FreeSurfer license (for free). This license needs to be passed to FastSurfer via the <code class="docutils literal notranslate"><span class="pre">--fs_license</span></code> flag. If you do not
 intend to generate surfaces, it is often not necessary to obtain a FreeSurfer license.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This documents the development version 2.6.0-dev0. Official Docker images only exist for releases, so the commands below use the latest release, 2.5.4, for its default CUDA version, 12.8. Images of 2.5.4 for other CUDA versions, ROCm and CPU are available on <a class="reference external" href="https://hub.docker.com/r/deepmi/fastsurfer/tags?name=v2.5.4">Docker Hub</a>. To run the development version, <a class="reference internal" href="docker.html"><span class="doc">build your own image</span></a>.</p>
+</div>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Build the singularity image (if it does not exist)</span>
-singularity<span class="w"> </span>build<span class="w"> </span>fastsurfer-gpu.sif<span class="w"> </span>docker://deepmi/fastsurfer
+singularity<span class="w"> </span>build<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span><span class="nv">$HOME</span>/my_singularity_images/fastsurfer-2.5.4.sif<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>docker://deepmi/fastsurfer:cu128-v2.5.4
 </pre></div>
 </div>
 </section>
 <section id="running-fastsurfer">
 <h3>Running FastSurfer<a class="headerlink" href="#running-fastsurfer" title="Link to this heading">¶</a></h3>
-<p>To run FastSurfer on a given subject using the Singularity image with GPU access, execute the following commands from a
-directory where you want to store singularity images. This will create a singularity image from our Dockerhub image and
-execute it:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>singularity<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>--nv<span class="w"> </span><span class="se">\</span>
+<p>To run FastSurfer on a given subject using the Singularity image with GPU access, execute the following command. This
+will execute the singularity image created above:</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This documents the development version 2.6.0-dev0. Official Docker images only exist for releases, so the commands below use the latest release, 2.5.4. To run the development version, <a class="reference internal" href="docker.html"><span class="doc">build your own image</span></a>.</p>
+</div>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">freesurfer_license</span><span class="o">=</span><span class="si">${</span><span class="nv">freesurfer_license</span><span class="k">:-</span><span class="p">/path/to/your/freesurfer/license_file</span><span class="si">}</span>
+singularity<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>--nv<span class="w"> </span><span class="se">\</span>
 <span class="w">                 </span>--no-mount<span class="w"> </span>home,cwd<span class="w"> </span>-e<span class="w"> </span><span class="se">\</span>
-<span class="w">                 </span>-B<span class="w"> </span><span class="nv">$HOME</span>/my_mri_data:<span class="nv">$HOME</span>/my_mri_data<span class="w"> </span><span class="se">\</span>
-<span class="w">                 </span>-B<span class="w"> </span><span class="nv">$HOME</span>/my_fastsurfer_analysis:<span class="nv">$HOME</span>/my_fastsurfer_analysis<span class="w"> </span><span class="se">\</span>
-<span class="w">                 </span>-B<span class="w"> </span><span class="nv">$HOME</span>/my_fs_license.txt:<span class="nv">$HOME</span>/my_fs_license.txt<span class="w"> </span><span class="se">\</span>
-<span class="w">                 </span>./fastsurfer-gpu.sif<span class="w"> </span><span class="se">\</span>
+<span class="w">                 </span>-B<span class="w"> </span><span class="nv">$HOME</span>/my_mri_data<span class="w"> </span><span class="se">\</span>
+<span class="w">                 </span>-B<span class="w"> </span><span class="nv">$HOME</span>/my_fastsurfer_analysis<span class="w"> </span><span class="se">\</span>
+<span class="w">                 </span>-B<span class="w"> </span><span class="nv">$freesurfer_license</span><span class="w"> </span><span class="se">\</span>
+<span class="w">                 </span><span class="nv">$HOME</span>/my_singularity_images/fastsurfer-2.5.4.sif<span class="w"> </span><span class="se">\</span>
 <span class="w">                   </span>/fastsurfer/run_fastsurfer.sh<span class="w"> </span><span class="se">\</span>
-<span class="w">                     </span>--fs_license<span class="w"> </span><span class="nv">$HOME</span>/my_fs_license.txt<span class="w"> </span><span class="se">\</span>
-<span class="w">                     </span>--t1<span class="w"> </span><span class="nv">$HOME</span>/my_mri_data/subjectX/t1-weighted.nii.gz<span class="w"> </span><span class="se">\</span>
+<span class="w">                     </span>--fs_license<span class="w"> </span><span class="nv">$freesurfer_license</span><span class="w"> </span><span class="se">\</span>
+<span class="w">                     </span>--t1<span class="w"> </span><span class="nv">$HOME</span>/my_mri_data/subjectX/t1_weighted.nii.gz<span class="w"> </span><span class="se">\</span>
 <span class="w">                     </span>--sid<span class="w"> </span>subjectX<span class="w"> </span>--sd<span class="w"> </span><span class="nv">$HOME</span>/my_fastsurfer_analysis<span class="w"> </span><span class="se">\</span>
 <span class="w">                     </span>--3T<span class="w"> </span><span class="se">\</span>
 <span class="w">                     </span>--threads<span class="w"> </span><span class="m">4</span>
@@ -502,45 +512,50 @@ execute it:</p>
 <h3>Singularity Flags<a class="headerlink" href="#singularity-flags" title="Link to this heading">¶</a></h3>
 <ul class="simple">
 <li><p>The <code class="docutils literal notranslate"><span class="pre">--nv</span></code> flag is used to access GPU resources.</p></li>
-<li><p>The <code class="docutils literal notranslate"><span class="pre">--no-home</span></code> flag stops mounting your home directory into singularity.</p></li>
-<li><p>The <code class="docutils literal notranslate"><span class="pre">-B</span></code> commands mount your data, output, and directory with the FreeSurfer license file into the Singularity container. Inside the container these are visible under the name following the colon (in this case /data, /output, and /fs_license).</p></li>
+<li><p>The <code class="docutils literal notranslate"><span class="pre">--no-mount</span> <span class="pre">home,cwd</span></code> flag stops mounting your home directory and the current working directory into singularity.</p></li>
+<li><p>The <code class="docutils literal notranslate"><span class="pre">-B</span></code> commands mount your data, output, and the FreeSurfer license file into the Singularity container. Inside the container these are visible under the same paths as on your system.</p></li>
 </ul>
 </section>
 <section id="fastsurfer-flags">
 <h3>FastSurfer Flags<a class="headerlink" href="#fastsurfer-flags" title="Link to this heading">¶</a></h3>
 <ul class="simple">
-<li><p>The <code class="docutils literal notranslate"><span class="pre">--fs_license</span></code> points to your FreeSurfer license which needs to be available on your computer in the my_fs_license_dir that was mapped above.</p></li>
+<li><p>The <code class="docutils literal notranslate"><span class="pre">--fs_license</span></code> points to your FreeSurfer license which needs to be available on your computer at the path that was mapped above.</p></li>
 <li><p>The <code class="docutils literal notranslate"><span class="pre">--t1</span></code> points to the t1-weighted MRI image to analyse (full path, must be mounted via <code class="docutils literal notranslate"><span class="pre">-B</span></code>)</p></li>
 <li><p>The <code class="docutils literal notranslate"><span class="pre">--sid</span></code> is the subject ID name (output folder name)</p></li>
 <li><p>The <code class="docutils literal notranslate"><span class="pre">--sd</span></code> points to the output directory (must be mounted via <code class="docutils literal notranslate"><span class="pre">-B</span></code>)</p></li>
 <li><p>The <code class="docutils literal notranslate"><span class="pre">--3T</span></code> changes the atlas for registration to the 3T atlas for better Talairach transforms and ICV estimates (eTIV)</p></li>
 <li><p>The <code class="docutils literal notranslate"><span class="pre">--threads</span></code> tells FastSurfer to use that many threads in segmentation and surface reconstruction. <code class="docutils literal notranslate"><span class="pre">max</span></code> will auto-detect the number of threads available, i.e. <code class="docutils literal notranslate"><span class="pre">16</span></code> on an 8-core system with hypterthreading. If the number of threads is greater than 1, FastSurfer will process the left and right hemispheres in parallel.</p></li>
 </ul>
-<p>Note, that the paths following <code class="docutils literal notranslate"><span class="pre">--fs_license</span></code>, <code class="docutils literal notranslate"><span class="pre">--t1</span></code>, and <code class="docutils literal notranslate"><span class="pre">--sd</span></code> are <strong>inside</strong> the container, not global paths on your system, so they should point to the places where you mapped these paths above with the <code class="docutils literal notranslate"><span class="pre">-v</span></code> arguments (part after colon).</p>
+<p>Note, that the paths following <code class="docutils literal notranslate"><span class="pre">--fs_license</span></code>, <code class="docutils literal notranslate"><span class="pre">--t1</span></code>, and <code class="docutils literal notranslate"><span class="pre">--sd</span></code> are <strong>inside</strong> the container, not global paths on your system, so they should point to the places where you mapped these paths above with the <code class="docutils literal notranslate"><span class="pre">-B</span></code> arguments (here, the same paths as on your system).</p>
 <p>A directory with the name as specified in <code class="docutils literal notranslate"><span class="pre">--sid</span></code> (here subjectX) will be created in the output directory. So in this example output will be written to <code class="docutils literal notranslate"><span class="pre">$HOME/my_fastsurfer_analysis/subjectX/</span></code> . Make sure the output directory is empty, to avoid overwriting existing files.</p>
-<p>If you have no supported GPU, most Singularity images should automatically work (default to the CPU, just drop the <code class="docutils literal notranslate"><span class="pre">--nv</span></code> flag). Since execution on the CPU requires less driver installation, a custom, smaller CPU image is available <code class="docutils literal notranslate"><span class="pre">singularity</span> <span class="pre">build</span> <span class="pre">fastsurfer-cpu.sif</span> <span class="pre">docker://deepmi/fastsurfer:cpu-latest</span></code>.</p>
+<p>If you have no supported GPU, most Singularity images should automatically work (default to the CPU, just drop the <code class="docutils literal notranslate"><span class="pre">--nv</span></code> flag). Since execution on the CPU requires less driver installation, a custom, smaller CPU image is available <code class="docutils literal notranslate"><span class="pre">singularity</span> <span class="pre">build</span> <span class="pre">$HOME/my_singularity_images/fastsurfer-cpu-2.5.4.sif</span> <span class="pre">docker://deepmi/fastsurfer:cpu-v2.5.4</span></code>.</p>
 </section>
 </section>
 <section id="example-2-fastsurfer-docker">
 <h2>Example 2: FastSurfer Docker<a class="headerlink" href="#example-2-fastsurfer-docker" title="Link to this heading">¶</a></h2>
-<p>After pulling one of our images from Dockerhub, you do not need to have a separate installation of FreeSurfer on your computer (it is already included in the Docker image). However, if you want to run <em><strong>more than just the segmentation CNN</strong></em>, you need to <a class="reference external" href="https://surfer.nmr.mgh.harvard.edu/registration.html">register at the FreeSurfer website</a> to acquire a valid license for free. The directory containing the license needs to be mounted and passed to the script via the <code class="docutils literal notranslate"><span class="pre">--fs_license</span></code> flag. Basically for Docker (as for Singularity below) you are starting a container image (with the run command) and pass several parameters for that, e.g. if GPUs will be used and mounting (linking) the input and output directories to the inside of the container image. In the second half of that call you pass parameters to our <code class="docutils literal notranslate"><span class="pre">run_fastsurfer.sh</span></code> script that runs inside the container (e.g. where to find the FreeSurfer license file, and the input data and other flags).</p>
+<p>After pulling one of our images from Dockerhub, you do not need to have a separate installation of FreeSurfer on your computer (it is already included in the Docker image). However, if you want to run <em><strong>more than just the segmentation CNN</strong></em>, you need to <a class="reference external" href="https://surfer.nmr.mgh.harvard.edu/registration.html">register at the FreeSurfer website</a> to acquire a valid license for free. The license file needs to be mounted and passed to the script via the <code class="docutils literal notranslate"><span class="pre">--fs_license</span></code> flag. Basically for Docker (as for Singularity below) you are starting a container image (with the run command) and pass several parameters for that, e.g. if GPUs will be used and mounting (linking) the input and output directories to the inside of the container image. In the second half of that call you pass parameters to our <code class="docutils literal notranslate"><span class="pre">run_fastsurfer.sh</span></code> script that runs inside the container (e.g. where to find the FreeSurfer license file, and the input data and other flags).</p>
 <p>To run FastSurfer on a given subject using the provided GPU-Docker, execute the following command:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>docker<span class="w"> </span>run<span class="w"> </span>--gpus<span class="w"> </span>all<span class="w"> </span>-v<span class="w"> </span><span class="nv">$HOME</span>/my_mri_data:<span class="nv">$HOME</span>/my_mri_data<span class="w"> </span><span class="se">\</span>
-<span class="w">                      </span>-v<span class="w"> </span><span class="nv">$HOME</span>/my_fastsurfer_analysis:<span class="nv">$HOME</span>/my_fastsurfer_analysis<span class="w"> </span><span class="se">\</span>
-<span class="w">                      </span>-v<span class="w"> </span><span class="nv">$HOME</span>/my_fs_license.txt:<span class="nv">$HOME</span>/my_fs_license.txt<span class="w"> </span><span class="se">\</span>
-<span class="w">                      </span>--rm<span class="w"> </span>--user<span class="w"> </span><span class="k">$(</span>id<span class="w"> </span>-u<span class="k">)</span>:<span class="k">$(</span>id<span class="w"> </span>-g<span class="k">)</span><span class="w"> </span>deepmi/fastsurfer:latest<span class="w"> </span><span class="se">\</span>
-<span class="w">                      </span>--fs_license<span class="w"> </span><span class="nv">$HOME</span>/my_fs_license.txt<span class="w"> </span><span class="se">\</span>
-<span class="w">                      </span>--t1<span class="w"> </span><span class="nv">$HOME</span>/my_mri_data/subjectX/t1-weighted.nii.gz<span class="w"> </span><span class="se">\</span>
-<span class="w">                      </span>--sid<span class="w"> </span>subjectX<span class="w"> </span>--sd<span class="w"> </span><span class="nv">$HOME</span>/my_fastsurfer_analysis<span class="w"> </span><span class="se">\</span>
-<span class="w">                      </span>--3T<span class="w"> </span><span class="se">\</span>
-<span class="w">                      </span>--threads<span class="w"> </span><span class="m">4</span>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This documents the development version 2.6.0-dev0. Official Docker images only exist for releases, so the commands below use the latest release, 2.5.4, for its default CUDA version, 12.8. Images of 2.5.4 for other CUDA versions, ROCm and CPU are available on <a class="reference external" href="https://hub.docker.com/r/deepmi/fastsurfer/tags?name=v2.5.4">Docker Hub</a>. To run the development version, <a class="reference internal" href="docker.html"><span class="doc">build your own image</span></a>.</p>
+</div>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">freesurfer_license</span><span class="o">=</span><span class="si">${</span><span class="nv">freesurfer_license</span><span class="k">:-</span><span class="p">/path/to/your/freesurfer/license_file</span><span class="si">}</span>
+docker<span class="w"> </span>run<span class="w"> </span>--gpus<span class="w"> </span>all<span class="w"> </span>-v<span class="w"> </span><span class="nv">$HOME</span>/my_mri_data:<span class="nv">$HOME</span>/my_mri_data<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>-v<span class="w"> </span><span class="nv">$HOME</span>/my_fastsurfer_analysis:<span class="nv">$HOME</span>/my_fastsurfer_analysis<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>-v<span class="w"> </span><span class="nv">$freesurfer_license</span>:<span class="nv">$freesurfer_license</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--rm<span class="w"> </span>--user<span class="w"> </span><span class="k">$(</span>id<span class="w"> </span>-u<span class="k">)</span>:<span class="k">$(</span>id<span class="w"> </span>-g<span class="k">)</span><span class="w"> </span>deepmi/fastsurfer:cu128-v2.5.4<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--fs_license<span class="w"> </span><span class="nv">$freesurfer_license</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--t1<span class="w"> </span><span class="nv">$HOME</span>/my_mri_data/subjectX/t1_weighted.nii.gz<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--sid<span class="w"> </span>subjectX<span class="w"> </span>--sd<span class="w"> </span><span class="nv">$HOME</span>/my_fastsurfer_analysis<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--3T<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--threads<span class="w"> </span><span class="m">4</span>
 </pre></div>
 </div>
 <section id="docker-flags">
 <h3>Docker Flags<a class="headerlink" href="#docker-flags" title="Link to this heading">¶</a></h3>
 <ul class="simple">
 <li><p>The <code class="docutils literal notranslate"><span class="pre">--gpus</span></code> flag is used to allow Docker to access GPU resources. With it, you can also specify how many GPUs to use. In the example above, <em>all</em> will use all available GPUS. To use a single one (e.g. GPU 0), set <code class="docutils literal notranslate"><span class="pre">--gpus</span> <span class="pre">device=0</span></code>. To use multiple specific ones (e.g. GPU 0, 1 and 3), set <code class="docutils literal notranslate"><span class="pre">--gpus</span> <span class="pre">'device=0,1,3'</span></code>. If you do not have a supported GPU, just drop this flag to use the CPU.</p></li>
-<li><p>The <code class="docutils literal notranslate"><span class="pre">-v</span></code> commands mount your data, output, and directory with the FreeSurfer license file into the docker container. Inside the container these are visible under the name following the colon (in this case /data, /output, and /fs_license).</p></li>
+<li><p>The <code class="docutils literal notranslate"><span class="pre">-v</span></code> commands mount your data, output, and the FreeSurfer license file into the docker container. Inside the container these are visible under the name following the colon (in this case the same paths as on your system).</p></li>
 <li><p>The <code class="docutils literal notranslate"><span class="pre">--rm</span></code> flag takes care of removing the container once the analysis finished.</p></li>
 <li><p>The <code class="docutils literal notranslate"><span class="pre">--user</span> <span class="pre">$(id</span> <span class="pre">-u):$(id</span> <span class="pre">-g)</span></code> part automatically runs the container with your group- (<code class="docutils literal notranslate"><span class="pre">id</span> <span class="pre">-g</span></code>) and user-id (<code class="docutils literal notranslate"><span class="pre">id</span> <span class="pre">-u</span></code>). All generated files will then belong to the specified user. Without the flag, the docker container will return an error. If running the container as root is required (despite being against best practice, for example because it is run in a sandbox, pass <code class="docutils literal notranslate"><span class="pre">--user</span> <span class="pre">0:0</span></code>).</p></li>
 </ul>
@@ -548,17 +563,17 @@ execute it:</p>
 <section id="docker-image">
 <h3>Docker image<a class="headerlink" href="#docker-image" title="Link to this heading">¶</a></h3>
 <ul class="simple">
-<li><p>This command assumes you want to use the most recent (locally cached) version of FastSurfer <code class="docutils literal notranslate"><span class="pre">deepmi/fastsurfer:latest</span></code>. This will always include current nVidia drivers and libraries.</p></li>
+<li><p>This command assumes you want to use the most recent (locally cached) version of FastSurfer <code class="docutils literal notranslate"><span class="pre">deepmi/fastsurfer:cu128-v2.5.4</span></code>. This will always include current nVidia drivers and libraries.</p></li>
 <li><p>For older libraries, an image with AMD drivers or a smaller, CPU-only docker image, images are available in <a class="reference external" href="https://hub.docker.com/r/deepmi/fastsurfer/tags">multiple configurations</a>.</p></li>
 </ul>
 </section>
 <section id="fastsurfer-flag">
 <h3>FastSurfer Flag<a class="headerlink" href="#fastsurfer-flag" title="Link to this heading">¶</a></h3>
 <ul class="simple">
-<li><p>The <code class="docutils literal notranslate"><span class="pre">--fs_license</span></code> points to your FreeSurfer license which needs to be available on your computer, replace all occurrences of <code class="docutils literal notranslate"><span class="pre">$HOME/my_fs_license.txt</span></code> (full path, must be mounted via <code class="docutils literal notranslate"><span class="pre">-v</span> <span class="pre">&lt;path&gt;:&lt;path&gt;</span></code>).</p></li>
-<li><p>The <code class="docutils literal notranslate"><span class="pre">--t1</span></code> points to the t1-weighted MRI image to analyse (full path, must be mounted via <code class="docutils literal notranslate"><span class="pre">-v</span> <span class="pre">&lt;path&gt;:&lt;path&gt;</span></code>)</p></li>
+<li><p>The <code class="docutils literal notranslate"><span class="pre">--fs_license</span></code> points to your FreeSurfer license which needs to be available on your computer: set <code class="docutils literal notranslate"><span class="pre">freesurfer_license</span></code> to its full path before running the command (it must be mounted via <code class="docutils literal notranslate"><span class="pre">-v</span> <span class="pre">$freesurfer_license:$freesurfer_license</span></code>).</p></li>
+<li><p>The <code class="docutils literal notranslate"><span class="pre">--t1</span></code> points to the t1-weighted MRI image to analyse (full path, must be mounted via <code class="docutils literal notranslate"><span class="pre">-v</span> <span class="pre">&lt;data_dir&gt;:&lt;data_dir&gt;</span></code>)</p></li>
 <li><p>The <code class="docutils literal notranslate"><span class="pre">--sid</span></code> is the subject ID name (output folder name)</p></li>
-<li><p>The <code class="docutils literal notranslate"><span class="pre">--sd</span></code> points to the output directory (must be mounted via <code class="docutils literal notranslate"><span class="pre">-v</span> <span class="pre">&lt;path&gt;:&lt;path&gt;</span></code>)</p></li>
+<li><p>The <code class="docutils literal notranslate"><span class="pre">--sd</span></code> points to the output directory (must be mounted via <code class="docutils literal notranslate"><span class="pre">-v</span> <span class="pre">&lt;subjects_dir&gt;:&lt;subjects_dir&gt;</span></code>)</p></li>
 <li><p>The <code class="docutils literal notranslate"><span class="pre">--3T</span></code> changes the atlas for registration to the 3T atlas for better Talairach transforms and ICV estimates (eTIV)</p></li>
 <li><p>The <code class="docutils literal notranslate"><span class="pre">--threads</span></code> tells FastSurfer to use that many threads in segmentation and surface reconstruction. <code class="docutils literal notranslate"><span class="pre">max</span></code> will auto-detect the number of threads available, i.e. <code class="docutils literal notranslate"><span class="pre">16</span></code> on an 8-core system with hyperthreading. If the number of threads is greater than 1, FastSurfer will process the left and right hemispheres in parallel.</p></li>
 </ul>
@@ -568,66 +583,81 @@ execute it:</p>
 <section id="example-3-native-fastsurfer-on-subjectx-with-parallel-processing-of-hemis">
 <h2>Example 3: Native FastSurfer on subjectX with parallel processing of hemis<a class="headerlink" href="#example-3-native-fastsurfer-on-subjectx-with-parallel-processing-of-hemis" title="Link to this heading">¶</a></h2>
 <p>For a native install you may want to make sure that you are on our stable branch, as the default dev branch is for development and could be broken at any time. For that you can directly clone the stable branch:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>git<span class="w"> </span>clone<span class="w"> </span>--branch<span class="w"> </span>stable<span class="w"> </span>https://github.com/Deep-MI/FastSurfer.git
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span><span class="w"> </span><span class="nv">FASTSURFER_HOME</span><span class="o">=</span><span class="si">${</span><span class="nv">FASTSURFER_HOME</span><span class="k">:-</span><span class="p">/path/to/FastSurfer</span><span class="si">}</span>
+git<span class="w"> </span>clone<span class="w"> </span>--branch<span class="w"> </span>stable<span class="w"> </span>https://github.com/Deep-MI/FastSurfer.git<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span><span class="nv">$FASTSURFER_HOME</span>
 </pre></div>
 </div>
 <p>More details (e.g. you need all dependencies in the right versions and also FreeSurfer locally) can be found in our <a class="reference internal" href="INSTALL.html"><span class="std std-doc">Installation guide</span></a>.
-Given you want to analyze data for subject which is stored on your computer under <code class="docutils literal notranslate"><span class="pre">$HOME/my_mri_data/subjectX/t1-weighted.nii.gz</span></code>, run the following command from the console (do not forget to source FreeSurfer!):</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Source FreeSurfer</span>
-<span class="nb">export</span><span class="w"> </span><span class="nv">FREESURFER_HOME</span><span class="o">=</span>/path/to/freesurfer
+Given you want to analyze data for subject which is stored on your computer under <code class="docutils literal notranslate"><span class="pre">$HOME/my_mri_data/subjectX/t1_weighted.nii.gz</span></code>, run the following command from the console (do not forget to source FreeSurfer!):</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span><span class="w"> </span><span class="nv">FASTSURFER_HOME</span><span class="o">=</span><span class="si">${</span><span class="nv">FASTSURFER_HOME</span><span class="k">:-</span><span class="p">/path/to/FastSurfer</span><span class="si">}</span>
+
+<span class="c1"># Source FreeSurfer</span>
+<span class="nb">export</span><span class="w"> </span><span class="nv">FREESURFER_HOME</span><span class="o">=</span><span class="si">${</span><span class="nv">FREESURFER_HOME</span><span class="k">:-</span><span class="p">/path/to/freesurfer</span><span class="si">}</span>
 <span class="nb">source</span><span class="w"> </span><span class="nv">$FREESURFER_HOME</span>/SetUpFreeSurfer.sh
 
 <span class="c1"># Define data directory</span>
-<span class="nv">datadir</span><span class="o">=</span><span class="nv">$HOME</span>/my_mri_data
-<span class="nv">fastsurferdir</span><span class="o">=</span><span class="nv">$HOME</span>/my_fastsurfer_analysis
+<span class="nv">data_dir</span><span class="o">=</span><span class="nv">$HOME</span>/my_mri_data
+<span class="nv">output_dir</span><span class="o">=</span><span class="nv">$HOME</span>/my_fastsurfer_analysis
 
 <span class="c1"># Run FastSurfer</span>
-./run_fastsurfer.sh<span class="w"> </span>--t1<span class="w"> </span><span class="nv">$datadir</span>/subjectX/t1-weighted-nii.gz<span class="w"> </span><span class="se">\</span>
-<span class="w">                    </span>--sid<span class="w"> </span>subjectX<span class="w"> </span>--sd<span class="w"> </span><span class="nv">$fastsurferdir</span><span class="w"> </span><span class="se">\</span>
+<span class="nv">$FASTSURFER_HOME</span>/run_fastsurfer.sh<span class="w"> </span>--t1<span class="w"> </span><span class="nv">$data_dir</span>/subjectX/t1_weighted.nii.gz<span class="w"> </span><span class="se">\</span>
+<span class="w">                    </span>--sid<span class="w"> </span>subjectX<span class="w"> </span>--sd<span class="w"> </span><span class="nv">$output_dir</span><span class="w"> </span><span class="se">\</span>
 <span class="w">                    </span>--threads<span class="w"> </span><span class="m">4</span><span class="w"> </span>--3T
 </pre></div>
 </div>
-<p>The output will be stored in the <code class="docutils literal notranslate"><span class="pre">$fastsurferdir</span></code> (including the <code class="docutils literal notranslate"><span class="pre">aparc.DKTatlas+aseg.deep.mgz</span></code> segmentation under <code class="docutils literal notranslate"><span class="pre">$fastsurferdir/subjectX/mri</span></code> (default location)). For surfaces <code class="docutils literal notranslate"><span class="pre">--threads</span></code> is a total budget that the two hemispheres split and use at the same time, so <code class="docutils literal notranslate"><span class="pre">--threads</span> <span class="pre">4</span></code> gives two threads per hemisphere. That is also what happens without the flag, because the surface default is 2 threads, one per hemisphere. Pass <code class="docutils literal notranslate"><span class="pre">--threads</span> <span class="pre">1</span></code> to run everything in a single thread, one hemisphere after the other, e.g. if you want to save resources on a compute cluster.</p>
+<p>The output will be stored in the <code class="docutils literal notranslate"><span class="pre">$output_dir</span></code> (including the <code class="docutils literal notranslate"><span class="pre">aparc.DKTatlas+aseg.deep.mgz</span></code> segmentation under <code class="docutils literal notranslate"><span class="pre">$output_dir/subjectX/mri</span></code> (default location)). For surfaces <code class="docutils literal notranslate"><span class="pre">--threads</span></code> is a total budget that the two hemispheres split and use at the same time, so <code class="docutils literal notranslate"><span class="pre">--threads</span> <span class="pre">4</span></code> gives two threads per hemisphere. That is also what happens without the flag, because the surface default is 2 threads, one per hemisphere. Pass <code class="docutils literal notranslate"><span class="pre">--threads</span> <span class="pre">1</span></code> to run everything in a single thread, one hemisphere after the other, e.g. if you want to save resources on a compute cluster.</p>
 </section>
 <section id="example-4-fastsurfer-on-multiple-subjects">
 <h2>Example 4: FastSurfer on multiple subjects<a class="headerlink" href="#example-4-fastsurfer-on-multiple-subjects" title="Link to this heading">¶</a></h2>
-<p>In order to run FastSurfer on multiple cases, you may use the helper script <code class="docutils literal notranslate"><span class="pre">brun_subjects.sh</span></code>. This script accepts multiple ways to define the subjects, for example a subjects_list file.
+<p>In order to run FastSurfer on multiple cases, you may use the helper script <code class="docutils literal notranslate"><span class="pre">brun_fastsurfer.sh</span></code>. This script accepts multiple ways to define the subjects, for example a subjects_list file.
 Prepare the subjects_list file as follows (one line subject per line; delimited by <code class="docutils literal notranslate"><span class="pre">\n</span></code>):</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">subject_id1</span><span class="o">=</span><span class="n">path_to_t1</span>
-<span class="n">subject2</span><span class="o">=</span><span class="n">path_to_t1</span>
-<span class="n">subject3</span><span class="o">=</span><span class="n">path_to_t1</span>
-<span class="o">...</span>
-<span class="n">subject10</span><span class="o">=</span><span class="n">path_to_t1</span>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>&lt;subject_id_1&gt;=&lt;t1_path_1&gt;
+&lt;subject_id_2&gt;=&lt;t1_path_2&gt;
+&lt;subject_id_3&gt;=&lt;t1_path_3&gt;
+...
+&lt;subject_id_10&gt;=&lt;t1_path_10&gt;
 </pre></div>
 </div>
-<p>Note, that all paths (<code class="docutils literal notranslate"><span class="pre">path_to_t1</span></code>) are as if you passed them to the <code class="docutils literal notranslate"><span class="pre">run_fastsurfer.sh</span></code> script via <code class="docutils literal notranslate"><span class="pre">--t1</span> <span class="pre">&lt;path&gt;</span></code> so they may be with respect to the singularity or docker file system. Absolute paths are recommended.</p>
+<p>Note, that all paths (<code class="docutils literal notranslate"><span class="pre">&lt;t1_path_1&gt;</span></code>, …) are as if you passed them to the <code class="docutils literal notranslate"><span class="pre">run_fastsurfer.sh</span></code> script via <code class="docutils literal notranslate"><span class="pre">--t1</span> <span class="pre">&lt;t1_path&gt;</span></code> so they may be with respect to the singularity or docker file system. Absolute paths are recommended.</p>
 <p>The <code class="docutils literal notranslate"><span class="pre">brun_fastsurfer.sh</span></code> script can then be invoked in docker, singularity or on the native platform as follows:</p>
 <section id="docker">
 <h3>Docker<a class="headerlink" href="#docker" title="Link to this heading">¶</a></h3>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>docker<span class="w"> </span>run<span class="w"> </span>--gpus<span class="w"> </span>all<span class="w"> </span>-v<span class="w"> </span><span class="nv">$HOME</span>/my_mri_data:/data<span class="w"> </span><span class="se">\</span>
-<span class="w">                      </span>-v<span class="w"> </span><span class="nv">$HOME</span>/my_fastsurfer_analysis:/output<span class="w"> </span><span class="se">\</span>
-<span class="w">                      </span>-v<span class="w"> </span><span class="nv">$HOME</span>/my_fs_license_dir:/fs_license<span class="w"> </span><span class="se">\</span>
-<span class="w">                      </span>--entrypoint<span class="w"> </span><span class="s2">"/fastsurfer/brun_fastsurfer.sh"</span><span class="w"> </span><span class="se">\</span>
-<span class="w">                      </span>--rm<span class="w"> </span>--user<span class="w"> </span><span class="k">$(</span>id<span class="w"> </span>-u<span class="k">)</span>:<span class="k">$(</span>id<span class="w"> </span>-g<span class="k">)</span><span class="w"> </span>deepmi/fastsurfer:latest<span class="w"> </span><span class="se">\</span>
-<span class="w">                      </span>--fs_license<span class="w"> </span>/fs_license/license.txt<span class="w"> </span><span class="se">\</span>
-<span class="w">                      </span>--sd<span class="w"> </span>/output<span class="w"> </span>--subject_list<span class="w"> </span>/data/subjects_list.txt<span class="w"> </span><span class="se">\</span>
-<span class="w">                      </span>--3T<span class="w"> </span><span class="se">\</span>
-<span class="w">                      </span>--threads<span class="w"> </span><span class="m">4</span>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This documents the development version 2.6.0-dev0. Official Docker images only exist for releases, so the commands below use the latest release, 2.5.4, for its default CUDA version, 12.8. Images of 2.5.4 for other CUDA versions, ROCm and CPU are available on <a class="reference external" href="https://hub.docker.com/r/deepmi/fastsurfer/tags?name=v2.5.4">Docker Hub</a>. To run the development version, <a class="reference internal" href="docker.html"><span class="doc">build your own image</span></a>.</p>
+</div>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">freesurfer_license</span><span class="o">=</span><span class="si">${</span><span class="nv">freesurfer_license</span><span class="k">:-</span><span class="p">/path/to/your/freesurfer/license_file</span><span class="si">}</span>
+docker<span class="w"> </span>run<span class="w"> </span>--gpus<span class="w"> </span>all<span class="w"> </span>-v<span class="w"> </span><span class="nv">$HOME</span>/my_mri_data:<span class="nv">$HOME</span>/my_mri_data<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>-v<span class="w"> </span><span class="nv">$HOME</span>/my_fastsurfer_analysis:<span class="nv">$HOME</span>/my_fastsurfer_analysis<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>-v<span class="w"> </span><span class="nv">$freesurfer_license</span>:<span class="nv">$freesurfer_license</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--entrypoint<span class="w"> </span><span class="s2">"/fastsurfer/brun_fastsurfer.sh"</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--rm<span class="w"> </span>--user<span class="w"> </span><span class="k">$(</span>id<span class="w"> </span>-u<span class="k">)</span>:<span class="k">$(</span>id<span class="w"> </span>-g<span class="k">)</span><span class="w"> </span>deepmi/fastsurfer:cu128-v2.5.4<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--fs_license<span class="w"> </span><span class="nv">$freesurfer_license</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--sd<span class="w"> </span><span class="nv">$HOME</span>/my_fastsurfer_analysis<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--subjects_list<span class="w"> </span><span class="nv">$HOME</span>/my_mri_data/subjects_list.txt<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--3T<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--threads<span class="w"> </span><span class="m">4</span>
 </pre></div>
 </div>
 </section>
 <section id="singularity">
 <h3>Singularity<a class="headerlink" href="#singularity" title="Link to this heading">¶</a></h3>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>singularity<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>--nv<span class="w"> </span><span class="se">\</span>
-<span class="w">                 </span>--no-home<span class="w"> </span><span class="se">\</span>
-<span class="w">                 </span>-B<span class="w"> </span><span class="nv">$HOME</span>/my_mri_data:/data<span class="w"> </span><span class="se">\</span>
-<span class="w">                 </span>-B<span class="w"> </span><span class="nv">$HOME</span>/my_fastsurfer_analysis:/output<span class="w"> </span><span class="se">\</span>
-<span class="w">                 </span>-B<span class="w"> </span><span class="nv">$HOME</span>/my_fs_license_dir:/fs_license<span class="w"> </span><span class="se">\</span>
-<span class="w">                 </span>./fastsurfer-gpu.sif<span class="w"> </span><span class="se">\</span>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This documents the development version 2.6.0-dev0. Official Docker images only exist for releases, so the commands below use the latest release, 2.5.4. To run the development version, <a class="reference internal" href="docker.html"><span class="doc">build your own image</span></a>.</p>
+</div>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">freesurfer_license</span><span class="o">=</span><span class="si">${</span><span class="nv">freesurfer_license</span><span class="k">:-</span><span class="p">/path/to/your/freesurfer/license_file</span><span class="si">}</span>
+singularity<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>--nv<span class="w"> </span><span class="se">\</span>
+<span class="w">                 </span>--no-mount<span class="w"> </span>home,cwd<span class="w"> </span><span class="se">\</span>
+<span class="w">                 </span>-B<span class="w"> </span><span class="nv">$HOME</span>/my_mri_data<span class="w"> </span><span class="se">\</span>
+<span class="w">                 </span>-B<span class="w"> </span><span class="nv">$HOME</span>/my_fastsurfer_analysis<span class="w"> </span><span class="se">\</span>
+<span class="w">                 </span>-B<span class="w"> </span><span class="nv">$freesurfer_license</span><span class="w"> </span><span class="se">\</span>
+<span class="w">                 </span><span class="nv">$HOME</span>/my_singularity_images/fastsurfer-2.5.4.sif<span class="w"> </span><span class="se">\</span>
 <span class="w">                 </span>/fastsurfer/brun_fastsurfer.sh<span class="w"> </span><span class="se">\</span>
-<span class="w">                 </span>--fs_license<span class="w"> </span>/fs_license/license.txt<span class="w"> </span><span class="se">\</span>
-<span class="w">                 </span>--sd<span class="w"> </span>/output<span class="w"> </span><span class="se">\</span>
-<span class="w">                 </span>--subject_list<span class="w"> </span>/data/subjects_list.txt<span class="w"> </span><span class="se">\</span>
+<span class="w">                 </span>--fs_license<span class="w"> </span><span class="nv">$freesurfer_license</span><span class="w"> </span><span class="se">\</span>
+<span class="w">                 </span>--sd<span class="w"> </span><span class="nv">$HOME</span>/my_fastsurfer_analysis<span class="w"> </span><span class="se">\</span>
+<span class="w">                 </span>--subjects_list<span class="w"> </span><span class="nv">$HOME</span>/my_mri_data/subjects_list.txt<span class="w"> </span><span class="se">\</span>
 <span class="w">                 </span>--3T<span class="w"> </span><span class="se">\</span>
 <span class="w">                 </span>--threads<span class="w"> </span><span class="m">4</span>
 </pre></div>
@@ -635,16 +665,17 @@ Prepare the subjects_list file as follows (one line subject per line; delimited 
 </section>
 <section id="native">
 <h3>Native<a class="headerlink" href="#native" title="Link to this heading">¶</a></h3>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span><span class="w"> </span><span class="nv">FREESURFER_HOME</span><span class="o">=</span>/path/to/freesurfer
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span><span class="w"> </span><span class="nv">FASTSURFER_HOME</span><span class="o">=</span><span class="si">${</span><span class="nv">FASTSURFER_HOME</span><span class="k">:-</span><span class="p">/path/to/FastSurfer</span><span class="si">}</span>
+<span class="nb">export</span><span class="w"> </span><span class="nv">FREESURFER_HOME</span><span class="o">=</span><span class="si">${</span><span class="nv">FREESURFER_HOME</span><span class="k">:-</span><span class="p">/path/to/freesurfer</span><span class="si">}</span>
 <span class="nb">source</span><span class="w"> </span><span class="nv">$FREESURFER_HOME</span>/SetUpFreeSurfer.sh
 
-<span class="nb">cd</span><span class="w"> </span><span class="nv">$HOME</span>/FastSurfer
-<span class="nv">datadir</span><span class="o">=</span><span class="nv">$HOME</span>/my_mri_data
-<span class="nv">fastsurferdir</span><span class="o">=</span><span class="nv">$HOME</span>/my_fastsurfer_analysis
+<span class="nv">data_dir</span><span class="o">=</span><span class="nv">$HOME</span>/my_mri_data
+<span class="nv">output_dir</span><span class="o">=</span><span class="nv">$HOME</span>/my_fastsurfer_analysis
 
 <span class="c1"># Run FastSurfer</span>
-./brun_fastsurfer.sh<span class="w"> </span>--subject_list<span class="w"> </span><span class="nv">$datadir</span>/subjects_list.txt<span class="w"> </span><span class="se">\</span>
-<span class="w">                     </span>--sd<span class="w"> </span><span class="nv">$fastsurferdir</span><span class="w"> </span><span class="se">\</span>
+<span class="nv">$FASTSURFER_HOME</span>/brun_fastsurfer.sh<span class="w"> </span><span class="se">\</span>
+<span class="w">                     </span>--subjects_list<span class="w"> </span><span class="nv">$data_dir</span>/subjects_list.txt<span class="w"> </span><span class="se">\</span>
+<span class="w">                     </span>--sd<span class="w"> </span><span class="nv">$output_dir</span><span class="w"> </span><span class="se">\</span>
 <span class="w">                     </span>--threads<span class="w"> </span><span class="m">4</span><span class="w"> </span>--3T
 </pre></div>
 </div>
@@ -657,85 +688,108 @@ Prepare the subjects_list file as follows (one line subject per line; delimited 
 <section id="example-5-quick-segmentation">
 <h2>Example 5: Quick Segmentation<a class="headerlink" href="#example-5-quick-segmentation" title="Link to this heading">¶</a></h2>
 <p>For many applications you won’t need the surfaces. You can run only the aparc+DKT segmentation (in 1 minute on a GPU) via</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>./run_fastsurfer.sh<span class="w"> </span>--t1<span class="w"> </span><span class="nv">$datadir</span>/subject1/t1-weighted.nii.gz<span class="w"> </span><span class="se">\</span>
-<span class="w">                    </span>--asegdkt_segfile<span class="w"> </span><span class="nv">$outputdir</span>/subject1/aparc.DKTatlas+aseg.deep.mgz<span class="w"> </span><span class="se">\</span>
-<span class="w">                    </span>--conformed_name<span class="w"> </span><span class="nv">$outputdir</span>/subject1/conformed.mgz<span class="w"> </span><span class="se">\</span>
-<span class="w">                    </span>--sd<span class="w"> </span><span class="nv">$HOME</span>/my_fastsurfer_analysis<span class="w"> </span><span class="se">\</span>
-<span class="w">                    </span>--sid<span class="w"> </span>subject1<span class="w"> </span><span class="se">\</span>
-<span class="w">                    </span>--threads<span class="w"> </span><span class="m">4</span><span class="w"> </span>--seg_only<span class="w"> </span>--no_cereb<span class="w"> </span>--no_hypothal
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span><span class="w"> </span><span class="nv">FASTSURFER_HOME</span><span class="o">=</span><span class="si">${</span><span class="nv">FASTSURFER_HOME</span><span class="k">:-</span><span class="p">/path/to/FastSurfer</span><span class="si">}</span>
+<span class="nv">$FASTSURFER_HOME</span>/run_fastsurfer.sh<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--t1<span class="w"> </span><span class="nv">$HOME</span>/my_mri_data/subjectX/t1_weighted.nii.gz<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--asegdkt_segfile<span class="w"> </span><span class="se">\</span>
+<span class="w">      </span><span class="nv">$HOME</span>/my_fastsurfer_analysis/subjectX/aparc.DKTatlas+aseg.deep.mgz<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--conformed_name<span class="w"> </span><span class="nv">$HOME</span>/my_fastsurfer_analysis/subjectX/conformed.mgz<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--sd<span class="w"> </span><span class="nv">$HOME</span>/my_fastsurfer_analysis<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--sid<span class="w"> </span>subjectX<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--threads<span class="w"> </span><span class="m">4</span><span class="w"> </span>--seg_only<span class="w"> </span>--no_cereb<span class="w"> </span>--no_hypothal
 </pre></div>
 </div>
 <p>This will produce the segmentation in a conformed space (just as FreeSurfer would do). It also writes the conformed image that fits the segmentation.
 Conformed means that the image will be isotropic in LIA orientation.
 It will furthermore output a brain mask (<code class="docutils literal notranslate"><span class="pre">mri/mask.mgz</span></code>), a simplified segmentation file (<code class="docutils literal notranslate"><span class="pre">mri/aseg.auto_noCCseg.mgz</span></code>), the biasfield corrected image (<code class="docutils literal notranslate"><span class="pre">mri/orig_nu.mgz</span></code>), and the volume statistics (without eTIV) based on the FastSurferVINN segmentation (without the corpus callosum) (<code class="docutils literal notranslate"><span class="pre">stats/aseg+DKT.stats</span></code>).</p>
 <p>If you do not even need the biasfield corrected image and the volume statistics, you may add <code class="docutils literal notranslate"><span class="pre">--no_biasfield</span></code>. These steps especially benefit from larger assigned core counts <code class="docutils literal notranslate"><span class="pre">--threads</span> <span class="pre">32</span></code>.</p>
-<p>The above <code class="docutils literal notranslate"><span class="pre">run_fastsurfer.sh</span></code> commands can also be called from the Docker or Singularity images by passing the flags and adjusting input and output directories to the locations inside the containers (where you mapped them via the -v flag in Docker or -B in Singularity).</p>
+<p>The above <code class="docutils literal notranslate"><span class="pre">run_fastsurfer.sh</span></code> commands can also be called from the Docker or Singularity images by passing the flags and adjusting input and output directories to the locations inside the containers (where you mapped them via the -v flag in Docker or -B in Singularity, here at the same paths as on your system).</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This documents the development version 2.6.0-dev0. Official Docker images only exist for releases, so the commands below use the latest release, 2.5.4, for its default CUDA version, 12.8. Images of 2.5.4 for other CUDA versions, ROCm and CPU are available on <a class="reference external" href="https://hub.docker.com/r/deepmi/fastsurfer/tags?name=v2.5.4">Docker Hub</a>. To run the development version, <a class="reference internal" href="docker.html"><span class="doc">build your own image</span></a>.</p>
+</div>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Docker</span>
 docker<span class="w"> </span>run<span class="w"> </span>--gpus<span class="w"> </span>all<span class="w"> </span><span class="se">\</span>
-<span class="w">           </span>-v<span class="w"> </span><span class="nv">$HOME</span>/my_mri_data:<span class="nv">$HOME</span>/my_mri_data<span class="w"> </span><span class="se">\</span>
-<span class="w">           </span>-v<span class="w"> </span><span class="nv">$HOME</span>/my_fastsurfer_analysis:<span class="nv">$HOME</span>/my_fastsurfer_analysis<span class="w"> </span><span class="se">\</span>
-<span class="w">           </span>-v<span class="w"> </span><span class="nv">$HOME</span>/my_freesurfer_license.txt:<span class="nv">$HOME</span>/my_freesurfer_license.txt<span class="w"> </span><span class="se">\</span>
-<span class="w">           </span>--rm<span class="w"> </span>--user<span class="w"> </span><span class="k">$(</span>id<span class="w"> </span>-u<span class="k">)</span>:<span class="k">$(</span>id<span class="w"> </span>-g<span class="k">)</span><span class="w"> </span>deepmi/fastsurfer:latest<span class="w"> </span><span class="se">\</span>
-<span class="w">              </span>--t1<span class="w"> </span><span class="nv">$HOME</span>/my_mri_data/subject1/t1-weighted.nii.gz<span class="w"> </span><span class="se">\</span>
-<span class="w">              </span>--asegdkt_segfile<span class="w"> </span><span class="nv">$HOME</span>/my_fastsurfer_analysis/subject1/aparc.DKTatlas+aseg.deep.mgz<span class="w"> </span><span class="se">\</span>
-<span class="w">              </span>--conformed_name<span class="w"> </span><span class="nv">$HOME</span>/my_fastsurfer_analysis/subject1/conformed.mgz<span class="w"> </span><span class="se">\</span>
-<span class="w">              </span>--sd<span class="w"> </span><span class="nv">$HOME</span>/my_fastsurfer_analysis<span class="w"> </span><span class="se">\</span>
-<span class="w">              </span>--sid<span class="w"> </span>subject1<span class="w"> </span><span class="se">\</span>
-<span class="w">              </span>--threads<span class="w"> </span><span class="m">4</span><span class="w"> </span>--seg_only<span class="w"> </span>--3T<span class="w"> </span>--no_cereb<span class="w"> </span>--no_hypothal
+<span class="w">    </span>-v<span class="w"> </span><span class="nv">$HOME</span>/my_mri_data:<span class="nv">$HOME</span>/my_mri_data<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>-v<span class="w"> </span><span class="nv">$HOME</span>/my_fastsurfer_analysis:<span class="nv">$HOME</span>/my_fastsurfer_analysis<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--rm<span class="w"> </span>--user<span class="w"> </span><span class="k">$(</span>id<span class="w"> </span>-u<span class="k">)</span>:<span class="k">$(</span>id<span class="w"> </span>-g<span class="k">)</span><span class="w"> </span>deepmi/fastsurfer:cu128-v2.5.4<span class="w"> </span><span class="se">\</span>
+<span class="w">      </span>--t1<span class="w"> </span><span class="nv">$HOME</span>/my_mri_data/subjectX/t1_weighted.nii.gz<span class="w"> </span><span class="se">\</span>
+<span class="w">      </span>--asegdkt_segfile<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span><span class="nv">$HOME</span>/my_fastsurfer_analysis/subjectX/aparc.DKTatlas+aseg.deep.mgz<span class="w"> </span><span class="se">\</span>
+<span class="w">      </span>--conformed_name<span class="w"> </span><span class="nv">$HOME</span>/my_fastsurfer_analysis/subjectX/conformed.mgz<span class="w"> </span><span class="se">\</span>
+<span class="w">      </span>--sd<span class="w"> </span><span class="nv">$HOME</span>/my_fastsurfer_analysis<span class="w"> </span><span class="se">\</span>
+<span class="w">      </span>--sid<span class="w"> </span>subjectX<span class="w"> </span><span class="se">\</span>
+<span class="w">      </span>--threads<span class="w"> </span><span class="m">4</span><span class="w"> </span>--seg_only<span class="w"> </span>--3T<span class="w"> </span>--no_cereb<span class="w"> </span>--no_hypothal
 </pre></div>
 </div>
 </section>
 <section id="example-6-running-fastsurfer-on-a-slurm-cluster-via-singularity">
 <h2>Example 6: Running FastSurfer on a SLURM cluster via Singularity<a class="headerlink" href="#example-6-running-fastsurfer-on-a-slurm-cluster-via-singularity" title="Link to this heading">¶</a></h2>
-<p>Starting with version 2.2, FastSurfer comes with a script that helps orchestrate FastSurfer optimally on a SLURM cluster: <code class="docutils literal notranslate"><span class="pre">srun_fastsurfer.sh</span></code>.</p>
+<p>FastSurfer comes with a script that helps orchestrate FastSurfer optimally on a SLURM cluster: <code class="docutils literal notranslate"><span class="pre">srun_fastsurfer.sh</span></code>.</p>
 <p>This script distributes GPU-heavy and CPU-heavy workloads to different SLURM partitions and manages intermediate files in a work directory for IO performance.</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>srun_fastsurfer.sh<span class="w"> </span>--partition<span class="w"> </span><span class="nv">seg</span><span class="o">=</span>GPU_Partition<span class="w"> </span><span class="se">\</span>
-<span class="w">                   </span>--partition<span class="w"> </span><span class="nv">surf</span><span class="o">=</span>CPU_Partition<span class="w"> </span><span class="se">\</span>
-<span class="w">                   </span>--sd<span class="w"> </span><span class="nv">$HOME</span>/my_fastsurfer_analysis<span class="w"> </span><span class="se">\</span>
-<span class="w">                   </span>--data<span class="w"> </span><span class="nv">$HOME</span>/my_mri_data<span class="w"> </span><span class="se">\</span>
-<span class="w">                   </span>--pattern<span class="w"> </span>*/t1-weighted.nii.gz<span class="w"> </span><span class="se">\</span>
-<span class="w">                   </span>--remove_suffix<span class="w"> </span>/t1-weighted.nii.gz<span class="w"> </span><span class="se">\</span>
-<span class="w">                   </span>--singularity_image<span class="w"> </span><span class="nv">$HOME</span>/images/fastsurfer-singularity.sif<span class="w"> </span><span class="se">\</span>
-<span class="w">                   </span><span class="o">[</span>...<span class="o">]</span><span class="w"> </span><span class="c1"># fastsurfer flags</span>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This documents the development version 2.6.0-dev0. Official Docker images only exist for releases, so the commands below use the latest release, 2.5.4. To run the development version, <a class="reference internal" href="docker.html"><span class="doc">build your own image</span></a>.</p>
+</div>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span><span class="w"> </span><span class="nv">FASTSURFER_HOME</span><span class="o">=</span><span class="si">${</span><span class="nv">FASTSURFER_HOME</span><span class="k">:-</span><span class="p">/path/to/FastSurfer</span><span class="si">}</span>
+<span class="nv">$FASTSURFER_HOME</span>/srun_fastsurfer.sh<span class="w"> </span>--partition_seg<span class="w"> </span>GPU_Partition<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--partition_surf<span class="w"> </span>CPU_Partition<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--sd<span class="w"> </span><span class="nv">$HOME</span>/my_fastsurfer_analysis<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--data<span class="w"> </span><span class="nv">$HOME</span>/my_mri_data<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--pattern<span class="w"> </span><span class="s1">'*/t1_weighted.nii.gz'</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--remove_suffix<span class="w"> </span>/t1_weighted.nii.gz<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--singularity_image<span class="w"> </span><span class="nv">$HOME</span>/my_singularity_images/fastsurfer-2.5.4.sif<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--3T<span class="w"> </span><span class="c1"># fastsurfer flags</span>
 </pre></div>
 </div>
-<p>This will create three dependent SLURM jobs, one to segment, one for surface reconstruction and one for cleanup (which moves the data from the work directory to the <code class="docutils literal notranslate"><span class="pre">$outputdir</span></code>).
-There are many intricacies and options, so it is advised to use <code class="docutils literal notranslate"><span class="pre">--help</span></code>, <code class="docutils literal notranslate"><span class="pre">--debug</span></code> and <code class="docutils literal notranslate"><span class="pre">--dry</span></code> to inspect, what will be scheduled as well as run a test on a small subset. More control over subjects is available with <code class="docutils literal notranslate"><span class="pre">--subject_list</span></code>.</p>
+<p>This will create three dependent SLURM jobs, one to segment, one for surface reconstruction and one for cleanup (which moves the data from the work directory to <code class="docutils literal notranslate"><span class="pre">$HOME/my_fastsurfer_analysis</span></code>).
+There are many intricacies and options, so it is advised to use <code class="docutils literal notranslate"><span class="pre">--help</span></code>, <code class="docutils literal notranslate"><span class="pre">--debug</span></code> and <code class="docutils literal notranslate"><span class="pre">--dry</span></code> to inspect, what will be scheduled as well as run a test on a small subset. More control over subjects is available with <code class="docutils literal notranslate"><span class="pre">--subjects_list</span></code>.</p>
 <p>The <code class="docutils literal notranslate"><span class="pre">$HOME/my_mri_data</span></code> and the <code class="docutils literal notranslate"><span class="pre">$HOME/my_fastsurfer_analysis</span></code> directories need to be accessible from cluster nodes. Most IO is performed on a work directory (automatically generated from <code class="docutils literal notranslate"><span class="pre">$HPCWORK</span></code> environment variable: <code class="docutils literal notranslate"><span class="pre">$HPCWORK/fastsurfer-processing/$(date</span> <span class="pre">+%Y%m%d-%H%M%S)</span></code>). Alternatively, an empty directory can be manually defined via <code class="docutils literal notranslate"><span class="pre">--work</span></code>. On successful cleanup, this directory will be removed to <code class="docutils literal notranslate"><span class="pre">$HOME/my_fastsurfer_analysis</span></code> (defined via <code class="docutils literal notranslate"><span class="pre">--sd</span></code>).</p>
 </section>
 <section id="example-7-running-fastsurfer-with-lesion-inpainting-using-neurolit">
 <h2>Example 7: Running FastSurfer with lesion inpainting using neurolit<a class="headerlink" href="#example-7-running-fastsurfer-with-lesion-inpainting-using-neurolit" title="Link to this heading">¶</a></h2>
 <p>When T1w images contain large lesions such as tumors, surgical cavities, or other abnormalities,
 FastSurfer segmentation and surfaces can be affected by the altered anatomy. FastSurfer can be
-wrapped with the Lesion Inpainting Tool (LIT) by providing <code class="docutils literal notranslate"><span class="pre">--lesion_mask</span> <span class="pre">&lt;path</span> <span class="pre">to</span> <span class="pre">file&gt;</span></code>.</p>
+wrapped with the Lesion Inpainting Tool (LIT) by providing <code class="docutils literal notranslate"><span class="pre">--lesion_mask</span> <span class="pre">&lt;lesion_mask_path&gt;</span></code>.</p>
 <blockquote>
 <div><p><strong>Note:</strong> The FastSurfer LIT extension is currently experimental. Review the LIT-modified
 outputs before using them for downstream analyses.</p>
 </div></blockquote>
 <section id="id1">
 <h3>Docker<a class="headerlink" href="#id1" title="Link to this heading">¶</a></h3>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>docker<span class="w"> </span>run<span class="w"> </span>--gpus<span class="w"> </span>all<span class="w"> </span>-v<span class="w"> </span>/home/user/my_mri_data:/data<span class="w"> </span><span class="se">\</span>
-<span class="w">                      </span>-v<span class="w"> </span>/home/user/my_fastsurfer_analysis:/output<span class="w"> </span><span class="se">\</span>
-<span class="w">                      </span>-v<span class="w"> </span>/home/user/my_fs_license_dir:/fs_license<span class="w"> </span><span class="se">\</span>
-<span class="w">                      </span>--rm<span class="w"> </span>--user<span class="w"> </span><span class="k">$(</span>id<span class="w"> </span>-u<span class="k">)</span>:<span class="k">$(</span>id<span class="w"> </span>-g<span class="k">)</span><span class="w"> </span>deepmi/fastsurfer:latest<span class="w"> </span><span class="se">\</span>
-<span class="w">                      </span>--fs_license<span class="w"> </span>/fs_license/license.txt<span class="w"> </span><span class="se">\</span>
-<span class="w">                      </span>--t1<span class="w"> </span>/data/subjectX/t1-weighted.nii.gz<span class="w"> </span><span class="se">\</span>
-<span class="w">                      </span>--lesion_mask<span class="w"> </span>/data/subjectX/lesion_mask.nii.gz<span class="w"> </span><span class="se">\</span>
-<span class="w">                      </span>--sid<span class="w"> </span>subjectX<span class="w"> </span>--sd<span class="w"> </span>/output<span class="w"> </span><span class="se">\</span>
-<span class="w">                      </span>--threads<span class="w"> </span><span class="m">4</span>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This documents the development version 2.6.0-dev0. Official Docker images only exist for releases, so the commands below use the latest release, 2.5.4, for its default CUDA version, 12.8. Images of 2.5.4 for other CUDA versions, ROCm and CPU are available on <a class="reference external" href="https://hub.docker.com/r/deepmi/fastsurfer/tags?name=v2.5.4">Docker Hub</a>. To run the development version, <a class="reference internal" href="docker.html"><span class="doc">build your own image</span></a>.</p>
+</div>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">freesurfer_license</span><span class="o">=</span><span class="si">${</span><span class="nv">freesurfer_license</span><span class="k">:-</span><span class="p">/path/to/your/freesurfer/license_file</span><span class="si">}</span>
+docker<span class="w"> </span>run<span class="w"> </span>--gpus<span class="w"> </span>all<span class="w"> </span>-v<span class="w"> </span><span class="nv">$HOME</span>/my_mri_data:<span class="nv">$HOME</span>/my_mri_data<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>-v<span class="w"> </span><span class="nv">$HOME</span>/my_fastsurfer_analysis:<span class="nv">$HOME</span>/my_fastsurfer_analysis<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>-v<span class="w"> </span><span class="nv">$freesurfer_license</span>:<span class="nv">$freesurfer_license</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--rm<span class="w"> </span>--user<span class="w"> </span><span class="k">$(</span>id<span class="w"> </span>-u<span class="k">)</span>:<span class="k">$(</span>id<span class="w"> </span>-g<span class="k">)</span><span class="w"> </span>deepmi/fastsurfer:cu128-v2.5.4<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--fs_license<span class="w"> </span><span class="nv">$freesurfer_license</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--t1<span class="w"> </span><span class="nv">$HOME</span>/my_mri_data/subjectX/t1_weighted.nii.gz<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--lesion_mask<span class="w"> </span><span class="nv">$HOME</span>/my_mri_data/subjectX/lesion_mask.nii.gz<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--sid<span class="w"> </span>subjectX<span class="w"> </span>--sd<span class="w"> </span><span class="nv">$HOME</span>/my_fastsurfer_analysis<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--threads<span class="w"> </span><span class="m">4</span>
 </pre></div>
 </div>
 </section>
 <section id="id2">
 <h3>Native<a class="headerlink" href="#id2" title="Link to this heading">¶</a></h3>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>./run_fastsurfer.sh<span class="w"> </span>--t1<span class="w"> </span>/home/user/my_mri_data/subjectX/t1-weighted.nii.gz<span class="w"> </span><span class="se">\</span>
-<span class="w">                    </span>--lesion_mask<span class="w"> </span>/home/user/my_mri_data/subjectX/lesion_mask.nii.gz<span class="w"> </span><span class="se">\</span>
-<span class="w">                    </span>--sid<span class="w"> </span>subjectX<span class="w"> </span>--sd<span class="w"> </span>/home/user/my_fastsurfer_analysis<span class="w"> </span><span class="se">\</span>
-<span class="w">                    </span>--fs_license<span class="w"> </span>/path/to/license.txt<span class="w"> </span><span class="se">\</span>
-<span class="w">                    </span>--threads<span class="w"> </span><span class="m">4</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span><span class="w"> </span><span class="nv">FASTSURFER_HOME</span><span class="o">=</span><span class="si">${</span><span class="nv">FASTSURFER_HOME</span><span class="k">:-</span><span class="p">/path/to/FastSurfer</span><span class="si">}</span>
+<span class="nb">export</span><span class="w"> </span><span class="nv">FREESURFER_HOME</span><span class="o">=</span><span class="si">${</span><span class="nv">FREESURFER_HOME</span><span class="k">:-</span><span class="p">/path/to/freesurfer</span><span class="si">}</span>
+<span class="nb">source</span><span class="w"> </span><span class="nv">$FREESURFER_HOME</span>/SetUpFreeSurfer.sh
+<span class="nv">freesurfer_license</span><span class="o">=</span><span class="si">${</span><span class="nv">freesurfer_license</span><span class="k">:-</span><span class="p">/path/to/your/freesurfer/license_file</span><span class="si">}</span>
+
+<span class="nv">$FASTSURFER_HOME</span>/run_fastsurfer.sh<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--t1<span class="w"> </span><span class="nv">$HOME</span>/my_mri_data/subjectX/t1_weighted.nii.gz<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--lesion_mask<span class="w"> </span><span class="nv">$HOME</span>/my_mri_data/subjectX/lesion_mask.nii.gz<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--sid<span class="w"> </span>subjectX<span class="w"> </span>--sd<span class="w"> </span><span class="nv">$HOME</span>/my_fastsurfer_analysis<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--fs_license<span class="w"> </span><span class="nv">$freesurfer_license</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--threads<span class="w"> </span><span class="m">4</span>
 </pre></div>
 </div>
-<p>When using <code class="docutils literal notranslate"><span class="pre">--lesion_mask</span> <span class="pre">&lt;path</span> <span class="pre">to</span> <span class="pre">file&gt;</span></code>, FastSurfer will:</p>
+<p>When using <code class="docutils literal notranslate"><span class="pre">--lesion_mask</span> <span class="pre">&lt;lesion_mask_path&gt;</span></code>, FastSurfer will:</p>
 <ol class="arabic simple">
 <li><p>Inpaint the lesion area using LIT.</p></li>
 <li><p>Run the selected parts of the segmentation and surface pipeline on the inpainted image (note that it is not compatible with <code class="docutils literal notranslate"><span class="pre">--surf_only</span></code>).</p></li>
@@ -852,7 +906,7 @@ outputs before using them for downstream analyses.</p>
     <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../_static/scripts/furo.js?v=46bd48cc"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
-    <script src="../_static/copybutton.js?v=f281be69"></script>
+    <script src="../_static/copybutton.js?v=1be11439"></script>
     <script src="../_static/design-tabs.js?v=f930bc37"></script>
     <script src="../_static/doc-version-link.js?v=e710a016"></script>
     </body>

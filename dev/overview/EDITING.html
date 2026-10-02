@@ -525,9 +525,10 @@ are inherited from FreeSurfer.</p>
 <p>Most editing options require that you have processed the case and you are able to access and modify the files in that image’s directory, i.e. <code class="docutils literal notranslate"><span class="pre">&lt;subject_dir&gt;</span></code>. Based on a quality inspection of results, segmentations and surfaces, one of the edits (see above) is chosen and performed. Then, the case is re-processed using the <code class="docutils literal notranslate"><span class="pre">--edits</span></code> flag, i.e. <code class="docutils literal notranslate"><span class="pre">run_fastsurfer.sh</span></code> is re-run (same FastSurfer command and FastSurfer version as before, but add <code class="docutils literal notranslate"><span class="pre">--edits</span></code>). Finally, you would check in another quality inspection, if the quality issues are resolved.</p>
 <p>For example (including the setup for native processing, see <a class="reference internal" href="EXAMPLES.html"><span class="std std-doc">Examples</span></a> for other processing options):</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Setup FASTSURFER and FREESURFER</span>
-<span class="nb">export</span><span class="w"> </span><span class="nv">FASTSURFER_HOME</span><span class="o">=</span>/path/to/fastsurfer
-<span class="nb">export</span><span class="w"> </span><span class="nv">FREESURFER_HOME</span><span class="o">=</span>/path/to/freesurfer
+<span class="nb">export</span><span class="w"> </span><span class="nv">FASTSURFER_HOME</span><span class="o">=</span><span class="si">${</span><span class="nv">FASTSURFER_HOME</span><span class="k">:-</span><span class="p">/path/to/FastSurfer</span><span class="si">}</span>
+<span class="nb">export</span><span class="w"> </span><span class="nv">FREESURFER_HOME</span><span class="o">=</span><span class="si">${</span><span class="nv">FREESURFER_HOME</span><span class="k">:-</span><span class="p">/path/to/freesurfer</span><span class="si">}</span>
 <span class="nb">source</span><span class="w"> </span><span class="nv">$FREESURFER_HOME</span>/SetUpFreeSurfer.sh
+<span class="nv">freesurfer_license</span><span class="o">=</span><span class="si">${</span><span class="nv">freesurfer_license</span><span class="k">:-</span><span class="p">/path/to/your/freesurfer/license_file</span><span class="si">}</span>
 
 <span class="c1"># Define data directory</span>
 <span class="nb">export</span><span class="w"> </span><span class="nv">SUBJECTS_DIR</span><span class="o">=</span><span class="nv">$HOME</span>/my_fastsurfer_analysis
@@ -535,8 +536,8 @@ are inherited from FreeSurfer.</p>
 <span class="c1"># Run FastSurfer</span>
 <span class="nv">$FASTSURFER_HOME</span>/run_fastsurfer.sh<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--sd<span class="w"> </span><span class="nv">$SUBJECTS_DIR</span><span class="w"> </span>--sid<span class="w"> </span>case_with_edits<span class="w"> </span><span class="se">\</span>
-<span class="w">    </span>--t1<span class="w"> </span>/path/to/the/original/T1.mgz<span class="w"> </span><span class="se">\</span>
-<span class="w">    </span>--fs_license<span class="w"> </span><span class="nv">$FREESURFER_HOME</span>/.license<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--t1<span class="w"> </span><span class="nv">$HOME</span>/my_mri_data/subjectX/t1_weighted.nii.gz<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--fs_license<span class="w"> </span><span class="nv">$freesurfer_license</span><span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--edits<span class="w"> </span><span class="c1"># more flags as needed, e.g. --3T --threads 4</span>
 </pre></div>
 </div>
@@ -548,13 +549,20 @@ whatever extension you gave it in, <code class="docutils literal notranslate"><s
 Processing a genuinely different image, a bias field corrected version for instance, is a new run
 into a new <code class="docutils literal notranslate"><span class="pre">--sid</span></code>.</p>
 <p>Note, a re-run of the segmentation pipeline, as in the command above, should not be harmful, but is only required if the <a class="reference internal" href="#asegdkt-segfile"><span class="std std-ref">asegdkt_segfile</span></a> was edited. Therefore, in most cases, we can skip the segmentation step with</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Setup FASTSURFER and FREESURFER ... (see above)</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Setup FASTSURFER and FREESURFER</span>
+<span class="nb">export</span><span class="w"> </span><span class="nv">FASTSURFER_HOME</span><span class="o">=</span><span class="si">${</span><span class="nv">FASTSURFER_HOME</span><span class="k">:-</span><span class="p">/path/to/FastSurfer</span><span class="si">}</span>
+<span class="nb">export</span><span class="w"> </span><span class="nv">FREESURFER_HOME</span><span class="o">=</span><span class="si">${</span><span class="nv">FREESURFER_HOME</span><span class="k">:-</span><span class="p">/path/to/freesurfer</span><span class="si">}</span>
+<span class="nb">source</span><span class="w"> </span><span class="nv">$FREESURFER_HOME</span>/SetUpFreeSurfer.sh
+<span class="nv">freesurfer_license</span><span class="o">=</span><span class="si">${</span><span class="nv">freesurfer_license</span><span class="k">:-</span><span class="p">/path/to/your/freesurfer/license_file</span><span class="si">}</span>
+
+<span class="c1"># Define data directory</span>
+<span class="nb">export</span><span class="w"> </span><span class="nv">SUBJECTS_DIR</span><span class="o">=</span><span class="nv">$HOME</span>/my_fastsurfer_analysis
 
 <span class="c1"># Run FastSurfer</span>
 <span class="nv">$FASTSURFER_HOME</span>/run_fastsurfer.sh<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--sd<span class="w"> </span><span class="nv">$SUBJECTS_DIR</span><span class="w"> </span>--sid<span class="w"> </span>case_with_edits<span class="w"> </span><span class="se">\</span>
-<span class="w">    </span>--t1<span class="w"> </span>/path/to/the/original/T1.mgz<span class="w"> </span><span class="se">\</span>
-<span class="w">    </span>--fs_license<span class="w"> </span><span class="nv">$FREESURFER_HOME</span>/.license<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--t1<span class="w"> </span><span class="nv">$HOME</span>/my_mri_data/subjectX/t1_weighted.nii.gz<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--fs_license<span class="w"> </span><span class="nv">$freesurfer_license</span><span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--edits<span class="w"> </span>--surf_only<span class="w"> </span><span class="c1"># more flags as needed, e.g. --3T --threads 4</span>
 </pre></div>
 </div>
@@ -572,31 +580,44 @@ into a new <code class="docutils literal notranslate"><span class="pre">--sid</s
 <p>For example:</p>
 <ol class="arabic">
 <li><p>Run FastSurfer to obtain a bias field corrected image (not needed if you already processed with FastSurfer a first time):</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Setup FASTSURFER and FREESURFER ... (see above)</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Setup FASTSURFER</span>
+<span class="nb">export</span><span class="w"> </span><span class="nv">FASTSURFER_HOME</span><span class="o">=</span><span class="si">${</span><span class="nv">FASTSURFER_HOME</span><span class="k">:-</span><span class="p">/path/to/FastSurfer</span><span class="si">}</span>
+
+<span class="c1"># Define data directory</span>
+<span class="nb">export</span><span class="w"> </span><span class="nv">SUBJECTS_DIR</span><span class="o">=</span><span class="nv">$HOME</span>/my_fastsurfer_analysis
 
 <span class="c1"># Run FastSurfer</span>
 <span class="nv">$FASTSURFER_HOME</span>/run_fastsurfer.sh<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--sd<span class="w"> </span><span class="nv">$SUBJECTS_DIR</span><span class="w"> </span>--sid<span class="w"> </span>case_bias_only<span class="w"> </span><span class="se">\</span>
-<span class="w">    </span>--t1<span class="w"> </span>/path/to/the/original/T1.mgz<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--t1<span class="w"> </span><span class="nv">$HOME</span>/my_mri_data/subjectX/t1_weighted.nii.gz<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--seg_only<span class="w"> </span>--no_hypothal<span class="w"> </span>--no_cereb<span class="w"> </span>--threads<span class="w"> </span><span class="m">16</span>
 </pre></div>
 </div>
 </li>
 <li><p>Run FastSurfer again, but this time input the bias field corrected image (i.e. <code class="docutils literal notranslate"><span class="pre">orig_nu.mgz</span></code>) instead of original input image. The file <code class="docutils literal notranslate"><span class="pre">orig_nu.mgz</span></code> can be found in the output directory under the <em>mri</em> subfolder. The output produced from the second iteration should be saved in a different output directory for comparative analysis with the output produced in first iteration.</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Setup FASTSURFER and FREESURFER ... (see above)</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Setup FASTSURFER and FREESURFER</span>
+<span class="nb">export</span><span class="w"> </span><span class="nv">FASTSURFER_HOME</span><span class="o">=</span><span class="si">${</span><span class="nv">FASTSURFER_HOME</span><span class="k">:-</span><span class="p">/path/to/FastSurfer</span><span class="si">}</span>
+<span class="nb">export</span><span class="w"> </span><span class="nv">FREESURFER_HOME</span><span class="o">=</span><span class="si">${</span><span class="nv">FREESURFER_HOME</span><span class="k">:-</span><span class="p">/path/to/freesurfer</span><span class="si">}</span>
+<span class="nb">source</span><span class="w"> </span><span class="nv">$FREESURFER_HOME</span>/SetUpFreeSurfer.sh
+<span class="nv">freesurfer_license</span><span class="o">=</span><span class="si">${</span><span class="nv">freesurfer_license</span><span class="k">:-</span><span class="p">/path/to/your/freesurfer/license_file</span><span class="si">}</span>
+
+<span class="c1"># Define data directory</span>
+<span class="nb">export</span><span class="w"> </span><span class="nv">SUBJECTS_DIR</span><span class="o">=</span><span class="nv">$HOME</span>/my_fastsurfer_analysis
 
 <span class="c1"># Run FastSurfer</span>
 <span class="nv">$FASTSURFER_HOME</span>/run_fastsurfer.sh<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--sd<span class="w"> </span><span class="nv">$SUBJECTS_DIR</span><span class="w"> </span>--sid<span class="w"> </span>case_bias_corrected<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--t1<span class="w"> </span><span class="nv">$SUBJECTS_DIR</span>/case_bias_only/mri/orig_nu.mgz<span class="w"> </span><span class="se">\</span>
-<span class="w">    </span>--fs_license<span class="w"> </span><span class="nv">$FREESURFER_HOME</span>/.license<span class="w"> </span><span class="c1"># more flags as needed, e.g. --3T --threads 4</span>
+<span class="w">    </span>--fs_license<span class="w"> </span><span class="nv">$freesurfer_license</span>
+<span class="w">    </span><span class="c1"># more flags as needed, e.g. --3T --threads 4</span>
 </pre></div>
 </div>
 </li>
 <li><p>Compare and check if bias field correction fixed the issues:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>freeview<span class="w"> </span><span class="nv">$SUBJECTS_DIR</span>/case_bias_only/mri/orig_nu.mgz<span class="w"> </span><span class="se">\</span>
-<span class="w">         </span><span class="nv">$SUBJECTS_DIR</span>/case_bias_corrected/mri/aparc.DKTatlas+aseg.deep.mgz<span class="w"> </span><span class="se">\</span>
-<span class="w">         </span><span class="nv">$SUBJECTS_DIR</span>/case_bias_only/mri/orig_nu.mgz<span class="w"> </span><span class="se">\</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span><span class="w"> </span><span class="nv">SUBJECTS_DIR</span><span class="o">=</span><span class="nv">$HOME</span>/my_fastsurfer_analysis
+freeview<span class="w"> </span><span class="nv">$SUBJECTS_DIR</span>/case_bias_only/mri/orig_nu.mgz<span class="w"> </span><span class="se">\</span>
+<span class="w">         </span><span class="nv">$SUBJECTS_DIR</span>/case_bias_only/mri/aparc.DKTatlas+aseg.deep.mgz<span class="w"> </span><span class="se">\</span>
+<span class="w">         </span><span class="nv">$SUBJECTS_DIR</span>/case_bias_corrected/mri/orig_nu.mgz<span class="w"> </span><span class="se">\</span>
 <span class="w">         </span><span class="nv">$SUBJECTS_DIR</span>/case_bias_corrected/mri/aparc.DKTatlas+aseg.deep.mgz
 </pre></div>
 </div>
@@ -633,10 +654,11 @@ surface, QC images, or volumetric inpainting.</p>
 <ol class="arabic">
 <li><p>Run FastSurfer with <code class="docutils literal notranslate"><span class="pre">--qc_snap</span></code>. This creates <code class="docutils literal notranslate"><span class="pre">mri/upright_volume.mgz</span></code>, the intensity reference in the same space as
 the editable CC segmentation. For example:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>./run_fastsurfer.sh<span class="w"> </span><span class="se">\</span>
-<span class="w">    </span>--t1<span class="w"> </span>/data/input/sub001_T1w.nii.gz<span class="w"> </span><span class="se">\</span>
-<span class="w">    </span>--sd<span class="w"> </span>/data/subjects<span class="w"> </span><span class="se">\</span>
-<span class="w">    </span>--sid<span class="w"> </span>sub001<span class="w"> </span><span class="se">\</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span><span class="w"> </span><span class="nv">FASTSURFER_HOME</span><span class="o">=</span><span class="si">${</span><span class="nv">FASTSURFER_HOME</span><span class="k">:-</span><span class="p">/path/to/FastSurfer</span><span class="si">}</span>
+<span class="nv">$FASTSURFER_HOME</span>/run_fastsurfer.sh<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--t1<span class="w"> </span><span class="nv">$HOME</span>/my_mri_data/subjectX/t1_weighted.nii.gz<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--sd<span class="w"> </span><span class="nv">$HOME</span>/my_fastsurfer_analysis<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--sid<span class="w"> </span>subjectX<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--seg_only<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--qc_snap
 </pre></div>
@@ -644,16 +666,18 @@ the editable CC segmentation. For example:</p>
 </li>
 <li><p>Copy <code class="docutils literal notranslate"><span class="pre">&lt;subject_dir&gt;/mri/callosum.CC.upright.mgz</span></code> to
 <code class="docutils literal notranslate"><span class="pre">&lt;subject_dir&gt;/mri/callosum.CC.upright.manedit.mgz</span></code>:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">SUBJECT_DIR</span><span class="o">=</span>/data/subjects/sub001
-cp<span class="w"> </span><span class="s2">"</span><span class="nv">$SUBJECT_DIR</span><span class="s2">/mri/callosum.CC.upright.mgz"</span><span class="w"> </span><span class="se">\</span>
-<span class="w">   </span><span class="s2">"</span><span class="nv">$SUBJECT_DIR</span><span class="s2">/mri/callosum.CC.upright.manedit.mgz"</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">subject_dir</span><span class="o">=</span><span class="nv">$HOME</span>/my_fastsurfer_analysis/subjectX
+<span class="nb">export</span><span class="w"> </span><span class="nv">SUBJECTS_DIR</span><span class="o">=</span><span class="nv">$HOME</span>/my_fastsurfer_analysis
+cp<span class="w"> </span><span class="s2">"</span><span class="nv">$SUBJECTS_DIR</span><span class="s2">/subjectX/mri/callosum.CC.upright.mgz"</span><span class="w"> </span><span class="se">\</span>
+<span class="w">   </span><span class="s2">"</span><span class="nv">$SUBJECTS_DIR</span><span class="s2">/subjectX/mri/callosum.CC.upright.manedit.mgz"</span>
 </pre></div>
 </div>
 </li>
 <li><p>Edit label 192 in the manedit file using <code class="docutils literal notranslate"><span class="pre">mri/upright_volume.mgz</span></code> as the reference image. For example:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>freeview<span class="w"> </span><span class="se">\</span>
-<span class="w">    </span>-v<span class="w"> </span><span class="s2">"</span><span class="nv">$SUBJECT_DIR</span><span class="s2">/mri/upright_volume.mgz"</span><span class="w"> </span><span class="se">\</span>
-<span class="w">    </span>-v<span class="w"> </span><span class="s2">"</span><span class="nv">$SUBJECT_DIR</span><span class="s2">/mri/callosum.CC.upright.manedit.mgz"</span>:colormap<span class="o">=</span>lut:opacity<span class="o">=</span><span class="m">0</span>.5
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span><span class="w"> </span><span class="nv">SUBJECTS_DIR</span><span class="o">=</span><span class="nv">$HOME</span>/my_fastsurfer_analysis
+freeview<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>-v<span class="w"> </span><span class="s2">"</span><span class="nv">$SUBJECTS_DIR</span><span class="s2">/subjectX/mri/upright_volume.mgz"</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>-v<span class="w"> </span><span class="s2">"</span><span class="nv">$SUBJECTS_DIR</span><span class="s2">/subjectX/mri/callosum.CC.upright.manedit.mgz"</span>:colormap<span class="o">=</span>lut:opacity<span class="o">=</span><span class="m">0</span>.5
 </pre></div>
 </div>
 <p>A manual file containing any fornix label-250 voxels is self-contained and authoritative for the entire fornix. To
@@ -661,10 +685,11 @@ retain the automatic fornix instead, remove all label-250 voxels from the manual
 original-space CC segmentations must then be present.</p>
 </li>
 <li><p>Re-run the original FastSurfer command with <code class="docutils literal notranslate"><span class="pre">--edits</span></code> and otherwise identical options:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>./run_fastsurfer.sh<span class="w"> </span><span class="se">\</span>
-<span class="w">    </span>--t1<span class="w"> </span>/data/input/sub001_T1w.nii.gz<span class="w"> </span><span class="se">\</span>
-<span class="w">    </span>--sd<span class="w"> </span>/data/subjects<span class="w"> </span><span class="se">\</span>
-<span class="w">    </span>--sid<span class="w"> </span>sub001<span class="w"> </span><span class="se">\</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span><span class="w"> </span><span class="nv">FASTSURFER_HOME</span><span class="o">=</span><span class="si">${</span><span class="nv">FASTSURFER_HOME</span><span class="k">:-</span><span class="p">/path/to/FastSurfer</span><span class="si">}</span>
+<span class="nv">$FASTSURFER_HOME</span>/run_fastsurfer.sh<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--t1<span class="w"> </span><span class="nv">$HOME</span>/my_mri_data/subjectX/t1_weighted.nii.gz<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--sd<span class="w"> </span><span class="nv">$HOME</span>/my_fastsurfer_analysis<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--sid<span class="w"> </span>subjectX<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--seg_only<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--qc_snap<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--edits
@@ -886,7 +911,7 @@ Thanks for using FastSurfer.</p>
     <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../_static/scripts/furo.js?v=46bd48cc"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
-    <script src="../_static/copybutton.js?v=f281be69"></script>
+    <script src="../_static/copybutton.js?v=1be11439"></script>
     <script src="../_static/design-tabs.js?v=f930bc37"></script>
     <script src="../_static/doc-version-link.js?v=e710a016"></script>
     </body>

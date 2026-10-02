@@ -474,15 +474,18 @@ outputs before using them for downstream analyses.</p>
 </div></blockquote>
 <section id="fastsurfer-usage">
 <h2>FastSurfer Usage<a class="headerlink" href="#fastsurfer-usage" title="Link to this heading">¶</a></h2>
-<p>FastSurfer runs LIT when a lesion mask is passed with <code class="docutils literal notranslate"><span class="pre">--lesion_mask</span> <span class="pre">&lt;path</span> <span class="pre">to</span> <span class="pre">file&gt;</span></code>:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>./run_fastsurfer.sh<span class="w"> </span>--t1<span class="w"> </span>/path/to/T1.nii.gz<span class="w"> </span><span class="se">\</span>
-<span class="w">                    </span>--lesion_mask<span class="w"> </span>/path/to/lesion_mask.nii.gz<span class="w"> </span><span class="se">\</span>
-<span class="w">                    </span>--sid<span class="w"> </span>subject_id<span class="w"> </span>--sd<span class="w"> </span>/path/to/output_dir<span class="w"> </span><span class="se">\</span>
-<span class="w">                    </span>--fs_license<span class="w"> </span>/path/to/license.txt
+<p>FastSurfer runs LIT when a lesion mask is passed with <code class="docutils literal notranslate"><span class="pre">--lesion_mask</span> <span class="pre">&lt;lesion_mask_path&gt;</span></code>, for example:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span><span class="w"> </span><span class="nv">FASTSURFER_HOME</span><span class="o">=</span><span class="si">${</span><span class="nv">FASTSURFER_HOME</span><span class="k">:-</span><span class="p">/path/to/FastSurfer</span><span class="si">}</span>
+<span class="nv">freesurfer_license</span><span class="o">=</span><span class="si">${</span><span class="nv">freesurfer_license</span><span class="k">:-</span><span class="p">/path/to/your/freesurfer/license_file</span><span class="si">}</span>
+<span class="nv">$FASTSURFER_HOME</span>/run_fastsurfer.sh<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--t1<span class="w"> </span><span class="nv">$HOME</span>/my_mri_data/subjectX/t1_weighted.nii.gz<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--lesion_mask<span class="w"> </span><span class="nv">$HOME</span>/my_mri_data/subjectX/lesion_mask.nii.gz<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--sid<span class="w"> </span>subjectX<span class="w"> </span>--sd<span class="w"> </span><span class="nv">$HOME</span>/my_fastsurfer_analysis<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--fs_license<span class="w"> </span><span class="nv">$freesurfer_license</span>
 </pre></div>
 </div>
 <p>Lesion inpainting is not compatible with separate processing of the segmentation and surfaces with <code class="docutils literal notranslate"><span class="pre">--seg_only</span></code> and <code class="docutils literal notranslate"><span class="pre">--surf_only</span></code>. If you want to run the surface pipeline, avoid <code class="docutils literal notranslate"><span class="pre">--seg_only</span></code>!</p>
-<p>With <code class="docutils literal notranslate"><span class="pre">--lesion_mask</span> <span class="pre">&lt;path</span> <span class="pre">to</span> <span class="pre">file&gt;</span></code>, FastSurfer:</p>
+<p>With <code class="docutils literal notranslate"><span class="pre">--lesion_mask</span> <span class="pre">&lt;lesion_mask_path&gt;</span></code>, FastSurfer:</p>
 <ol class="arabic simple">
 <li><p>inpaints the lesion area in the input T1w image,</p></li>
 <li><p>runs the requested FastSurfer segmentation and surface pipeline on the inpainted image, and</p></li>
@@ -597,7 +600,7 @@ The complete list of LIT-related output files is documented in the
     <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/scripts/furo.js?v=46bd48cc"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
-    <script src="../../_static/copybutton.js?v=f281be69"></script>
+    <script src="../../_static/copybutton.js?v=1be11439"></script>
     <script src="../../_static/design-tabs.js?v=f930bc37"></script>
     <script src="../../_static/doc-version-link.js?v=e710a016"></script>
     </body>

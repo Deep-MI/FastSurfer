@@ -469,11 +469,11 @@
 </div>
 <section id="usage-help-text">
 <h2>Usage help text<a class="headerlink" href="#usage-help-text" title="Link to this heading">¶</a></h2>
-<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>$ ./long_fastsurfer.sh --help
-Setting ENV variable FASTSURFER_HOME to script directory /home/runner/work/FastSurfer/FastSurfer/src. 
-Change via environment to location of your choice if this is undesired (export FASTSURFER_HOME=/dir/to/FastSurfer)
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>./long_fastsurfer.sh --help
 
-Usage: long_fastsurfer.sh --tid &lt;tid&gt; --t1s &lt;T1_1&gt; &lt;T1_2&gt; .. --tpids &lt;tID1&gt; &lt;tID2&gt; .. [OPTIONS]
+Usage: long_fastsurfer.sh --tid &lt;template_id&gt; \
+                          --t1s &lt;t1_path_1&gt; &lt;t1_path_2&gt; .. \
+                          --tpids &lt;tpid_1&gt; &lt;tpid_2&gt; .. [OPTIONS]
 
 long_fastsurfer.sh takes a list of T1 full head image and sequentially creates:
      (i)   a template directory for the specific person
@@ -482,13 +482,16 @@ long_fastsurfer.sh takes a list of T1 full head image and sequentially creates:
 
 FLAGS:
 
-  --tid &lt;templateID&gt;        ID for person-specific template directory inside
+  --tid &lt;template_id&gt;       ID for person-specific template directory inside
                               $SUBJECTS_DIR to be created"
-  --t1s &lt;T1_1&gt; &lt;T1_2&gt; ..    T1 full head inputs for each time point (do not need
+  --t1s &lt;t1_path_1&gt; &lt;t1_path_2&gt; ..
+                            T1 full head inputs for each time point (do not need
                               to be bias corrected). Requires ABSOLUTE paths!
-  --tpids &lt;tID1&gt; &lt;tID2&gt; ..  IDs for future time points directories inside
+  --tpids &lt;tpid_1&gt; &lt;tpid_2&gt; ..
+                            IDs for future time points directories inside
                               $SUBJECTS_DIR to be created later (during --long)
-  --t2s &lt;T2_1&gt; &lt;T2_2&gt; ..    *Optional* T2 full head inputs, one per time point in
+  --t2s &lt;t2_path_1&gt; &lt;t2_path_2&gt; [...]
+                            *Optional* T2 full head inputs, one per time point in
                               the order of --tpids, for the hypothalamus module.
                               Every time point needs one, or none does. Each is
                               registered to its time point's T1 in template space,
@@ -649,7 +652,7 @@ Estrada S, Kuegler D, Bahrami E, Xu P, Mousa D, Breteler MMB, Aziz NA, Reuter M.
     <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../_static/scripts/furo.js?v=46bd48cc"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
-    <script src="../_static/copybutton.js?v=f281be69"></script>
+    <script src="../_static/copybutton.js?v=1be11439"></script>
     <script src="../_static/design-tabs.js?v=f930bc37"></script>
     <script src="../_static/doc-version-link.js?v=e710a016"></script>
     </body>

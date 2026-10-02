@@ -836,7 +836,7 @@
 </section>
 <section id="lesion-inpainting-tool-lit-optional">
 <h2>Lesion Inpainting Tool (LIT, optional)<a class="headerlink" href="#lesion-inpainting-tool-lit-optional" title="Link to this heading">¶</a></h2>
-<p>When <code class="docutils literal notranslate"><span class="pre">--lesion_mask</span> <span class="pre">&lt;path</span> <span class="pre">to</span> <span class="pre">file&gt;</span></code> is provided, FastSurfer wraps the segmentation and surface
+<p>When <code class="docutils literal notranslate"><span class="pre">--lesion_mask</span> <span class="pre">&lt;lesion_mask_path&gt;</span></code> is provided, FastSurfer wraps the segmentation and surface
 pipelines with lesion inpainting using LIT. The extension is currently experimental. It inpaints
 the lesion region, runs the requested FastSurfer modules on the inpainted image, and then maps the
 lesion back into the resulting outputs. The current LIT postprocessing workflow updates the primary
@@ -1067,7 +1067,7 @@ surface stats remain in the corresponding <code class="docutils literal notransl
 </section>
 <section id="longitudinal-processing">
 <h2>Longitudinal Processing<a class="headerlink" href="#longitudinal-processing" title="Link to this heading">¶</a></h2>
-<p>When running the <a class="reference internal" href="LONG.html"><span class="std std-doc">longitudinal pipeline</span></a> the output will be as above for the individual time point directories. Note that the templateID directory for the within-subject template will not contain all files and usually is not looked at or analyzed, as it represents an intermediate step in the longitudinal pipeline.</p>
+<p>When running the <a class="reference internal" href="LONG.html"><span class="std std-doc">longitudinal pipeline</span></a> the output will be as above for the individual time point directories. Note that the <code class="docutils literal notranslate"><span class="pre">&lt;template_id&gt;</span></code> directory for the within-subject template will not contain all files and usually is not looked at or analyzed, as it represents an intermediate step in the longitudinal pipeline.</p>
 </section>
 </section>
 
@@ -1162,7 +1162,7 @@ surface stats remain in the corresponding <code class="docutils literal notransl
     <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../_static/scripts/furo.js?v=46bd48cc"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
-    <script src="../_static/copybutton.js?v=f281be69"></script>
+    <script src="../_static/copybutton.js?v=1be11439"></script>
     <script src="../_static/design-tabs.js?v=f930bc37"></script>
     <script src="../_static/doc-version-link.js?v=e710a016"></script>
     </body>

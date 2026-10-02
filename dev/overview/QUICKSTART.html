@@ -468,66 +468,83 @@
 <p>For users with a linux workstation with a GPU (8GB) and Singularity (or Docker) installed, running FastSurfer is easy and fast!
 If you don’t have a GPU, it will use the CPU and be quite a bit slower. And if you don’t have Docker or Singularity, see below for how to run FastSurfer in the Cloud with Google Collab!</p>
 <p>For running this example you can use your own T1-weighted full head MRI (0.7-1 mm voxel sizes, no pre-processing, <code class="docutils literal notranslate"><span class="pre">.nii</span></code> or <code class="docutils literal notranslate"><span class="pre">.nii.gz</span></code> Nifti), or just use the example below:</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This documents the development version 2.6.0-dev0. Official Docker images only exist for releases, so the commands below use the latest release, 2.5.4. To run the development version, <a class="reference internal" href="docker.html"><span class="doc">build your own image</span></a>.</p>
+</div>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># 0. Create a directory for this test</span>
-mkdir<span class="w"> </span>fastsurfer-test
-<span class="nb">cd</span><span class="w"> </span>fastsurfer-test
+mkdir<span class="w"> </span>fastsurfer_test
+<span class="nb">cd</span><span class="w"> </span>fastsurfer_test
 
-<span class="c1"># 1. Download the docker image and create the singularity image (do this only the first time)</span>
-<span class="c1">#    It will produce the fastsurfer-gpu.sif singularity image file locally</span>
-singularity<span class="w"> </span>build<span class="w"> </span>fastsurfer-gpu.sif<span class="w"> </span>docker://deepmi/fastsurfer:latest
+<span class="c1"># 1. Download the docker image and create the singularity image</span>
+<span class="c1">#    (do this only the first time)</span>
+<span class="c1">#    It will produce the fastsurfer-2.5.4.sif singularity image</span>
+<span class="c1">#    file in $HOME/my_singularity_images</span>
+mkdir<span class="w"> </span>-p<span class="w"> </span><span class="nv">$HOME</span>/my_singularity_images
+singularity<span class="w"> </span>build<span class="w"> </span><span class="nv">$HOME</span>/my_singularity_images/fastsurfer-2.5.4.sif<span class="w"> </span><span class="se">\</span>
+<span class="w">                  </span>docker://deepmi/fastsurfer:latest
 
 <span class="c1"># 2. Download an example brain MRI (if you don't have your own)</span>
 <span class="c1">#    If you have your own, copy it to this directory and adjust</span>
 <span class="c1">#    the filename after --t1 below.</span>
-curl<span class="w"> </span>-k<span class="w"> </span>https://surfer.nmr.mgh.harvard.edu/pub/data/tutorial_data/buckner_data/tutorial_subjs/140/mri/orig.mgz<span class="w"> </span>-o<span class="w"> </span><span class="s2">"./140_orig.mgz"</span>
+curl<span class="w"> </span>-k<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>https://surfer.nmr.mgh.harvard.edu/pub/data/tutorial_data/buckner_data/tutorial_subjs/140/mri/orig.mgz<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>-o<span class="w"> </span><span class="s2">"./140_orig.mgz"</span>
 
 <span class="c1"># 3. Run FastSurfer (full brain segmentation only)</span>
 singularity<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>--nv<span class="w"> </span><span class="se">\</span>
 <span class="w">                 </span>--no-mount<span class="w"> </span>home,cwd<span class="w"> </span>-e<span class="w"> </span><span class="se">\</span>
 <span class="w">                 </span>-B<span class="w"> </span><span class="s2">"</span><span class="nv">$PWD</span><span class="s2">"</span><span class="w"> </span><span class="se">\</span>
-<span class="w">                 </span>./fastsurfer-gpu.sif<span class="w"> </span><span class="se">\</span>
+<span class="w">                 </span><span class="nv">$HOME</span>/my_singularity_images/fastsurfer-2.5.4.sif<span class="w"> </span><span class="se">\</span>
 <span class="w">                 </span>/fastsurfer/run_fastsurfer.sh<span class="w"> </span><span class="se">\</span>
 <span class="w">                 </span>--t1<span class="w"> </span><span class="s2">"</span><span class="nv">$PWD</span><span class="s2">/140_orig.mgz"</span><span class="w"> </span><span class="se">\</span>
-<span class="w">                 </span>--sid<span class="w"> </span>test-case<span class="w"> </span>--sd<span class="w"> </span><span class="s2">"</span><span class="nv">$PWD</span><span class="s2">"</span><span class="w"> </span><span class="se">\</span>
+<span class="w">                 </span>--sid<span class="w"> </span>subjectX<span class="w"> </span>--sd<span class="w"> </span><span class="s2">"</span><span class="nv">$PWD</span><span class="s2">"</span><span class="w"> </span><span class="se">\</span>
 <span class="w">                 </span>--seg_only<span class="w"> </span>--no_biasfield<span class="w"> </span>--no_cereb<span class="w"> </span>--no_hypothal
 </pre></div>
 </div>
 <p>That’s it, it will run the full brain segmentation. For speed, we switched off the cerebellum and hypothalamic sub-segmentation (would add a couple minutes).
-We also switched off the bias field correction, which is used to compute partial volume estimates for the statsfiles, so you might want to switch it on again if you want the volume statistics text file (under <code class="docutils literal notranslate"><span class="pre">test-case/stats</span></code>).
+We also switched off the bias field correction, which is used to compute partial volume estimates for the statsfiles, so you might want to switch it on again if you want the volume statistics text file (under <code class="docutils literal notranslate"><span class="pre">subjectX/stats</span></code>).
 Also if you need the estimated total intracranial volume for correcting the stats, you would either need to run the surface stream or switch on the Talairach registration with
 <code class="docutils literal notranslate"><span class="pre">--tal_reg</span></code> in the segmentation module. For the full surface stream, just remove the <code class="docutils literal notranslate"><span class="pre">--seg_only</span></code> and you need a FreeSurfer license file and pass it into the container, as described in more detail later.</p>
 <p>For your convenience here is the same procedure using Docker instead of Singularity:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># 0. Create a directory for this test</span>
-mkdir<span class="w"> </span>fastsurfer-test
-<span class="nb">cd</span><span class="w"> </span>fastsurfer-test
+mkdir<span class="w"> </span>fastsurfer_test
+<span class="nb">cd</span><span class="w"> </span>fastsurfer_test
 
 <span class="c1"># 1. Download an example brain MRI (if you don't have your own)</span>
 <span class="c1">#    If you have your own, copy it to this directory and adjust</span>
 <span class="c1">#    the filename after --t1 below.</span>
-curl<span class="w"> </span>-k<span class="w"> </span>https://surfer.nmr.mgh.harvard.edu/pub/data/tutorial_data/buckner_data/tutorial_subjs/140/mri/orig.mgz<span class="w"> </span>-o<span class="w"> </span><span class="s2">"./140_orig.mgz"</span>
+curl<span class="w"> </span>-k<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>https://surfer.nmr.mgh.harvard.edu/pub/data/tutorial_data/buckner_data/tutorial_subjs/140/mri/orig.mgz<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>-o<span class="w"> </span><span class="s2">"./140_orig.mgz"</span>
 
 <span class="c1"># 2. Run FastSurfer (full brain segmentation only)</span>
 docker<span class="w"> </span>run<span class="w"> </span>--gpus<span class="w"> </span>all<span class="w"> </span>-v<span class="w"> </span><span class="s2">"</span><span class="nv">$PWD</span><span class="s2">:</span><span class="nv">$PWD</span><span class="s2">"</span><span class="w"> </span><span class="se">\</span>
 <span class="w">                      </span>--rm<span class="w"> </span>--user<span class="w"> </span><span class="k">$(</span>id<span class="w"> </span>-u<span class="k">)</span>:<span class="k">$(</span>id<span class="w"> </span>-g<span class="k">)</span><span class="w"> </span><span class="se">\</span>
 <span class="w">                      </span>deepmi/fastsurfer:latest<span class="w"> </span><span class="se">\</span>
 <span class="w">                      </span>--t1<span class="w"> </span><span class="s2">"</span><span class="nv">$PWD</span><span class="s2">/140_orig.mgz"</span><span class="w"> </span><span class="se">\</span>
-<span class="w">                      </span>--sid<span class="w"> </span>test-case<span class="w"> </span>--sd<span class="w"> </span><span class="s2">"</span><span class="nv">$PWD</span><span class="s2">"</span><span class="w"> </span><span class="se">\</span>
+<span class="w">                      </span>--sid<span class="w"> </span>subjectX<span class="w"> </span>--sd<span class="w"> </span><span class="s2">"</span><span class="nv">$PWD</span><span class="s2">"</span><span class="w"> </span><span class="se">\</span>
 <span class="w">                      </span>--seg_only<span class="w"> </span>--no_biasfield<span class="w"> </span>--no_cereb<span class="w"> </span>--no_hypothal
 </pre></div>
 </div>
-<p>You will find the full brain segmentation in <code class="docutils literal notranslate"><span class="pre">./test-case/mri/aparc.DKTatlas+aseg.deep.mgz</span></code> in FreeSurfer’s MGZ file format. To convert it back to nifti (if you prefer), just run</p>
+<p>You will find the full brain segmentation in <code class="docutils literal notranslate"><span class="pre">./subjectX/mri/aparc.DKTatlas+aseg.deep.mgz</span></code> in FreeSurfer’s MGZ file format. To convert it back to nifti (if you prefer), just run</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This documents the development version 2.6.0-dev0. Official Docker images only exist for releases, so the commands below use the latest release, 2.5.4. To run the development version, <a class="reference internal" href="docker.html"><span class="doc">build your own image</span></a>.</p>
+</div>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Convert mgz to nifti</span>
 singularity<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>--nv<span class="w"> </span><span class="se">\</span>
 <span class="w">                 </span>--no-mount<span class="w"> </span>home<span class="w"> </span>-e<span class="w"> </span><span class="se">\</span>
 <span class="w">                 </span>-B<span class="w"> </span><span class="s2">"</span><span class="nv">$PWD</span><span class="s2">"</span><span class="w"> </span><span class="se">\</span>
-<span class="w">                 </span>./fastsurfer-gpu.sif<span class="w"> </span><span class="se">\</span>
-<span class="w">                 </span>nib-convert<span class="w"> </span><span class="s2">"</span><span class="nv">$PWD</span><span class="s2">/test-case/mri/aparc.DKTatlas+aseg.deep.mgz"</span><span class="w"> </span><span class="se">\</span>
-<span class="w">                             </span><span class="s2">"</span><span class="nv">$PWD</span><span class="s2">/test-case/mri/aparc.DKTatlas+aseg.deep.nii.gz"</span>
+<span class="w">                 </span><span class="nv">$HOME</span>/my_singularity_images/fastsurfer-2.5.4.sif<span class="w"> </span><span class="se">\</span>
+<span class="w">                 </span>nib-convert<span class="w"> </span><span class="s2">"</span><span class="nv">$PWD</span><span class="s2">/subjectX/mri/aparc.DKTatlas+aseg.deep.mgz"</span><span class="w"> </span><span class="se">\</span>
+<span class="w">                             </span><span class="s2">"</span><span class="nv">$PWD</span><span class="s2">/subjectX/mri/aparc.DKTatlas+aseg.deep.nii.gz"</span>
 </pre></div>
 </div>
-<p>and find the segmentation in <code class="docutils literal notranslate"><span class="pre">./test-case/mri/aparc.DKTatlas+aseg.deep.nii.gz</span></code>. If you have FreeSurfer installed, just use FreeView to look at the result (or really any other image viewer):</p>
+<p>and find the segmentation in <code class="docutils literal notranslate"><span class="pre">./subjectX/mri/aparc.DKTatlas+aseg.deep.nii.gz</span></code>. If you have FreeSurfer installed, just use FreeView to look at the result (or really any other image viewer):</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># FreeView</span>
-freeview<span class="w"> </span>-v<span class="w"> </span>140_orig.mgz<span class="w"> </span>test-case/mri/aparc.DKTatlas+aseg.deep.mgz:colormap<span class="o">=</span>lut:opacity<span class="o">=</span><span class="m">0</span>.2
+freeview<span class="w"> </span>-v<span class="w"> </span>140_orig.mgz<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>subjectX/mri/aparc.DKTatlas+aseg.deep.mgz:colormap<span class="o">=</span>lut:opacity<span class="o">=</span><span class="m">0</span>.2
 </pre></div>
 </div>
 <p>Other interesting outputs of the segmentation are the <code class="docutils literal notranslate"><span class="pre">aseg.auto_noCCseg.mgz</span></code> containing a reduced segmentation according to FreeSurfer’s aseg (no cortical sub-division and no corpus callosum, which is added later). Also <code class="docutils literal notranslate"><span class="pre">mask.mgz</span></code> can come in handy if you need a brainmask. And you get all of this within a few seconds (including startup of singularity or docker it is <strong>20 sec</strong> in total with a GeForce RTX 4080, <strong>40 sec</strong> with a Quadro RTX 4000 or Titan XP, CPU-only takes <strong>5 minutes</strong> longer on my machine).</p>
@@ -638,7 +655,7 @@ freeview<span class="w"> </span>-v<span class="w"> </span>140_orig.mgz<span clas
     <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../_static/scripts/furo.js?v=46bd48cc"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
-    <script src="../_static/copybutton.js?v=f281be69"></script>
+    <script src="../_static/copybutton.js?v=1be11439"></script>
     <script src="../_static/design-tabs.js?v=f930bc37"></script>
     <script src="../_static/doc-version-link.js?v=e710a016"></script>
     </body>

@@ -532,8 +532,11 @@ following examples:</p>
 <section id="example-command-training-default-fastsurfervinn">
 <h2>Example Command: Training Default FastSurferVINN<a class="headerlink" href="#example-command-training-default-fastsurfervinn" title="Link to this heading">¶</a></h2>
 <p>Trains FastSurferVINN on multi-resolution images in the coronal plane:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python3<span class="w"> </span>run_model.py<span class="w"> </span><span class="se">\</span>
-<span class="w">          </span>--cfg<span class="w"> </span>./config/FastSurferVINN.yaml
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span><span class="w"> </span><span class="nv">FASTSURFER_HOME</span><span class="o">=</span><span class="si">${</span><span class="nv">FASTSURFER_HOME</span><span class="k">:-</span><span class="p">/path/to/FastSurfer</span><span class="si">}</span>
+<span class="c1"># the config sets LOG_DIR and the hdf5 sets relative to FastSurferCNN</span>
+<span class="nb">cd</span><span class="w"> </span><span class="nv">$FASTSURFER_HOME</span>/FastSurferCNN
+python3<span class="w"> </span><span class="nv">$FASTSURFER_HOME</span>/FastSurferCNN/run_model.py<span class="w"> </span><span class="se">\</span>
+<span class="w">          </span>--cfg<span class="w"> </span><span class="nv">$FASTSURFER_HOME</span>/FastSurferCNN/config/FastSurferVINN.yaml
 </pre></div>
 </div>
 </section>
@@ -541,20 +544,30 @@ following examples:</p>
 <h2>Example Command: Training FastSurferVINN (Single Resolution)<a class="headerlink" href="#example-command-training-fastsurfervinn-single-resolution" title="Link to this heading">¶</a></h2>
 <p>Trains FastSurferVINN on single-resolution images in the sagittal plane by overriding the <code class="docutils literal notranslate"><span class="pre">NUM_CLASSES</span></code>, <code class="docutils literal notranslate"><span class="pre">SIZES</span></code>,
 <code class="docutils literal notranslate"><span class="pre">PATH_HDF5_TRAIN</span></code>, and <code class="docutils literal notranslate"><span class="pre">PATH_HDF5_VAL</span></code> options:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python3<span class="w"> </span>run_model.py<span class="w"> </span><span class="se">\</span>
-<span class="w">          </span>--cfg<span class="w"> </span>./config/FastSurferVINN.yaml<span class="w"> </span><span class="se">\</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span><span class="w"> </span><span class="nv">FASTSURFER_HOME</span><span class="o">=</span><span class="si">${</span><span class="nv">FASTSURFER_HOME</span><span class="k">:-</span><span class="p">/path/to/FastSurfer</span><span class="si">}</span>
+<span class="c1"># the config sets LOG_DIR relative to FastSurferCNN</span>
+<span class="nb">cd</span><span class="w"> </span><span class="nv">$FASTSURFER_HOME</span>/FastSurferCNN
+<span class="nv">hdf5_dir</span><span class="o">=</span><span class="nv">$FASTSURFER_HOME</span>/FastSurferCNN/hdf5_sets
+python3<span class="w"> </span><span class="nv">$FASTSURFER_HOME</span>/FastSurferCNN/run_model.py<span class="w"> </span><span class="se">\</span>
+<span class="w">          </span>--cfg<span class="w"> </span><span class="nv">$FASTSURFER_HOME</span>/FastSurferCNN/config/FastSurferVINN.yaml<span class="w"> </span><span class="se">\</span>
 <span class="w">            </span>MODEL.NUM_CLASSES<span class="w"> </span><span class="m">51</span><span class="w"> </span><span class="se">\</span>
 <span class="w">            </span>DATA.SIZES<span class="w"> </span><span class="m">256</span><span class="w"> </span><span class="se">\</span>
-<span class="w">            </span>DATA.PATH_HDF5_TRAIN<span class="w"> </span>./hdf5_sets/training_sagittal_single_resolution.hdf5<span class="w"> </span><span class="se">\</span>
-<span class="w">            </span>DATA.PATH_HDF5_VAL<span class="w"> </span>./hdf5_sets/validation_sagittal_single_resolution.hdf5<span class="w"> </span><span class="se">\</span>
+<span class="w">            </span>DATA.PATH_HDF5_TRAIN<span class="w"> </span><span class="se">\</span>
+<span class="w">              </span><span class="nv">$hdf5_dir</span>/training_sagittal_single_resolution.hdf5<span class="w"> </span><span class="se">\</span>
+<span class="w">            </span>DATA.PATH_HDF5_VAL<span class="w"> </span><span class="se">\</span>
+<span class="w">              </span><span class="nv">$hdf5_dir</span>/validation_sagittal_single_resolution.hdf5
 </pre></div>
 </div>
 </section>
 <section id="example-command-training-fastsurfercnn">
 <h2>Example Command: Training FastSurferCNN<a class="headerlink" href="#example-command-training-fastsurfercnn" title="Link to this heading">¶</a></h2>
 <p>Trains FastSurferCNN using a provided configuration file and specifying no augmentations:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python3<span class="w"> </span>run_model.py<span class="w"> </span><span class="se">\</span>
-<span class="w">          </span>--cfg<span class="w"> </span>custom_configs/FastSurferCNN.yaml<span class="w"> </span><span class="se">\</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span><span class="w"> </span><span class="nv">FASTSURFER_HOME</span><span class="o">=</span><span class="si">${</span><span class="nv">FASTSURFER_HOME</span><span class="k">:-</span><span class="p">/path/to/FastSurfer</span><span class="si">}</span>
+<span class="c1"># LOG_DIR and other paths of the config may be relative to FastSurferCNN</span>
+<span class="nb">cd</span><span class="w"> </span><span class="nv">$FASTSURFER_HOME</span>/FastSurferCNN
+python3<span class="w"> </span><span class="nv">$FASTSURFER_HOME</span>/FastSurferCNN/run_model.py<span class="w"> </span><span class="se">\</span>
+<span class="w">          </span>--cfg<span class="w"> </span><span class="se">\</span>
+<span class="w">            </span><span class="nv">$FASTSURFER_HOME</span>/FastSurferCNN/custom_configs/FastSurferCNN.yaml<span class="w"> </span><span class="se">\</span>
 <span class="w">          </span>--aug<span class="w"> </span>None
 </pre></div>
 </div>
@@ -680,7 +693,7 @@ following examples:</p>
     <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../_static/scripts/furo.js?v=46bd48cc"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
-    <script src="../_static/copybutton.js?v=f281be69"></script>
+    <script src="../_static/copybutton.js?v=1be11439"></script>
     <script src="../_static/design-tabs.js?v=f930bc37"></script>
     <script src="../_static/doc-version-link.js?v=e710a016"></script>
     </body>

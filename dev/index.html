@@ -504,7 +504,7 @@ FastSurfer is transitioning to sub-millimeter resolution support throughout the 
 <ul class="simple">
 <li><p>outputs a hypothalamic subsegmentation including 3rd ventricle, c. mammilare, fornix and optic tracts.</p></li>
 <li><p>a T1w image is highly recommended (<a class="reference internal" href="overview/intro.html"><span class="doc std std-ref">notes on input images</span></a>), supports high-res (up to 0.7mm, but experimental beyond that).</p></li>
-<li><p>allows the additional passing of a T2w image with <code class="docutils literal notranslate"><span class="pre">--t2</span> <span class="pre">&lt;path&gt;</span></code>, which will be registered to the T1w image (see <code class="docutils literal notranslate"><span class="pre">--reg_mode</span></code> option).</p></li>
+<li><p>allows the additional passing of a T2w image with <code class="docutils literal notranslate"><span class="pre">--t2</span> <span class="pre">&lt;t2_path&gt;</span></code>, which will be registered to the T1w image (see <code class="docutils literal notranslate"><span class="pre">--reg_mode</span></code> option).</p></li>
 <li><p>calculates summary statistics based on the biasfield-corrected T1w image (skipped if <code class="docutils literal notranslate"><span class="pre">--no_biasfield</span></code> is passed).</p></li>
 </ul>
 </li>
@@ -522,7 +522,7 @@ FastSurfer is transitioning to sub-millimeter resolution support throughout the 
 <section id="extensions">
 <h3>Extensions<a class="headerlink" href="#extensions" title="Link to this heading">¶</a></h3>
 <ul class="simple">
-<li><p><a class="reference internal" href="overview/modules/LIT.html"><span class="std std-doc">FastSurfer-LIT</span></a> wraps the FastSurfer segmentation and surface pipelines with lesion inpainting when a lesion mask is provided via <code class="docutils literal notranslate"><span class="pre">--lesion_mask</span> <span class="pre">&lt;path&gt;</span></code>. This feature is experimental; review LIT-modified outputs before using them for downstream analyses.</p></li>
+<li><p><a class="reference internal" href="overview/modules/LIT.html"><span class="std std-doc">FastSurfer-LIT</span></a> wraps the FastSurfer segmentation and surface pipelines with lesion inpainting when a lesion mask is provided via <code class="docutils literal notranslate"><span class="pre">--lesion_mask</span> <span class="pre">&lt;lesion_mask_path&gt;</span></code>. This feature is experimental; review LIT-modified outputs before using them for downstream analyses.</p></li>
 </ul>
 </section>
 </section>
@@ -628,7 +628,7 @@ FastSurfer is transitioning to sub-millimeter resolution support throughout the 
     <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="_static/scripts/furo.js?v=46bd48cc"></script>
     <script src="_static/clipboard.min.js?v=a7894cd8"></script>
-    <script src="_static/copybutton.js?v=f281be69"></script>
+    <script src="_static/copybutton.js?v=1be11439"></script>
     <script src="_static/design-tabs.js?v=f930bc37"></script>
     <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <script src="_static/doc-version-link.js?v=e710a016"></script>

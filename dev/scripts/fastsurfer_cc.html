@@ -486,32 +486,37 @@ Also segments the fornix, localizes the anterior and posterior commissure (AC an
 It reads those inputs and writes all CC outputs into the subject directory.</p>
 <section id="native">
 <h3>Native<a class="headerlink" href="#native" title="Link to this heading">¶</a></h3>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python3<span class="w"> </span>CorpusCallosum/fastsurfer_cc.py<span class="w"> </span><span class="se">\</span>
-<span class="w">    </span>--sd<span class="w"> </span>/data/subjects<span class="w"> </span><span class="se">\</span>
-<span class="w">    </span>--sid<span class="w"> </span>sub001<span class="w"> </span><span class="se">\</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span><span class="w"> </span><span class="nv">FASTSURFER_HOME</span><span class="o">=</span><span class="si">${</span><span class="nv">FASTSURFER_HOME</span><span class="k">:-</span><span class="p">/path/to/FastSurfer</span><span class="si">}</span>
+python3<span class="w"> </span><span class="nv">$FASTSURFER_HOME</span>/CorpusCallosum/fastsurfer_cc.py<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--sd<span class="w"> </span><span class="nv">$HOME</span>/my_fastsurfer_analysis<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--sid<span class="w"> </span>subjectX<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--upright_volume<span class="w"> </span>mri/upright_volume.mgz<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--qc_image<span class="w"> </span>qc_snapshots/callosum.png<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--thickness_image<span class="w"> </span>qc_snapshots/callosum.thickness.png
 </pre></div>
 </div>
-<p>Paths that are not absolute are resolved relative to <code class="docutils literal notranslate"><span class="pre">/data/subjects/sub001</span></code>. The upright volume is useful for
-checking the midplane and is the anatomical reference for manual CC editing.</p>
+<p>Paths that are not absolute are resolved relative to <code class="docutils literal notranslate"><span class="pre">$HOME/my_fastsurfer_analysis/subjectX</span></code>. The upright volume is
+useful for checking the midplane and is the anatomical reference for manual CC editing.</p>
 </section>
 <section id="docker">
 <h3>Docker<a class="headerlink" href="#docker" title="Link to this heading">¶</a></h3>
 <p>The FastSurfer Docker image normally starts <code class="docutils literal notranslate"><span class="pre">run_fastsurfer.sh</span></code>. Expert commands therefore override the entrypoint
 with FastSurfer’s environment-setup wrapper and explicitly invoke <code class="docutils literal notranslate"><span class="pre">fastsurfer_cc.py</span></code>:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">SUBJECTS_DIR</span><span class="o">=</span>/data/fastsurfer
-<span class="nv">SID</span><span class="o">=</span>sub001
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This documents the development version 2.6.0-dev0. Official Docker images only exist for releases, so the commands below use the latest release, 2.5.4, for its default CUDA version, 12.8. Images of 2.5.4 for other CUDA versions, ROCm and CPU are available on <a class="reference external" href="https://hub.docker.com/r/deepmi/fastsurfer/tags?name=v2.5.4">Docker Hub</a>. To run the development version, <a class="reference internal" href="../overview/docker.html"><span class="doc">build your own image</span></a>.</p>
+</div>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span><span class="w"> </span><span class="nv">SUBJECTS_DIR</span><span class="o">=</span><span class="nv">$HOME</span>/my_fastsurfer_analysis
+<span class="nv">subject_id</span><span class="o">=</span>subjectX
 
 docker<span class="w"> </span>run<span class="w"> </span>--gpus<span class="w"> </span>all<span class="w"> </span>--rm<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--user<span class="w"> </span><span class="s2">"</span><span class="k">$(</span>id<span class="w"> </span>-u<span class="k">)</span><span class="s2">:</span><span class="k">$(</span>id<span class="w"> </span>-g<span class="k">)</span><span class="s2">"</span><span class="w"> </span><span class="se">\</span>
-<span class="w">    </span>--volume<span class="w"> </span><span class="s2">"</span><span class="nv">$SUBJECTS_DIR</span><span class="s2">:/output"</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--volume<span class="w"> </span><span class="s2">"</span><span class="nv">$SUBJECTS_DIR</span><span class="s2">:</span><span class="nv">$SUBJECTS_DIR</span><span class="s2">"</span><span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--entrypoint<span class="w"> </span>/fastsurfer/tools/Docker/entrypoint.sh<span class="w"> </span><span class="se">\</span>
-<span class="w">    </span>deepmi/fastsurfer:latest<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>deepmi/fastsurfer:cu128-v2.5.4<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>python3<span class="w"> </span>/fastsurfer/CorpusCallosum/fastsurfer_cc.py<span class="w"> </span><span class="se">\</span>
-<span class="w">    </span>--sd<span class="w"> </span>/output<span class="w"> </span><span class="se">\</span>
-<span class="w">    </span>--sid<span class="w"> </span><span class="s2">"</span><span class="nv">$SID</span><span class="s2">"</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--sd<span class="w"> </span><span class="s2">"</span><span class="nv">$SUBJECTS_DIR</span><span class="s2">"</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--sid<span class="w"> </span><span class="s2">"</span><span class="nv">$subject_id</span><span class="s2">"</span><span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--upright_volume<span class="w"> </span>mri/upright_volume.mgz<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--qc_image<span class="w"> </span>qc_snapshots/callosum.png<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--thickness_image<span class="w"> </span>qc_snapshots/callosum.thickness.png
@@ -522,16 +527,20 @@ docker<span class="w"> </span>run<span class="w"> </span>--gpus<span class="w"> 
 <h3>Singularity or Apptainer<a class="headerlink" href="#singularity-or-apptainer" title="Link to this heading">¶</a></h3>
 <p>Build or download an image as described in the <a class="reference internal" href="../overview/SINGULARITY.html"><span class="std std-doc">Singularity documentation</span></a>, then bind
 the subject directory and invoke the expert script directly:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">SUBJECTS_DIR</span><span class="o">=</span>/data/fastsurfer
-<span class="nv">SID</span><span class="o">=</span>sub001
-<span class="nv">FASTSURFER_SIF</span><span class="o">=</span>/containers/fastsurfer-gpu.sif
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This documents the development version 2.6.0-dev0. Official Docker images only exist for releases, so the commands below use the latest release, 2.5.4. To run the development version, <a class="reference internal" href="../overview/docker.html"><span class="doc">build your own image</span></a>.</p>
+</div>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span><span class="w"> </span><span class="nv">SUBJECTS_DIR</span><span class="o">=</span><span class="nv">$HOME</span>/my_fastsurfer_analysis
+<span class="nv">subject_id</span><span class="o">=</span>subjectX
+<span class="nv">fastsurfer_sif</span><span class="o">=</span><span class="nv">$HOME</span>/my_singularity_images/fastsurfer-2.5.4.sif
 
 singularity<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>--nv<span class="w"> </span>--no-mount<span class="w"> </span>home,cwd<span class="w"> </span>-e<span class="w"> </span><span class="se">\</span>
-<span class="w">    </span>--bind<span class="w"> </span><span class="s2">"</span><span class="nv">$SUBJECTS_DIR</span><span class="s2">:/output"</span><span class="w"> </span><span class="se">\</span>
-<span class="w">    </span><span class="s2">"</span><span class="nv">$FASTSURFER_SIF</span><span class="s2">"</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--bind<span class="w"> </span><span class="s2">"</span><span class="nv">$SUBJECTS_DIR</span><span class="s2">"</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span><span class="s2">"</span><span class="nv">$fastsurfer_sif</span><span class="s2">"</span><span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>python3<span class="w"> </span>/fastsurfer/CorpusCallosum/fastsurfer_cc.py<span class="w"> </span><span class="se">\</span>
-<span class="w">    </span>--sd<span class="w"> </span>/output<span class="w"> </span><span class="se">\</span>
-<span class="w">    </span>--sid<span class="w"> </span><span class="s2">"</span><span class="nv">$SID</span><span class="s2">"</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--sd<span class="w"> </span><span class="s2">"</span><span class="nv">$SUBJECTS_DIR</span><span class="s2">"</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--sid<span class="w"> </span><span class="s2">"</span><span class="nv">$subject_id</span><span class="s2">"</span><span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--upright_volume<span class="w"> </span>mri/upright_volume.mgz<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--qc_image<span class="w"> </span>qc_snapshots/callosum.png<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--thickness_image<span class="w"> </span>qc_snapshots/callosum.thickness.png
@@ -561,7 +570,7 @@ commands.</p>
                         <span class="p">[</span><span class="o">--</span><span class="n">device</span> <span class="n">DEVICE</span><span class="p">]</span>
                         <span class="p">[</span><span class="o">--</span><span class="n">num_thickness_points</span> <span class="n">NUM_THICKNESS_POINTS</span><span class="p">]</span>
                         <span class="p">[</span><span class="o">--</span><span class="n">subdivisions</span> <span class="p">[</span><span class="n">FRAC</span> <span class="o">...</span><span class="p">]]</span>
-                        <span class="p">[</span><span class="o">--</span><span class="n">subdivision_method</span> <span class="p">{</span><span class="n">shape</span><span class="p">,</span><span class="n">vertical</span><span class="p">,</span><span class="n">angular</span><span class="p">,</span><span class="n">eigenvector</span><span class="p">}]</span>
+                        <span class="p">[</span><span class="o">--</span><span class="n">subdivision_method</span> <span class="n">SUBDIVISION_METHOD</span><span class="p">]</span>
                         <span class="p">[</span><span class="o">--</span><span class="n">contour_smoothing</span> <span class="n">CONTOUR_SMOOTHING</span><span class="p">]</span>
                         <span class="p">[</span><span class="o">--</span><span class="n">slice_selection</span> <span class="n">SLICE_SELECTION</span><span class="p">]</span>
                         <span class="p">[</span><span class="o">--</span><span class="n">threads</span> <span class="n">THREADS</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">seg_log</span> <span class="n">LOG_NAME</span><span class="p">]</span>
@@ -573,7 +582,7 @@ commands.</p>
                         <span class="p">[</span><span class="o">--</span><span class="n">upright_lta</span> <span class="n">UPRIGHT_LTA</span><span class="p">]</span>
                         <span class="p">[</span><span class="o">--</span><span class="n">upright_volume</span> <span class="n">UPRIGHT_VOLUME</span><span class="p">]</span>
                         <span class="p">[</span><span class="o">--</span><span class="n">orient_volume_lta</span> <span class="n">ORIENT_VOLUME_LTA</span><span class="p">]</span>
-                        <span class="p">[</span><span class="o">--</span><span class="n">midplane_method</span> <span class="p">{</span><span class="n">center</span><span class="p">,</span><span class="n">fsaverage</span><span class="p">,</span><span class="n">fsaverage_symmetry</span><span class="p">,</span><span class="n">fsaverage_distance_map</span><span class="p">}]</span>
+                        <span class="p">[</span><span class="o">--</span><span class="n">midplane_method</span> <span class="n">MIDPLANE_METHOD</span><span class="p">]</span>
                         <span class="p">[</span><span class="o">--</span><span class="n">ac_coords</span> <span class="n">X</span> <span class="n">Y</span> <span class="n">Z</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">pc_coords</span> <span class="n">X</span> <span class="n">Y</span> <span class="n">Z</span><span class="p">]</span>
                         <span class="p">[</span><span class="o">--</span><span class="n">qc_image</span> <span class="n">QC_IMAGE</span><span class="p">]</span>
                         <span class="p">[</span><span class="o">--</span><span class="n">save_template_dir</span> <span class="n">SAVE_TEMPLATE_DIR</span><span class="p">]</span>
@@ -636,7 +645,7 @@ commands.</p>
 </section>
 <section id="CorpusCallosum.fastsurfer_cc-make_parser-advanced-options">
 <h3>Advanced options<a class="headerlink" href="#CorpusCallosum.fastsurfer_cc-make_parser-advanced-options" title="Link to this heading">¶</a></h3>
-<p>Custom output paths, useful if no standard case directory is used. Relative paths are always relative to the subject_dir defined via –sd and –sid!</p>
+<p>Custom output paths, useful if no standard case directory is used. Relative paths are always relative to &lt;subject_dir&gt; defined via –sd and –sid!</p>
 <dl class="option-list">
 <dt><kbd>--threads</kbd></dt>
 <dd><p>Number of threads to use (defaults to number of hardware threads: 4)</p>
@@ -742,9 +751,10 @@ points are used for segmentation conditioning, morphometry, QC, orientation tran
 <p>The selected midsagittal plane is minimally rotated and translated so that it contains both 3D landmarks exactly. A
 plane adjustment larger than 15 degrees emits a warning because this commonly indicates a coordinate-space error.</p>
 <p>For example:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python3<span class="w"> </span>CorpusCallosum/fastsurfer_cc.py<span class="w"> </span><span class="se">\</span>
-<span class="w">    </span>--sd<span class="w"> </span>/data/subjects<span class="w"> </span><span class="se">\</span>
-<span class="w">    </span>--sid<span class="w"> </span>sub001<span class="w"> </span><span class="se">\</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span><span class="w"> </span><span class="nv">FASTSURFER_HOME</span><span class="o">=</span><span class="si">${</span><span class="nv">FASTSURFER_HOME</span><span class="k">:-</span><span class="p">/path/to/FastSurfer</span><span class="si">}</span>
+python3<span class="w"> </span><span class="nv">$FASTSURFER_HOME</span>/CorpusCallosum/fastsurfer_cc.py<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--sd<span class="w"> </span><span class="nv">$HOME</span>/my_fastsurfer_analysis<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--sid<span class="w"> </span>subjectX<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--ac_coords<span class="w"> </span><span class="m">127</span>.4<span class="w"> </span><span class="m">126</span>.8<span class="w"> </span><span class="m">128</span>.1<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--pc_coords<span class="w"> </span><span class="m">127</span>.9<span class="w"> </span><span class="m">103</span>.6<span class="w"> </span><span class="m">128</span>.7<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--upright_volume<span class="w"> </span>mri/upright_volume.mgz
@@ -769,16 +779,17 @@ upright plane. Because upright files use a standardized affine, FastSurfer-CC ca
 edit from file geometry alone.</p>
 </div>
 <p>To reprocess a manual CC correction, first copy the automatic upright segmentation:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">SUBJECT_DIR</span><span class="o">=</span>/data/subjects/sub001
-cp<span class="w"> </span><span class="s2">"</span><span class="nv">$SUBJECT_DIR</span><span class="s2">/mri/callosum.CC.upright.mgz"</span><span class="w"> </span><span class="se">\</span>
-<span class="w">   </span><span class="s2">"</span><span class="nv">$SUBJECT_DIR</span><span class="s2">/mri/callosum.CC.upright.manedit.mgz"</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">subject_dir</span><span class="o">=</span><span class="nv">$HOME</span>/my_fastsurfer_analysis/subjectX
+cp<span class="w"> </span><span class="s2">"</span><span class="nv">$subject_dir</span><span class="s2">/mri/callosum.CC.upright.mgz"</span><span class="w"> </span><span class="se">\</span>
+<span class="w">   </span><span class="s2">"</span><span class="nv">$subject_dir</span><span class="s2">/mri/callosum.CC.upright.manedit.mgz"</span>
 </pre></div>
 </div>
 <p>Edit label 192 in <code class="docutils literal notranslate"><span class="pre">mri/callosum.CC.upright.manedit.mgz</span></code> using <code class="docutils literal notranslate"><span class="pre">mri/upright_volume.mgz</span></code> as the anatomical reference.
 The manual file may also contain fornix label 250. Then rerun the expert command with the manual input:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python3<span class="w"> </span>CorpusCallosum/fastsurfer_cc.py<span class="w"> </span><span class="se">\</span>
-<span class="w">    </span>--sd<span class="w"> </span>/data/subjects<span class="w"> </span><span class="se">\</span>
-<span class="w">    </span>--sid<span class="w"> </span>sub001<span class="w"> </span><span class="se">\</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span><span class="w"> </span><span class="nv">FASTSURFER_HOME</span><span class="o">=</span><span class="si">${</span><span class="nv">FASTSURFER_HOME</span><span class="k">:-</span><span class="p">/path/to/FastSurfer</span><span class="si">}</span>
+python3<span class="w"> </span><span class="nv">$FASTSURFER_HOME</span>/CorpusCallosum/fastsurfer_cc.py<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--sd<span class="w"> </span><span class="nv">$HOME</span>/my_fastsurfer_analysis<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--sid<span class="w"> </span>subjectX<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--segmentation_manedit<span class="w"> </span>mri/callosum.CC.upright.manedit.mgz<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--upright_volume<span class="w"> </span>mri/upright_volume.mgz<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--qc_image<span class="w"> </span>qc_snapshots/callosum.png<span class="w"> </span><span class="se">\</span>
@@ -799,51 +810,53 @@ them into the broader aseg outputs. Use the top-level <code class="docutils lite
 integration is required. The top-level workflow does not currently accept supplied AC/PC coordinates.</p>
 </div>
 <p>The complete Docker edit rerun is:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">SUBJECTS_DIR</span><span class="o">=</span>/data/fastsurfer
-<span class="nv">SID</span><span class="o">=</span>sub001
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span><span class="w"> </span><span class="nv">SUBJECTS_DIR</span><span class="o">=</span><span class="nv">$HOME</span>/my_fastsurfer_analysis
+<span class="nv">subject_id</span><span class="o">=</span>subjectX
 
 docker<span class="w"> </span>run<span class="w"> </span>--gpus<span class="w"> </span>all<span class="w"> </span>--rm<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--user<span class="w"> </span><span class="s2">"</span><span class="k">$(</span>id<span class="w"> </span>-u<span class="k">)</span><span class="s2">:</span><span class="k">$(</span>id<span class="w"> </span>-g<span class="k">)</span><span class="s2">"</span><span class="w"> </span><span class="se">\</span>
-<span class="w">    </span>--volume<span class="w"> </span><span class="s2">"</span><span class="nv">$SUBJECTS_DIR</span><span class="s2">:/output"</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--volume<span class="w"> </span><span class="s2">"</span><span class="nv">$SUBJECTS_DIR</span><span class="s2">:</span><span class="nv">$SUBJECTS_DIR</span><span class="s2">"</span><span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--entrypoint<span class="w"> </span>/fastsurfer/tools/Docker/entrypoint.sh<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>deepmi/fastsurfer:latest<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>python3<span class="w"> </span>/fastsurfer/CorpusCallosum/fastsurfer_cc.py<span class="w"> </span><span class="se">\</span>
-<span class="w">    </span>--sd<span class="w"> </span>/output<span class="w"> </span><span class="se">\</span>
-<span class="w">    </span>--sid<span class="w"> </span><span class="s2">"</span><span class="nv">$SID</span><span class="s2">"</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--sd<span class="w"> </span><span class="s2">"</span><span class="nv">$SUBJECTS_DIR</span><span class="s2">"</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--sid<span class="w"> </span><span class="s2">"</span><span class="nv">$subject_id</span><span class="s2">"</span><span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--segmentation_manedit<span class="w"> </span>mri/callosum.CC.upright.manedit.mgz<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--upright_volume<span class="w"> </span>mri/upright_volume.mgz<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--qc_image<span class="w"> </span>qc_snapshots/callosum.png<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--thickness_image<span class="w"> </span>qc_snapshots/callosum.thickness.png
 </pre></div>
 </div>
-<p>The example above resolves the relative manual path inside <code class="docutils literal notranslate"><span class="pre">/output/$SID</span></code>. A manual segmentation stored elsewhere
-on the host can instead be mounted read-only and passed by its absolute container path:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">MANUAL_EDIT</span><span class="o">=</span>/data/annotations/sub001_cc_manedit.mgz
+<p>The example above resolves the relative manual path inside <code class="docutils literal notranslate"><span class="pre">$SUBJECTS_DIR/$subject_id</span></code>. A manual segmentation stored
+elsewhere on the host can instead be mounted read-only at the same path and passed by its absolute path:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span><span class="w"> </span><span class="nv">SUBJECTS_DIR</span><span class="o">=</span><span class="nv">$HOME</span>/my_fastsurfer_analysis
+<span class="nv">subject_id</span><span class="o">=</span>subjectX
+<span class="nv">manual_edit</span><span class="o">=</span><span class="nv">$HOME</span>/my_mri_data/subjectX/cc_manedit.mgz
 
 docker<span class="w"> </span>run<span class="w"> </span>--gpus<span class="w"> </span>all<span class="w"> </span>--rm<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--user<span class="w"> </span><span class="s2">"</span><span class="k">$(</span>id<span class="w"> </span>-u<span class="k">)</span><span class="s2">:</span><span class="k">$(</span>id<span class="w"> </span>-g<span class="k">)</span><span class="s2">"</span><span class="w"> </span><span class="se">\</span>
-<span class="w">    </span>--volume<span class="w"> </span><span class="s2">"</span><span class="nv">$SUBJECTS_DIR</span><span class="s2">:/output"</span><span class="w"> </span><span class="se">\</span>
-<span class="w">    </span>--volume<span class="w"> </span><span class="s2">"</span><span class="nv">$MANUAL_EDIT</span><span class="s2">:/manual-edit.mgz:ro"</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--volume<span class="w"> </span><span class="s2">"</span><span class="nv">$SUBJECTS_DIR</span><span class="s2">:</span><span class="nv">$SUBJECTS_DIR</span><span class="s2">"</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--volume<span class="w"> </span><span class="s2">"</span><span class="nv">$manual_edit</span><span class="s2">:</span><span class="nv">$manual_edit</span><span class="s2">:ro"</span><span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--entrypoint<span class="w"> </span>/fastsurfer/tools/Docker/entrypoint.sh<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>deepmi/fastsurfer:latest<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>python3<span class="w"> </span>/fastsurfer/CorpusCallosum/fastsurfer_cc.py<span class="w"> </span><span class="se">\</span>
-<span class="w">    </span>--sd<span class="w"> </span>/output<span class="w"> </span><span class="se">\</span>
-<span class="w">    </span>--sid<span class="w"> </span><span class="s2">"</span><span class="nv">$SID</span><span class="s2">"</span><span class="w"> </span><span class="se">\</span>
-<span class="w">    </span>--segmentation_manedit<span class="w"> </span>/manual-edit.mgz<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--sd<span class="w"> </span><span class="s2">"</span><span class="nv">$SUBJECTS_DIR</span><span class="s2">"</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--sid<span class="w"> </span><span class="s2">"</span><span class="nv">$subject_id</span><span class="s2">"</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--segmentation_manedit<span class="w"> </span><span class="s2">"</span><span class="nv">$manual_edit</span><span class="s2">"</span><span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--qc_image<span class="w"> </span>qc_snapshots/callosum.png
 </pre></div>
 </div>
 <p>The complete Singularity edit rerun is:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">SUBJECTS_DIR</span><span class="o">=</span>/data/fastsurfer
-<span class="nv">SID</span><span class="o">=</span>sub001
-<span class="nv">FASTSURFER_SIF</span><span class="o">=</span>/containers/fastsurfer-gpu.sif
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span><span class="w"> </span><span class="nv">SUBJECTS_DIR</span><span class="o">=</span><span class="nv">$HOME</span>/my_fastsurfer_analysis
+<span class="nv">subject_id</span><span class="o">=</span>subjectX
+<span class="nv">fastsurfer_sif</span><span class="o">=</span><span class="nv">$HOME</span>/my_singularity_images/fastsurfer-latest.sif
 
 singularity<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>--nv<span class="w"> </span>--no-mount<span class="w"> </span>home,cwd<span class="w"> </span>-e<span class="w"> </span><span class="se">\</span>
-<span class="w">    </span>--bind<span class="w"> </span><span class="s2">"</span><span class="nv">$SUBJECTS_DIR</span><span class="s2">:/output"</span><span class="w"> </span><span class="se">\</span>
-<span class="w">    </span><span class="s2">"</span><span class="nv">$FASTSURFER_SIF</span><span class="s2">"</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--bind<span class="w"> </span><span class="s2">"</span><span class="nv">$SUBJECTS_DIR</span><span class="s2">"</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span><span class="s2">"</span><span class="nv">$fastsurfer_sif</span><span class="s2">"</span><span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>python3<span class="w"> </span>/fastsurfer/CorpusCallosum/fastsurfer_cc.py<span class="w"> </span><span class="se">\</span>
-<span class="w">    </span>--sd<span class="w"> </span>/output<span class="w"> </span><span class="se">\</span>
-<span class="w">    </span>--sid<span class="w"> </span><span class="s2">"</span><span class="nv">$SID</span><span class="s2">"</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--sd<span class="w"> </span><span class="s2">"</span><span class="nv">$SUBJECTS_DIR</span><span class="s2">"</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--sid<span class="w"> </span><span class="s2">"</span><span class="nv">$subject_id</span><span class="s2">"</span><span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--segmentation_manedit<span class="w"> </span>mri/callosum.CC.upright.manedit.mgz<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--upright_volume<span class="w"> </span>mri/upright_volume.mgz<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--qc_image<span class="w"> </span>qc_snapshots/callosum.png<span class="w"> </span><span class="se">\</span>
@@ -861,14 +874,15 @@ For this use the <code class="docutils literal notranslate"><span class="pre">--
 Additionally, the surface outputs, e.g. <code class="docutils literal notranslate"><span class="pre">--thickness_image</span></code>, can be used to visualize the CC thickness and also inform quality control.
 Finally, to confirm the alignment of the CC on the mid-sagittal plane, we can output the upright volume with <code class="docutils literal notranslate"><span class="pre">--upright_volume</span></code> flag.
 In this image the mid-sagittal plane is at voxel coordinate 128 in the LR direction.</p>
-<p>An example call with all quality control outputs is:
-.. code-block:: bash</p>
-<blockquote>
-<div><dl class="simple">
-<dt>python3 fastsurfer_cc.py –sd /data/subjects –sid sub001 </dt><dd><p>–qc_image /data/qc/sub001/qc_snapshots/callosum.png –thickness_image /data/qc/sub001/qc_snapshots/callosum.thickness.png –upright_volume /data/qc/sub001/mri/upright_volume.mgz</p>
-</dd>
-</dl>
-</div></blockquote>
+<p>An example call with all quality control outputs is:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span><span class="w"> </span><span class="nv">FASTSURFER_HOME</span><span class="o">=</span><span class="si">${</span><span class="nv">FASTSURFER_HOME</span><span class="k">:-</span><span class="p">/path/to/FastSurfer</span><span class="si">}</span>
+python3<span class="w"> </span><span class="nv">$FASTSURFER_HOME</span>/CorpusCallosum/fastsurfer_cc.py<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--sd<span class="w"> </span><span class="nv">$HOME</span>/my_fastsurfer_analysis<span class="w"> </span>--sid<span class="w"> </span>subjectX<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--qc_image<span class="w"> </span>qc_snapshots/callosum.png<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--thickness_image<span class="w"> </span>qc_snapshots/callosum.thickness.png<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--upright_volume<span class="w"> </span>mri/upright_volume.mgz
+</pre></div>
+</div>
 </section>
 <section id="custom-subdivision-schemes">
 <h2>Custom Subdivision Schemes<a class="headerlink" href="#custom-subdivision-schemes" title="Link to this heading">¶</a></h2>
@@ -876,7 +890,9 @@ In this image the mid-sagittal plane is at voxel coordinate 128 in the LR direct
 The fractions are relative to the total length of the corpus callosum (midline length).
 The default is to use the shape-based subdivision scheme (recommended) and the Hofer-Frahms convention.</p>
 <p>We can, for example divide the CC into 4 equal parts with the shape-based subdivision scheme:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python3<span class="w"> </span>fastsurfer_cc.py<span class="w"> </span>--sd<span class="w"> </span>/data/subjects<span class="w"> </span>--sid<span class="w"> </span>sub001<span class="w"> </span><span class="se">\</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span><span class="w"> </span><span class="nv">FASTSURFER_HOME</span><span class="o">=</span><span class="si">${</span><span class="nv">FASTSURFER_HOME</span><span class="k">:-</span><span class="p">/path/to/FastSurfer</span><span class="si">}</span>
+python3<span class="w"> </span><span class="nv">$FASTSURFER_HOME</span>/CorpusCallosum/fastsurfer_cc.py<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--sd<span class="w"> </span><span class="nv">$HOME</span>/my_fastsurfer_analysis<span class="w"> </span>--sid<span class="w"> </span>subjectX<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--subdivision_method<span class="w"> </span>shape<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--subdivisions<span class="w"> </span><span class="m">0</span>.25<span class="w"> </span><span class="m">0</span>.5<span class="w"> </span><span class="m">0</span>.75
 </pre></div>
@@ -889,9 +905,11 @@ The default is to use the shape-based subdivision scheme (recommended) and the H
 <h3>3D Analysis<a class="headerlink" href="#d-analysis" title="Link to this heading">¶</a></h3>
 <p>When running the main pipeline with <code class="docutils literal notranslate"><span class="pre">--slice_selection</span> <span class="pre">all</span></code> and <code class="docutils literal notranslate"><span class="pre">--save_template_dir</span></code>, a complete 3D template is generated:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Generate 3D template data</span>
-python3<span class="w"> </span>fastsurfer_cc.py<span class="w"> </span>--sd<span class="w"> </span>/data/subjects<span class="w"> </span>--sid<span class="w"> </span>sub001<span class="w"> </span><span class="se">\</span>
+<span class="nb">export</span><span class="w"> </span><span class="nv">FASTSURFER_HOME</span><span class="o">=</span><span class="si">${</span><span class="nv">FASTSURFER_HOME</span><span class="k">:-</span><span class="p">/path/to/FastSurfer</span><span class="si">}</span>
+python3<span class="w"> </span><span class="nv">$FASTSURFER_HOME</span>/CorpusCallosum/fastsurfer_cc.py<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--sd<span class="w"> </span><span class="nv">$HOME</span>/my_fastsurfer_analysis<span class="w"> </span>--sid<span class="w"> </span>subjectX<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--slice_selection<span class="w"> </span>all<span class="w"> </span><span class="se">\</span>
-<span class="w">    </span>--save_template_dir<span class="w"> </span>/data/templates/sub001
+<span class="w">    </span>--save_template_dir<span class="w"> </span><span class="nv">$HOME</span>/my_fastsurfer_analysis/subjectX/cc_template
 </pre></div>
 </div>
 <p>The template files can be used to visualize the corpus callosum in 3D with the <a class="reference internal" href="cc_visualization.html"><span class="doc">CorpusCallosum: cc_visualization.py</span></a> script.</p>
@@ -904,9 +922,11 @@ python3<span class="w"> </span>fastsurfer_cc.py<span class="w"> </span>--sd<span
 <h3>2D Analysis<a class="headerlink" href="#id1" title="Link to this heading">¶</a></h3>
 <p>When using <code class="docutils literal notranslate"><span class="pre">--slice_selection</span> <span class="pre">middle</span></code> or a specific slice number with <code class="docutils literal notranslate"><span class="pre">--save_template_dir</span></code>:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Generate 2D template data (middle slice)</span>
-python3<span class="w"> </span>fastsurfer_cc.py<span class="w"> </span>--sd<span class="w"> </span>/data/subjects<span class="w"> </span>--sid<span class="w"> </span>sub001<span class="w"> </span><span class="se">\</span>
+<span class="nb">export</span><span class="w"> </span><span class="nv">FASTSURFER_HOME</span><span class="o">=</span><span class="si">${</span><span class="nv">FASTSURFER_HOME</span><span class="k">:-</span><span class="p">/path/to/FastSurfer</span><span class="si">}</span>
+python3<span class="w"> </span><span class="nv">$FASTSURFER_HOME</span>/CorpusCallosum/fastsurfer_cc.py<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--sd<span class="w"> </span><span class="nv">$HOME</span>/my_fastsurfer_analysis<span class="w"> </span>--sid<span class="w"> </span>subjectX<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--slice_selection<span class="w"> </span>middle<span class="w"> </span><span class="se">\</span>
-<span class="w">    </span>--save_template_dir<span class="w"> </span>/data/templates/sub001
+<span class="w">    </span>--save_template_dir<span class="w"> </span><span class="nv">$HOME</span>/my_fastsurfer_analysis/subjectX/cc_template
 </pre></div>
 </div>
 <p><strong>Benefits:</strong>
@@ -1031,7 +1051,7 @@ python3<span class="w"> </span>fastsurfer_cc.py<span class="w"> </span>--sd<span
     <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../_static/scripts/furo.js?v=46bd48cc"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
-    <script src="../_static/copybutton.js?v=f281be69"></script>
+    <script src="../_static/copybutton.js?v=1be11439"></script>
     <script src="../_static/design-tabs.js?v=f930bc37"></script>
     <script src="../_static/doc-version-link.js?v=e710a016"></script>
     </body>

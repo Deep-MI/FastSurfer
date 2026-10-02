@@ -508,7 +508,7 @@ situations, it will be called from <code class="xref py py-obj docutils literal 
 <dd><p>Path to the T2 image to process.</p>
 </dd>
 <dt><kbd>--qc_snap</kbd></dt>
-<dd><p>Create qc snapshots in &lt;sd&gt;/&lt;sid&gt;/qc_snapshots.</p>
+<dd><p>Create qc snapshots in &lt;subject_dir&gt;/qc_snapshots.</p>
 <p>Default: <code class="docutils literal notranslate"><span class="pre">False</span></code></p>
 </dd>
 <dt><kbd>--reg_mode</kbd></dt>
@@ -521,7 +521,7 @@ situations, it will be called from <code class="xref py py-obj docutils literal 
 <p>Default: <code class="docutils literal notranslate"><span class="pre">'hypothalamus.HypVINN.nii.gz'</span></code></p>
 </dd>
 <dt><kbd>--hypo_statsfile</kbd></dt>
-<dd><p>File name under &lt;sd&gt;/&lt;sid&gt;/stats, or an absolute path, to save the hypothalamus statistics to (default: hypothalamus.HypVINN.stats).</p>
+<dd><p>File name under &lt;subject_dir&gt;/stats, or an absolute path, to save the hypothalamus statistics to (default: hypothalamus.HypVINN.stats).</p>
 <p>Default: <code class="docutils literal notranslate"><span class="pre">'hypothalamus.HypVINN.stats'</span></code></p>
 </dd>
 </dl>
@@ -534,7 +534,7 @@ situations, it will be called from <code class="xref py py-obj docutils literal 
 <p>Default: <code class="docutils literal notranslate"><span class="pre">'auto'</span></code></p>
 </dd>
 <dt><kbd>--viewagg_device</kbd></dt>
-<dd><p>Define the device, where the view aggregation should be run. By default, the program checks if you have enough memory to run the view aggregation on the gpu (cuda). The total memory is considered for this decision. If this fails, or you actively overwrote the check with setting &gt; –viewagg_device cpu &lt;, view agg is run on the cpu. Equivalently, if you define &gt; –viewagg_device cuda &lt;, view agg will be run on the gpu (no memory check will be done).</p>
+<dd><p>Define the device, where the view aggregation should be run. By default, the program checks if you have enough memory to run the view aggregation on the gpu (cuda). The total memory is considered for this decision. If this fails, or you actively overwrote the check with setting ‘–viewagg_device cpu’, view agg is run on the cpu. Equivalently, if you define ‘–viewagg_device cuda’, view agg will be run on the gpu (no memory check will be done).</p>
 <p>Default: <code class="docutils literal notranslate"><span class="pre">'auto'</span></code></p>
 </dd>
 <dt><kbd>--threads</kbd></dt>
@@ -615,25 +615,25 @@ situations, it will be called from <code class="xref py py-obj docutils literal 
 <section id="input-and-output-arguments">
 <h2>Input and output arguments<a class="headerlink" href="#input-and-output-arguments" title="Link to this heading">¶</a></h2>
 <ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">--sid</span> <span class="pre">&lt;name&gt;</span></code> :  Subject ID, the subject data upon which to operate</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">--sd</span> <span class="pre">&lt;name&gt;</span></code> : Directory in which evaluation results should be written.</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">--t1</span> <span class="pre">&lt;/dir/T1**.nii.gz&gt;</span></code> : T1 image path</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">--t2</span> <span class="pre">&lt;/dir/T2**.nii.gz&gt;</span></code> : T2 image path</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">--seg_log</span></code> :  Path to file in which run logs will be saved. If not set logs will be stored in <code class="docutils literal notranslate"><span class="pre">/sd/sid/scripts/hypvinn_seg.log</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--sid</span> <span class="pre">&lt;subject_id&gt;</span></code> :  Subject ID, the subject data upon which to operate</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--sd</span> <span class="pre">&lt;subjects_dir&gt;</span></code> : Directory in which evaluation results should be written.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--t1</span> <span class="pre">&lt;t1_path&gt;</span></code> : T1 image path</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--t2</span> <span class="pre">&lt;t2_path&gt;</span></code> : T2 image path (optional)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--seg_log</span></code> :  Path to file in which run logs will be saved. If not set logs will be stored in <code class="docutils literal notranslate"><span class="pre">&lt;subject_dir&gt;/scripts/hypvinn_seg.log</span></code></p></li>
 </ul>
 </section>
 <section id="image-processing-options">
 <h2>Image processing options<a class="headerlink" href="#image-processing-options" title="Link to this heading">¶</a></h2>
 <ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">--reg_mode</span></code> :  Ignored, if no T2 image is passed. Specifies the registration method used to register T1 and T2 images. Options are ‘coreg’ (default) for mri_coreg, ‘robust’ for mri_robust_register, and ‘none’ to skip registration (this requires T1 and T2 are externally co-registered).</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">--qc_snap</span></code>: Activate the creation of QC snapshots of the predicted HypVINN segmentation in <code class="docutils literal notranslate"><span class="pre">/sd/sid/qc_snapshots</span></code>. The created QC snapshots are created to simplify the visual quality control process.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--qc_snap</span></code>: Activate the creation of QC snapshots of the predicted HypVINN segmentation in <code class="docutils literal notranslate"><span class="pre">&lt;subject_dir&gt;/qc_snapshots</span></code>. The created QC snapshots are created to simplify the visual quality control process.</p></li>
 </ul>
 </section>
 <section id="fastsurfer-technical-parameters-see-fastsurfer-documentation">
 <h2>FastSurfer Technical parameters (see FastSurfer documentation)<a class="headerlink" href="#fastsurfer-technical-parameters-see-fastsurfer-documentation" title="Link to this heading">¶</a></h2>
 <ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">--device</span></code></p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">--viewgg_device</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--viewagg_device</span></code></p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">--threads</span></code></p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">--batch_size</span></code></p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">--async_io</span></code></p></li>
@@ -643,17 +643,17 @@ situations, it will be called from <code class="xref py py-obj docutils literal 
 <section id="checkpoint-to-load">
 <h2>Checkpoint to load<a class="headerlink" href="#checkpoint-to-load" title="Link to this heading">¶</a></h2>
 <ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">--ckpt_cor</span> <span class="pre">&lt;/dir/to/coronal/ckpt&gt;</span></code> : Coronal checkpoint to load, default =  $FASTSURFER_ROOT/checkpoints/HypVINN_axial_v1.1.0.pkl</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">--ckpt_ax</span> <span class="pre">&lt;/dir/to/axial/ckpt&gt;</span></code> : Axial checkpoint to load, default = $FASTSURFER_ROOT/checkpoints/HypVINN_coronal_v1.1.0.pkl</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">--ckpt_sag</span> <span class="pre">&lt;/dir/to/sagittal/ckpt&gt;</span></code> : Sagittal checkpoint to load, default = $FASTSURFER_ROOT/checkpoints/HypVINN_sagittal_v1.1.0.pkl</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--ckpt_cor</span> <span class="pre">&lt;coronal_ckpt&gt;</span></code> : Coronal checkpoint to load, default: <code class="docutils literal notranslate"><span class="pre">FASTSURFER_HOME/checkpoints/HypVINN_coronal_v1.1.0.pkl</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--ckpt_ax</span> <span class="pre">&lt;axial_ckpt&gt;</span></code> : Axial checkpoint to load, default: <code class="docutils literal notranslate"><span class="pre">FASTSURFER_HOME/checkpoints/HypVINN_axial_v1.1.0.pkl</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--ckpt_sag</span> <span class="pre">&lt;sagittal_ckpt&gt;</span></code> : Sagittal checkpoint to load, default: <code class="docutils literal notranslate"><span class="pre">FASTSURFER_HOME/checkpoints/HypVINN_sagittal_v1.1.0.pkl</span></code></p></li>
 </ul>
 </section>
 <section id="cfg-file-with-default-options-for-network">
 <h2>CFG-file with default options for network<a class="headerlink" href="#cfg-file-with-default-options-for-network" title="Link to this heading">¶</a></h2>
 <ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">--cfg_cor</span> <span class="pre">&lt;/dir/to/coronal/cfg&gt;</span></code> : Coronal config file to load, default =  $FASTSURFER_ROOT/HypVINN/config/HypVINN_coronal_v1.1.0.yaml</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">--cfg_ax</span> <span class="pre">&lt;/dir/to/axial/cfg&gt;</span></code> : Axial config file to load, default =  $FASTSURFER_ROOT/HypVINN/config/HypVINN_axial_v1.1.0.yaml</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">--cfg_sag</span> <span class="pre">&lt;/dir/to/sagittal/cfg&gt;</span></code> : Sagittal config file to load, default =  $FASTSURFER_ROOT/HypVINN/config/HypVINN_sagittal_v1.1.0.yaml</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--cfg_cor</span> <span class="pre">&lt;coronal_cfg&gt;</span></code> : Coronal config file to load, default: <code class="docutils literal notranslate"><span class="pre">FASTSURFER_HOME/HypVINN/config/HypVINN_coronal_v1.1.0.yaml</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--cfg_ax</span> <span class="pre">&lt;axial_cfg&gt;</span></code> : Axial config file to load, default: <code class="docutils literal notranslate"><span class="pre">FASTSURFER_HOME/HypVINN/config/HypVINN_axial_v1.1.0.yaml</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--cfg_sag</span> <span class="pre">&lt;sagittal_cfg&gt;</span></code> : Sagittal config file to load, default: <code class="docutils literal notranslate"><span class="pre">FASTSURFER_HOME/HypVINN/config/HypVINN_sagittal_v1.1.0.yaml</span></code></p></li>
 </ul>
 </section>
 <section id="usage">
@@ -666,44 +666,55 @@ situations, it will be called from <code class="xref py py-obj docutils literal 
 </ul>
 <ol class="arabic">
 <li><p>Run HypVINN pipeline</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">python</span> <span class="n">HypVINN</span><span class="o">/</span><span class="n">run_prediction</span><span class="o">.</span><span class="n">py</span>  <span class="o">--</span><span class="n">sid</span> <span class="n">test_subject</span> <span class="o">--</span><span class="n">sd</span> <span class="o">/</span><span class="n">output</span> \
-                                 <span class="o">--</span><span class="n">t1</span> <span class="o">/</span><span class="n">data</span><span class="o">/</span><span class="n">test_subject_t1_bias_field_corrected</span><span class="o">.</span><span class="n">nii</span><span class="o">.</span><span class="n">gz</span> \
-                                 <span class="o">--</span><span class="n">t2</span> <span class="o">/</span><span class="n">data</span><span class="o">/</span><span class="n">test_subject_t2_bias_field_corrected</span><span class="o">.</span><span class="n">nii</span><span class="o">.</span><span class="n">gz</span> \
-                                 <span class="o">--</span><span class="n">reg_mode</span> <span class="n">coreg</span> \
-                                 <span class="o">--</span><span class="n">batch_size</span> <span class="mi">6</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span><span class="w"> </span><span class="nv">FASTSURFER_HOME</span><span class="o">=</span><span class="si">${</span><span class="nv">FASTSURFER_HOME</span><span class="k">:-</span><span class="p">/path/to/FastSurfer</span><span class="si">}</span>
+python3<span class="w"> </span><span class="nv">$FASTSURFER_HOME</span>/HypVINN/run_prediction.py<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--sid<span class="w"> </span>subjectX<span class="w"> </span>--sd<span class="w"> </span><span class="nv">$HOME</span>/my_fastsurfer_analysis<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--t1<span class="w"> </span><span class="nv">$HOME</span>/my_mri_data/subjectX/t1_weighted_bias_corrected.nii.gz<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--t2<span class="w"> </span><span class="nv">$HOME</span>/my_mri_data/subjectX/t2_weighted_bias_corrected.nii.gz<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--reg_mode<span class="w"> </span>coreg<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--batch_size<span class="w"> </span><span class="m">6</span>
 </pre></div>
 </div>
 </li>
 <li><p>Run HypVINN pipeline only using a t1</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">python</span> <span class="n">HypVINN</span><span class="o">/</span><span class="n">run_prediction</span><span class="o">.</span><span class="n">py</span>  <span class="o">--</span><span class="n">sid</span> <span class="n">test_subject</span> <span class="o">--</span><span class="n">sd</span> <span class="o">/</span><span class="n">output</span> \
-                                 <span class="o">--</span><span class="n">t1</span> <span class="o">/</span><span class="n">data</span><span class="o">/</span><span class="n">test_subject_t1_bias_field_corrected</span><span class="o">.</span><span class="n">nii</span><span class="o">.</span><span class="n">gz</span> \
-                                 <span class="o">--</span><span class="n">batch_size</span> <span class="mi">6</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span><span class="w"> </span><span class="nv">FASTSURFER_HOME</span><span class="o">=</span><span class="si">${</span><span class="nv">FASTSURFER_HOME</span><span class="k">:-</span><span class="p">/path/to/FastSurfer</span><span class="si">}</span>
+python3<span class="w"> </span><span class="nv">$FASTSURFER_HOME</span>/HypVINN/run_prediction.py<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--sid<span class="w"> </span>subjectX<span class="w"> </span>--sd<span class="w"> </span><span class="nv">$HOME</span>/my_fastsurfer_analysis<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--t1<span class="w"> </span><span class="nv">$HOME</span>/my_mri_data/subjectX/t1_weighted_bias_corrected.nii.gz<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--batch_size<span class="w"> </span><span class="m">6</span>
 </pre></div>
 </div>
 </li>
 <li><p>Run HypVINN pipeline without the registration step</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">python</span> <span class="n">HypVINN</span><span class="o">/</span><span class="n">run_prediction</span><span class="o">.</span><span class="n">py</span>  <span class="o">--</span><span class="n">sid</span> <span class="n">test_subject</span> <span class="o">--</span><span class="n">sd</span> <span class="o">/</span><span class="n">output</span> \
-                                 <span class="o">--</span><span class="n">t1</span> <span class="o">/</span><span class="n">data</span><span class="o">/</span><span class="n">test_subject_t1_bias_field_corrected</span><span class="o">.</span><span class="n">nii</span><span class="o">.</span><span class="n">gz</span> \
-                                 <span class="o">--</span><span class="n">t2</span> <span class="o">/</span><span class="n">data</span><span class="o">/</span><span class="n">test_subject_t2_bias_field_corrected_and_coregistered_to_t1</span><span class="o">.</span><span class="n">nii</span><span class="o">.</span><span class="n">gz</span> \
-                                 <span class="o">--</span><span class="n">reg_mode</span> <span class="n">none</span> \
-                                 <span class="o">--</span><span class="n">batch_size</span> <span class="mi">6</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span><span class="w"> </span><span class="nv">FASTSURFER_HOME</span><span class="o">=</span><span class="si">${</span><span class="nv">FASTSURFER_HOME</span><span class="k">:-</span><span class="p">/path/to/FastSurfer</span><span class="si">}</span>
+python3<span class="w"> </span><span class="nv">$FASTSURFER_HOME</span>/HypVINN/run_prediction.py<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--sid<span class="w"> </span>subjectX<span class="w"> </span>--sd<span class="w"> </span><span class="nv">$HOME</span>/my_fastsurfer_analysis<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--t1<span class="w"> </span><span class="nv">$HOME</span>/my_mri_data/subjectX/t1_weighted_bias_corrected.nii.gz<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--t2<span class="w"> </span><span class="se">\</span>
+<span class="w">      </span><span class="nv">$HOME</span>/my_mri_data/subjectX/t2_weighted_bias_corrected_in_t1_space.nii.gz<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--reg_mode<span class="w"> </span>none<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--batch_size<span class="w"> </span><span class="m">6</span>
 </pre></div>
 </div>
 </li>
 <li><p>Run HypVINN pipeline with creation of qc snapshots</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">python</span> <span class="n">HypVINN</span><span class="o">/</span><span class="n">run_prediction</span><span class="o">.</span><span class="n">py</span>  <span class="o">--</span><span class="n">sid</span> <span class="n">test_subject</span> <span class="o">--</span><span class="n">sd</span> <span class="o">/</span><span class="n">output</span> \
-                                 <span class="o">--</span><span class="n">t1</span> <span class="o">/</span><span class="n">data</span><span class="o">/</span><span class="n">test_subject_t1_bias_field_corrected</span><span class="o">.</span><span class="n">nii</span><span class="o">.</span><span class="n">gz</span> \
-                                 <span class="o">--</span><span class="n">t2</span> <span class="o">/</span><span class="n">data</span><span class="o">/</span><span class="n">test_subject_t2_bias_field_corrected</span><span class="o">.</span><span class="n">nii</span><span class="o">.</span><span class="n">gz</span> \
-                                 <span class="o">--</span><span class="n">reg_mode</span> <span class="n">coreg</span> \
-                                 <span class="o">--</span><span class="n">batch_size</span> <span class="mi">6</span> <span class="o">--</span><span class="n">qc_snap</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span><span class="w"> </span><span class="nv">FASTSURFER_HOME</span><span class="o">=</span><span class="si">${</span><span class="nv">FASTSURFER_HOME</span><span class="k">:-</span><span class="p">/path/to/FastSurfer</span><span class="si">}</span>
+python3<span class="w"> </span><span class="nv">$FASTSURFER_HOME</span>/HypVINN/run_prediction.py<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--sid<span class="w"> </span>subjectX<span class="w"> </span>--sd<span class="w"> </span><span class="nv">$HOME</span>/my_fastsurfer_analysis<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--t1<span class="w"> </span><span class="nv">$HOME</span>/my_mri_data/subjectX/t1_weighted_bias_corrected.nii.gz<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--t2<span class="w"> </span><span class="nv">$HOME</span>/my_mri_data/subjectX/t2_weighted_bias_corrected.nii.gz<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--reg_mode<span class="w"> </span>coreg<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--batch_size<span class="w"> </span><span class="m">6</span><span class="w"> </span>--qc_snap
 </pre></div>
 </div>
 </li>
 <li><p>Run HypVINN pipeline from an existing FastSurfer subject output – recommended when FastSurfer output is there without the Hypothalamus module</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">python</span> <span class="n">HypVINN</span><span class="o">/</span><span class="n">run_prediction</span><span class="o">.</span><span class="n">py</span>  <span class="o">--</span><span class="n">sid</span> <span class="n">test_subject</span> <span class="o">--</span><span class="n">sd</span> <span class="o">/</span><span class="n">output</span> \
-                                 <span class="o">--</span><span class="n">t1</span> <span class="o">/</span><span class="n">output</span><span class="o">/</span><span class="n">test_subject</span><span class="o">/</span><span class="n">mri</span><span class="o">/</span><span class="n">orig_nu</span><span class="o">.</span><span class="n">mgz</span> \
-                                 <span class="o">--</span><span class="n">seg_log</span> <span class="o">/</span><span class="n">output</span><span class="o">/</span><span class="n">test_subject</span><span class="o">/</span><span class="n">scripts</span><span class="o">/</span><span class="n">deep</span><span class="o">-</span><span class="n">seg</span><span class="o">.</span><span class="n">log</span> \
-                                 <span class="o">--</span><span class="n">batch_size</span> <span class="mi">6</span> <span class="o">--</span><span class="n">qc_snap</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span><span class="w"> </span><span class="nv">FASTSURFER_HOME</span><span class="o">=</span><span class="si">${</span><span class="nv">FASTSURFER_HOME</span><span class="k">:-</span><span class="p">/path/to/FastSurfer</span><span class="si">}</span>
+python3<span class="w"> </span><span class="nv">$FASTSURFER_HOME</span>/HypVINN/run_prediction.py<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--sid<span class="w"> </span>subjectX<span class="w"> </span>--sd<span class="w"> </span><span class="nv">$HOME</span>/my_fastsurfer_analysis<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--t1<span class="w"> </span><span class="nv">$HOME</span>/my_fastsurfer_analysis/subjectX/mri/orig_nu.mgz<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--seg_log<span class="w"> </span><span class="nv">$HOME</span>/my_fastsurfer_analysis/subjectX/scripts/deep-seg.log<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--batch_size<span class="w"> </span><span class="m">6</span><span class="w"> </span>--qc_snap
 </pre></div>
 </div>
 </li>
@@ -711,18 +722,19 @@ situations, it will be called from <code class="xref py py-obj docutils literal 
 </section>
 <section id="output">
 <h2>Output<a class="headerlink" href="#output" title="Link to this heading">¶</a></h2>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1">#Output Scheme</span>
-<span class="p">|</span>--<span class="w"> </span>output_dir
-<span class="w">    </span><span class="p">|</span>--sid
-<span class="w">        </span><span class="p">|</span>--<span class="w"> </span>mri<span class="w"> </span>:<span class="w"> </span>MRI<span class="w"> </span>outputs
-<span class="w">            </span><span class="p">|</span>--hypothalamus.HypVINN.nii.gz<span class="o">(</span>Hypothalamus<span class="w"> </span>Segmentation<span class="o">)</span>
-<span class="w">            </span><span class="p">|</span>--<span class="w"> </span>hypothalamus_mask.HypVINN.nii.gz<span class="w"> </span><span class="o">(</span>Hypothalamus<span class="w"> </span>Segmentation<span class="w"> </span>Mask<span class="o">)</span>
-<span class="w">            </span><span class="p">|</span>--<span class="w"> </span>transforms
-<span class="w">                </span><span class="p">|</span>--<span class="w"> </span>t2tot1.lta<span class="w"> </span><span class="o">(</span>FreeSurfer<span class="w"> </span>registration<span class="w"> </span>file,<span class="w"> </span>only<span class="w"> </span>available<span class="w"> </span><span class="k">if</span><span class="w"> </span>registration<span class="w"> </span>is<span class="w"> </span>performed<span class="o">)</span>
-<span class="w">        </span><span class="p">|</span>--<span class="w"> </span>qc_snapshots<span class="w"> </span>:<span class="w"> </span>QC<span class="w"> </span>outputs<span class="w"> </span><span class="o">(</span>optional<span class="o">)</span>
-<span class="w">            </span><span class="p">|</span>--<span class="w"> </span>hypothalamus.HypVINN_qc_screenshoot.png<span class="w"> </span><span class="o">(</span>Coronal<span class="w"> </span>quality<span class="w"> </span>control<span class="w"> </span>image<span class="o">)</span>
-<span class="w">        </span><span class="p">|</span>--<span class="w"> </span>stats<span class="w"> </span>:<span class="w"> </span>Statistics<span class="w"> </span>outputs
-<span class="w">            </span><span class="p">|</span>--<span class="w"> </span>hypothalamus.HypVINN.stats<span class="w"> </span><span class="o">(</span>Segmentation<span class="w"> </span>stats<span class="o">)</span>
+<!-- the line length rule does not apply for the following fence! -->
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>#Output Scheme
+|-- output_dir
+    |--sid
+        |-- mri : MRI outputs
+            |--hypothalamus.HypVINN.nii.gz(Hypothalamus Segmentation)
+            |-- hypothalamus_mask.HypVINN.nii.gz (Hypothalamus Segmentation Mask)
+            |-- transforms
+                |-- t2tot1.lta (FreeSurfer registration file, only available if registration is performed)
+        |-- qc_snapshots : QC outputs (optional)
+            |-- hypothalamus.HypVINN_qc_screenshoot.png (Coronal quality control image)
+        |-- stats : Statistics outputs
+            |-- hypothalamus.HypVINN.stats (Segmentation stats)
 </pre></div>
 </div>
 </section>
@@ -733,9 +745,11 @@ situations, it will be called from <code class="xref py py-obj docutils literal 
 <section id="citation">
 <h2>Citation<a class="headerlink" href="#citation" title="Link to this heading">¶</a></h2>
 <p>If you use the HypVINN module please cite</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>Santiago Estrada, David Kügler, Emad Bahrami, Peng Xu, Dilshad Mousa, Monique M.B. Breteler, N. Ahmad Aziz, Martin Reuter;
-FastSurfer-HypVINN: Automated sub-segmentation of the hypothalamus and adjacent structures on high-resolutional brain MRI.
-Imaging Neuroscience 2023; 1 1–32. doi: https://doi.org/10.1162/imag_a_00034
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>Santiago Estrada, David Kügler, Emad Bahrami, Peng Xu, Dilshad Mousa,
+  Monique M.B. Breteler, N. Ahmad Aziz, Martin Reuter; FastSurfer-HypVINN:
+  Automated sub-segmentation of the hypothalamus and adjacent structures on
+  high-resolutional brain MRI. Imaging Neuroscience 2023; 1 1–32.
+  doi: https://doi.org/10.1162/imag_a_00034
 </pre></div>
 </div>
 </section>
@@ -835,7 +849,7 @@ Imaging Neuroscience 2023; 1 1–32. doi: https://doi.org/10.1162/imag_a_00034
     <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../_static/scripts/furo.js?v=46bd48cc"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
-    <script src="../_static/copybutton.js?v=f281be69"></script>
+    <script src="../_static/copybutton.js?v=1be11439"></script>
     <script src="../_static/design-tabs.js?v=f930bc37"></script>
     <script src="../_static/doc-version-link.js?v=e710a016"></script>
     </body>

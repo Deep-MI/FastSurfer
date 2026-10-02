@@ -1,13 +1,15 @@
 run_fastsurfer.sh
 =================
-Next, you will learn how to specify the `*fastsurfer-flags*` by replacing `*fastsurfer-flags*` with your specific options.
+Next, you will learn how to specify the `<fastsurfer_flags>` by replacing `<fastsurfer_flags>` with your specific options.
 `run_fastsurfer.sh` is the central command of FastSurfer. In general, `run_fastsurfer.sh` is called once for each T1w MRI image that is to be processed and each call will result in one "Subject Folder" with segmentation maps, surfaces and statistics tables. If you want to process multiple images, you can either loop through the images yourself or use [brun_fastsurfer.sh](BATCH.md) or [srun_fastsurfer.sh](SLURM.md), which are multi-subject extensions to `run_fastsurfer.sh`.
 
-On this page, we explain FastSurfer's options, usually referred to as `<*fastsurfer-flags*>` in this documentation.
-The `<*fastsurfer-flags*>` will usually at least include the subject directory (`--sd`), the subject name/id (`--sid`) and the path to the input image (`--t1`). For example:
+On this page, we explain FastSurfer's options, usually referred to as `<fastsurfer_flags>` in this documentation.
+The `<fastsurfer_flags>` will usually at least include the subject directory (`--sd`), the subject name/id (`--sid`) and the path to the input image (`--t1`). For example:
 
 ```bash
-$FASTSURFER_HOME/run_fastsurfer.sh --sd $HOME/my_fastsurfer_data --sid test_subject --t1 $HOME/my_mri_data/test_subject_t1.nii.gz --3T
+export FASTSURFER_HOME=${FASTSURFER_HOME:-/path/to/FastSurfer}
+$FASTSURFER_HOME/run_fastsurfer.sh --sd $HOME/my_fastsurfer_analysis \
+    --sid subjectX --t1 $HOME/my_mri_data/subjectX/t1_weighted.nii.gz --3T
 ```
 Additionally, you can use `--seg_only` or `--surf_only` to only run a part of the pipeline or `--no_biasfield`, `--no_cereb`, `--no_hypothal`, `--no_cc`, and `--no_asegdkt` to switch off individual segmentation modules.
 Here, we have also added the `--3T` flag, which tells FastSurfer to register against the 3T atlas which is only relevant for the ICV estimation (eTIV).
@@ -15,13 +17,14 @@ Here, we have also added the `--3T` flag, which tells FastSurfer to register aga
 In the following, we give an overview of the most important options. You can view a [full list of options](RUN_FASTSURFER.md#full-list-of-flags) with
 
 ```bash
-./run_fastsurfer.sh --help
+export FASTSURFER_HOME=${FASTSURFER_HOME:-/path/to/FastSurfer}
+$FASTSURFER_HOME/run_fastsurfer.sh --help
 ```
 
 Required arguments
 ------------------
-* `--sd`: Output directory \$SUBJECTS_DIR (equivalent to FreeSurfer setup --> $SUBJECTS_DIR/sid/mri; $SUBJECTS_DIR/sid/surf ... will be created).
-* `--sid`: Subject ID for directory inside \$SUBJECTS_DIR to be created ($SUBJECTS_DIR/sid/...)
+* `--sd`: Output directory \$SUBJECTS_DIR (equivalent to FreeSurfer setup --> `$SUBJECTS_DIR/<subject_id>/mri`; `$SUBJECTS_DIR/<subject_id>/surf` ... will be created).
+* `--sid`: Subject ID for directory inside \$SUBJECTS_DIR to be created (`$SUBJECTS_DIR/<subject_id>/...`)
 * `--t1`: T1 full head input (does not need to be bias corrected, global path). The network was trained with conformed images (UCHAR, cubic volume, 0.7mm - 1mm voxels and standard slice orientation; typically 256x256x256 at 1mm and larger cubes for higher-resolution isotropic inputs). These specifications are checked in the run_prediction.py script and the image is automatically conformed if it does not comply. By default, outputs are written in the FastSurfer conform space used for segmentation, which closely follows FreeSurfer conforming in `mri_convert -c`. The `--keepgeom` path is the exception: it uses an internal soft-LIA reordering for the 2D networks and maps results back to native geometry before writing outputs.
 
 ### Conditionally required
@@ -32,15 +35,15 @@ Optional arguments
 ------------------------------------------
 ### Segmentation pipeline arguments
 * `--seg_only`: Only run the brain segmentation pipeline and skip the surface pipeline.
-* `--seg_log`: Name and location for the log-file for the segmentation. Default: $SUBJECTS_DIR/$sid/scripts/deep-seg.log
+* `--seg_log`: Name and location for the log-file for the segmentation. Default: `$SUBJECTS_DIR/<subject_id>/scripts/deep-seg.log`
 * `--viewagg_device`: Define where the view aggregation should be run on. Can be "auto" or a device (see --device). By default, the program checks if you have enough memory to run the view aggregation on the GPU. The total memory is considered for this decision. If this fails, or you actively specify "cpu" view aggregation is run on the CPU. Equivalently, if you pass a different device, view aggregation will be run on that device (no memory check will be done).
 * `--device`: Select device for neural network segmentation (_auto_, _cpu_, _cuda_, _cuda:<device_num>_, _mps_), where cuda means Nvidia GPU, you can select which one e.g. "cuda:1". Default: "auto", check GPU and then CPU. "mps" is for native MAC installs to use the Apple silicon (M-chip) GPU.
-* `--asegdkt_segfile`: Name of the segmentation file, which includes the aparc+DKTatlas-aseg segmentations. Requires an ABSOLUTE Path! Default location: \$SUBJECTS_DIR/\$sid/mri/aparc.DKTatlas+aseg.deep.mgz
+* `--asegdkt_segfile`: Name of the segmentation file, which includes the aparc+DKTatlas-aseg segmentations. Requires an ABSOLUTE Path! Default location: `$SUBJECTS_DIR/<subject_id>/mri/aparc.DKTatlas+aseg.deep.mgz`
 * `--no_cereb`: Switch off the cerebellum sub-segmentation.
 * `--no_hypothal`: Skip the hypothalamus segmentation.
 * `--no_cc`: Skip the segmentation and analysis of the corpus callosum.
-* `--lesion_mask <path to file>`: Path to a binary lesion mask in the same space as the T1 input. If provided, FastSurfer will wrap the segmentation and surface pipelines with lesion inpainting using LIT. This experimental feature is useful for images with tumors or other large lesions; review LIT-modified outputs before downstream use.
-* `--cereb_segfile`: Name of the cerebellum segmentation file. Requires an ABSOLUTE Path! Default location: \$SUBJECTS_DIR/\$sid/mri/cerebellum.CerebNet.nii.gz
+* `--lesion_mask <lesion_mask_path>`: Path to a binary lesion mask in the same space as the T1 input. If provided, FastSurfer will wrap the segmentation and surface pipelines with lesion inpainting using LIT. This experimental feature is useful for images with tumors or other large lesions; review LIT-modified outputs before downstream use.
+* `--cereb_segfile`: Name of the cerebellum segmentation file. Requires an ABSOLUTE Path! Default location: `$SUBJECTS_DIR/<subject_id>/mri/cerebellum.CerebNet.nii.gz`
 * `--no_biasfield`: Deactivate the biasfield correction and calculation of partial volume-corrected statistics in the segmentation modules. HypVINN does run but expects that biasfields are corrected externally.
 * `--native_image` or `--keepgeom`: **Only supported for `--seg_only`**. Preserve the native image geometry (orientation, image size, and voxel size) for saved outputs. Internally, FastSurfer may temporarily reorder/flip the image to a soft-LIA layout so the 2D networks still see the expected plane ordering, but written outputs stay in native geometry; only intensity scaling and dtype conversion are applied as needed. This also includes experimental support for anisotropic images (no extreme anisotropy).
 
@@ -63,7 +66,7 @@ Optional arguments
   If the minimal voxel size is smaller or equal to 0.98mm, the T1w image will be conformed to isotropic voxels of that voxel size.
   The voxel size (whether set manually or derived) determines whether the surfaces are processed with highres options (below 1mm) or not.
 * `--py`: Command for python, used in both pipelines. Default: python3
-* `--conformed_name`: Name of the file in which the conformed input image will be saved. Default location: \$SUBJECTS_DIR/\$sid/mri/orig.mgz
+* `--conformed_name`: Name of the file in which the conformed input image will be saved. Default location: `$SUBJECTS_DIR/<subject_id>/mri/orig.mgz`
 * `-h`, `--help`: Prints help text
 
 Reproducibility
@@ -105,6 +108,7 @@ machine.
 yourself for the whole run:
 
 ```bash
+export FASTSURFER_HOME=${FASTSURFER_HOME:-/path/to/FastSurfer}
 # the numpy and OpenBLAS values depend on the host, so read them from the helper
 eval "$(python $FASTSURFER_HOME/recon_surf/pin_cpu_dispatch.py)"
 export ATEN_CPU_CAPABILITY=avx2 ONEDNN_MAX_CPU_ISA=AVX2 MKL_CBWR=COMPATIBLE
@@ -138,8 +142,16 @@ checksums are no use here, because the headers record timestamps and the command
 runs still differ byte for byte.
 
 ```bash
-python tools/compare_subjects.py $SUBJECTS_DIR/subject_a $SUBJECTS_DIR/subject_b
+export FASTSURFER_HOME=${FASTSURFER_HOME:-/path/to/FastSurfer}
+export SUBJECTS_DIR=$HOME/my_fastsurfer_analysis
+python $FASTSURFER_HOME/tools/compare_subjects.py $SUBJECTS_DIR/subject_a \
+    $SUBJECTS_DIR/subject_b
 ```
+
+Troubleshooting
+---------------
+`run_fastsurfer.sh` calls `python3` by default. If `python3` is not the python version your FastSurfer environment was
+set up with, pass that one with `--py`, for example `--py python{{ PYTHON_VERSION }}`.
 
 Full list of flags
 ------------------
