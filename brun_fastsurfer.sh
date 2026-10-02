@@ -402,6 +402,26 @@ if [[ "$parallel_pipelines" == "2" ]] ; then
   fi
 fi
 
+# Without --threads or OMP_NUM_THREADS each case picks auto threads for itself, which several cases
+# at once would each take in full. So they share what auto gives the machine, through
+# OMP_THREAD_LIMIT, which every case applies as a cap on its own budget.
+threads_sh="$(dirname "$THIS_SCRIPT")/recon_surf/threads.sh"
+if [[ -f "$threads_sh" ]]
+then
+  source "$threads_sh"
+  function at_once() { if [[ "$1" == "max" ]] || [[ "$1" -gt "$2" ]] ; then echo "$2" ; else echo "$1" ; fi ; }
+  num_cases=$((subject_end - subject_start))
+  num_at_once=$(at_once "$num_parallel_seg" "$num_cases")
+  if [[ "$parallel_pipelines" == "2" ]] ; then num_at_once=$((num_at_once + $(at_once "$num_parallel_surf" "$num_cases"))) ; fi
+  if [[ "$num_at_once" -gt 1 ]] && threads_left_to_auto "${POSITIONAL_FASTSURFER[@]}"
+  then
+    OMP_THREAD_LIMIT="$(share_threads "$num_at_once")"
+    export OMP_THREAD_LIMIT
+    echo "INFO: Up to $num_at_once cases run at the same time, so each uses at most $OMP_THREAD_LIMIT threads"
+    echo "  (OMP_THREAD_LIMIT). Pass --threads to choose the threads per case instead."
+  fi
+fi
+
 ### IF THE SCRIPT GETS TERMINATED, ADD A MESSAGE
 for signal in SIGINT SIGTERM ; do
   trap "$(printf 'echo "brun_fastsurfer.sh terminated via signal %s at $(date -R)!"' "$signal")" $signal

@@ -135,6 +135,33 @@ function auto_threads()
   if [[ "$threads_budget" -gt "$1" ]] ; then threads_budget="$1" ; threads_source+=", capped at $1" ; fi
 }
 
+function threads_left_to_auto()
+{
+  # USAGE: threads_left_to_auto <arguments passed on to run_fastsurfer.sh...>
+  # Succeeds if neither the arguments nor OMP_NUM_THREADS set the threads, so that auto applies.
+  local arg
+  if [[ -n "$(positive_int "$thread_env_user_OMP_NUM_THREADS")" ]] ; then return 1 ; fi
+  for arg in "$@" ; do
+    if [[ "$arg" =~ ^--threads(_seg|_surf)?$ ]] ; then return 1 ; fi
+  done
+  return 0
+}
+
+function share_threads()
+{
+  # USAGE: share_threads <processes>
+  # Prints the threads each of <processes> processes running at the same time may use: what auto
+  # gives the whole machine, uncapped, divided between them, at least 1, and no more than an
+  # OMP_THREAD_LIMIT already in force, so that a limit from a parent script is never raised.
+  local each limit
+  auto_threads 1000000
+  each=$((threads_budget / $1))
+  if [[ "$each" -lt 1 ]] ; then each=1 ; fi
+  limit="$(positive_int "$thread_env_user_OMP_THREAD_LIMIT")"
+  if [[ -n "$limit" ]] && [[ "$limit" -lt "$each" ]] ; then each="$limit" ; fi
+  echo "$each"
+}
+
 function resolve_threads()
 {
   # USAGE: resolve_threads <value passed to --threads, empty if none> <default> [<cap for auto>]
