@@ -28,7 +28,6 @@ Other Packages and Tools distributed or used with FastSurfer
 * [requests](https://requests.readthedocs.io/en/latest/)
 * [scikit-image](https://scikit-image.org)
 * [scikit-learn](https://scikit-learn.org)
-* [scikit-sparse](https://github.com/scikit-sparse/scikit-sparse)
 * [scipy](https://scipy.org)
 * [SimpleITK](https://simpleitk.org/)
 * [tensorboard](https://www.tensorflow.org/tensorboard)

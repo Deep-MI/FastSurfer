@@ -173,6 +173,7 @@ def make_parser() -> argparse.ArgumentParser:
              "- angular: subdivision based on equally spaced angles, as proposed by Hampel and colleagues, <br>"
              "- eigenvector: primary direction, same as FreeSurfers mri_cc.",
         choices=["shape", "vertical", "angular", "eigenvector"],
+        metavar="SUBDIVISION_METHOD",
     )
     parser.add_argument(
         "--contour_smoothing",
@@ -199,7 +200,7 @@ def make_parser() -> argparse.ArgumentParser:
     advanced = parser.add_argument_group(
         title="Advanced options",
         description="Custom output paths, useful if no standard case directory is used. Relative paths are always "
-                    "relative to the subject_dir defined via --sd and --sid!",
+                    "relative to <subject_dir> defined via --sd and --sid!",
     )
     add_arguments(advanced, ["threads", "seg_log"])
     advanced.add_argument(
@@ -258,6 +259,7 @@ def make_parser() -> argparse.ArgumentParser:
     advanced.add_argument(
         "--midplane_method",
         choices=["center", "fsaverage", "fsaverage_symmetry", "fsaverage_distance_map"],
+        metavar="MIDPLANE_METHOD",
         default="fsaverage_symmetry",
         help="Midsagittal plane finding method. "
              "'center': center slice of the input volume, no alignment; "

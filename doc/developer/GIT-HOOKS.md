@@ -5,7 +5,7 @@ The FastSurfer team has developed a pre-commit hook script to help implement
 [Continuous Development and Testing](https://en.wikipedia.org/wiki/Continuous_testing).
 This CI/CD expands on github workflows executing them locally. They require a local
 [uv installation](https://docs.astral.sh/uv/getting-started/installation/) as described for FastSurfer's
-[Native installation](../overview/INSTALL.md#native-ubuntu-2004-or-ubuntu-2204).
+[Native installation](../overview/INSTALL.md#native-ubuntu).
 
 Pre-commit Hook
 ---------------

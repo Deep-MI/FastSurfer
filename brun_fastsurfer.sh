@@ -37,65 +37,79 @@ function usage()
 Script to run FastSurfer on multiple subjects in parallel/series.
 
 Usage:
-brun_fastsurfer.sh --subject_list <file> [other options]
+brun_fastsurfer.sh --subjects_list <subjects_list_path> [other options]
 OR
-brun_fastsurfer.sh --subjects <subject_id>=<file> [<subject_id>=<file> [...]] [other options]
+brun_fastsurfer.sh --subjects <subject_id>=<t1_path> [<subject_id>=<t1_path>
+    [...]] [other options]
 OR
 brun_fastsurfer.sh [other options]
 
 Other options:
-brun_fastsurfer.sh [...] [--batch "<i>/<n>"] [--parallel <N>|max] [--parallel_seg <N>|max] [--parallel_surf <N>|max]
-    [--run_fastsurfer <script to run fastsurfer>] [--statusfile <filename>] [--debug] [--help]
-    [<additional run_fastsurfer.sh options>]
+brun_fastsurfer.sh [...] [--batch "<i>/<n>"] [--parallel <n>|max]
+    [--parallel_seg <n>|max] [--parallel_surf <n>|max]
+    [--run_fastsurfer <command/run_fastsurfer_script>]
+    [--statusfile <filename>] [--debug] [--help]
+    [<fastsurfer_flags>]
 
 License:  Apache License, Version 2.0
 
 Documentation of Options:
-Generally, brun_fastsurfer works similar to run_fastsurfer, but loops over multiple subjects from
+Generally, brun_fastsurfer works similar to run_fastsurfer, but loops over
+multiple subjects from
 i. a list passed through stdin of the format (one subject per line)
 ---
-<subject_id>=<path to t1 image>[ <subject-specific parameters>[ ...]]
+<subject_id>=<t1_path>[ <subject_specific_parameters>[ ...]]
 ...
 ---
-ii. a subject_list file using the same format (use Ctrl-D to end the input), or
-iii. a list of subjects directly passed (this does not support subject-specific parameters)
+ii. a subjects list file using the same format (use Ctrl-D to end the input), or
+iii. a list of subjects directly passed (this does not support subject-specific
+  parameters)
 
-A path or parameter that contains a space has to be quoted or escaped as it would be in the shell,
-i.e. '/data/my subject/t1.mgz', "/data/my subject/t1.mgz" or /data/my\ subject/t1.mgz. Single
-quotes are the simplest, because everything inside them is taken literally, including backslashes.
-No expansion is performed in either kind of quotes, so a \$ or a \` is just that character.
+A path or parameter that contains a space has to be quoted or escaped as it
+would be in the shell, i.e. '/data/my subject/t1.mgz', "/data/my subject/t1.mgz"
+or /data/my\ subject/t1.mgz. Single quotes are the simplest, because everything
+inside them is taken literally, including backslashes. No expansion is performed
+in either kind of quotes, so a \$ or a \` is just that character.
 
---batch "<i>/<n>": run the i-th of n batches (starting at 1) of the full list of subjects
-  (default: 1/1, == run all). "slurm_task_id" is a valid option for "<i>".
-  Note, brun_fastsurfer.sh will also automatically detect being run in a SLURM JOBARRAY and split
-  according to \$SLURM_ARRAY_TASK_ID and \$SLURM_ARRAY_TASK_COUNT (unless values are specifically
-  assigned with the --batch argument).
---parallel <n>|max: parallel execution of run_fastsurfer for <n> images. Creates <n> processes with
-  each process performing segmentation and surface reconstruction. The default is this serial execution
-  mode with n=1: '--parallel 1'.
+--batch "<i>/<n>": run the i-th of n batches (starting at 1) of the full list of
+  subjects (default: 1/1, == run all). "slurm_task_id" is a valid option for
+  "<i>".
+  Note, brun_fastsurfer.sh will also automatically detect being run in a SLURM
+  JOBARRAY and split according to \$SLURM_ARRAY_TASK_ID and
+  \$SLURM_ARRAY_TASK_COUNT (unless values are specifically assigned with the
+  --batch argument).
+--parallel <n>|max: parallel execution of run_fastsurfer for <n> images. Creates
+  <n> processes with each process performing segmentation and surface
+  reconstruction. The default is this serial execution mode with n=1:
+  '--parallel 1'.
 --parallel_seg <n>|max and
---parallel_surf <m>|max: activate independent segmentation and surface reconstruction pipelines.
-  Segmentation and Surface reconstruction have independent processing queues. After successful
-  segmentation (<n> parallel processes), cases are transferred into the surface queue (<m> parallel
-  processes). Together max. m+n processes will run. Logfiles unchanged, console output for individual
-  subjects is interleaved with subject_id prepended.
---run_fastsurfer <path/command>: This option enables the startup of fastsurfer in a more controlled
-  manner, for example to delegate the fastsurfer run to container:
-  --run_fastsurfer "singularity exec --nv --no-mount home,cwd -e -B <dir>:/data /fastsurfer/run_fastsurfer.sh"
-  Note, paths to files and --sd have to be defined in the container file system in this case.
---statusfile <filename>: a file to document which subject ran successfully. Also used to skip
-  surface recon, if the previous segmentation failed.
+--parallel_surf <m>|max: activate independent segmentation and surface
+  reconstruction pipelines. Segmentation and Surface reconstruction have
+  independent processing queues. After successful segmentation (<n> parallel
+  processes), cases are transferred into the surface queue (<m> parallel
+  processes). Together max. m+n processes will run. Logfiles unchanged, console
+  output for individual subjects is interleaved with subject_id prepended.
+--run_fastsurfer <command>: This option enables the startup of fastsurfer in a
+  more controlled manner, for example to delegate the fastsurfer run to
+  container:
+  --run_fastsurfer "singularity exec --nv --no-mount home,cwd -e -B <host_dir>:/data /fastsurfer/run_fastsurfer.sh"
+  Note, paths to files and --sd have to be defined in the container file system
+  in this case.
+--statusfile <filename>: a file to document which subject ran successfully. Also
+  used to skip surface recon, if the previous segmentation failed.
 --threads <n>,
 --threads_seg <n>, and
 --threads_surf <n>: specify number of threads for each parallel "process", i.e.
-  total_threads=num_seg_processes * num_seg_threads + num_surf_processes * num_surf_threads.
+  total_threads=num_seg_processes * num_seg_threads + num_surf_processes *
+  num_surf_threads.
 --debug: Additional debug output.
 --help: print this help.
 
-With the exception of --t1 and --sid, all run_fastsurfer.sh options are supported, see
-'run_fastsurfer.sh --help'.
+With the exception of --t1 and --sid, all run_fastsurfer.sh options are
+supported, see 'run_fastsurfer.sh --help'.
 
-This tool requires functions in stools.sh (expected in same folder as this script).
+This tool requires functions in stools.sh (expected in same folder as this
+script).
 EOF
 }
 
@@ -162,7 +176,7 @@ case $key in
   --subject_list|--subjects_list)
     if [[ ! -f "$1" ]]
     then
-      echo "ERROR: Could not find the subject list $1!"
+      echo "ERROR: Could not find the subjects list $1!"
       exit 1
     fi
     # append the subjects in the listfile (cleanup first) to the subjects array.
@@ -225,7 +239,7 @@ case $key in
   --seg_only) seg_only="true" ;;
   --sid|--t1)
     echo "ERROR: --sid and --t1 are not valid for brun_fastsurfer.sh, these values are populated"
-    echo "  via --subjects or --subject_list."
+    echo "  via --subjects or --subjects_list."
     exit 1
     ;;
   *)    # unknown option/run_fastsurfer.sh option, make sure this is arg (to keep the case)
@@ -296,7 +310,7 @@ then
   if [[ -t 0 ]] || [[ "$debug" == "true" ]]; then
     echo "Reading subjects from stdin, press Ctrl-D to end input (one subject per line)"
   fi
-  # as for --subject_list: keep a final line that the producer did not terminate with a newline
+  # as for --subjects_list: keep a final line that the producer did not terminate with a newline
   while IFS= read -r subject_line || [[ -n "$subject_line" ]]
   do subjects+=("$subject_line") ; done < <(sed "$SED_CLEANUP_SUBJECTS")
 fi

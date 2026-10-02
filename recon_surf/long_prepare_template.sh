@@ -50,9 +50,15 @@ else THIS_SCRIPT="${BASH_SOURCE[0]}"
 fi
 if [[ -z "$FASTSURFER_HOME" ]]
 then
-  FASTSURFER_HOME=$(cd "$(dirname "$THIS_SCRIPT")" &> /dev/null && pwd)
-  echo "Setting ENV variable FASTSURFER_HOME to script directory ${FASTSURFER_HOME}. "
-  echo "Change via environment to location of your choice if this is undesired (export FASTSURFER_HOME=/dir/to/FastSurfer)"
+  FASTSURFER_HOME=$(cd "$(dirname "$THIS_SCRIPT")/.." &> /dev/null && pwd)
+  # skip the notice if the script only prints its usage
+  if [[ " $* " != *" --help "* ]] && [[ " $* " != *" -h "* ]]
+  then
+    echo "Setting ENV variable FASTSURFER_HOME to the parent of the script directory"
+    echo "  ${FASTSURFER_HOME}."
+    echo "Change via environment to location of your choice if this is undesired"
+    echo "  (export FASTSURFER_HOME=<fastsurfer_home>)"
+  fi
   export FASTSURFER_HOME
 fi
 
@@ -80,23 +86,26 @@ function usage()
 {
 cat << EOF
 
-Usage: long_prepare_template.sh --tid <sid> --t1s <T1_1> <T1_2> .. \\
-                                --tpids <ID1> <ID2> .. \\
-                                --sd <sdir> [OPTIONS]
+Usage: long_prepare_template.sh --tid <template_id> \\
+                                --t1s <t1_path_1> <t1_path_2> .. \\
+                                --tpids <tpid_1> <tpid_2> .. \\
+                                --sd <subjects_dir> [OPTIONS]
 
 long_prepare_template.sh takes a list of T1 full head images and creates:
-     (i)   a template/base subject directory: <SUBJECTS_DIR>/<TID>
+     (i)   a template/base subject directory: <subjects_dir>/<template_id>
      (ii)  co-registered images for all time points:
-           <TID>/long-inputs/<tpid>/long_conform.nii.gz
-     (iii) median image as template for this subject <TID>/mri/orig.mgz
+           <template_id>/long-inputs/<tpid>/long_conform.nii.gz
+     (iii) median image as template for this subject <template_id>/mri/orig.mgz
 
 FLAGS:
 
-  --tid <templateID>      ID for subject template/base directory inside
+  --tid <template_id>     ID for subject template/base directory inside
                             \$SUBJECTS_DIR to be created"
-  --t1s <T1_1> <T1_2> ..  T1 full head inputs for each time point (do not need
+  --t1s <t1_path_1> <t1_path_2> ..
+                          T1 full head inputs for each time point (do not need
                             to be bias corrected). Requires ABSOLUTE paths!
-  --tpids <ID1> >ID2> ..  IDs for future time points directories inside
+  --tpids <tpid_1> <tpid_2> ..
+                          IDs for future time points directories inside
                             \$SUBJECTS_DIR to be created later (during --long)
   --sd  <subjects_dir>    Output directory \$SUBJECTS_DIR (or pass via env var)
   --vox_size <0.7-1|min>  Forces processing at a specific voxel size.
@@ -122,14 +131,15 @@ Resource Options:
                             CPU, "cuda" for Nvidia GPU, or pass specific device,
                             e.g. cuda:1), default check GPU and then CPU
   --viewagg_device <str>  Define where the view aggregation should be run on.
-                            Can be "auto" or a device (see --device). By default,
-                            the program checks if you have enough memory to run
-                            the view aggregation on the gpu. The total memory is
-                            considered for this decision. If this fails, or you
-                            actively overwrote the check with setting with "cpu"
-                            view agg is run on the cpu. Equivalently, if you
-                            pass a different device, view agg will be run on that
-                            device (no memory check will be done).
+                            Can be "auto" or a device (see --device). By
+                            default, the program checks if you have enough
+                            memory to run the view aggregation on the gpu. The
+                            total memory is considered for this decision. If
+                            this fails, or you actively overwrote the check with
+                            setting with "cpu" view agg is run on the cpu.
+                            Equivalently, if you pass a different device, view
+                            agg will be run on that device (no memory check will
+                            be done).
   --batch <batch_size>    Batch size for inference. Default: 1
   --py <python_cmd>       Command for python, used in both pipelines.
                             Default: "$python"

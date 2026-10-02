@@ -17,9 +17,10 @@ point the script to the exported template directory:
 
 .. code-block:: bash
 
-    python3 -m CorpusCallosum.cc_visualization \
-        --template_dir /data/templates/sub001/cc_template \
-        --output_dir /data/visualizations/sub001
+    export FASTSURFER_HOME=${FASTSURFER_HOME:-/path/to/FastSurfer}
+    python3 $FASTSURFER_HOME/CorpusCallosum/cc_visualization.py \
+        --template_dir $HOME/my_fastsurfer_analysis/subjectX/cc_template \
+        --output_dir $HOME/my_fastsurfer_analysis/subjectX/cc_visualization
 
 2D Visualization
 ~~~~~~~~~~~~~~~~
@@ -28,9 +29,10 @@ To visualize a 2D template (using ``--slice_selection middle --save_template_dir
 
 .. code-block:: bash
 
-    python3 -m CorpusCallosum.cc_visualization \
-        --template_dir /data/templates/sub001/cc_template \
-        --output_dir /data/visualizations/sub001 \
+    export FASTSURFER_HOME=${FASTSURFER_HOME:-/path/to/FastSurfer}
+    python3 $FASTSURFER_HOME/CorpusCallosum/cc_visualization.py \
+        --template_dir $HOME/my_fastsurfer_analysis/subjectX/cc_template \
+        --output_dir $HOME/my_fastsurfer_analysis/subjectX/cc_visualization \
         --twoD
 
 The template's ``thickness_values_<slice>.txt`` is a per-contour-vertex file,
@@ -45,9 +47,10 @@ ordered from anterior to posterior:
 
 .. code-block:: bash
 
-    python3 -m CorpusCallosum.cc_visualization \
-        --values_file /data/p_values.csv \
-        --output_dir /data/visualizations \
+    export FASTSURFER_HOME=${FASTSURFER_HOME:-/path/to/FastSurfer}
+    python3 $FASTSURFER_HOME/CorpusCallosum/cc_visualization.py \
+        --values_file $HOME/my_fastsurfer_analysis/p_values.csv \
+        --output_dir $HOME/my_fastsurfer_analysis/visualizations \
         --mode p-value \
         --colormap yellow_to_red \
         --log_scale \
@@ -66,7 +69,8 @@ changing the order:
 .. code-block:: bash
 
     jq -r '"thickness", .thickness_profile[]' \
-        stats/callosum.CC.midslice.json > thickness_profile.csv
+        $HOME/my_fastsurfer_analysis/subjectX/stats/callosum.CC.midslice.json \
+        > $HOME/my_fastsurfer_analysis/subjectX/thickness_profile.csv
 
 The same command can be run from a FastSurfer container without installing
 FastSurfer or FreeSurfer on the host. From the directory containing
@@ -78,13 +82,13 @@ FastSurfer or FreeSurfer on the host. From the directory containing
 
     docker run --rm \
         --user "$(id -u):$(id -g)" \
-        --volume "$PWD/p_values.csv:/input/p_values.csv:ro" \
-        --volume "$PWD/visualizations:/output" \
+        --volume "$PWD/p_values.csv:$PWD/p_values.csv:ro" \
+        --volume "$PWD/visualizations:$PWD/visualizations" \
         --entrypoint /fastsurfer/tools/Docker/entrypoint.sh \
         deepmi/fastsurfer:latest \
         python3 /fastsurfer/CorpusCallosum/cc_visualization.py \
-        --values_file /input/p_values.csv \
-        --output_dir /output \
+        --values_file "$PWD/p_values.csv" \
+        --output_dir "$PWD/visualizations" \
         --mode p-value \
         --colormap yellow_to_red \
         --log_scale \

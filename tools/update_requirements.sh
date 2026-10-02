@@ -49,8 +49,8 @@ trap 'rm -f "$tmp_target"' EXIT
   echo "# Resolved for Linux and macOS together with python $python_version, so every pin exists on both."
   echo "# PyTorch backend variants are not pinned; select one at install time, for example:"
   echo "#"
-  echo "#    uv pip compile --torch-backend=cu128 requirements.txt | uv pip sync --torch-backend=cu128 -"
-  echo "#    uv pip compile --torch-backend=cpu requirements.txt | uv pip sync --torch-backend=cpu -"
+  echo '#    resolved=$(uv pip compile --torch-backend=cu128 requirements.txt) && uv pip sync --torch-backend=cuda - <<< "$resolved"'
+  echo '#    resolved=$(uv pip compile --torch-backend=cpu requirements.txt) && uv pip sync --torch-backend=cpu - <<< "$resolved"'
   echo "#"
   # drop the local version suffix (torch==2.7.1+cpu); forks that then name the same version for
   # every platform collapse into one unconditional pin

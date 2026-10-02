@@ -11,18 +11,21 @@ in cases with significant structural alterations.
 
 ## FastSurfer Usage
 
-FastSurfer runs LIT when a lesion mask is passed with `--lesion_mask <path to file>`:
+FastSurfer runs LIT when a lesion mask is passed with `--lesion_mask <lesion_mask_path>`, for example:
 
 ```bash
-./run_fastsurfer.sh --t1 /path/to/T1.nii.gz \
-                    --lesion_mask /path/to/lesion_mask.nii.gz \
-                    --sid subject_id --sd /path/to/output_dir \
-                    --fs_license /path/to/license.txt
+export FASTSURFER_HOME=${FASTSURFER_HOME:-/path/to/FastSurfer}
+freesurfer_license=${freesurfer_license:-/path/to/your/freesurfer/license_file}
+$FASTSURFER_HOME/run_fastsurfer.sh \
+    --t1 $HOME/my_mri_data/subjectX/t1_weighted.nii.gz \
+    --lesion_mask $HOME/my_mri_data/subjectX/lesion_mask.nii.gz \
+    --sid subjectX --sd $HOME/my_fastsurfer_analysis \
+    --fs_license $freesurfer_license
 ```
 
 Lesion inpainting is not compatible with separate processing of the segmentation and surfaces with `--seg_only` and `--surf_only`. If you want to run the surface pipeline, avoid `--seg_only`!
 
-With `--lesion_mask <path to file>`, FastSurfer:
+With `--lesion_mask <lesion_mask_path>`, FastSurfer:
 
 1. inpaints the lesion area in the input T1w image,
 2. runs the requested FastSurfer segmentation and surface pipeline on the inpainted image, and

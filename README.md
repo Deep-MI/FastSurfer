@@ -35,7 +35,7 @@ Modules (all run by default):
 4. `hypothal`: [HypVINN](HypVINN/README.md) for hypothalamus subsegmentation (deactivate with `--no_hypothal`)
    - outputs a hypothalamic subsegmentation including 3rd ventricle, c. mammilare, fornix and optic tracts.
    - a T1w image is highly recommended ([notes on input images](#requirements-to-input-images)), supports high-res (up to 0.7mm, but experimental beyond that).
-   - allows the additional passing of a T2w image with `--t2 <path>`, which will be registered to the T1w image (see `--reg_mode` option).
+   - allows the additional passing of a T2w image with `--t2 <t2_path>`, which will be registered to the T1w image (see `--reg_mode` option).
    - calculates summary statistics based on the biasfield-corrected T1w image (skipped if `--no_biasfield` is passed).
 
 ### Surface reconstruction
@@ -45,7 +45,7 @@ Modules (all run by default):
 - requires outputs of the `asegdkt` and the `cc` modules as a prerequisite (can be included in the same run).
 
 ### Extensions
-- [FastSurfer-LIT](doc/overview/modules/LIT.md) wraps the FastSurfer segmentation and surface pipelines with lesion inpainting when a lesion mask is provided via `--lesion_mask <path>`. This feature is experimental; review LIT-modified outputs before using them for downstream analyses.
+- [FastSurfer-LIT](doc/overview/modules/LIT.md) wraps the FastSurfer segmentation and surface pipelines with lesion inpainting when a lesion mask is provided via `--lesion_mask <lesion_mask_path>`. This feature is experimental; review LIT-modified outputs before using them for downstream analyses.
 
 <!-- start of image requirements -->
 ### Requirements to input images
@@ -63,25 +63,25 @@ Getting started
 ### Installation 
 There are three ways to run FastSurfer (links are to installation instructions):
 
-1. For Linux, macOS (Intel only), and Windows users, we recommend running FastSurfer in a container [Singularity/Apptainer](doc/overview/INSTALL.md#singularity) or [Docker](doc/overview/INSTALL.md#docker): (OS: [Linux](doc/overview/INSTALL.md#linux), [Windows](doc/overview/INSTALL.md#windows), [macOS on Intel](doc/overview/INSTALL.md#docker-currently-only-supported-for-intel-cpus)),
+1. For Linux, macOS (Intel only), and Windows users, we recommend running FastSurfer in a container [Singularity/Apptainer](doc/overview/INSTALL.md#singularity-or-apptainer) or [Docker](doc/overview/INSTALL.md#docker): (OS: [Linux](doc/overview/INSTALL.md#linux), [Windows](doc/overview/INSTALL.md#windows), [macOS on Intel](doc/overview/INSTALL.md#docker-currently-only-supported-for-intel-cpus)),
 2. for macOS on Apple silicon (ARM), we recommend [installing the FastSurfer package](doc/overview/INSTALL.md#package), and
-3. for developers, the native install gives full control (only documented for [Linux](doc/overview/INSTALL.md#native-ubuntu-2004-or-ubuntu-2204)).
+3. for developers, the native install gives full control (only documented for [Linux](doc/overview/INSTALL.md#native-ubuntu)).
 
 The images we provide on [DockerHub](https://hub.docker.com/r/deepmi/fastsurfer) conveniently include everything needed for FastSurfer. You will also need a [FreeSurfer license](https://surfer.nmr.mgh.harvard.edu/fswiki/License) file for the [Surface pipeline](#surface-reconstruction). We have detailed per-OS Installation instructions in the [INSTALL.md](doc/overview/INSTALL.md) file.
 
 ### Usage
-All installation methods use the `run_fastsurfer.sh` call interface (replace the placeholder `<*fastsurfer-flags*>` with [FastSurfer flags](doc/scripts/RUN_FASTSURFER.md#required-arguments)), which is the general starting point for FastSurfer. However, there are different ways to call this script depending on the installation, which we explain here:
+All installation methods use the `run_fastsurfer.sh` call interface (replace the placeholder `<fastsurfer_flags>` with [FastSurfer flags](doc/scripts/RUN_FASTSURFER.md#required-arguments)), which is the general starting point for FastSurfer. However, there are different ways to call this script depending on the installation, which we explain here:
 
-1. For container installations, you need to set up the container (`<*singularity-flags*>` or `<*docker-flags*>`) in addition to the `<*fastsurfer-flags*>`:  
+1. For container installations, you need to set up the container (`<singularity_flags>` or `<docker_flags>`) in addition to the `<fastsurfer_flags>`:
    1. For __Singularity__, the syntax is
 
-      ```bash
-      singularity run <*singularity-flags*> \
-                      fastsurfer.sif \
-                      <*fastsurfer-flags*>
+      ```text
+      singularity run <singularity_flags> \
+                      <sif_path> \
+                      <fastsurfer_flags>
       ```
-      This command has two placeholders for flags: `<*singularity-flags*>` and `<*fastsurfer-flags*>`.
-      `<*singularity-flags*>` [set up the singularity environment](doc/overview/SINGULARITY.md), `<*fastsurfer-flags*>` include the options that determine the [behavior of FastSurfer](doc/scripts/RUN_FASTSURFER.md):
+      This command has two placeholders for flags: `<singularity_flags>` and `<fastsurfer_flags>`.
+      `<singularity_flags>` [set up the singularity environment](doc/overview/SINGULARITY.md), `<fastsurfer_flags>` include the options that determine the [behavior of FastSurfer](doc/scripts/RUN_FASTSURFER.md):
       ### Basic FastSurfer Flags
       
       - `--t1`: the path to the image to process.
@@ -93,51 +93,52 @@ All installation methods use the `run_fastsurfer.sh` call interface (replace the
 
       An example for a simple full FastSurfer-Singularity command is
       ```bash
+      freesurfer_license=${freesurfer_license:-/path/to/your/freesurfer/license_file}
       singularity run --nv \
-                      -B $HOME/my/mri_data \
-                      -B $HOME/my/fastsurfer_analysis \
-                      -B /software/freesurfer/license.txt \
-                      fastsurfer.sif \
-                      --t1 $HOME/my/mri_data/participant1/image1.nii.gz \
-                      --sd $HOME/my/fastsurfer_analysis \
-                      --sid part1_img1 \
-                      --fs_license /software/freesurfer/license.txt
+                      -B $HOME/my_mri_data \
+                      -B $HOME/my_fastsurfer_analysis \
+                      -B $freesurfer_license \
+                      $HOME/my_singularity_images/fastsurfer-{{ FASTSURFER_VERSION }}.sif \
+                      --t1 $HOME/my_mri_data/subjectX/t1_weighted.nii.gz \
+                      --sd $HOME/my_fastsurfer_analysis \
+                      --sid subjectX \
+                      --fs_license $freesurfer_license
       ```
 
-      See also __[Example 1](doc/overview/EXAMPLES.md#example-1-fastsurfer-singularity-or-apptainer)__ for a full singularity FastSurfer run command and [the Singularity documentation](doc/overview/SINGULARITY.md#fastsurfer-singularity-image-usage) for details on more singularity flags and how to create the `fastsurfer.sif` file.
+      See also __[Example 1](doc/overview/EXAMPLES.md#example-1-fastsurfer-singularity-or-apptainer)__ for a full singularity FastSurfer run command and [the Singularity documentation](doc/overview/SINGULARITY.md#using-singularity-or-apptainer) for details on more singularity flags and how to create the `<sif_path>`.
 
    2. For __docker__, the syntax is
-      ```bash
-      docker run <*docker-flags*> \
+      ```text
+      docker run <docker_flags> \
                  deepmi/fastsurfer:<device>-v<version> \
-                 <*fastsurfer-flags*>
+                 <fastsurfer_flags>
       ```
       
-      The options for `<*docker-flags*>` and [`<*fastsurfer-flags*>`](README.md#basic-fastsurfer-flags) follow very similar patterns as for Singularity ([but the names of `<*docker-flags*>` are different](Docker/README.md#docker-flags)).
+      The options for `<docker_flags>` and [`<fastsurfer_flags>`](README.md#basic-fastsurfer-flags) follow very similar patterns as for Singularity ([but the names of `<docker_flags>` are different](tools/Docker/README.md#docker-flags)).
  
-      __[Example 2](doc/overview/EXAMPLES.md#example-2-fastsurfer-docker)__ also details a full FastSurfer run inside a Docker container and [the Docker documentation](tools/Docker/README.md#docker-flags) for more details on `*docker flags*` and the naming of docker images (`<device>-v<version>`).
+      __[Example 2](doc/overview/EXAMPLES.md#example-2-fastsurfer-docker)__ also details a full FastSurfer run inside a Docker container and [the Docker documentation](tools/Docker/README.md#docker-flags) for more details on `<docker_flags>` and the naming of docker images (`<device>-v<version>`).
 
 2. For a __macOS package install__, start FastSurfer from Applications and call the `run_fastsurfer.sh` FastSurfer script with [FastSurfer flags](doc/scripts/RUN_FASTSURFER.md#required-arguments) from the terminal that is opened for you.
 
-3. For a __native install__, call the `run_fastsurfer.sh` FastSurfer script directly. Your FastSurfer python/conda environment needs to be [set up](doc/overview/INSTALL.md#native-ubuntu-2004-or-ubuntu-2204) and activated.
+3. For a __native install__, call the `run_fastsurfer.sh` FastSurfer script directly. Your FastSurfer python environment needs to be [set up](doc/overview/INSTALL.md#native-ubuntu) and activated.
 
-   ```bash
+   ```text
    # activate fastsurfer environment
-   conda activate fastsurfer
+   source <fastsurfer_home>/.venv/bin/activate
    
-   /path/to/fastsurfer/run_fastsurfer.sh <*fastsurfer-flags*>
+   run_fastsurfer.sh <fastsurfer_flags>
    ```
-
-   In addition to the [Basic Flags](README.md#basic-fastsurfer-flags), note that you may need to use `--py python3.12` to specify your python version, see [FastSurfer flags for more details](doc/scripts/RUN_FASTSURFER.md#required-arguments).
-
 
    [Example 3](doc/overview/EXAMPLES.md#example-3-native-fastsurfer-on-subjectx-with-parallel-processing-of-hemis) also illustrates the running the FastSurfer pipeline natively.
 
 If your input data is organized as a [BIDS](https://bids.neuroimaging.io/) dataset, the
 [`run_fastsurfer_bids.py`](doc/scripts/BIDS.md) BIDS-App entrypoint discovers subjects and sessions for you:
 ```bash
-./run_fastsurfer_bids.py /path/to/bids_dataset /path/to/output_dir participant \
-    --participant_label 01 02 --fs_license /path/to/license.txt
+export FASTSURFER_HOME=${FASTSURFER_HOME:-/path/to/FastSurfer}
+freesurfer_license=${freesurfer_license:-/path/to/your/freesurfer/license_file}
+$FASTSURFER_HOME/run_fastsurfer_bids.py \
+    $HOME/my_bids_dataset $HOME/my_fastsurfer_analysis participant \
+    --participant_label 01 02 --fs_license $freesurfer_license
 ```
 See the [BIDS documentation](doc/scripts/BIDS.md) for details.
 
@@ -193,7 +194,7 @@ Specifically, the segmentation modules feature options for optimized paralleliza
 
 FreeSurfer Downstream Modules
 -----------------------------
-FreeSurfer provides several Add-on modules for downstream processing, such as subfield segmentation ( [hippocampus/amygdala](https://surfer.nmr.mgh.harvard.edu/fswiki/HippocampalSubfieldsAndNucleiOfAmygdala), [brainstem](https://surfer.nmr.mgh.harvard.edu/fswiki/BrainstemSubstructures), [thalamus](https://freesurfer.net/fswiki/ThalamicNuclei) and [hypothalamus](https://surfer.nmr.mgh.harvard.edu/fswiki/HypothalamicSubunits) ) as well as [TRACULA](https://surfer.nmr.mgh.harvard.edu/fswiki/Tracula). We now provide symlinks to the required files, as FastSurfer creates them with a different name (e.g. using "mapped" or "DKT" to make clear that these file are from our segmentation using the DKT Atlas protocol, and mapped to the surface). Most subfield segmentations require `wmparc.mgz` and work very well with FastSurfer,  so feel free to run those pipelines after FastSurfer. TRACULA requires `aparc+aseg.mgz` which we now link, but have not tested if it works, given that [DKT-atlas](https://mindboggle.readthedocs.io/en/latest/labels.html) merged a few labels. You should source FreeSurfer 7.3.2 to run these modules. 
+FreeSurfer provides several Add-on modules for downstream processing, such as subfield segmentation ( [hippocampus/amygdala](https://surfer.nmr.mgh.harvard.edu/fswiki/HippocampalSubfieldsAndNucleiOfAmygdala), [brainstem](https://surfer.nmr.mgh.harvard.edu/fswiki/BrainstemSubstructures), [thalamus](https://freesurfer.net/fswiki/ThalamicNuclei) and [hypothalamus](https://surfer.nmr.mgh.harvard.edu/fswiki/HypothalamicSubunits) ) as well as [TRACULA](https://surfer.nmr.mgh.harvard.edu/fswiki/Tracula). We now provide symlinks to the required files, as FastSurfer creates them with a different name (e.g. using "mapped" or "DKT" to make clear that these file are from our segmentation using the DKT Atlas protocol, and mapped to the surface). Most subfield segmentations require `wmparc.mgz` and work very well with FastSurfer,  so feel free to run those pipelines after FastSurfer. TRACULA requires `aparc+aseg.mgz` which we now link, but have not tested if it works, given that [DKT-atlas](https://mindboggle.readthedocs.io/en/latest/labels.html) merged a few labels. You should source FreeSurfer {{ FREESURFER_VERSION }} to run these modules. 
 
 
 Want to know more?

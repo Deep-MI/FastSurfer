@@ -31,3 +31,5 @@ uv.lock
 /tools/debug-helpers
 .agentbridge/
 .agent-work/
+.uv-python/
+

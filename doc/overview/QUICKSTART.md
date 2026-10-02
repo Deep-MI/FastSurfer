@@ -9,72 +9,81 @@ For running this example you can use your own T1-weighted full head MRI (0.7-1 m
 
 ```bash
 # 0. Create a directory for this test
-mkdir fastsurfer-test
-cd fastsurfer-test
+mkdir fastsurfer_test
+cd fastsurfer_test
 
-# 1. Download the docker image and create the singularity image (do this only the first time)
-#    It will produce the fastsurfer-gpu.sif singularity image file locally
-singularity build fastsurfer-gpu.sif docker://deepmi/fastsurfer:latest
+# 1. Download the docker image and create the singularity image
+#    (do this only the first time)
+#    It will produce the fastsurfer-{{ FASTSURFER_VERSION }}.sif singularity image
+#    file in $HOME/my_singularity_images
+mkdir -p $HOME/my_singularity_images
+singularity build $HOME/my_singularity_images/fastsurfer-{{ FASTSURFER_VERSION }}.sif \
+                  docker://deepmi/fastsurfer:latest
 
 # 2. Download an example brain MRI (if you don't have your own)
 #    If you have your own, copy it to this directory and adjust
 #    the filename after --t1 below.
-curl -k https://surfer.nmr.mgh.harvard.edu/pub/data/tutorial_data/buckner_data/tutorial_subjs/140/mri/orig.mgz -o "./140_orig.mgz"
+curl -k \
+    https://surfer.nmr.mgh.harvard.edu/pub/data/tutorial_data/buckner_data/tutorial_subjs/140/mri/orig.mgz \
+    -o "./140_orig.mgz"
 
 # 3. Run FastSurfer (full brain segmentation only)
 singularity exec --nv \
                  --no-mount home,cwd -e \
                  -B "$PWD" \
-                 ./fastsurfer-gpu.sif \
+                 $HOME/my_singularity_images/fastsurfer-{{ FASTSURFER_VERSION }}.sif \
                  /fastsurfer/run_fastsurfer.sh \
                  --t1 "$PWD/140_orig.mgz" \
-                 --sid test-case --sd "$PWD" \
+                 --sid subjectX --sd "$PWD" \
                  --seg_only --no_biasfield --no_cereb --no_hypothal
 ```
 
 That's it, it will run the full brain segmentation. For speed, we switched off the cerebellum and hypothalamic sub-segmentation (would add a couple minutes).
-We also switched off the bias field correction, which is used to compute partial volume estimates for the statsfiles, so you might want to switch it on again if you want the volume statistics text file (under ```test-case/stats```).
+We also switched off the bias field correction, which is used to compute partial volume estimates for the statsfiles, so you might want to switch it on again if you want the volume statistics text file (under ```subjectX/stats```).
 Also if you need the estimated total intracranial volume for correcting the stats, you would either need to run the surface stream or switch on the Talairach registration with
-```--tal_reg``` in the segmentation module. For the full surface stream, just remove the ```--seg_only``` and you need a FreeSurfer license file and pass it into the container, as described in more detail later.
+`--tal_reg` in the segmentation module. For the full surface stream, just remove the ```--seg_only``` and you need a FreeSurfer license file and pass it into the container, as described in more detail later.
 
 For your convenience here is the same procedure using Docker instead of Singularity:
 
 ```bash
 # 0. Create a directory for this test
-mkdir fastsurfer-test
-cd fastsurfer-test
+mkdir fastsurfer_test
+cd fastsurfer_test
 
 # 1. Download an example brain MRI (if you don't have your own)
 #    If you have your own, copy it to this directory and adjust
 #    the filename after --t1 below.
-curl -k https://surfer.nmr.mgh.harvard.edu/pub/data/tutorial_data/buckner_data/tutorial_subjs/140/mri/orig.mgz -o "./140_orig.mgz"
+curl -k \
+    https://surfer.nmr.mgh.harvard.edu/pub/data/tutorial_data/buckner_data/tutorial_subjs/140/mri/orig.mgz \
+    -o "./140_orig.mgz"
 
 # 2. Run FastSurfer (full brain segmentation only)
 docker run --gpus all -v "$PWD:$PWD" \
                       --rm --user $(id -u):$(id -g) \
                       deepmi/fastsurfer:latest \
                       --t1 "$PWD/140_orig.mgz" \
-                      --sid test-case --sd "$PWD" \
+                      --sid subjectX --sd "$PWD" \
                       --seg_only --no_biasfield --no_cereb --no_hypothal
 ```
 
-You will find the full brain segmentation in ```./test-case/mri/aparc.DKTatlas+aseg.deep.mgz``` in FreeSurfer's MGZ file format. To convert it back to nifti (if you prefer), just run
+You will find the full brain segmentation in ```./subjectX/mri/aparc.DKTatlas+aseg.deep.mgz``` in FreeSurfer's MGZ file format. To convert it back to nifti (if you prefer), just run
 
 ```bash
 # Convert mgz to nifti
 singularity exec --nv \
                  --no-mount home -e \
                  -B "$PWD" \
-                 ./fastsurfer-gpu.sif \
-                 nib-convert "$PWD/test-case/mri/aparc.DKTatlas+aseg.deep.mgz" \
-                             "$PWD/test-case/mri/aparc.DKTatlas+aseg.deep.nii.gz"
+                 $HOME/my_singularity_images/fastsurfer-{{ FASTSURFER_VERSION }}.sif \
+                 nib-convert "$PWD/subjectX/mri/aparc.DKTatlas+aseg.deep.mgz" \
+                             "$PWD/subjectX/mri/aparc.DKTatlas+aseg.deep.nii.gz"
 ```
 
-and find the segmentation in ```./test-case/mri/aparc.DKTatlas+aseg.deep.nii.gz```. If you have FreeSurfer installed, just use FreeView to look at the result (or really any other image viewer):
+and find the segmentation in ```./subjectX/mri/aparc.DKTatlas+aseg.deep.nii.gz```. If you have FreeSurfer installed, just use FreeView to look at the result (or really any other image viewer):
 
 ```bash
 # FreeView
-freeview -v 140_orig.mgz test-case/mri/aparc.DKTatlas+aseg.deep.mgz:colormap=lut:opacity=0.2
+freeview -v 140_orig.mgz \
+    subjectX/mri/aparc.DKTatlas+aseg.deep.mgz:colormap=lut:opacity=0.2
 ```
 
 Other interesting outputs of the segmentation are the ```aseg.auto_noCCseg.mgz``` containing a reduced segmentation according to FreeSurfer's aseg (no cortical sub-division and no corpus callosum, which is added later). Also ```mask.mgz``` can come in handy if you need a brainmask. And you get all of this within a few seconds (including startup of singularity or docker it is **20 sec** in total with a GeForce RTX 4080, **40 sec** with a Quadro RTX 4000 or Titan XP, CPU-only takes **5 minutes** longer on my machine).

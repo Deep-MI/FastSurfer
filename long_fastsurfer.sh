@@ -39,8 +39,13 @@ fi
 if [[ -z "$FASTSURFER_HOME" ]]
 then
   FASTSURFER_HOME=$(cd "$(dirname "$THIS_SCRIPT")" &> /dev/null && pwd)
-  echo "Setting ENV variable FASTSURFER_HOME to script directory ${FASTSURFER_HOME}. "
-  echo "Change via environment to location of your choice if this is undesired (export FASTSURFER_HOME=/dir/to/FastSurfer)"
+  # skip the notice if the script only prints its usage
+  if [[ " $* " != *" --help "* ]] && [[ " $* " != *" -h "* ]]
+  then
+    echo "Setting ENV variable FASTSURFER_HOME to script directory ${FASTSURFER_HOME}."
+    echo "Change via environment to location of your choice if this is undesired"
+    echo "  (export FASTSURFER_HOME=/path/to/fastsurfer_home)"
+  fi
   export FASTSURFER_HOME
 fi
 
@@ -70,7 +75,9 @@ function usage()
 {
 cat << EOF
 
-Usage: long_fastsurfer.sh --tid <tid> --t1s <T1_1> <T1_2> .. --tpids <tID1> <tID2> .. [OPTIONS]
+Usage: long_fastsurfer.sh --tid <template_id> \\
+                          --t1s <t1_path_1> <t1_path_2> .. \\
+                          --tpids <tpid_1> <tpid_2> .. [OPTIONS]
 
 long_fastsurfer.sh takes a list of T1 full head image and sequentially creates:
      (i)   a template directory for the specific person
@@ -79,13 +86,16 @@ long_fastsurfer.sh takes a list of T1 full head image and sequentially creates:
 
 FLAGS:
 
-  --tid <templateID>        ID for person-specific template directory inside
+  --tid <template_id>       ID for person-specific template directory inside
                               \$SUBJECTS_DIR to be created"
-  --t1s <T1_1> <T1_2> ..    T1 full head inputs for each time point (do not need
+  --t1s <t1_path_1> <t1_path_2> ..
+                            T1 full head inputs for each time point (do not need
                               to be bias corrected). Requires ABSOLUTE paths!
-  --tpids <tID1> <tID2> ..  IDs for future time points directories inside
+  --tpids <tpid_1> <tpid_2> ..
+                            IDs for future time points directories inside
                               \$SUBJECTS_DIR to be created later (during --long)
-  --t2s <T2_1> <T2_2> ..    *Optional* T2 full head inputs, one per time point in
+  --t2s <t2_path_1> <t2_path_2> [...]
+                            *Optional* T2 full head inputs, one per time point in
                               the order of --tpids, for the hypothalamus module.
                               Every time point needs one, or none does. Each is
                               registered to its time point's T1 in template space,
@@ -504,7 +514,7 @@ if should_run_stage "long_seg"; then
     for ((i=0;i<${#tpids[@]};++i)); do
       echo "${tpids[$i]}=from-base --t2 '${t2s[$i]//$sq/$sq\\$sq$sq}'"
     done > "$long_seg_list"
-    long_seg_subjects=(--subject_list "$long_seg_list")
+    long_seg_subjects=(--subjects_list "$long_seg_list")
   else
     long_seg_subjects=(--subjects "${time_points[@]}")
   fi

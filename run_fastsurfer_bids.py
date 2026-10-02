@@ -17,7 +17,7 @@
 BIDS-App entrypoint for FastSurfer.
 
 Discovers subjects and sessions in a BIDS dataset and hands them to the existing FastSurfer
-entrypoints: it writes a subject list and calls brun_fastsurfer.sh, or srun_fastsurfer.sh with
+entrypoints: it writes a subjects list and calls brun_fastsurfer.sh, or srun_fastsurfer.sh with
 --slurm. It does not reimplement any part of the pipeline, and every option it does not define
 itself is passed through unchanged.
 
@@ -56,9 +56,9 @@ def make_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description=__doc__,
         formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog="Any options after a literal '--' are passed through unchanged to "
+        epilog="Any options after a literal '--' are passed through unchanged to\n"
                "brun_fastsurfer.sh (or srun_fastsurfer.sh), e.g.:\n"
-               "  run_fastsurfer_bids.py /bids /out participant -- --seg_only --3T",
+               "  run_fastsurfer_bids.py <bids_dir> <output_dir> participant -- --seg_only --3T",
     )
     parser.add_argument("bids_dir", type=Path, help="Path to the BIDS-valid input dataset.")
     parser.add_argument(
@@ -288,7 +288,7 @@ def main(argv: list[str] | None = None) -> int:
     script = "srun_fastsurfer.sh" if args.slurm else "brun_fastsurfer.sh"
     cmd = [
         str(FASTSURFER_HOME / script),
-        "--subject_list", str(subject_list),
+        "--subjects_list", str(subject_list),
         "--sd", str(output_dir),
     ]
     if args.slurm:

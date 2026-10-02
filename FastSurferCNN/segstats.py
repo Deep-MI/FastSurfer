@@ -39,8 +39,9 @@ from FastSurferCNN.utils.parallel import get_num_threads, set_num_threads, threa
 from FastSurferCNN.utils.parser_defaults import add_arguments
 
 # Constants
-USAGE = ("python segstats.py (-norm|-pv) <input_norm> -i <input_seg> -o <output_seg_stats> [optional arguments] "
-         "[{measures,mri_segstats} ...]")
+USAGE = ("python segstats.py (-norm|-pv) <input_norm> -i <input_seg>\n"
+         "                   -o <output_seg_stats> [optional arguments]\n"
+         "                   [{measures,mri_segstats} ...]")
 DESCRIPTION = "Script to calculate partial volumes and other segmentation statistics of a segmentation file."
 HELPTEXT = """
 Dependencies:
@@ -444,7 +445,7 @@ def add_measure_parser(subparser_callback: SubparserCallback) -> None:
         dest="measurefile",
         default="brainvol.stats",
         help="Default file to read measures (--import ...) from. If the path is relative, it is interpreted as "
-             "relative to subjects_dir/subject_id from --sd and --subject_id.",
+             "relative to <subjects_dir>/<subject_id> from --sd and --sid.",
     )
     measure_parser.add_argument(
         "--from_seg",

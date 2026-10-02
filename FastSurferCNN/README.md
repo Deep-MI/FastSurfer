@@ -23,7 +23,7 @@ libraries used within the code can be found in `requirements.txt`. The main scri
 which certain options can be selected and set via the command line:
 
 ### General
-* `--in_dir`: Path to the input volume directory (e.g `/your/path/to/ADNI/fs60`) or 
+* `--in_dir`: Path to the input volume directory (e.g `$HOME/my_mri_data`) or
 * `--csv_file`: Path to csv-file listing input volume directories
 * `--t1`: name of the T1-weighted MRI_volume (like `mri_volume.mgz`, default: `orig.mgz`)
 * `--conformed_name`: name of the conformed MRI_volume (the input volume is prepared for inference first and the 
@@ -50,50 +50,52 @@ which certain options can be selected and set via the command line:
 
 ### Optional commands
 * `--clean`: clean up segmentation after running it (optional)
-* `--device <str>`:Device for processing (_auto_, _cpu_, _cuda_, _cuda:<device_num>_), where cuda means Nvidia GPU; you 
-  can select which one e.g. "cuda:1". Default: "auto", check GPU and then CPU
-* `--viewagg_device <str>`: Define where the view aggregation should be run on. 
-  Can be _auto_ or a device (see --device).
-  By default (_auto_), the program checks if you have enough memory to run the view aggregation on the gpu. 
+* `--device <torch_device>`:Device for processing (`auto`, `cpu`, `cuda`, `cuda:<device_num>`), where cuda means Nvidia GPU; you
+  can select which one e.g. `cuda:1`. Default: `auto`, check GPU and then CPU
+* `--viewagg_device <torch_device>`: Define where the view aggregation should be run on.
+  Can be `auto` or a device (see `--device`).
+  By default (`auto`), the program checks if you have enough memory to run the view aggregation on the gpu. 
   The total memory is considered for this decision. 
   If this fails, or you actively overwrote the check with setting `--viewagg_device cpu`, view agg is run on the cpu. 
   Equivalently, if you define `--viewagg_device gpu`, view agg will be run on the gpu (no memory check will be done).
-* `--batch_size`: Batch size for inference. Default=1
+* `--batch_size <n>`: Batch size for inference. Default: `1`
 
 ### Example Command: Evaluation Single Subject
-To run the network on MRI-volumes of subjectX in `./data` (specified by `--t1` flag; e.g. 
-`./data/subjectX/t1-weighted.nii.gz`), change into the *FastSurferCNN* directory and run the following commands: 
+To run the network on MRI-volumes of subjectX in `$HOME/my_mri_data` (specified by `--t1` flag; e.g.
+`$HOME/my_mri_data/subjectX/t1_weighted.nii.gz`), run the following commands:
 
 ```bash
-python3 run_prediction.py \
-          --t1 ../data/subjectX/t1-weighted.nii.gz \
-          --sd ../output \
+export FASTSURFER_HOME=${FASTSURFER_HOME:-/path/to/FastSurfer}
+python3 $FASTSURFER_HOME/FastSurferCNN/run_prediction.py \
+          --t1 $HOME/my_mri_data/subjectX/t1_weighted.nii.gz \
+          --sd $HOME/my_fastsurfer_analysis \
           --t subjectX \
-          --seg_log ../output/temp_Competitive.log
+          --seg_log $HOME/my_fastsurfer_analysis/temp_Competitive.log
 ```
 
 The output will be stored in:
-- `../output/subjectX/mri/aparc.DKTatlas+aseg.deep.mgz` (large segmentation)
-- `../output/subjectX/mri/mask.mgz` (brain mask)
-- `../output/subjectX/mri/aseg_noCC.mgz` (reduced segmentation)
+- `$HOME/my_fastsurfer_analysis/subjectX/mri/aparc.DKTatlas+aseg.deep.mgz` (large segmentation)
+- `$HOME/my_fastsurfer_analysis/subjectX/mri/mask.mgz` (brain mask)
+- `$HOME/my_fastsurfer_analysis/subjectX/mri/aseg_noCC.mgz` (reduced segmentation)
 
 Here the logfile "temp_Competitive.log" will include the logfiles of all subjects. If left out, the logs will be written to stdout
 
 ### Example Command: Evaluation whole directory
-To run the network on all subjects MRI-volumes in ./data, change into the *FastSurferCNN* directory and run the following command: 
+To run the network on all subjects MRI-volumes in `$HOME/my_mri_data`, run the following command:
 
 ```bash
-python3 run_prediction.py \
-          --in_dir ../data \
-          --sd ../output \
-          --seg_log ../output/temp_Competitive.log
+export FASTSURFER_HOME=${FASTSURFER_HOME:-/path/to/FastSurfer}
+python3 $FASTSURFER_HOME/FastSurferCNN/run_prediction.py \
+          --in_dir $HOME/my_mri_data \
+          --sd $HOME/my_fastsurfer_analysis \
+          --seg_log $HOME/my_fastsurfer_analysis/temp_Competitive.log
 ```
 
 The output will be stored in:
-- `../output/subjectX/mri/aparc.DKTatlas+aseg.deep.mgz` (large segmentation)
-- `../output/subjectX/mri/mask.mgz` (brain mask)
-- `../output/subjectX/mri/aseg_noCC.mgz` (reduced segmentation)
-- and the log in `../output/temp_Competitive.log`
+- `$HOME/my_fastsurfer_analysis/subjectX/mri/aparc.DKTatlas+aseg.deep.mgz` (large segmentation)
+- `$HOME/my_fastsurfer_analysis/subjectX/mri/mask.mgz` (brain mask)
+- `$HOME/my_fastsurfer_analysis/subjectX/mri/aseg_noCC.mgz` (reduced segmentation)
+- and the log in `$HOME/my_fastsurfer_analysis/temp_Competitive.log`
 
 <!-- before generate_hdf5 -->
 
@@ -117,7 +119,7 @@ A list of python libraries used within the code can be found in `requirements.tx
  
   Example: You have a directory called **dataset** with three different datasets (**D1**, **D2** and **D3**). You want 
   to include subject1, subject10 and subject20 from D1 and D2. Your csv-file would then look like this:
-  ```
+  ```text
   /dataset/D1/subject1
   /dataset/D1/subject10
   /dataset/D1/subject20
@@ -152,9 +154,10 @@ file could be something like `/dataset/D1/subject1/mri_volume.mgz and /dataset/D
 
 ### Example Command: Axial (Single Resolution)
 ```bash
-python3 generate_hdf5.py \
-          --hdf5_name ../data/training_set_axial.hdf5 \
-          --csv_file ../training_set_subjects_dirs.csv \
+export FASTSURFER_HOME=${FASTSURFER_HOME:-/path/to/FastSurfer}
+python3 $FASTSURFER_HOME/FastSurferCNN/generate_hdf5.py \
+          --hdf5_name $FASTSURFER_HOME/data/training_set_axial.hdf5 \
+          --csv_file $FASTSURFER_HOME/training_set_subjects_dirs.csv \
           --thickness 3 \
           --plane axial \
           --image_name mri/orig.mgz \
@@ -168,9 +171,10 @@ python3 generate_hdf5.py \
 
 ### Example Command: Coronal (Single Resolution)
 ```bash
-python3 generate_hdf5.py \
-          --hdf5_name ../data/training_set_coronal.hdf5 \
-          --csv_file ../training_set_subjects_dirs.csv \
+export FASTSURFER_HOME=${FASTSURFER_HOME:-/path/to/FastSurfer}
+python3 $FASTSURFER_HOME/FastSurferCNN/generate_hdf5.py \
+          --hdf5_name $FASTSURFER_HOME/data/training_set_coronal.hdf5 \
+          --csv_file $FASTSURFER_HOME/training_set_subjects_dirs.csv \
           --plane coronal \
           --image_name mri/orig.mgz \
           --gt_name mri/aparc.DKTatlas+aseg.mgz \
@@ -183,9 +187,10 @@ python3 generate_hdf5.py \
 
 ### Example Command: Sagittal (Multiple Resolutions)
 ```bash
-python3 generate_hdf5.py \
-          --hdf5_name ../data/training_set_sagittal.hdf5 \
-          --csv_file ../training_set_subjects_dirs.csv \
+export FASTSURFER_HOME=${FASTSURFER_HOME:-/path/to/FastSurfer}
+python3 $FASTSURFER_HOME/FastSurferCNN/generate_hdf5.py \
+          --hdf5_name $FASTSURFER_HOME/data/training_set_sagittal.hdf5 \
+          --csv_file $FASTSURFER_HOME/training_set_subjects_dirs.csv \
           --plane sagittal \
           --image_name mri/orig.mgz \
           --gt_name mri/aparc.DKTatlas+aseg.mgz \
@@ -200,10 +205,10 @@ python3 generate_hdf5.py \
 `--data_dir` specifies the path in which the data is located, with `--pattern` we can select subjects from the specified
 path. By default, the pattern is `"*"` meaning all subjects will be selected (it is important to quote the pattern (i.e.
 use `"*"`, NOT `*`). As an example, imagine you have 19 FreeSurfer processed subjects labeled subject1 to subject19 in 
-the `../data` directory:
+the `$HOME/data` directory:
 
-```
-$HOME/FastSurfer/data
+```text
+$HOME/data
 ├── subject1
 ├── subject2
 ├── subject3
@@ -228,9 +233,10 @@ Setting `--pattern` "*" will select all 19 subjects (subject1, ..., subject19). 
 the hdf5-file (e.g. subject 10 till subject19), this can be done by changing the `--pattern` flag to "subject1[0-9]": 
 
 ```bash
-python3 generate_hdf5.py \
-          --hdf5_name ../data/training_set_axial.hdf5 \
-          --data_dir ../data \
+export FASTSURFER_HOME=${FASTSURFER_HOME:-/path/to/FastSurfer}
+python3 $FASTSURFER_HOME/FastSurferCNN/generate_hdf5.py \
+          --hdf5_name $HOME/data/training_set_axial.hdf5 \
+          --data_dir $HOME/data \
           --pattern "subject1[0-9]" \
           --plane sagittal \
           --image_name mri/orig.mgz \
@@ -302,8 +308,11 @@ following examples:
 Trains FastSurferVINN on multi-resolution images in the coronal plane:
 
 ```bash
-python3 run_model.py \
-          --cfg ./config/FastSurferVINN.yaml
+export FASTSURFER_HOME=${FASTSURFER_HOME:-/path/to/FastSurfer}
+# the config sets LOG_DIR and the hdf5 sets relative to FastSurferCNN
+cd $FASTSURFER_HOME/FastSurferCNN
+python3 $FASTSURFER_HOME/FastSurferCNN/run_model.py \
+          --cfg $FASTSURFER_HOME/FastSurferCNN/config/FastSurferVINN.yaml
 ```
 
 ### Example Command: Training FastSurferVINN (Single Resolution)
@@ -311,19 +320,29 @@ Trains FastSurferVINN on single-resolution images in the sagittal plane by overr
 `PATH_HDF5_TRAIN`, and `PATH_HDF5_VAL` options:
 
 ```bash
-python3 run_model.py \
-          --cfg ./config/FastSurferVINN.yaml \
+export FASTSURFER_HOME=${FASTSURFER_HOME:-/path/to/FastSurfer}
+# the config sets LOG_DIR relative to FastSurferCNN
+cd $FASTSURFER_HOME/FastSurferCNN
+hdf5_dir=$FASTSURFER_HOME/FastSurferCNN/hdf5_sets
+python3 $FASTSURFER_HOME/FastSurferCNN/run_model.py \
+          --cfg $FASTSURFER_HOME/FastSurferCNN/config/FastSurferVINN.yaml \
             MODEL.NUM_CLASSES 51 \
             DATA.SIZES 256 \
-            DATA.PATH_HDF5_TRAIN ./hdf5_sets/training_sagittal_single_resolution.hdf5 \
-            DATA.PATH_HDF5_VAL ./hdf5_sets/validation_sagittal_single_resolution.hdf5 \
+            DATA.PATH_HDF5_TRAIN \
+              $hdf5_dir/training_sagittal_single_resolution.hdf5 \
+            DATA.PATH_HDF5_VAL \
+              $hdf5_dir/validation_sagittal_single_resolution.hdf5
 ```
 
 ### Example Command: Training FastSurferCNN
 Trains FastSurferCNN using a provided configuration file and specifying no augmentations:
 
 ```bash
-python3 run_model.py \
-          --cfg custom_configs/FastSurferCNN.yaml \
+export FASTSURFER_HOME=${FASTSURFER_HOME:-/path/to/FastSurfer}
+# LOG_DIR and other paths of the config may be relative to FastSurferCNN
+cd $FASTSURFER_HOME/FastSurferCNN
+python3 $FASTSURFER_HOME/FastSurferCNN/run_model.py \
+          --cfg \
+            $FASTSURFER_HOME/FastSurferCNN/custom_configs/FastSurferCNN.yaml \
           --aug None
 ```

@@ -18,16 +18,17 @@ It reads those inputs and writes all CC outputs into the subject directory.
 ### Native
 
 ```bash
-python3 CorpusCallosum/fastsurfer_cc.py \
-    --sd /data/subjects \
-    --sid sub001 \
+export FASTSURFER_HOME=${FASTSURFER_HOME:-/path/to/FastSurfer}
+python3 $FASTSURFER_HOME/CorpusCallosum/fastsurfer_cc.py \
+    --sd $HOME/my_fastsurfer_analysis \
+    --sid subjectX \
     --upright_volume mri/upright_volume.mgz \
     --qc_image qc_snapshots/callosum.png \
     --thickness_image qc_snapshots/callosum.thickness.png
 ```
 
-Paths that are not absolute are resolved relative to `/data/subjects/sub001`. The upright volume is useful for
-checking the midplane and is the anatomical reference for manual CC editing.
+Paths that are not absolute are resolved relative to `$HOME/my_fastsurfer_analysis/subjectX`. The upright volume is
+useful for checking the midplane and is the anatomical reference for manual CC editing.
 
 ### Docker
 
@@ -35,17 +36,17 @@ The FastSurfer Docker image normally starts `run_fastsurfer.sh`. Expert commands
 with FastSurfer's environment-setup wrapper and explicitly invoke `fastsurfer_cc.py`:
 
 ```bash
-SUBJECTS_DIR=/data/fastsurfer
-SID=sub001
+export SUBJECTS_DIR=$HOME/my_fastsurfer_analysis
+subject_id=subjectX
 
 docker run --gpus all --rm \
     --user "$(id -u):$(id -g)" \
-    --volume "$SUBJECTS_DIR:/output" \
+    --volume "$SUBJECTS_DIR:$SUBJECTS_DIR" \
     --entrypoint /fastsurfer/tools/Docker/entrypoint.sh \
-    deepmi/fastsurfer:latest \
+    deepmi/fastsurfer:{{ CUDA_STRING }}-v{{ FASTSURFER_VERSION }} \
     python3 /fastsurfer/CorpusCallosum/fastsurfer_cc.py \
-    --sd /output \
-    --sid "$SID" \
+    --sd "$SUBJECTS_DIR" \
+    --sid "$subject_id" \
     --upright_volume mri/upright_volume.mgz \
     --qc_image qc_snapshots/callosum.png \
     --thickness_image qc_snapshots/callosum.thickness.png
@@ -58,16 +59,16 @@ Build or download an image as described in the [Singularity documentation](../do
 the subject directory and invoke the expert script directly:
 
 ```bash
-SUBJECTS_DIR=/data/fastsurfer
-SID=sub001
-FASTSURFER_SIF=/containers/fastsurfer-gpu.sif
+export SUBJECTS_DIR=$HOME/my_fastsurfer_analysis
+subject_id=subjectX
+fastsurfer_sif=$HOME/my_singularity_images/fastsurfer-{{ FASTSURFER_VERSION }}.sif
 
 singularity exec --nv --no-mount home,cwd -e \
-    --bind "$SUBJECTS_DIR:/output" \
-    "$FASTSURFER_SIF" \
+    --bind "$SUBJECTS_DIR" \
+    "$fastsurfer_sif" \
     python3 /fastsurfer/CorpusCallosum/fastsurfer_cc.py \
-    --sd /output \
-    --sid "$SID" \
+    --sd "$SUBJECTS_DIR" \
+    --sid "$subject_id" \
     --upright_volume mri/upright_volume.mgz \
     --qc_image qc_snapshots/callosum.png \
     --thickness_image qc_snapshots/callosum.thickness.png

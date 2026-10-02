@@ -147,26 +147,29 @@ def make_parser() -> argparse.ArgumentParser:
         return val
 
     parser = argparse.ArgumentParser(
-        description="long_compat_segmentHA.py takes a longitudinally processed subject and creates files "
-                    "missing for other longitudinal processing like the hippocampal subfields stream of FreeSurfer.",
+        description="long_compat_segmentHA.py takes a longitudinally processed subject and creates\n"
+                    "files missing for other longitudinal processing like the hippocampal subfields\n"
+                    "stream of FreeSurfer.",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=dedent("""
                REFERENCES:
 
                If you use this for research publications, please cite:
 
-               Henschel L, Conjeti S, Estrada S, Diers K, Fischl B, Reuter M, FastSurfer - A fast and accurate deep 
-                learning based neuroimaging pipeline, NeuroImage 219 (2020), 117012. 
+               Henschel L, Conjeti S, Estrada S, Diers K, Fischl B, Reuter M, FastSurfer - A
+                fast and accurate deep learning based neuroimaging pipeline, NeuroImage 219
+                (2020), 117012.
                 https://doi.org/10.1016/j.neuroimage.2020.117012
 
-               Henschel L, Kuegler D (co-first), Reuter M.. FastSurferVINN: Building Resolution-Independence into 
-                Deep Learning Segmentation Methods - A Solution for HighRes Brain MRI. NeuroImage 251 (2022), 118933. 
+               Henschel L, Kuegler D (co-first), Reuter M.. FastSurferVINN: Building
+                Resolution-Independence into Deep Learning Segmentation Methods - A Solution
+                for HighRes Brain MRI. NeuroImage 251 (2022), 118933.
                 http://dx.doi.org/10.1016/j.neuroimage.2022.118933
                """)
     )
 
     # Required arguments
-    parser.add_argument("--sid", "--tid", dest="subject", required=True, metavar="subject id",
+    parser.add_argument("--sid", "--tid", dest="subject", required=True, metavar="subject_id",
                         help="Template to create directory inside $SUBJECTS_DIR.")
     parser.add_argument("--sd", dest="subjects_dir", type=validate_existing_subjects_dir,
                         default=Path(os.environ.get("SUBJECTS_DIR", "/")), required="SUBJECTS_DIR" not in os.environ,

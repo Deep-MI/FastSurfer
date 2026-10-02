@@ -57,7 +57,7 @@ def make_parser() -> argparse.ArgumentParser:
                              "cc_mesh_overlay.curv - FreeSurfer curvature overlay file "
                              "cc_mesh_snap.png - Screenshot/snapshot of the 3D mesh (requires whippersnappy>=2.1). "
                              "If template_dir does not contain orig.mgz and cc_up.lta, "
-                             "output_dir/mri/upright.mgz is used as the fallback reference when available; "
+                             "<output_dir>/mri/upright.mgz is used as the fallback reference when available; "
                              "otherwise FreeSurfer surfaces are written without a reference space.",
                         metavar="OUTPUT_DIR"
                         )
@@ -80,7 +80,9 @@ def make_parser() -> argparse.ArgumentParser:
         type=str,
         default="red_to_yellow",
         choices=["red_to_blue", "blue_to_red", "red_to_yellow", "yellow_to_red"],
-        help="Colormap progression from lower to higher values.",
+        metavar="COLORMAP",
+        help="Colormap progression from lower to higher values: red_to_blue, blue_to_red, red_to_yellow or "
+             "yellow_to_red.",
     )
     parser.add_argument(
         "--color_range",
