@@ -97,21 +97,62 @@ function available_cpus()
   cpus_available="$n"
 }
 
+# the most threads auto picks, beyond which the gain measured no longer pays for the cores taken
+thread_auto_cap_gpu=4  # segmentation on a GPU, where only the steps around the networks use threads
+thread_auto_cap_cpu=8  # segmentation on the CPU, and the surface pipeline
+
+function physical_cpus()
+{
+  # Prints the number of physical cores of the machine, or nothing if it cannot be read. On Apple
+  # silicon only the performance cores count, the efficiency cores slow the networks down.
+  local n=""
+  if command -v lscpu > /dev/null ; then
+    n="$(lscpu -p='Core,Socket' 2> /dev/null | grep -v '^#' | sort -u | wc -l)"
+  fi
+  if [[ -z "$(positive_int "${n// /}")" ]] && [[ -r /proc/cpuinfo ]] ; then
+    n="$(awk -F: '/^physical id/ {p=$2} /^core id/ {print p "," $2}' /proc/cpuinfo | sort -u | wc -l)"
+  fi
+  if [[ -z "$(positive_int "${n// /}")" ]] ; then n="$(sysctl -n hw.perflevel0.physicalcpu 2> /dev/null)" ; fi
+  if [[ -z "$(positive_int "${n// /}")" ]] ; then n="$(sysctl -n hw.physicalcpu 2> /dev/null)" ; fi
+  positive_int "${n// /}"
+}
+
+function auto_threads()
+{
+  # USAGE: auto_threads <cap>
+  # Sets threads_budget and threads_source: the whole allocation inside a cgroup quota or a
+  # scheduler job, else the physical cores less one kept free for the user, at most <cap> either way.
+  local physical
+  available_cpus
+  if [[ "$cpus_allocated" == "true" ]] ; then
+    threads_budget="$cpus_available" ; threads_source="auto, the allocation of $cpus_available CPUs"
+  else
+    physical="$(physical_cpus)"
+    if [[ -z "$physical" ]] || [[ "$physical" -gt "$cpus_available" ]] ; then physical="$cpus_available" ; fi
+    if [[ "$physical" -gt 1 ]] ; then threads_budget=$((physical - 1)) ; else threads_budget=1 ; fi
+    threads_source="auto, $physical cores with one kept free"
+  fi
+  if [[ "$threads_budget" -gt "$1" ]] ; then threads_budget="$1" ; threads_source+=", capped at $1" ; fi
+}
+
 function resolve_threads()
 {
-  # USAGE: resolve_threads <value passed to --threads, empty if none> <default>
+  # USAGE: resolve_threads <value passed to --threads, empty if none> <default> [<cap for auto>]
   # Sets threads_budget, threads_source and threads_note. Returns 1 for an invalid flag value.
-  # max, 0 and negative values mean all available CPUs.
-  local flag user_omp limit
+  # max, 0 and negative values mean all available CPUs; auto, as a flag or as the default, means
+  # what auto_threads picks, at most <cap> (default thread_auto_cap_cpu).
+  local flag user_omp limit cap="${3:-$thread_auto_cap_cpu}"
   flag="$(echo "$1" | tr '[:upper:]' '[:lower:]')"
   threads_note=""
   if [[ "$flag" =~ ^(max|-[0-9]+|0+)$ ]] ; then
     available_cpus
     threads_budget="$cpus_available" ; threads_source="--threads $1${cpus_reason:+, limited by $cpus_reason}"
+  elif [[ "$flag" == "auto" ]] ; then
+    auto_threads "$cap" ; threads_source="--threads $threads_source"
   elif [[ -n "$flag" ]] ; then
     threads_budget="$(positive_int "$flag")" ; threads_source="--threads"
     if [[ "$threads_budget" != "$flag" ]] ; then
-      threads_note="ERROR: Invalid number of threads '$1', must be a positive integer or 'max'."
+      threads_note="ERROR: Invalid number of threads '$1', must be a positive integer, 'auto' or 'max'."
       return 1
     fi
   else
@@ -122,7 +163,9 @@ function resolve_threads()
       if [[ " $thread_env_user_set " == *" OMP_NUM_THREADS "* ]] ; then
         threads_note="WARNING: Ignoring OMP_NUM_THREADS='$thread_env_user_OMP_NUM_THREADS', which is not a positive number."
       fi
-      threads_budget="$2" ; threads_source="default"
+      if [[ "$2" == "auto" ]] ; then auto_threads "$cap"
+      else threads_budget="$2" ; threads_source="default"
+      fi
     fi
   fi
   limit="$(positive_int "$thread_env_user_OMP_THREAD_LIMIT")"
