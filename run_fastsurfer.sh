@@ -1066,6 +1066,15 @@ wrap=("time_it" "$exec_time_log")
 
 if [[ -f "$seg_log" ]]; then log_existed="true" ; else log_existed="false" ; fi
 
+if [[ "$run_seg_pipeline" == "true" ]]
+then
+  # --threads reaches torch, but numpy's BLAS reads its own variable once at import and otherwise
+  # starts one thread per core. Exported before the host block, so that it logs the limits in force.
+  if ! resolve_threads "$threads_seg" 1 ; then echo "$threads_note" | tee -a "$seg_log" ; exit 1 ; fi
+  threads_seg="$threads_budget"
+  set_thread_env "$threads_seg"
+fi
+
 {
   echo "========================================================="
   echo "Start of the log for a new run_fastsurfer.sh invocation"
@@ -1081,6 +1090,7 @@ if [[ -f "$seg_log" ]]; then log_existed="true" ; else log_existed="false" ; fi
   # runs were comparable at all. Once here rather than in each network: it describes the machine,
   # not the process. The thread counts are left out for the opposite reason, they are per network.
   $python "$FASTSURFER_HOME/FastSurferCNN/host_info.py" --fingerprint 2>&1
+  if [[ "$run_seg_pipeline" == "true" ]] ; then describe_threads "Segmentation" ; fi
 } | tee -a "$seg_log"
 
 ### IF tmpLF exists, it has been created with a warning or similar, copy that warning to seg_log now
@@ -1224,13 +1234,6 @@ fi
 
 if [[ "$run_seg_pipeline" == "true" ]]
 then
-  # --threads reaches torch, but numpy's BLAS reads its own variable once at import and otherwise
-  # starts one thread per core
-  if ! resolve_threads "$threads_seg" 1 ; then echo "$threads_note" | tee -a "$seg_log" ; exit 1 ; fi
-  threads_seg="$threads_budget"
-  set_thread_env "$threads_seg"
-  describe_threads "Segmentation" | tee -a "$seg_log"
-
   # ============= Running LIT Inpainting ========================================
   if [[ "$run_lit_module" == "true" ]]
   then
