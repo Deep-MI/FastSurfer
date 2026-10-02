@@ -27,7 +27,7 @@ fsaparc="false"       # if true: run FreeSurfer aparc (and cortical ribbon); if 
 fssurfreg="true"      # run FS surface registration to fsaverage, if false omit this step
 python="python3 -s"   # python version
 ParallelFlag="false"  # "true", if --parallel passed
-threads=""            # total thread budget; empty takes OMP_NUM_THREADS, else 2 (one per hemisphere)
+threads=""            # total thread budget; empty takes OMP_NUM_THREADS, else auto
 edits="false"         # flag for inclusion/exclusion of edits
                       #   (also ability to run on top of existing recon-surf.sh output)
 atlas3T="false"       # flag to use/do not use the 3t atlas for talairach registration/etiv
@@ -114,12 +114,15 @@ FLAGS:
   --3T                    Use the 3T atlas for talairach registration (gives
                             better eTIV estimates for 3T MR images, default:
                             1.5T atlas).
-  --threads <int>         Total thread budget, or "max". With 2 or more the two
-                            hemispheres run at the same time and split it, so 2
-                            gives one thread each and 8 gives four each. Use 1
-                            to keep every binary single threaded, which is what
-                            to use for reproducible results. Without the flag,
-                            OMP_NUM_THREADS sets the budget if exported, else 2.
+  --threads <int>         Total thread budget, "auto" or "max". With 2 or more
+                            the two hemispheres run at the same time and split
+                            it, so 2 gives one thread each and 8 gives four
+                            each. Use 1 to keep every binary single threaded.
+                            Without the flag, OMP_NUM_THREADS sets the budget
+                            if exported, else auto: the allocation of a cgroup
+                            quota or a scheduler job, or else the physical
+                            cores less one, at most 8. "max" uses all available
+                            CPUs.
   --parallel              Run the hemispheres at the same time with one thread
                             each, even at --threads 1. That keeps every binary
                             single threaded, and so reproducible, while still
@@ -335,7 +338,7 @@ then
   exit 1
 fi
 
-if ! resolve_threads "$threads" 2 ; then echo "$threads_note" ; exit 1 ; fi
+if ! resolve_threads "$threads" auto ; then echo "$threads_note" ; exit 1 ; fi
 threads="$threads_budget"
 
 # --threads is a total budget: above one thread the two hemispheres run at the same time and split

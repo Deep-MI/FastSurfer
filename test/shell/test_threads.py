@@ -51,10 +51,16 @@ def machine(tmp_path):
         cgroup_v1_quota = tmp_path / "cpu.cfs_quota_us"
         cgroup_v1_period = tmp_path / "cpu.cfs_period_us"
 
-        def cpus(self, total: int, affinity: int):
-            for name, value in (("getconf", total), ("nproc", affinity)):
+        def cpus(self, total: int, affinity: int, physical: int | None = None):
+            cores = "\n".join(f"{i},0" for i in range(physical or total))
+            for name, body in (
+                ("getconf", f"echo {total}"),
+                ("nproc", f"echo {affinity}"),
+                # lscpu -p=Core,Socket: one line per logical CPU, so hyperthreads repeat a core
+                ("lscpu", f'echo "# Core,Socket"\nfor i in 1 2 ; do cat <<END\n{cores}\nEND\ndone'),
+            ):
                 fake = bin_dir / name
-                fake.write_text(f"#!/bin/bash\necho {value}\n")
+                fake.write_text(f"#!/bin/bash\n{body}\n")
                 fake.chmod(0o755)
 
         def run(self, body: str, **env: str) -> str:
@@ -77,7 +83,7 @@ def machine(tmp_path):
     return m
 
 
-def budget(machine, flag: str = "", default: int = 2, **env: str) -> str:
+def budget(machine, flag: str = "", default: int | str = 2, **env: str) -> str:
     """The budget and its source, as resolve_threads leaves them."""
     return machine.run(
         f'resolve_threads "{flag}" {default} ; echo "$threads_budget|$threads_source"', **env,
@@ -196,6 +202,44 @@ class TestAvailableCpus:
     def test_max_reports_what_limited_it(self, machine):
         machine.cgroup_v2.write_text("400000 100000\n")
         assert budget(machine, flag="max") == "4|--threads max, limited by the cgroup CPU quota"
+
+
+class TestAuto:
+    def test_a_workstation_keeps_one_physical_core_free(self, machine):
+        machine.cpus(total=8, affinity=8, physical=4)
+        assert budget(machine, default="auto") == "3|auto, 4 cores with one kept free"
+
+    def test_hyperthreads_do_not_count(self, machine):
+        machine.cpus(total=32, affinity=32, physical=16)
+        assert budget(machine, default="auto").startswith("8|auto, 16 cores with one kept free, capped at 8")
+
+    def test_the_cap_is_the_one_passed(self, machine):
+        machine.cpus(total=32, affinity=32, physical=16)
+        out = machine.run('resolve_threads "" auto "$thread_auto_cap_gpu" ; echo "$threads_budget"').strip()
+        assert out == "4"
+
+    def test_a_single_core_runs_single_threaded(self, machine):
+        machine.cpus(total=1, affinity=1, physical=1)
+        assert budget(machine, default="auto").startswith("1|")
+
+    def test_a_lower_affinity_limits_the_cores(self, machine):
+        machine.cpus(total=32, affinity=4, physical=16)
+        assert budget(machine, default="auto").startswith("3|auto, 4 cores")
+
+    def test_an_allocation_is_used_whole(self, machine):
+        machine.cgroup_v2.write_text("400000 100000\n")
+        assert budget(machine, default="auto") == "4|auto, the allocation of 4 CPUs"
+
+    def test_a_large_allocation_is_capped(self, machine):
+        machine.cpus(total=64, affinity=32, physical=32)
+        assert budget(machine, default="auto", SLURM_CPUS_PER_TASK="32").startswith("8|auto, the allocation")
+
+    def test_omp_num_threads_still_wins_over_auto(self, machine):
+        assert budget(machine, default="auto", OMP_NUM_THREADS="2") == "2|OMP_NUM_THREADS"
+
+    def test_auto_can_be_asked_for_explicitly(self, machine):
+        machine.cpus(total=8, affinity=8, physical=4)
+        assert budget(machine, flag="auto", OMP_NUM_THREADS="2") == "3|--threads auto, 4 cores with one kept free"
 
 
 if __name__ == "__main__":
