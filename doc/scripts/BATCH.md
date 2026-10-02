@@ -56,6 +56,10 @@ processing of one of the four first cases is finished (`--parallel 4`). It will 
 `--parallel max` will remove the limit and start all cases at the same time (each with the target number of threads
 given by `--threads`).
 
+Without `--threads` (and without an exported `OMP_NUM_THREADS`), each case would choose its threads itself and take
+what `auto` gives the whole machine. So when more than one case runs at a time, `brun_fastsurfer.sh` divides that
+between them instead, by passing each case an `OMP_THREAD_LIMIT`, which the log of every case reports.
+
 ### Dual parallel pipeline
 This is ideal for GPU-based processing for segmentation. It will process segmentations and surfaces in separate
 pipelines, which is useful for optimized GPU loading. Multiple cases may be processed at the same time.

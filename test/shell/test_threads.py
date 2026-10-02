@@ -63,18 +63,20 @@ def machine(tmp_path):
                 fake.write_text(f"#!/bin/bash\n{body}\n")
                 fake.chmod(0o755)
 
-        def run(self, body: str, **env: str) -> str:
-            script = (
-                f'source "{THREADS}"\n'
+        def environment(self, **env: str) -> dict[str, str]:
+            clean = {k: v for k, v in os.environ.items() if k not in THREAD_VARS + SCHEDULER_VARS}
+            clean["PATH"] = f"{bin_dir}{os.pathsep}{clean['PATH']}"
+            return clean | env
+
+        def run(self, body: str, real_cgroup: bool = False, **env: str) -> str:
+            cgroup = "" if real_cgroup else (
                 f'cgroup_v2_cpu_max="{self.cgroup_v2}"\n'
                 f'cgroup_v1_cpu_quota="{self.cgroup_v1_quota}"\n'
                 f'cgroup_v1_cpu_period="{self.cgroup_v1_period}"\n'
-                f"{body}\n"
             )
-            clean = {k: v for k, v in os.environ.items() if k not in THREAD_VARS + SCHEDULER_VARS}
-            clean["PATH"] = f"{bin_dir}{os.pathsep}{clean['PATH']}"
+            script = f'source "{THREADS}"\n{cgroup}{body}\n'
             result = subprocess.run(
-                ["bash", "-c", script], capture_output=True, text=True, env=clean | env, check=True,
+                ["bash", "-c", script], capture_output=True, text=True, env=self.environment(**env), check=True,
             )
             return result.stdout
 
@@ -240,6 +242,81 @@ class TestAuto:
     def test_auto_can_be_asked_for_explicitly(self, machine):
         machine.cpus(total=8, affinity=8, physical=4)
         assert budget(machine, flag="auto", OMP_NUM_THREADS="2") == "3|--threads auto, 4 cores with one kept free"
+
+
+class TestSharing:
+    def test_the_machine_is_divided_between_the_processes(self, machine):
+        machine.cpus(total=32, affinity=32, physical=16)
+        assert machine.run("share_threads 4").strip() == "3"  # 15 cores, the cap does not apply
+
+    def test_every_process_gets_at_least_one(self, machine):
+        machine.cpus(total=8, affinity=8, physical=4)
+        assert machine.run("share_threads 20").strip() == "1"
+
+    def test_a_limit_from_a_parent_is_never_raised(self, machine):
+        machine.cpus(total=32, affinity=32, physical=16)
+        assert machine.run("share_threads 2", OMP_THREAD_LIMIT="3").strip() == "3"
+
+    @pytest.mark.parametrize("args", [["--threads", "2"], ["--threads_seg", "4"], ["--threads_surf", "auto"]])
+    def test_a_threads_flag_leaves_nothing_to_auto(self, machine, args):
+        assert "no" in machine.run(f"threads_left_to_auto --py python3 {' '.join(args)} || echo no")
+
+    def test_omp_num_threads_leaves_nothing_to_auto(self, machine):
+        assert "no" in machine.run("threads_left_to_auto --py python3 || echo no", OMP_NUM_THREADS="2")
+
+
+@pytest.fixture
+def brun(machine, tmp_path):
+    """Run brun_fastsurfer.sh on three cases with a stub that records the OMP_THREAD_LIMIT it got."""
+    stub = tmp_path / "stub.sh"
+    stub.write_text(
+        "#!/bin/bash\n"
+        'sid="" ; while [[ "$#" -gt 0 ]] ; do if [[ "$1" == "--sid" ]] ; then sid="$2" ; fi ; shift ; done\n'
+        'echo "$sid ${OMP_THREAD_LIMIT-unset}" >> "$STUB_LOG"\n'
+    )
+    stub.chmod(0o755)
+    log = tmp_path / "stub.log"
+    subjects = []
+    for name in ("subj1", "subj2", "subj3"):
+        (tmp_path / f"{name}.mgz").write_bytes(b"")
+        subjects.append(f"{name}={tmp_path / name}.mgz")
+
+    def run(*args: str, **env: str) -> set[str]:
+        subprocess.run(
+            ["bash", str(FASTSURFER_HOME / "brun_fastsurfer.sh"), "--sd", str(tmp_path / "out"),
+             "--run_fastsurfer", str(stub), "--device", "cpu", "--subjects", *subjects, *args],
+            capture_output=True, text=True, env=machine.environment(STUB_LOG=str(log), **env),
+            cwd=FASTSURFER_HOME, timeout=120, check=True,
+        )
+        return {line.split()[1] for line in log.read_text().splitlines()}
+
+    return run
+
+
+class TestBrunSharesTheMachine:
+    """Compared with share_threads in the same environment, so the host's own cgroup cannot decide."""
+
+    def test_parallel_cases_share(self, machine, brun):
+        machine.cpus(total=32, affinity=32, physical=16)
+        assert brun("--parallel", "3") == {machine.run("share_threads 3", real_cgroup=True).strip()}
+
+    def test_more_parallel_slots_than_cases_count_the_cases(self, machine, brun):
+        machine.cpus(total=32, affinity=32, physical=16)
+        assert brun("--parallel", "max") == {machine.run("share_threads 3", real_cgroup=True).strip()}
+
+    def test_two_pipelines_count_both(self, machine, brun):
+        machine.cpus(total=32, affinity=32, physical=16)
+        expected = machine.run("share_threads 4", real_cgroup=True).strip()
+        assert brun("--parallel_seg", "2", "--parallel_surf", "2") == {expected}
+
+    def test_one_case_at_a_time_is_left_alone(self, brun):
+        assert brun("--parallel", "1") == {"unset"}
+
+    def test_a_threads_flag_is_left_alone(self, brun):
+        assert brun("--parallel", "3", "--threads", "2") == {"unset"}
+
+    def test_omp_num_threads_is_left_alone(self, brun):
+        assert brun("--parallel", "3", OMP_NUM_THREADS="2") == {"unset"}
 
 
 if __name__ == "__main__":
