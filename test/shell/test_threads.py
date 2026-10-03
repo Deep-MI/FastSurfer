@@ -13,15 +13,16 @@
 # limitations under the License.
 
 """
-Check how recon_surf/threads.sh turns flags, environment and machine into a thread budget.
+Check how recon_surf/threads.sh turns flags and environment into a thread budget, and how
+brun_fastsurfer.sh shares the machine between cases that run at the same time.
 
 The order is: --threads, else OMP_NUM_THREADS, else the default, with OMP_THREAD_LIMIT as a cap.
 Every library variable is then exported from that budget, except that one the user set lower
-stays a ceiling. "max" counts the CPUs the process may use, which a cgroup quota or a scheduler
-allocation can lower without the CPU affinity showing it.
+stays a ceiling.
 
-nproc and getconf are replaced by fakes on PATH and the cgroup files by temporary ones, so the
-machine the tests run on, and the cgroup of a CI container, cannot decide the outcome.
+The machine size for brun comes from nproc, getconf and lscpu on PATH, so the share is large
+enough to show the caps on a small CI runner. The cgroup files are temporary ones, so the cgroup of
+a CI container cannot decide the outcome.
 """
 
 import os
@@ -42,7 +43,7 @@ SCHEDULER_VARS = ("SLURM_CPUS_PER_TASK", "NSLOTS", "NCPUS", "LSB_DJOB_NUMPROC")
 
 @pytest.fixture
 def machine(tmp_path):
-    """A machine with 16 CPUs, an affinity of 16 and no cgroup quota, to be adjusted per test."""
+    """A machine with 16 CPUs and no cgroup quota, to be adjusted per test."""
     bin_dir = tmp_path / "bin"
     bin_dir.mkdir()
 
@@ -59,19 +60,11 @@ def machine(tmp_path):
             (directory / "cpu.max").write_text(f"{cpu_max}\n")
             self.cgroup_self.write_text(f"0::{own}\n")
 
-        def cgroup_v1(self, quota: str, period: str, at: str = "/", own: str = "/"):
-            """A cgroup v1 cpu hierarchy with this process in <own>, and the quota on the cgroup <at>."""
-            directory = self.cgroup_v1_root / at.strip("/")
-            directory.mkdir(parents=True, exist_ok=True)
-            (directory / "cpu.cfs_quota_us").write_text(f"{quota}\n")
-            (directory / "cpu.cfs_period_us").write_text(f"{period}\n")
-            self.cgroup_self.write_text(f"12:memory:/elsewhere\n4:cpu,cpuacct:{own}\n")
-
-        def cpus(self, total: int, affinity: int, physical: int | None = None):
-            cores = "\n".join(f"{i},0" for i in range(physical or total))
+        def cpus(self, total: int, physical: int):
+            cores = "\n".join(f"{i},0" for i in range(physical))
             for name, body in (
                 ("getconf", f"echo {total}"),
-                ("nproc", f"echo {affinity}"),
+                ("nproc", f"echo {total}"),
                 # lscpu -p=Core,Socket: one line per logical CPU, so hyperthreads repeat a core
                 ("lscpu", f'echo "# Core,Socket"\nfor i in 1 2 ; do cat <<END\n{cores}\nEND\ndone'),
             ):
@@ -97,15 +90,13 @@ def machine(tmp_path):
             return result.stdout
 
     m = Machine()
-    m.cpus(total=16, affinity=16)
+    m.cpus(total=16, physical=16)
     return m
 
 
-def budget(machine, flag: str = "", default: int | str = 2, **env: str) -> str:
-    """The budget and its source, as resolve_threads leaves them."""
-    return machine.run(
-        f'resolve_threads "{flag}" {default} ; echo "$threads_budget|$threads_source"', **env,
-    ).strip()
+def budget(machine, flag: str = "", **env: str) -> str:
+    """The budget and its source, as resolve_threads leaves them, with a default of 2."""
+    return machine.run(f'resolve_threads "{flag}" 2 ; echo "$threads_budget|$threads_source"', **env).strip()
 
 
 def exported(machine, flag: str = "", **env: str) -> dict[str, str]:
@@ -113,11 +104,6 @@ def exported(machine, flag: str = "", **env: str) -> dict[str, str]:
     body = f'resolve_threads "{flag}" 2 ; set_thread_env "$threads_budget" ; env'
     lines = machine.run(body, **env).splitlines()
     return {k: v for k, _, v in (line.partition("=") for line in lines) if k in THREAD_VARS}
-
-
-def available(machine, **env: str) -> str:
-    out = machine.run('available_cpus ; echo "$cpus_available|$cpus_reason|$cpus_allocated"', **env)
-    return out.strip()
 
 
 class TestBudgetOrder:
@@ -170,136 +156,24 @@ class TestExportedVariables:
         assert machine.run(body, OMP_NUM_THREADS="4").strip() == "omp=4 blas=unset"
 
 
-class TestAvailableCpus:
-    def test_the_whole_machine_is_not_an_allocation(self, machine):
-        assert available(machine) == "16||false"
+class TestSourcedTwice:
+    def test_the_users_environment_is_captured_once(self, machine):
+        """A second source must not take this process's own exports for the user's."""
+        body = 'set_thread_env 6 ; source "$THREADS_SH" ; resolve_threads "" 2 ; echo "$threads_budget|$threads_source"'
+        assert machine.run(body, THREADS_SH=str(THREADS)).strip() == "2|default"
 
-    def test_a_lower_affinity_counts_but_is_not_an_allocation(self, machine):
-        machine.cpus(total=16, affinity=4)
-        assert available(machine) == "4|the CPU affinity|false"
 
-    def test_omp_num_threads_does_not_shrink_the_count(self, machine):
-        """GNU nproc reads OMP_NUM_THREADS itself, which must not leak into max."""
-        fake = machine.cgroup_self.parent / "bin" / "nproc"
-        fake.write_text('#!/bin/bash\necho "${OMP_NUM_THREADS:-16}"\n')
-        assert budget(machine, flag="max", OMP_NUM_THREADS="2") == "16|--threads max"
-
-    def test_a_cgroup_v2_quota_lowers_the_count(self, machine):
-        machine.cgroup_v2("400000 100000")
-        assert available(machine) == "4|the cgroup CPU quota|true"
-
-    def test_a_fractional_quota_rounds_down_but_not_below_one(self, machine):
-        machine.cgroup_v2("150000 100000")
-        assert available(machine).startswith("1|")
-        machine.cgroup_v2("50000 100000")
-        assert available(machine).startswith("1|")
-
-    def test_an_unlimited_cgroup_v2_is_no_allocation(self, machine):
-        machine.cgroup_v2("max 100000")
-        assert available(machine) == "16||false"
-
-    def test_a_cgroup_v1_quota_lowers_the_count(self, machine):
-        machine.cgroup_v1("200000", "100000")
-        assert available(machine) == "2|the cgroup CPU quota|true"
-
-    def test_an_unlimited_cgroup_v1_is_no_allocation(self, machine):
-        machine.cgroup_v1("-1", "100000")
-        assert available(machine) == "16||false"
-
-    def test_a_quota_on_the_own_cgroup_below_the_root(self, machine):
-        """Without a cgroup namespace, as under systemd, the quota is not on the root."""
-        machine.cgroup_v2("300000 100000", at="/system.slice/fs.service", own="/system.slice/fs.service")
-        assert available(machine) == "3|the cgroup CPU quota|true"
+class TestCgroupQuota:
+    """The quota is read from the process's own cgroup up to the root, as /proc/self/cgroup names it."""
 
     def test_a_quota_on_a_parent_cgroup(self, machine):
         machine.cgroup_v2("300000 100000", at="/system.slice", own="/system.slice/fs.service")
-        assert available(machine) == "3|the cgroup CPU quota|true"
+        assert machine.run("cgroup_cpu_quota").strip() == "3"
 
     def test_the_smallest_quota_on_the_way_up_wins(self, machine):
         machine.cgroup_v2("800000 100000", at="/system.slice", own="/system.slice/fs.service")
         machine.cgroup_v2("300000 100000", at="/system.slice/fs.service", own="/system.slice/fs.service")
-        assert available(machine) == "3|the cgroup CPU quota|true"
-
-    def test_a_quota_on_another_cgroup_does_not_count(self, machine):
-        machine.cgroup_v2("300000 100000", at="/other.slice", own="/system.slice/fs.service")
-        assert available(machine) == "16||false"
-
-    def test_a_v1_container_sees_its_own_cgroup_as_the_root(self, machine):
-        """Inside the container the cgroup path names the host's tree, which is not mounted there."""
-        machine.cgroup_v1("200000", "100000", own="/docker/0123abcd")
-        assert available(machine) == "2|the cgroup CPU quota|true"
-
-    @pytest.mark.parametrize("var", SCHEDULER_VARS)
-    def test_a_scheduler_allocation_lowers_the_count(self, machine, var):
-        assert available(machine, **{var: "6"}) == f"6|{var}|true"
-
-    def test_a_scheduler_job_is_an_allocation_even_when_it_lowers_nothing(self, machine):
-        """Slurm usually restricts the affinity too, so the variable matches the count."""
-        machine.cpus(total=16, affinity=6)
-        assert available(machine, SLURM_CPUS_PER_TASK="6") == "6|the CPU affinity|true"
-
-    def test_max_reports_what_limited_it(self, machine):
-        machine.cgroup_v2("400000 100000")
-        assert budget(machine, flag="max") == "4|--threads max, limited by the cgroup CPU quota"
-
-
-class TestAuto:
-    def test_a_workstation_keeps_one_physical_core_free(self, machine):
-        machine.cpus(total=8, affinity=8, physical=4)
-        assert budget(machine, default="auto") == "3|auto, 4 cores with one kept free"
-
-    def test_hyperthreads_do_not_count(self, machine):
-        machine.cpus(total=32, affinity=32, physical=16)
-        assert budget(machine, default="auto").startswith("8|auto, 16 cores with one kept free, capped at 8")
-
-    def test_the_cap_is_the_one_passed(self, machine):
-        machine.cpus(total=32, affinity=32, physical=16)
-        out = machine.run('resolve_threads "" auto "$thread_auto_cap_gpu" ; echo "$threads_budget"').strip()
-        assert out == "4"
-
-    def test_a_single_core_runs_single_threaded(self, machine):
-        machine.cpus(total=1, affinity=1, physical=1)
-        assert budget(machine, default="auto").startswith("1|")
-
-    def test_a_lower_affinity_limits_the_cores(self, machine):
-        machine.cpus(total=32, affinity=4, physical=16)
-        assert budget(machine, default="auto").startswith("3|auto, 4 cores")
-
-    def test_an_allocation_is_used_whole(self, machine):
-        machine.cgroup_v2("400000 100000")
-        assert budget(machine, default="auto") == "4|auto, the allocation of 4 CPUs"
-
-    def test_a_large_allocation_is_capped(self, machine):
-        machine.cpus(total=64, affinity=32, physical=32)
-        assert budget(machine, default="auto", SLURM_CPUS_PER_TASK="32").startswith("8|auto, the allocation")
-
-    def test_omp_num_threads_still_wins_over_auto(self, machine):
-        assert budget(machine, default="auto", OMP_NUM_THREADS="2") == "2|OMP_NUM_THREADS"
-
-    def test_auto_can_be_asked_for_explicitly(self, machine):
-        machine.cpus(total=8, affinity=8, physical=4)
-        assert budget(machine, flag="auto", OMP_NUM_THREADS="2") == "3|--threads auto, 4 cores with one kept free"
-
-
-class TestSharing:
-    def test_the_machine_is_divided_between_the_processes(self, machine):
-        machine.cpus(total=32, affinity=32, physical=16)
-        assert machine.run("share_threads 4").strip() == "3"  # 15 cores, the cap does not apply
-
-    def test_every_process_gets_at_least_one(self, machine):
-        machine.cpus(total=8, affinity=8, physical=4)
-        assert machine.run("share_threads 20").strip() == "1"
-
-    def test_a_limit_from_a_parent_is_never_raised(self, machine):
-        machine.cpus(total=32, affinity=32, physical=16)
-        assert machine.run("share_threads 2", OMP_THREAD_LIMIT="3").strip() == "3"
-
-    @pytest.mark.parametrize("args", [["--threads", "2"], ["--threads_seg", "4"], ["--threads_surf", "auto"]])
-    def test_a_threads_flag_leaves_nothing_to_auto(self, machine, args):
-        assert "no" in machine.run(f"threads_left_to_auto --py python3 {' '.join(args)} || echo no")
-
-    def test_omp_num_threads_leaves_nothing_to_auto(self, machine):
-        assert "no" in machine.run("threads_left_to_auto --py python3 || echo no", OMP_NUM_THREADS="2")
+        assert machine.run("cgroup_cpu_quota").strip() == "3"
 
 
 @pytest.fixture
@@ -339,23 +213,23 @@ def shared(machine, processes: int, cap: int = 8) -> int:
 
 class TestBrunSharesTheMachine:
     def test_parallel_cases_share(self, machine, brun):
-        machine.cpus(total=32, affinity=32, physical=16)
+        machine.cpus(total=32, physical=16)
         received, _ = brun("--parallel", "3", "--device", "cpu")
         expected = f"--threads_seg {shared(machine, 3)} --threads_surf {shared(machine, 3)}"
         assert all(expected in args for args in received.values())
 
     def test_more_parallel_slots_than_cases_count_the_cases(self, machine, brun):
-        machine.cpus(total=32, affinity=32, physical=16)
+        machine.cpus(total=32, physical=16)
         received, _ = brun("--parallel", "max", "--device", "cpu")
         assert all(f"--threads_seg {shared(machine, 3)}" in args for args in received.values())
 
     def test_two_pipelines_count_both(self, machine, brun):
-        machine.cpus(total=32, affinity=32, physical=16)
+        machine.cpus(total=32, physical=16)
         received, _ = brun("--parallel_seg", "2", "--parallel_surf", "2", "--device", "cpu")
         assert all(f"--threads_seg {shared(machine, 4)}" in args for args in received.values())
 
     def test_a_gpu_segmentation_gets_the_gpu_cap(self, machine, brun):
-        machine.cpus(total=64, affinity=64, physical=32)
+        machine.cpus(total=64, physical=32)
         received, _ = brun("--parallel", "2", "--device", "mps")
         expected = f"--threads_seg {shared(machine, 2, cap=4)} --threads_surf {shared(machine, 2)}"
         assert all(expected in args for args in received.values())
@@ -383,16 +257,6 @@ class TestBrunSharesTheMachine:
         received, _ = brun("--py", "python3", "--threads", "2", "--3T")
         for args in received.values():
             assert "--py python3" in args and "--threads 2" in args and "--3T" in args
-
-
-class TestSourcedTwice:
-    def test_the_users_environment_is_captured_once(self, machine):
-        """A second source must not take this process's own exports for the user's."""
-        body = (
-            'set_thread_env 6 ; source "$THREADS_SH" ; '
-            'resolve_threads "" 2 ; echo "$threads_budget|$threads_source"'
-        )
-        assert machine.run(body, THREADS_SH=str(THREADS)).strip() == "2|default"
 
 
 if __name__ == "__main__":
