@@ -466,13 +466,13 @@ fi
 ################################### Run Person-Template Surf #################################
 
 # With --parallel*, the template surfaces run while the time points are segmented, one process more
-# than brun_fastsurfer.sh counts. So both get a share of what auto gives the machine, through
-# OMP_THREAD_LIMIT, unless --threads or OMP_NUM_THREADS chose the threads.
-thread_limit=""
+# than brun_fastsurfer.sh counts. So both get a share of what auto gives the machine, passed as
+# --threads, unless --threads or OMP_NUM_THREADS chose the threads.
+template_surf_threads=() ; long_seg_threads=()
 if [[ "$parallel" == "true" ]] && should_run_stage "template_surf" && should_run_stage "long_seg" &&
    should_run_stage "long_surf" && threads_left_to_auto "${POSITIONAL_FASTSURFER[@]}"
 then
-  long_seg_at_once=1
+  long_seg_at_once=1 ; long_device="auto"
   for ((j=0; j < ${#brun_flags[@]}; j++)) ; do
     case "${brun_flags[j]}" in
       --parallel|--parallel_seg)
@@ -482,10 +482,20 @@ then
         ;;
     esac
   done
+  for ((j=0; j < ${#POSITIONAL_FASTSURFER[@]}; j++)) ; do
+    if [[ "${POSITIONAL_FASTSURFER[j]}" == "--device" ]] ; then long_device="${POSITIONAL_FASTSURFER[j+1]}" ; fi
+  done
   if [[ "$long_seg_at_once" -gt "${#tpids[@]}" ]] ; then long_seg_at_once="${#tpids[@]}" ; fi
-  thread_limit="$(share_threads $((long_seg_at_once + 1)))"
+  share="$(share_threads $((long_seg_at_once + 1)))"
+  # the caps auto would apply in each process, which an explicit --threads skips
+  share_seg="$(seg_cap_for_device "$long_device")"
+  if [[ "$share" -lt "$share_seg" ]] ; then share_seg="$share" ; fi
+  share_surf="$thread_auto_cap_cpu"
+  if [[ "$share" -lt "$share_surf" ]] ; then share_surf="$share" ; fi
+  template_surf_threads=(--threads_surf "$share_surf") ; long_seg_threads=(--threads_seg "$share_seg")
   log "INFO: The template surfaces and up to $long_seg_at_once time point segmentations run at the same"
-  log "  time, so each uses at most $thread_limit threads (OMP_THREAD_LIMIT)."
+  log "  time and share the machine: $share_surf threads for the template surfaces and $share_seg for each"
+  log "  segmentation. Pass --threads to choose them."
 fi
 
 if should_run_stage "template_surf"; then
@@ -493,7 +503,7 @@ if should_run_stage "template_surf"; then
   cmda=("$FASTSURFER_HOME/run_fastsurfer.sh"
           --sid "$tid" --sd "$sd"
           --surf_only --base --py "$python"
-          "${POSITIONAL_FASTSURFER[@]}")
+          "${POSITIONAL_FASTSURFER[@]}" "${template_surf_threads[@]}")
   # Only background template_surf when long_surf will also run (so it can wait for completion)
   if [[ "$parallel" == "true" ]] && should_run_stage "long_surf"; then
     base_surf_cmdf="$SUBJECTS_DIR/$tid/scripts/base_surf.cmdf"
@@ -507,7 +517,7 @@ if should_run_stage "template_surf"; then
     log "Starting person-template surface reconstruction, logs temporarily diverted to $base_surf_cmdf_log..."
     log "Output from this process will be delayed to when it has finished."
     log "======================================="
-    env ${thread_limit:+"OMP_THREAD_LIMIT=$thread_limit"} bash "$base_surf_cmdf" >> "$base_surf_cmdf_log" 2>&1 &
+    bash "$base_surf_cmdf" >> "$base_surf_cmdf_log" 2>&1 &
     base_surf_pid=$!
     # shellcheck disable=SC2064
     trap "if [[ -n \"\$(ps --no-headers $base_surf_pid)\" ]] ; then kill $base_surf_pid ; fi" EXIT
@@ -542,7 +552,7 @@ if should_run_stage "long_seg"; then
     long_seg_subjects=(--subjects "${time_points[@]}")
   fi
   cmda=("$FASTSURFER_HOME/brun_fastsurfer.sh" "${long_seg_subjects[@]}" --sd "$sd" --seg_only --long "$tid"
-        "${brun_flags[@]}" "${POSITIONAL_FASTSURFER[@]}")
+        "${brun_flags[@]}" "${POSITIONAL_FASTSURFER[@]}" "${long_seg_threads[@]}")
 
   # Only background long_seg when long_surf will also run (so it can wait for completion)
   if [[ "$parallel" == "true" ]] && should_run_stage "long_surf"; then
@@ -558,7 +568,7 @@ if should_run_stage "long_seg"; then
     log "Output from this process will be delayed to when it has finished."
     log "======================================="
     #TQDM_DISABLE=1
-    env ${thread_limit:+"OMP_THREAD_LIMIT=$thread_limit"} bash "$long_seg_cmdf" >> "$long_seg_cmdf_log" 2>&1 &
+    bash "$long_seg_cmdf" >> "$long_seg_cmdf_log" 2>&1 &
     long_seg_pid=$!
     # shellcheck disable=SC2064
     trap "if [[ -n \"\$(ps --no-headers $long_seg_pid)\" ]] ; then kill $long_seg_pid ; fi" EXIT

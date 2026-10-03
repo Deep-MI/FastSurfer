@@ -58,7 +58,10 @@ given by `--threads`).
 
 Without `--threads` (and without an exported `OMP_NUM_THREADS`), each case would choose its threads itself and take
 what `auto` gives the whole machine. So when more than one case runs at a time, `brun_fastsurfer.sh` divides that
-between them instead, by passing each case an `OMP_THREAD_LIMIT`, which the log of every case reports.
+between them instead and passes each case its share as `--threads_seg` and `--threads_surf`, within the same limits
+`auto` keeps to (at most 4 threads for a segmentation with `--device cuda` or `mps`, 8 otherwise). This also reaches
+cases started in a container through `--run_fastsurfer`. A subject line that sets its own `--threads` keeps it, on
+top of the shares of the others, and `brun_fastsurfer.sh` names such lines in a warning.
 
 ### Dual parallel pipeline
 This is ideal for GPU-based processing for segmentation. It will process segmentations and surfaces in separate
