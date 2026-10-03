@@ -33,6 +33,7 @@ import os
 import platform
 import re
 import subprocess
+import warnings
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -230,9 +231,13 @@ def torch_info(with_threads: bool = True, with_fingerprint: bool = False) -> lis
     if with_threads:
         line += f", {torch.get_num_threads()} intra-op and {torch.get_num_interop_threads()} inter-op threads"
     lines = [line]
-    if torch.cuda.is_available():
-        devices = ", ".join(torch.cuda.get_device_name(i) for i in range(torch.cuda.device_count()))
-        lines.append(f"CUDA {torch.version.cuda}, devices: {devices}")
+    # querying a device initialises cuda, and torch then warns about a GPU it cannot use, at length
+    # and with pip advice; gpu_support.py explains that case once, so this stays quiet
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        if torch.cuda.is_available():
+            devices = ", ".join(torch.cuda.get_device_name(i) for i in range(torch.cuda.device_count()))
+            lines.append(f"CUDA {torch.version.cuda}, devices: {devices}")
     if with_fingerprint:
         lines.append(f"Numerical fingerprint: {numerical_fingerprint()}")
     return lines
