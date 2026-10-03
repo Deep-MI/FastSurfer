@@ -22,7 +22,7 @@ from typing import TypeVar
 import numpy as np
 import torch
 
-from FastSurferCNN.gpu_support import cuda_problem
+from FastSurferCNN.gpu_support import FALLBACK, cuda_problem
 from FastSurferCNN.utils import logging, parser_defaults
 from FastSurferCNN.utils.parallel import thread_executor
 from FastSurferCNN.utils.parser_defaults import SubjectDirectoryConfig
@@ -137,7 +137,7 @@ def find_device(
         severity, lines = problem
         if wants_cuda:
             raise ValueError(" ".join(lines + [f"Or run on the cpu with --{flag_name} cpu."]))
-        for line in lines:
+        for line in [FALLBACK[severity]] + lines:
             (logger.warning if severity == "warning" else logger.info)(line)
         # a GPU the build cannot run on still reports cuda as available
         has_cuda = False

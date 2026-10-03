@@ -40,7 +40,7 @@ import warnings
 from pathlib import Path
 from typing import Literal
 
-__all__ = ["cuda_problem", "supports_capability"]
+__all__ = ["FALLBACK", "cuda_problem", "supports_capability"]
 
 # The CUDA builds of FastSurfer, as (CUDA version, image tag prefix). Newer CUDA versions drop
 # old GPU architectures and older ones lack the newest, so these are the two to point users to.
@@ -53,6 +53,12 @@ MIN_DRIVER = {11: 450, 12: 525, 13: 580}
 NVIDIA_VERSION_FILE = Path("/proc/driver/nvidia/version")
 
 Severity = Literal["warning", "note"]
+
+# what "auto" does about a problem, said before the cause, because it is what the user has to notice
+FALLBACK: dict[Severity, str] = {
+    "warning": "FastSurfer cannot use the GPU and runs on the cpu instead, which takes much longer.",
+    "note": "FastSurfer runs on the cpu.",
+}
 
 
 def supports_capability(capability: tuple[int, int], arch_list: list[str]) -> bool:
@@ -193,21 +199,21 @@ def cuda_problem(device_index: int | None = None) -> tuple[Severity, list[str]] 
         return "warning", lines
 
     build = tuple(int(v) for v in torch.version.cuda.split(".")[:2])
-    # the driver check only warns, and only on the first call in a process
+    # torch warns while it initialises cuda, about the driver or a GPU it has no kernels for, at
+    # length and with pip advice that does not fit an image. The explanation built here replaces
+    # all of it, quoting the driver warning, which comes only on the first call in a process.
     with warnings.catch_warnings(record=True) as caught:
         warnings.simplefilter("always")
-        available = torch.cuda.is_available()
-
-    if available:
-        count = torch.cuda.device_count()
-        index = torch.cuda.current_device() if device_index is None else device_index
-        if index >= count:
-            return "warning", [f"There is no cuda device {index}, found {count} GPU(s)."]
-        capability = torch.cuda.get_device_capability(index)
-        arch_list = torch.cuda.get_arch_list()
-        if supports_capability(capability, arch_list):
-            return None
-        return "warning", _arch_problem(torch.cuda.get_device_name(index), capability, arch_list, build)
+        if torch.cuda.is_available():
+            count = torch.cuda.device_count()
+            index = torch.cuda.current_device() if device_index is None else device_index
+            if index >= count:
+                return "warning", [f"There is no cuda device {index}, found {count} GPU(s)."]
+            capability = torch.cuda.get_device_capability(index)
+            arch_list = torch.cuda.get_arch_list()
+            if supports_capability(capability, arch_list):
+                return None
+            return "warning", _arch_problem(torch.cuda.get_device_name(index), capability, arch_list, build)
 
     driver, needed = driver_major(), MIN_DRIVER.get(build[0])
     if driver is not None and needed is not None and driver < needed:
@@ -263,16 +269,15 @@ def main() -> int:
             print(f"  {line}")
         return 5
     if severity == "note":
-        print(f"INFO: {lines[0]}")
-        for line in lines[1:]:
+        print(f"INFO: {FALLBACK[severity]}")
+        for line in lines:
             print(f"  {line}")
         return 4
     rule = "=" * 80
     print(rule)
-    print(f"WARNING: {lines[0]}")
-    for line in lines[1:]:
+    print(f"WARNING: {FALLBACK[severity]}")
+    for line in lines:
         print(f"  {line}")
-    print("  FastSurfer continues on the cpu, which takes much longer than on a supported GPU.")
     print(rule)
     return 3
 
