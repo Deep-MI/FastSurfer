@@ -47,9 +47,25 @@ def machine(tmp_path):
     bin_dir.mkdir()
 
     class Machine:
-        cgroup_v2 = tmp_path / "cpu.max"
-        cgroup_v1_quota = tmp_path / "cpu.cfs_quota_us"
-        cgroup_v1_period = tmp_path / "cpu.cfs_period_us"
+        cgroup_self = tmp_path / "proc_self_cgroup"
+        cgroup_v2_root = tmp_path / "cgroup2"
+        cgroup_v1_root = tmp_path / "cgroup1_cpu"
+
+        def cgroup_v2(self, cpu_max: str, at: str = "/", own: str = "/"):
+            """A cgroup v2 tree with this process in <own>, and <cpu_max> on the cgroup <at>."""
+            directory = self.cgroup_v2_root / at.strip("/")
+            directory.mkdir(parents=True, exist_ok=True)
+            (self.cgroup_v2_root / "cgroup.controllers").write_text("cpu memory\n")
+            (directory / "cpu.max").write_text(f"{cpu_max}\n")
+            self.cgroup_self.write_text(f"0::{own}\n")
+
+        def cgroup_v1(self, quota: str, period: str, at: str = "/", own: str = "/"):
+            """A cgroup v1 cpu hierarchy with this process in <own>, and the quota on the cgroup <at>."""
+            directory = self.cgroup_v1_root / at.strip("/")
+            directory.mkdir(parents=True, exist_ok=True)
+            (directory / "cpu.cfs_quota_us").write_text(f"{quota}\n")
+            (directory / "cpu.cfs_period_us").write_text(f"{period}\n")
+            self.cgroup_self.write_text(f"12:memory:/elsewhere\n4:cpu,cpuacct:{own}\n")
 
         def cpus(self, total: int, affinity: int, physical: int | None = None):
             cores = "\n".join(f"{i},0" for i in range(physical or total))
@@ -70,9 +86,9 @@ def machine(tmp_path):
 
         def run(self, body: str, real_cgroup: bool = False, **env: str) -> str:
             cgroup = "" if real_cgroup else (
-                f'cgroup_v2_cpu_max="{self.cgroup_v2}"\n'
-                f'cgroup_v1_cpu_quota="{self.cgroup_v1_quota}"\n'
-                f'cgroup_v1_cpu_period="{self.cgroup_v1_period}"\n'
+                f'cgroup_self="{self.cgroup_self}"\n'
+                f'cgroup_v2_root="{self.cgroup_v2_root}"\n'
+                f'cgroup_v1_cpu_root="{self.cgroup_v1_root}"\n'
             )
             script = f'source "{THREADS}"\n{cgroup}{body}\n'
             result = subprocess.run(
@@ -164,33 +180,54 @@ class TestAvailableCpus:
 
     def test_omp_num_threads_does_not_shrink_the_count(self, machine):
         """GNU nproc reads OMP_NUM_THREADS itself, which must not leak into max."""
-        fake = Path(machine.cgroup_v2).parent / "bin" / "nproc"
+        fake = machine.cgroup_self.parent / "bin" / "nproc"
         fake.write_text('#!/bin/bash\necho "${OMP_NUM_THREADS:-16}"\n')
         assert budget(machine, flag="max", OMP_NUM_THREADS="2") == "16|--threads max"
 
     def test_a_cgroup_v2_quota_lowers_the_count(self, machine):
-        machine.cgroup_v2.write_text("400000 100000\n")
+        machine.cgroup_v2("400000 100000")
         assert available(machine) == "4|the cgroup CPU quota|true"
 
     def test_a_fractional_quota_rounds_down_but_not_below_one(self, machine):
-        machine.cgroup_v2.write_text("150000 100000\n")
+        machine.cgroup_v2("150000 100000")
         assert available(machine).startswith("1|")
-        machine.cgroup_v2.write_text("50000 100000\n")
+        machine.cgroup_v2("50000 100000")
         assert available(machine).startswith("1|")
 
     def test_an_unlimited_cgroup_v2_is_no_allocation(self, machine):
-        machine.cgroup_v2.write_text("max 100000\n")
+        machine.cgroup_v2("max 100000")
         assert available(machine) == "16||false"
 
     def test_a_cgroup_v1_quota_lowers_the_count(self, machine):
-        machine.cgroup_v1_quota.write_text("200000\n")
-        machine.cgroup_v1_period.write_text("100000\n")
+        machine.cgroup_v1("200000", "100000")
         assert available(machine) == "2|the cgroup CPU quota|true"
 
     def test_an_unlimited_cgroup_v1_is_no_allocation(self, machine):
-        machine.cgroup_v1_quota.write_text("-1\n")
-        machine.cgroup_v1_period.write_text("100000\n")
+        machine.cgroup_v1("-1", "100000")
         assert available(machine) == "16||false"
+
+    def test_a_quota_on_the_own_cgroup_below_the_root(self, machine):
+        """Without a cgroup namespace, as under systemd, the quota is not on the root."""
+        machine.cgroup_v2("300000 100000", at="/system.slice/fs.service", own="/system.slice/fs.service")
+        assert available(machine) == "3|the cgroup CPU quota|true"
+
+    def test_a_quota_on_a_parent_cgroup(self, machine):
+        machine.cgroup_v2("300000 100000", at="/system.slice", own="/system.slice/fs.service")
+        assert available(machine) == "3|the cgroup CPU quota|true"
+
+    def test_the_smallest_quota_on_the_way_up_wins(self, machine):
+        machine.cgroup_v2("800000 100000", at="/system.slice", own="/system.slice/fs.service")
+        machine.cgroup_v2("300000 100000", at="/system.slice/fs.service", own="/system.slice/fs.service")
+        assert available(machine) == "3|the cgroup CPU quota|true"
+
+    def test_a_quota_on_another_cgroup_does_not_count(self, machine):
+        machine.cgroup_v2("300000 100000", at="/other.slice", own="/system.slice/fs.service")
+        assert available(machine) == "16||false"
+
+    def test_a_v1_container_sees_its_own_cgroup_as_the_root(self, machine):
+        """Inside the container the cgroup path names the host's tree, which is not mounted there."""
+        machine.cgroup_v1("200000", "100000", own="/docker/0123abcd")
+        assert available(machine) == "2|the cgroup CPU quota|true"
 
     @pytest.mark.parametrize("var", SCHEDULER_VARS)
     def test_a_scheduler_allocation_lowers_the_count(self, machine, var):
@@ -202,7 +239,7 @@ class TestAvailableCpus:
         assert available(machine, SLURM_CPUS_PER_TASK="6") == "6|the CPU affinity|true"
 
     def test_max_reports_what_limited_it(self, machine):
-        machine.cgroup_v2.write_text("400000 100000\n")
+        machine.cgroup_v2("400000 100000")
         assert budget(machine, flag="max") == "4|--threads max, limited by the cgroup CPU quota"
 
 
@@ -229,7 +266,7 @@ class TestAuto:
         assert budget(machine, default="auto").startswith("3|auto, 4 cores")
 
     def test_an_allocation_is_used_whole(self, machine):
-        machine.cgroup_v2.write_text("400000 100000\n")
+        machine.cgroup_v2("400000 100000")
         assert budget(machine, default="auto") == "4|auto, the allocation of 4 CPUs"
 
     def test_a_large_allocation_is_capped(self, machine):
@@ -271,6 +308,7 @@ def brun(machine, tmp_path):
     stub = tmp_path / "stub.sh"
     stub.write_text(
         "#!/bin/bash\n"
+        'echo "$*" >> "$STUB_LOG.args"\n'
         'sid="" ; while [[ "$#" -gt 0 ]] ; do if [[ "$1" == "--sid" ]] ; then sid="$2" ; fi ; shift ; done\n'
         'echo "$sid ${OMP_THREAD_LIMIT-unset}" >> "$STUB_LOG"\n'
     )
@@ -290,6 +328,7 @@ def brun(machine, tmp_path):
         )
         return {line.split()[1] for line in log.read_text().splitlines()}
 
+    run.args = lambda: Path(f"{log}.args").read_text().splitlines()
     return run
 
 
@@ -317,6 +356,22 @@ class TestBrunSharesTheMachine:
 
     def test_omp_num_threads_is_left_alone(self, brun):
         assert brun("--parallel", "3", OMP_NUM_THREADS="2") == {"unset"}
+
+    def test_passed_on_options_do_not_overwrite_each_other(self, brun):
+        """brun collects --py apart from the other options, and each case must receive all of them."""
+        brun("--py", "python3", "--threads", "2", "--3T")
+        for args in brun.args():
+            assert "--py python3" in args and "--threads 2" in args and "--3T" in args
+
+
+class TestSourcedTwice:
+    def test_the_users_environment_is_captured_once(self, machine):
+        """A second source must not take this process's own exports for the user's."""
+        body = (
+            'set_thread_env 6 ; source "$THREADS_SH" ; '
+            'resolve_threads "" 2 ; echo "$threads_budget|$threads_source"'
+        )
+        assert machine.run(body, THREADS_SH=str(THREADS)).strip() == "2|default"
 
 
 if __name__ == "__main__":

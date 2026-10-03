@@ -25,14 +25,20 @@
 thread_env_vars=(OMP_NUM_THREADS OPENBLAS_NUM_THREADS MKL_NUM_THREADS VECLIB_MAXIMUM_THREADS
                  ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS)
 
-# the user's values, before this process exports its own; restore_thread_env puts them back
-thread_env_user_set=""
-for thread_var in "${thread_env_vars[@]}" OMP_THREAD_LIMIT ; do
-  if printenv "$thread_var" > /dev/null ; then
-    printf -v "thread_env_user_$thread_var" '%s' "$(printenv "$thread_var")"
-    thread_env_user_set+=" $thread_var"
-  fi
-done
+# the user's values, before this process exports its own; restore_thread_env puts them back.
+# Once per process: sourced again later, this file would otherwise take its own exports for the
+# user's. Not exported, so each child process captures the environment it was started with.
+if [[ -z "${thread_env_captured:-}" ]]
+then
+  thread_env_captured="true"
+  thread_env_user_set=""
+  for thread_var in "${thread_env_vars[@]}" OMP_THREAD_LIMIT ; do
+    if printenv "$thread_var" > /dev/null ; then
+      printf -v "thread_env_user_$thread_var" '%s' "$(printenv "$thread_var")"
+      thread_env_user_set+=" $thread_var"
+    fi
+  done
+fi
 
 function positive_int()
 {
@@ -42,26 +48,56 @@ function positive_int()
   if [[ "$first" =~ ^[1-9][0-9]*$ ]] ; then echo "$first" ; fi
 }
 
-# a cgroup CPU quota, as docker --cpus sets it; variables so that tests can point them elsewhere
-cgroup_v2_cpu_max="/sys/fs/cgroup/cpu.max"
-cgroup_v1_cpu_quota="/sys/fs/cgroup/cpu/cpu.cfs_quota_us"
-cgroup_v1_cpu_period="/sys/fs/cgroup/cpu/cpu.cfs_period_us"
+# a cgroup CPU quota, as docker --cpus or a systemd CPUQuota sets it; variables so that tests can
+# point them elsewhere
+cgroup_self="/proc/self/cgroup"
+cgroup_v2_root="/sys/fs/cgroup"
+cgroup_v1_cpu_root="/sys/fs/cgroup/cpu"
 # the CPUs a scheduler allocated to the job, for schedulers that do not also restrict the affinity
 scheduler_cpu_vars=(SLURM_CPUS_PER_TASK NSLOTS NCPUS LSB_DJOB_NUMPROC)
 
-function cgroup_cpu_quota()
+function cgroup_quota_in()
 {
-  # Prints the cgroup CPU quota in whole CPUs, at least 1, or nothing if there is none.
+  # USAGE: cgroup_quota_in <cgroup directory> <v1|v2>
+  # Prints the CPU quota of that cgroup in whole CPUs, at least 1, or nothing if it has none.
   local quota="" period="" rest
-  if [[ -r "$cgroup_v2_cpu_max" ]] ; then
-    read -r quota period rest < "$cgroup_v2_cpu_max"
-  elif [[ -r "$cgroup_v1_cpu_quota" ]] && [[ -r "$cgroup_v1_cpu_period" ]] ; then
-    read -r quota < "$cgroup_v1_cpu_quota" ; read -r period < "$cgroup_v1_cpu_period"
+  if [[ "$2" == "v2" ]] && [[ -r "$1/cpu.max" ]] ; then
+    read -r quota period rest < "$1/cpu.max"
+  elif [[ "$2" == "v1" ]] && [[ -r "$1/cpu.cfs_quota_us" ]] && [[ -r "$1/cpu.cfs_period_us" ]] ; then
+    read -r quota < "$1/cpu.cfs_quota_us" ; read -r period < "$1/cpu.cfs_period_us"
   fi
   # "max" in v2 and -1 in v1 mean no quota
   if [[ -n "$(positive_int "$quota")" ]] && [[ -n "$(positive_int "$period")" ]] ; then
     if [[ "$quota" -lt "$period" ]] ; then echo 1 ; else echo "$((quota / period))" ; fi
   fi
+}
+
+function cgroup_cpu_quota()
+{
+  # Prints the smallest CPU quota from this process's cgroup up to the root, in whole CPUs, or
+  # nothing if none of them has one. The own cgroup, not just the root: without a cgroup
+  # namespace, as under systemd, Slurm or podman --cgroupns=host, the quota sits further down.
+  local version="" root="" path="" line rest controllers quota smallest=""
+  if [[ ! -r "$cgroup_self" ]] ; then return ; fi
+  if [[ -r "$cgroup_v2_root/cgroup.controllers" ]] ; then version="v2" ; root="$cgroup_v2_root"
+  else version="v1" ; root="$cgroup_v1_cpu_root"
+  fi
+  # lines are <id>:<controllers>:<path>, v2 has a single "0::<path>", v1 one line per hierarchy
+  while IFS= read -r line ; do
+    rest="${line#*:}" ; controllers="${rest%%:*}"
+    if { [[ "$version" == "v2" ]] && [[ "${line%%:*}" == "0" ]] && [[ -z "$controllers" ]] ; } ||
+       { [[ "$version" == "v1" ]] && [[ ",$controllers," == *",cpu,"* ]] ; }
+    then path="${rest#*:}" ; break
+    fi
+  done < "$cgroup_self"
+  if [[ -z "$path" ]] ; then return ; fi
+  while true ; do
+    quota="$(cgroup_quota_in "$root${path%/}" "$version")"
+    if [[ -n "$quota" ]] && { [[ -z "$smallest" ]] || [[ "$quota" -lt "$smallest" ]] ; } ; then smallest="$quota" ; fi
+    if [[ "$path" == "/" ]] || [[ -z "$path" ]] ; then break ; fi
+    path="${path%/*}" ; if [[ -z "$path" ]] ; then path="/" ; fi
+  done
+  if [[ -n "$smallest" ]] ; then echo "$smallest" ; fi
 }
 
 function available_cpus()
@@ -119,9 +155,9 @@ function physical_cpus()
 
 function auto_threads()
 {
-  # USAGE: auto_threads <cap>
+  # USAGE: auto_threads [<cap>]
   # Sets threads_budget and threads_source: the whole allocation inside a cgroup quota or a
-  # scheduler job, else the physical cores less one kept free for the user, at most <cap> either way.
+  # scheduler job, else the physical cores less one kept free for the user, at most <cap> if given.
   local physical
   available_cpus
   if [[ "$cpus_allocated" == "true" ]] ; then
@@ -132,7 +168,9 @@ function auto_threads()
     if [[ "$physical" -gt 1 ]] ; then threads_budget=$((physical - 1)) ; else threads_budget=1 ; fi
     threads_source="auto, $physical cores with one kept free"
   fi
-  if [[ "$threads_budget" -gt "$1" ]] ; then threads_budget="$1" ; threads_source+=", capped at $1" ; fi
+  if [[ -n "$1" ]] && [[ "$threads_budget" -gt "$1" ]] ; then
+    threads_budget="$1" ; threads_source+=", capped at $1"
+  fi
 }
 
 function threads_left_to_auto()
@@ -154,7 +192,7 @@ function share_threads()
   # gives the whole machine, uncapped, divided between them, at least 1, and no more than an
   # OMP_THREAD_LIMIT already in force, so that a limit from a parent script is never raised.
   local each limit
-  auto_threads 1000000
+  auto_threads
   each=$((threads_budget / $1))
   if [[ "$each" -lt 1 ]] ; then each=1 ; fi
   limit="$(positive_int "$thread_env_user_OMP_THREAD_LIMIT")"
