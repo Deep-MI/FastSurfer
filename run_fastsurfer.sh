@@ -324,9 +324,10 @@ Resource Options:
                             run. Without these flags, OMP_NUM_THREADS sets the
                             budget if exported, else auto: the allocation of a
                             cgroup quota or a scheduler job, or else the
-                            physical cores less one, at most 4 for a GPU
-                            segmentation and 8 otherwise. "max" uses all
-                            available CPUs.
+                            physical cores less one (on Apple silicon all
+                            performance cores), at most 4 for a GPU
+                            segmentation and 8 otherwise, and at least 2 for
+                            surfaces. "max" uses all available CPUs.
   --parallel              Run the hemispheres at the same time with one thread
                             each, even at --threads 1. That keeps every binary
                             single threaded, and so reproducible, while still

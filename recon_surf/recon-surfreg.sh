@@ -55,8 +55,9 @@ FLAGS:
                             Without the flag, OMP_NUM_THREADS sets the budget
                             if exported, else auto: the allocation of a cgroup
                             quota or a scheduler job, or else the physical
-                            cores less one, at most 8. "max" uses all available
-                            CPUs.
+                            cores less one (on Apple silicon all performance
+                            cores), at least 2 and at most 8. "max" uses all
+                            available CPUs.
   --parallel              Run the hemispheres at the same time with one thread
                             each, even at --threads 1. That keeps every binary
                             single threaded, and so reproducible, while still
@@ -216,7 +217,7 @@ then
   exit 1
 fi
 
-if ! resolve_threads "$threads" auto ; then echo "$threads_note" ; exit 1 ; fi
+if ! resolve_threads "$threads" auto "$thread_auto_cap_cpu" "$thread_auto_min_surf" ; then echo "$threads_note" ; exit 1 ; fi
 threads="$threads_budget"
 
 # --threads is a total budget: above one thread the two hemispheres run at the same time and split

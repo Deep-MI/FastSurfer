@@ -62,15 +62,25 @@ def machine(tmp_path):
 
         def cpus(self, total: int, physical: int):
             cores = "\n".join(f"{i},0" for i in range(physical))
-            for name, body in (
-                ("getconf", f"echo {total}"),
-                ("nproc", f"echo {total}"),
-                # lscpu -p=Core,Socket: one line per logical CPU, so hyperthreads repeat a core
-                ("lscpu", f'echo "# Core,Socket"\nfor i in 1 2 ; do cat <<END\n{cores}\nEND\ndone'),
-            ):
-                fake = bin_dir / name
-                fake.write_text(f"#!/bin/bash\n{body}\n")
-                fake.chmod(0o755)
+            self._fake("getconf", f"echo {total}")
+            self._fake("nproc", f"echo {total}")
+            # lscpu -p=Core,Socket: one line per logical CPU, so hyperthreads repeat a core
+            self._fake("lscpu", f'echo "# Core,Socket"\nfor i in 1 2 ; do cat <<END\n{cores}\nEND\ndone')
+            # no performance levels, as on Linux and Intel Macs
+            self._fake("sysctl", "exit 1")
+
+        def apple(self, performance: int, efficiency: int):
+            """Apple silicon, where sysctl reports the performance and efficiency cores apart."""
+            self.cpus(total=performance + efficiency, physical=performance + efficiency)
+            self._fake("sysctl", (
+                f'case "$2" in hw.perflevel0.physicalcpu) echo {performance} ;; '
+                f'hw.perflevel1.physicalcpu) echo {efficiency} ;; *) exit 1 ;; esac'
+            ))
+
+        def _fake(self, name: str, body: str):
+            fake = bin_dir / name
+            fake.write_text(f"#!/bin/bash\n{body}\n")
+            fake.chmod(0o755)
 
         def environment(self, **env: str) -> dict[str, str]:
             clean = {k: v for k, v in os.environ.items() if k not in THREAD_VARS + SCHEDULER_VARS}
@@ -130,6 +140,29 @@ class TestBudgetOrder:
     def test_an_invalid_flag_fails(self, machine):
         out = machine.run('resolve_threads "x7" 2 ; echo "status=$? $threads_note"')
         assert "status=1" in out and "Invalid number of threads 'x7'" in out
+
+
+def auto(machine, cap: int = 8, minimum: str = "") -> str:
+    """What auto picks, with its source, outside of any allocation."""
+    return machine.run(f'resolve_threads "" auto {cap} {minimum} ; echo "$threads_budget|$threads_source"').strip()
+
+
+class TestAuto:
+    def test_one_core_is_kept_free(self, machine):
+        machine.cpus(total=8, physical=4)
+        assert auto(machine) == "3|auto, 4 cores with one kept free"
+
+    def test_apple_silicon_keeps_the_efficiency_cores_free_instead(self, machine):
+        machine.apple(performance=4, efficiency=4)
+        assert auto(machine) == "4|auto, 4 performance cores, the efficiency cores left free"
+
+    def test_the_minimum_lets_two_cores_run_both_hemispheres(self, machine):
+        machine.cpus(total=2, physical=2)
+        assert auto(machine, minimum="2") == "2|auto, 2 cores with one kept free, raised to 2"
+
+    def test_the_minimum_never_exceeds_the_cpus(self, machine):
+        machine.cpus(total=1, physical=1)
+        assert auto(machine, minimum="2") == "1|auto, a single core"
 
 
 class TestExportedVariables:
