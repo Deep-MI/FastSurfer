@@ -98,11 +98,11 @@ In order to use the notebooks, simply click on the link or optimally the google 
 __[Notebook 1](https://colab.research.google.com/github/Deep-MI/FastSurfer/blob/stable/Tutorial/Tutorial_FastSurferCNN_QuickSeg.ipynb)__ contains a super quick and easy scenario in which you can run FastSurferCNN in just three clicks. You do not need any programming experience to get a segmentation in less than 60 s!
 
 ### Notebook 2 - Complete FastSurfer Tutorial
-__[Notebook 2](https://colab.research.google.com/github/Deep-MI/FastSurfer/blob/stable/Tutorial/Complete_FastSurfer_Tutorial.ipynb)__ is an extended version of the first one with information about how to set up FastSurfer on your local machine. It includes detailed installation instructions as well as examples of how to visualize and quality control your data.
+__[Notebook 2](https://colab.research.google.com/github/Deep-MI/FastSurfer/blob/stable/Tutorial/Complete_FastSurfer_Tutorial.ipynb)__ is an extended version of the first one with information about how to set up FastSurfer on your local machine. It points to the installation guide and includes examples of how to run FastSurfer, and how to visualize and quality control your data.
 
 After a quick introduction, it covers three use cases:
 - Use case 1: Quick and Easy - FastSurfer Segmentation with three clicks (same as the first notebook)
 - Use case 2: Quick and a bit more advanced - Segmentation with FastSurfer on your local machine
-- Use case 3: Use case 3 - Surface models, Thickness maps and more: FastSurfer's recon-surf command
+- Use case 3: Surface models, Thickness maps and more: FastSurfer's recon-surf command
 
-In addition, there is a small section covering [python-qatools](https://github.com/Deep-MI/qatools-python) called "Bonus - Quality analysis using qatools".
+In addition, there is a small section covering [fsqc](https://github.com/Deep-MI/fsqc) called "Bonus - Quality analysis using fsqc".
