@@ -1102,7 +1102,7 @@ then
         sleep 10
       fi
       ;;
-    4) device="cpu" ;;
+    4|6) device="cpu" ;;  # 6: no GPU at all
     5)
       echo "ERROR: The device $device cannot be used." | tee -a "$tmpLF"
       cat "$tmpLF" >> "$seg_log" ; exit 1
@@ -1115,14 +1115,11 @@ fi
 if [[ "$run_seg_pipeline" == "true" ]]
 then
   # auto takes fewer threads when the networks run on a GPU, where only the steps around them use
-  # the CPU. torch decides "auto" itself later, so it is asked here, and only if auto applies.
+  # the CPU. After the check above, a device still "auto" is a GPU, the cpu cases became "cpu".
   seg_auto_cap="$thread_auto_cap_cpu"
-  if [[ "$device" == cuda* ]] || [[ "$device" == "mps" ]] ; then seg_auto_cap="$thread_auto_cap_gpu"
-  elif [[ "$device" == "auto" ]] && { [[ "$threads_seg" == "auto" ]] ||
-       { [[ -z "$threads_seg" ]] && [[ -z "$(positive_int "$thread_env_user_OMP_NUM_THREADS")" ]] ; } ; }
+  if [[ "$device" == cuda* ]] || [[ "$device" == "mps" ]] || [[ "$device" == "auto" ]]
   then
-    gpu_py="import sys, torch ; sys.exit(not (torch.cuda.is_available() or torch.backends.mps.is_available()))"
-    if $python -c "$gpu_py" 2> /dev/null ; then seg_auto_cap="$thread_auto_cap_gpu" ; fi
+    seg_auto_cap="$thread_auto_cap_gpu"
   fi
   # --threads reaches torch, but numpy's BLAS reads its own variable once at import and otherwise
   # starts one thread per core. Exported before the host block, so that it logs the limits in force.

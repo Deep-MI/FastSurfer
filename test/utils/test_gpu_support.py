@@ -113,3 +113,25 @@ class TestDriverMajor:
     def test_missing_file(self, tmp_path, monkeypatch):
         monkeypatch.setattr(gpu_support, "NVIDIA_VERSION_FILE", tmp_path / "absent")
         assert gpu_support.driver_major() is None
+
+
+class TestExitCode:
+    """run_fastsurfer.sh reads the exit code to tell a GPU run from a cpu run before it starts."""
+
+    @pytest.fixture
+    def run(self, monkeypatch):
+        def run(device: str, gpu: bool) -> int:
+            monkeypatch.setattr(gpu_support, "cuda_problem", lambda index=None: None)
+            monkeypatch.setattr(gpu_support, "gpu_available", lambda: gpu)
+            monkeypatch.setattr("sys.argv", ["gpu_support.py", "--device", device])
+            return gpu_support.main()
+        return run
+
+    def test_auto_with_a_gpu(self, run):
+        assert run("auto", gpu=True) == 0
+
+    def test_auto_without_any_gpu(self, run):
+        assert run("auto", gpu=False) == 6
+
+    def test_a_requested_cuda_device_that_works(self, run):
+        assert run("cuda:0", gpu=True) == 0
