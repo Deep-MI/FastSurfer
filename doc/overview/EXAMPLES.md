@@ -126,7 +126,7 @@ $FASTSURFER_HOME/run_fastsurfer.sh --t1 $data_dir/subjectX/t1_weighted.nii.gz \
                     --threads 4 --3T
 ```
 
-The output will be stored in the `$output_dir` (including the `aparc.DKTatlas+aseg.deep.mgz` segmentation under `$output_dir/subjectX/mri` (default location)). For surfaces `--threads` is a total budget that the two hemispheres split and use at the same time, so `--threads 4` gives two threads per hemisphere. That is also what happens without the flag, because the surface default is 2 threads, one per hemisphere. Pass `--threads 1` to run everything in a single thread, one hemisphere after the other, e.g. if you want to save resources on a compute cluster.
+The output will be stored in the `$output_dir` (including the `aparc.DKTatlas+aseg.deep.mgz` segmentation under `$output_dir/subjectX/mri` (default location)). For surfaces `--threads` is a total budget that the two hemispheres split and use at the same time, so `--threads 4` gives two threads per hemisphere. Without the flag, FastSurfer chooses the number itself (see `--threads` in [run_fastsurfer.sh](../scripts/RUN_FASTSURFER.md)). Pass `--threads 1` to run everything in a single thread, one hemisphere after the other, e.g. if you want to save resources on a compute cluster.
 
 
 Example 4: FastSurfer on multiple subjects

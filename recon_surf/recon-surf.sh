@@ -27,7 +27,7 @@ fsaparc="false"       # if true: run FreeSurfer aparc (and cortical ribbon); if 
 fssurfreg="true"      # run FS surface registration to fsaverage, if false omit this step
 python="python3 -s"   # python version
 ParallelFlag="false"  # "true", if --parallel passed
-threads="2"           # total thread budget; 2 runs the two hemispheres in parallel, 1 thread each
+threads=""            # total thread budget; empty takes OMP_NUM_THREADS, else auto
 edits="false"         # flag for inclusion/exclusion of edits
                       #   (also ability to run on top of existing recon-surf.sh output)
 atlas3T="false"       # flag to use/do not use the 3t atlas for talairach registration/etiv
@@ -114,11 +114,15 @@ FLAGS:
   --3T                    Use the 3T atlas for talairach registration (gives
                             better eTIV estimates for 3T MR images, default:
                             1.5T atlas).
-  --threads <int>         Total thread budget, default 2. With 2 or more the two
-                            hemispheres run at the same time and split it, so 2
-                            gives one thread each and 8 gives four each. Use 1
-                            to keep every binary single threaded, which is what
-                            to use for reproducible results.
+  --threads <int>         Total thread budget, "auto" or "max". With 2 or more
+                            the two hemispheres run at the same time and split
+                            it, so 2 gives one thread each and 8 gives four
+                            each. Use 1 to keep every binary single threaded.
+                            Without the flag, OMP_NUM_THREADS sets the budget
+                            if exported, else auto: the allocation of a cgroup
+                            quota or a scheduler job, or else the physical
+                            cores less one, at most 8. "max" uses all available
+                            CPUs.
   --parallel              Run the hemispheres at the same time with one thread
                             each, even at --threads 1. That keeps every binary
                             single threaded, and so reproducible, while still
@@ -334,6 +338,9 @@ then
   exit 1
 fi
 
+if ! resolve_threads "$threads" auto ; then echo "$threads_note" ; exit 1 ; fi
+threads="$threads_budget"
+
 # --threads is a total budget: above one thread the two hemispheres run at the same time and split
 # it, so --threads 2 means two hemispheres with one thread each. --parallel only forces that split,
 # for --threads 1, where the budget would otherwise say to run them one after the other; it does not
@@ -348,11 +355,8 @@ else
   threads_hemi="$threads"
 fi
 
-# set threads for openMP and itk
-# if OMP_NUM_THREADS is not set and available resources are too vast, mc will fail with segmentation fault!
-# Therefore we set it to 1 as default above, if nothing is specified.
-export OMP_NUM_THREADS=$threads
-export ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS=$threads
+# without OMP_NUM_THREADS, mc segfaults on machines with many cores
+set_thread_env "$threads"
 
 # define the fsthreads variable for the joint section
 if [[ "$threads" -gt 1 ]] ; then fsthreads="-threads $threads -itkthreads $threads" ; else fsthreads="" ; fi
@@ -461,6 +465,7 @@ echo "Log file for recon-surf.sh" >> "$LF"
   else
     echo " RUNNING both hemis SEQUENTIALLY"
   fi
+  describe_threads "The surface pipeline"
   echo " RUNNING $OMP_NUM_THREADS number of OMP THREADS"
   echo " RUNNING $ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS number of ITK THREADS"
   echo " "
@@ -723,11 +728,8 @@ if [[ "$mtl_paths_ours" == "true" ]] ; then unset FASTSURFER_WM_MTL_PATHS ; fi
 # ================================================== SURFACES ==============================================================
 # =======
 
-# set threads for openMP and itk
-# if OMP_NUM_THREADS is not set and available resources are too vast, mc will fail with segmentation fault!
-# Therefore we set it to 1 as default above, if nothing is specified.
-export OMP_NUM_THREADS=$threads_hemi
-export ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS=$threads_hemi
+# each hemisphere gets its share of the budget
+set_thread_env "$threads_hemi"
 
 # define the fsthreads variable for the joint section
 if [[ "$threads_hemi" -gt 1 ]] ; then fsthreads="-threads $threads_hemi -itkthreads $threads_hemi"
@@ -875,16 +877,10 @@ for hemi in lh rh ; do
     # order-dependent candidate.
     # It removes the source we have evidence for. Whether other steps vary with the thread count,
     # at higher counts or on paths a normal run does not take, has not been tested.
-    {
-      echo "export OMP_NUM_THREADS=1"
-      echo "export ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS=1"
-    } >> "$CMDF"
+    thread_env_exports 1 >> "$CMDF"
     cmd="recon-all -subject $subject -hemi $hemi -fix -no-isrunning -umask $(umask) $hiresflag"
     RunIt "$cmd" "$LF" "$CMDF"
-    {
-      echo "export OMP_NUM_THREADS=$threads_hemi"
-      echo "export ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS=$threads_hemi"
-    } >> "$CMDF"
+    thread_env_exports "$threads_hemi" >> "$CMDF"
 
     # fix the surfaces if they are corrupt
     cmd="$python ${binpath}rewrite_oriented_surface.py --file $sdir/$hemi.orig.premesh --backup $sdir/$hemi.orig.premesh.noorient"
@@ -1147,8 +1143,7 @@ for hemi in lh rh ; do
 done  # hemi loop ----------------------------------
 
 # set threads back for more serial processing
-export OMP_NUM_THREADS=$threads
-export ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS=$threads
+set_thread_env "$threads"
 
 # define the fsthreads variable for the joint section (again)
 if [[ "$threads" -gt 1 ]] ; then fsthreads="-threads $threads -itkthreads $threads" ; else fsthreads="" ; fi

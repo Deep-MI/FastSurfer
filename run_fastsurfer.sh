@@ -87,11 +87,9 @@ run_hypvinn_module="true"
 run_cc_module="true"
 run_lit_module="false"
 lit_outputs_exist="false"
-threads_seg="1"
-# 2, so the surface pipeline runs the two hemispheres at the same time with one thread each by
-# default. recon-surf.sh is always called with --threads "$threads_surf", so its own default of 2
-# would never be reached otherwise.
-threads_surf="2"
+# empty unless passed, so OMP_NUM_THREADS and then auto can apply (see resolve_threads)
+threads_seg=""
+threads_surf=""
 # python3 -s excludes user-directory package inclusion
 python="python3 -s"
 allow_root=()
@@ -317,14 +315,18 @@ Resource Options:
                             view agg is run on the cpu. Equivalently, if you
                             pass a different device, view agg will be run on that
                             device (no memory check will be done).
-  --threads <int>         Set openMP and ITK threads to <int> or "max", also
-  --threads_seg <int>       for definition of threads specific to segmentation
-  --threads_surf <int>      and surface reconstruction. For surfaces this is a
-                            total budget: with 2 or more the two hemispheres run
-                            at the same time and split it, so the default of 2
-                            gives one thread each. Use 1 for a single-threaded
-                            run, the setting to use if you need results to be
-                            reproducible (default: seg 1, surf 2).
+  --threads <int>         Set openMP, BLAS and ITK threads to <int>, "auto" or
+  --threads_seg <int>       "max", also for definition of threads specific to
+  --threads_surf <int>      segmentation and surface reconstruction. For
+                            surfaces this is a total budget: with 2 or more the
+                            two hemispheres run at the same time and split it,
+                            so 8 gives four each. Use 1 for a single-threaded
+                            run. Without these flags, OMP_NUM_THREADS sets the
+                            budget if exported, else auto: the allocation of a
+                            cgroup quota or a scheduler job, or else the
+                            physical cores less one, at most 4 for a GPU
+                            segmentation and 8 otherwise. "max" uses all
+                            available CPUs.
   --parallel              Run the hemispheres at the same time with one thread
                             each, even at --threads 1. That keeps every binary
                             single threaded, and so reproducible, while still
@@ -434,10 +436,11 @@ fi
 
 function verify_threads() {
   # 1: flag, 2: value
+  # auto, max, 0 and negative values are kept as they are, resolve_threads turns them into a count
   value="$(echo "$2" | tr '[:upper:]' '[:lower:]')"
-  if [[ "$value" =~ ^(max|-[0-9]+|0)$ ]] ; then verify_value=$(nproc)
-  elif [[ "$value" =~ ^[0-9]+$ ]] ; then verify_value="$value"
-  else echo "ERROR: Invalid value for $1: '$2', must be integer or 'max'." ; exit 1
+  if [[ "$value" =~ ^(auto|max|-[0-9]+|0+)$ ]] ; then verify_value="$value"
+  elif [[ "$value" =~ ^[0-9]+$ ]] ; then verify_value="$((10#$value))"
+  else echo "ERROR: Invalid value for $1: '$2', must be integer, 'auto' or 'max'." ; exit 1
   fi
   export verify_value
 }
@@ -664,8 +667,8 @@ tmpLF=$(mktemp)
 
 # CHECKS
 
-# a string comparison, because threads_surf can still be "max" here
-if [[ "$legacy_parallel_hemi" == "true" ]] && [[ ! "$threads_surf" =~ ^[01]$ ]]
+# a string comparison, because threads_surf can still be "max" here; empty leaves it to recon-surf.sh
+if [[ "$legacy_parallel_hemi" == "true" ]] && [[ -n "$threads_surf" ]] && [[ "$threads_surf" != "1" ]]
 then
   {
     echo "NOTE: --parallel has no effect at $threads_surf surface threads. The surface thread count"
@@ -1065,6 +1068,68 @@ wrap=("time_it" "$exec_time_log")
 
 if [[ -f "$seg_log" ]]; then log_existed="true" ; else log_existed="false" ; fi
 
+# Check the devices once here, so a GPU this build cannot use is explained before any work starts
+# and the modules below get "cpu" instead of each repeating the warning. Before the log header,
+# because the thread budget below depends on the outcome, so the messages go to tmpLF, which is
+# appended right after the header.
+# A cuda viewagg device is an explicit request, so it stops the run; "auto" follows --device.
+if [[ "$run_seg_pipeline" == "true" ]] && [[ "$viewagg" == cuda* ]] && [[ "$viewagg" != "$device" ]]
+then
+  $python "$fastsurfercnndir/gpu_support.py" --device "$viewagg" --flag_name viewagg_device 2>&1 | tee -a "$tmpLF"
+  case "${PIPESTATUS[0]}" in
+    0) ;;
+    5)
+      echo "ERROR: The viewagg device $viewagg cannot be used." | tee -a "$tmpLF"
+      cat "$tmpLF" >> "$seg_log" ; exit 1
+      ;;
+    *) echo "WARNING: Could not check whether the viewagg device $viewagg can be used." | tee -a "$tmpLF" ;;
+  esac
+fi
+if [[ "$run_seg_pipeline" == "true" ]] && { [[ "$device" == "auto" ]] || [[ "$device" == cuda* ]] ; }
+then
+  $python "$fastsurfercnndir/gpu_support.py" --device "$device" 2>&1 | tee -a "$tmpLF"
+  case "${PIPESTATUS[0]}" in
+    0) ;;
+    3)
+      device="cpu"
+      # a pause, so the warning is not lost above the log of a run that is slow for this reason;
+      # read only in the foreground ("+" in ps stat), a background job reading the terminal is stopped
+      if [[ -t 0 ]] && [[ "$(ps -o stat= -p $$ 2> /dev/null)" == *+* ]]
+      then
+        echo "Continuing in 10 seconds, press any key to continue now."
+        read -r -s -n 1 -t 10 || true
+      else
+        sleep 10
+      fi
+      ;;
+    4|6) device="cpu" ;;  # 6: no GPU at all
+    5)
+      echo "ERROR: The device $device cannot be used." | tee -a "$tmpLF"
+      cat "$tmpLF" >> "$seg_log" ; exit 1
+      ;;
+    # the modules check the device again, so a failed check is not a reason to stop
+    *) echo "WARNING: Could not check whether the device $device can be used." | tee -a "$tmpLF" ;;
+  esac
+fi
+
+if [[ "$run_seg_pipeline" == "true" ]]
+then
+  # auto takes fewer threads when the networks run on a GPU, where only the steps around them use
+  # the CPU. After the check above, a device still "auto" is a GPU, the cpu cases became "cpu".
+  seg_auto_cap="$thread_auto_cap_cpu"
+  if [[ "$device" == cuda* ]] || [[ "$device" == "mps" ]] || [[ "$device" == "auto" ]]
+  then
+    seg_auto_cap="$thread_auto_cap_gpu"
+  fi
+  # --threads reaches torch, but numpy's BLAS reads its own variable once at import and otherwise
+  # starts one thread per core. Exported before the host block, so that it logs the limits in force.
+  if ! resolve_threads "$threads_seg" auto "$seg_auto_cap" ; then
+    echo "$threads_note" | tee -a "$tmpLF" ; cat "$tmpLF" >> "$seg_log" ; exit 1
+  fi
+  threads_seg="$threads_budget"
+  set_thread_env "$threads_seg"
+fi
+
 {
   echo "========================================================="
   echo "Start of the log for a new run_fastsurfer.sh invocation"
@@ -1080,47 +1145,12 @@ if [[ -f "$seg_log" ]]; then log_existed="true" ; else log_existed="false" ; fi
   # runs were comparable at all. Once here rather than in each network: it describes the machine,
   # not the process. The thread counts are left out for the opposite reason, they are per network.
   $python "$FASTSURFER_HOME/FastSurferCNN/host_info.py" --fingerprint 2>&1
+  if [[ "$run_seg_pipeline" == "true" ]] ; then describe_threads "Segmentation" ; fi
 } | tee -a "$seg_log"
 
 ### IF tmpLF exists, it has been created with a warning or similar, copy that warning to seg_log now
 if [[ -f "$tmpLF" ]] ; then cat "$tmpLF" >> "$seg_log" ; rm "$tmpLF" ; fi
 # from now on, we can and will log to LF directly
-
-# Check the devices once here, so a GPU this build cannot use is explained before any work starts
-# and the modules below get "cpu" instead of each repeating the warning.
-# A cuda viewagg device is an explicit request, so it stops the run; "auto" follows --device.
-if [[ "$run_seg_pipeline" == "true" ]] && [[ "$viewagg" == cuda* ]] && [[ "$viewagg" != "$device" ]]
-then
-  $python "$fastsurfercnndir/gpu_support.py" --device "$viewagg" --flag_name viewagg_device 2>&1 | tee -a "$seg_log"
-  case "${PIPESTATUS[0]}" in
-    0) ;;
-    5) echo "ERROR: The viewagg device $viewagg cannot be used." | tee -a "$seg_log" ; exit 1 ;;
-    *) echo "WARNING: Could not check whether the viewagg device $viewagg can be used." | tee -a "$seg_log" ;;
-  esac
-fi
-if [[ "$run_seg_pipeline" == "true" ]] && { [[ "$device" == "auto" ]] || [[ "$device" == cuda* ]] ; }
-then
-  $python "$fastsurfercnndir/gpu_support.py" --device "$device" 2>&1 | tee -a "$seg_log"
-  case "${PIPESTATUS[0]}" in
-    0) ;;
-    3)
-      device="cpu"
-      # a pause, so the warning is not lost above the log of a run that is slow for this reason;
-      # read only in the foreground ("+" in ps stat), a background job reading the terminal is stopped
-      if [[ -t 0 ]] && [[ "$(ps -o stat= -p $$ 2> /dev/null)" == *+* ]]
-      then
-        echo "Continuing in 10 seconds, press any key to continue now."
-        read -r -s -n 1 -t 10 || true
-      else
-        sleep 10
-      fi
-      ;;
-    4) device="cpu" ;;
-    5) echo "ERROR: The device $device cannot be used." | tee -a "$seg_log" ; exit 1 ;;
-    # the modules check the device again, so a failed check is not a reason to stop
-    *) echo "WARNING: Could not check whether the device $device can be used." | tee -a "$seg_log" ;;
-  esac
-fi
 
 ### IF THE SCRIPT GETS TERMINATED, ADD A MESSAGE
 # shellcheck disable=SC2064
@@ -1723,6 +1753,9 @@ then
     fi
   fi
 
+  # recon-surf.sh resolves its own budget, from the environment the user started with
+  restore_thread_env
+
 else # not running segmentation pipeline
   # Replace asegdkt_segfile and aseg_segfile variables with manedit file here,
   # if the manedit exists, so recon-surf uses the manedit file.
@@ -1735,14 +1768,14 @@ then
   echo "SURFACE RECONSTRUCTION PIPELINE" >> "$exec_time_log"
   echo "===============================" >> "$exec_time_log"
 
-  if [[ "$threads_surf" == "max" ]]; then threads_surf="$(nproc)" ; fi
-  if [[ "$threads_surf" == "0" ]]; then threads_surf=1 ; fi
   # ============= Running recon-surf (surfaces, thickness etc.) ===============
   # use recon-surf to create surface models based on the FastSurferCNN segmentation.
   pushd "$reconsurfdir" > /dev/null || exit 1
   echo "cd $reconsurfdir" | tee -a "$seg_log"
   cmd=("./recon-surf.sh" --sid "$subject" --sd "$sd" --t1 "$conformed_name" --mask_name "$mask_name"
-       --asegdkt_segfile "$asegdkt_segfile" --threads "$threads_surf" --py "$python" "${surf_flags[@]}")
+       --asegdkt_segfile "$asegdkt_segfile" --py "$python" "${surf_flags[@]}")
+  # without the flag, recon-surf.sh takes OMP_NUM_THREADS or its default
+  if [[ -n "$threads_surf" ]] ; then cmd+=(--threads "$threads_surf") ; fi
   echo_quoted "${cmd[@]}" | tee -a "$seg_log"
   "${wrap[@]}" "${cmd[@]}" # no tee, this gets logged to recon-surf.log from inside recon-surf.sh
   if [[ "${PIPESTATUS[0]}" != 0 ]]
