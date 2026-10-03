@@ -200,6 +200,17 @@ function share_threads()
   echo "$each"
 }
 
+function seg_cap_for_device()
+{
+  # USAGE: seg_cap_for_device <device passed to --device>
+  # Prints the auto cap for a segmentation on that device. "auto" counts as the cpu: a script that
+  # starts the cases, possibly in a container, cannot ask torch on the host.
+  case "$1" in
+    cuda*|mps) echo "$thread_auto_cap_gpu" ;;
+    *) echo "$thread_auto_cap_cpu" ;;
+  esac
+}
+
 function resolve_threads()
 {
   # USAGE: resolve_threads <value passed to --threads, empty if none> <default> [<cap for auto>]

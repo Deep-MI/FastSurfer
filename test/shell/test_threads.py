@@ -304,63 +304,84 @@ class TestSharing:
 
 @pytest.fixture
 def brun(machine, tmp_path):
-    """Run brun_fastsurfer.sh on three cases with a stub that records the OMP_THREAD_LIMIT it got."""
+    """Run brun_fastsurfer.sh on three cases with a stub that records the options each case got.
+
+    Returns the options per subject and brun's output. <lines> adds options to subject lines.
+    """
     stub = tmp_path / "stub.sh"
-    stub.write_text(
-        "#!/bin/bash\n"
-        'echo "$*" >> "$STUB_LOG.args"\n'
-        'sid="" ; while [[ "$#" -gt 0 ]] ; do if [[ "$1" == "--sid" ]] ; then sid="$2" ; fi ; shift ; done\n'
-        'echo "$sid ${OMP_THREAD_LIMIT-unset}" >> "$STUB_LOG"\n'
-    )
+    stub.write_text('#!/bin/bash\necho "$*" >> "$STUB_LOG"\n')
     stub.chmod(0o755)
     log = tmp_path / "stub.log"
-    subjects = []
+    images = {}
     for name in ("subj1", "subj2", "subj3"):
-        (tmp_path / f"{name}.mgz").write_bytes(b"")
-        subjects.append(f"{name}={tmp_path / name}.mgz")
+        images[name] = tmp_path / f"{name}.mgz"
+        images[name].write_bytes(b"")
 
-    def run(*args: str, **env: str) -> set[str]:
-        subprocess.run(
+    def run(*args: str, lines: dict[str, str] | None = None, **env: str) -> tuple[dict[str, str], str]:
+        listfile = tmp_path / "subjects.txt"
+        listfile.write_text("".join(f"{n}={p} {(lines or {}).get(n, '')}\n" for n, p in images.items()))
+        result = subprocess.run(
             ["bash", str(FASTSURFER_HOME / "brun_fastsurfer.sh"), "--sd", str(tmp_path / "out"),
-             "--run_fastsurfer", str(stub), "--device", "cpu", "--subjects", *subjects, *args],
+             "--run_fastsurfer", str(stub), "--subject_list", str(listfile), *args],
             capture_output=True, text=True, env=machine.environment(STUB_LOG=str(log), **env),
             cwd=FASTSURFER_HOME, timeout=120, check=True,
         )
-        return {line.split()[1] for line in log.read_text().splitlines()}
+        received = {line.split("--sid ")[1].split()[0]: line for line in log.read_text().splitlines()}
+        return received, result.stdout
 
-    run.args = lambda: Path(f"{log}.args").read_text().splitlines()
     return run
 
 
-class TestBrunSharesTheMachine:
-    """Compared with share_threads in the same environment, so the host's own cgroup cannot decide."""
+def shared(machine, processes: int, cap: int = 8) -> int:
+    """What brun should pass, from share_threads in the same environment, so the host's cgroup cannot decide."""
+    return min(int(machine.run(f"share_threads {processes}", real_cgroup=True)), cap)
 
+
+class TestBrunSharesTheMachine:
     def test_parallel_cases_share(self, machine, brun):
         machine.cpus(total=32, affinity=32, physical=16)
-        assert brun("--parallel", "3") == {machine.run("share_threads 3", real_cgroup=True).strip()}
+        received, _ = brun("--parallel", "3", "--device", "cpu")
+        expected = f"--threads_seg {shared(machine, 3)} --threads_surf {shared(machine, 3)}"
+        assert all(expected in args for args in received.values())
 
     def test_more_parallel_slots_than_cases_count_the_cases(self, machine, brun):
         machine.cpus(total=32, affinity=32, physical=16)
-        assert brun("--parallel", "max") == {machine.run("share_threads 3", real_cgroup=True).strip()}
+        received, _ = brun("--parallel", "max", "--device", "cpu")
+        assert all(f"--threads_seg {shared(machine, 3)}" in args for args in received.values())
 
     def test_two_pipelines_count_both(self, machine, brun):
         machine.cpus(total=32, affinity=32, physical=16)
-        expected = machine.run("share_threads 4", real_cgroup=True).strip()
-        assert brun("--parallel_seg", "2", "--parallel_surf", "2") == {expected}
+        received, _ = brun("--parallel_seg", "2", "--parallel_surf", "2", "--device", "cpu")
+        assert all(f"--threads_seg {shared(machine, 4)}" in args for args in received.values())
+
+    def test_a_gpu_segmentation_gets_the_gpu_cap(self, machine, brun):
+        machine.cpus(total=64, affinity=64, physical=32)
+        received, _ = brun("--parallel", "2", "--device", "mps")
+        expected = f"--threads_seg {shared(machine, 2, cap=4)} --threads_surf {shared(machine, 2)}"
+        assert all(expected in args for args in received.values())
 
     def test_one_case_at_a_time_is_left_alone(self, brun):
-        assert brun("--parallel", "1") == {"unset"}
+        received, _ = brun("--parallel", "1", "--device", "cpu")
+        assert not any("--threads" in args for args in received.values())
 
     def test_a_threads_flag_is_left_alone(self, brun):
-        assert brun("--parallel", "3", "--threads", "2") == {"unset"}
+        received, _ = brun("--parallel", "3", "--device", "cpu", "--threads", "2")
+        assert not any("--threads_seg" in args for args in received.values())
 
     def test_omp_num_threads_is_left_alone(self, brun):
-        assert brun("--parallel", "3", OMP_NUM_THREADS="2") == {"unset"}
+        received, _ = brun("--parallel", "3", "--device", "cpu", OMP_NUM_THREADS="2")
+        assert not any("--threads" in args for args in received.values())
+
+    def test_a_subject_line_with_its_own_threads_keeps_them_and_is_named(self, brun):
+        received, out = brun("--parallel", "3", "--device", "cpu", lines={"subj2": "--threads 8"})
+        # after the shared values, so that run_fastsurfer.sh takes the subject's own
+        assert received["subj2"].index("--threads 8") > received["subj2"].index("--threads_surf")
+        assert "1 subject line(s) set their own threads (subj2)" in out
 
     def test_passed_on_options_do_not_overwrite_each_other(self, brun):
         """brun collects --py apart from the other options, and each case must receive all of them."""
-        brun("--py", "python3", "--threads", "2", "--3T")
-        for args in brun.args():
+        received, _ = brun("--py", "python3", "--threads", "2", "--3T")
+        for args in received.values():
             assert "--py python3" in args and "--threads 2" in args and "--3T" in args
 
 
