@@ -159,6 +159,7 @@ fi
 inputargs=("$@")
 POSITIONAL_FASTSURFER=()
 run_pred_flags=()
+threads=""  # empty takes OMP_NUM_THREADS, else auto (see resolve_threads)
 i=0
 while [[ $# -gt 0 ]]
 do
@@ -174,7 +175,7 @@ case $key in
   --sd) export SUBJECTS_DIR="$1" ; shift  ;;
   # these flags are passed through to run_prediction.py
   --vox_size|--device|--viewagg_device|--conform_to_1mm_threshold) run_pred_flags+=("$key" "$1") ; shift ;;
-  --threads|--threads_seg) run_pred_flags+=("--threads" "$1") ; shift ;;
+  --threads|--threads_seg) threads="$1" ; shift ;;
   --batch) run_pred_flags+=("--batch_size" "$1") ; shift ;;
   # these known arguments get ignored
   --aseg_name|--conformed_name|--asegdkt_segfile|--brainmask_name|--seg_log|--qc_log|--parallel|--threads_surf) shift ;;
@@ -262,6 +263,13 @@ code="$?"
 if [[ "$code" != 0 ]] ; then echo "ERROR: Getting the version failed (code=$code), terminating..." ; exit 1 ; fi
 echo "Version: $VERSION" | tee -a "$LF"
 echo "Log file for long_prepare_template" >> "$LF"
+
+# the segmentation per time point and mri_robust_template below share this budget; exported
+# before the host block, so that it logs the limits in force
+if ! resolve_threads "$threads" auto ; then echo "$threads_note" | tee -a "$LF" ; exit 1 ; fi
+set_thread_env "$threads_budget"
+run_pred_flags+=(--threads "$threads_budget")
+
 {
   date 2>&1
   echo ""
@@ -275,6 +283,7 @@ echo "Log file for long_prepare_template" >> "$LF"
   # --torch because neuroreg imports it, so the registration steps below run torch kernels
   # --fingerprint records what this host computes, for comparing two runs later
   $python "$FASTSURFER_HOME/FastSurferCNN/host_info.py" --torch --fingerprint 2>&1
+  describe_threads "The template preparation"
 } | tee -a "$LF"
 
 

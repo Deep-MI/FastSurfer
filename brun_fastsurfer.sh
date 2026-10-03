@@ -162,7 +162,6 @@ res_viewagg_device="auto"
 SED_CLEANUP_SUBJECTS='s/\r$//;s/[[:space:]]*\r[[:space:]]*/\
 /g;s/[[:space:]]*$//;/^[[:space:]]*$/d'
 prev_ifs="$IFS"
-i=0
 while [[ $# -gt 0 ]]
 do
 # make key lowercase
@@ -243,8 +242,7 @@ case $key in
     exit 1
     ;;
   *)    # unknown option/run_fastsurfer.sh option, make sure this is arg (to keep the case)
-    POSITIONAL_FASTSURFER["$i"]="$arg"
-    i=$((i + 1))
+    POSITIONAL_FASTSURFER+=("$arg")
     ;;
 esac
 done
