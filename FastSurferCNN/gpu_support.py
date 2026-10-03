@@ -104,20 +104,28 @@ def _oldest_arch(arch_list: list[str]) -> tuple[int, int] | None:
     return min(versions) if versions else None
 
 
+def in_apptainer() -> bool:
+    """Whether this runs in an Apptainer or Singularity container."""
+    return "APPTAINER_CONTAINER" in os.environ or "SINGULARITY_CONTAINER" in os.environ
+
+
 def in_container() -> bool:
     """Whether this runs in a Docker, Podman, Apptainer or Singularity container."""
-    return (
-        Path("/.dockerenv").exists()
-        or Path("/run/.containerenv").exists()
-        or "APPTAINER_CONTAINER" in os.environ
-        or "SINGULARITY_CONTAINER" in os.environ
-    )
+    return Path("/.dockerenv").exists() or Path("/run/.containerenv").exists() or in_apptainer()
 
 
 def nvidia_gpu_present() -> bool:
     """Whether an NVIDIA driver is visible, whether or not PyTorch can use it."""
-    # the device node and driver version on linux, the driver library WSL maps in from windows
-    paths = (Path("/dev/nvidiactl"), NVIDIA_VERSION_FILE, Path("/usr/lib/wsl/lib/libcuda.so"))
+    # A container sees the host's /proc/driver/nvidia, and Apptainer also the host's /dev, without a
+    # GPU passed in. So only the device node Docker adds with --gpus counts there, and the driver
+    # library Apptainer binds with --nv. WSL maps the driver library in from Windows.
+    if in_apptainer():
+        paths = list(Path("/.singularity.d/libs").glob("libcuda.so*"))
+    elif in_container():
+        paths = [Path("/dev/nvidiactl")]
+    else:
+        paths = [Path("/dev/nvidiactl"), NVIDIA_VERSION_FILE]
+    paths.append(Path("/usr/lib/wsl/lib/libcuda.so"))
     return any(path.exists() for path in paths)
 
 
@@ -215,18 +223,18 @@ def cuda_problem(device_index: int | None = None) -> tuple[Severity, list[str]] 
                 return None
             return "warning", _arch_problem(torch.cuda.get_device_name(index), capability, arch_list, build)
 
-    driver, needed = driver_major(), MIN_DRIVER.get(build[0])
-    if driver is not None and needed is not None and driver < needed:
-        lines = [
-            f"The NVIDIA driver {driver} is too old for this PyTorch build for CUDA {build[0]}.{build[1]}, "
-            f"which needs driver {needed} or newer.",
-            f"Update the NVIDIA driver to {needed} or newer.",
-        ]
-        legacy_driver = MIN_DRIVER[LEGACY_BUILD[0][0]]
-        if build > LEGACY_BUILD[0] and driver >= legacy_driver:
-            lines.append(_use_build(LEGACY_BUILD, lead="Or use"))
-        return "warning", lines
     if nvidia_gpu_present():
+        driver, needed = driver_major(), MIN_DRIVER.get(build[0])
+        if driver is not None and needed is not None and driver < needed:
+            lines = [
+                f"The NVIDIA driver {driver} is too old for this PyTorch build for CUDA {build[0]}.{build[1]}, "
+                f"which needs driver {needed} or newer.",
+                f"Update the NVIDIA driver to {needed} or newer.",
+            ]
+            legacy_driver = MIN_DRIVER[LEGACY_BUILD[0][0]]
+            if build > LEGACY_BUILD[0] and driver >= legacy_driver:
+                lines.append(_use_build(LEGACY_BUILD, lead="Or use"))
+            return "warning", lines
         reason = next((str(w.message).splitlines()[0] for w in caught if "CUDA" in str(w.message)), None)
         return "warning", [
             "An NVIDIA GPU is present, but PyTorch cannot use it" + (f": {reason}" if reason else "."),
