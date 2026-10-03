@@ -197,24 +197,23 @@ class Popen(subprocess.Popen):
         MessageBuffer
             A MessageBuffer object with the content of the stdout and stderr pipes.
         """
+        # communicate reads the pipes while waiting; wait alone blocks once a child fills a pipe
         try:
-            self.wait(timeout)
+            stdout, stderr = self.communicate(timeout=timeout)
         except subprocess.TimeoutExpired:
             self.terminate()
-        msg = MessageBuffer(runtime=0.0)
-        i = 0
-        for _msg in self.messages(timeout=0.25):
-            msg += _msg
-            if i > 0:
+            try:
+                stdout, stderr = self.communicate(timeout=1.0)
+            except subprocess.TimeoutExpired:
                 self.kill()
-                raise RuntimeError(
-                    f"The process {self} did not stop properly in Popen.finish, "
-                    "abandoning."
-                )
-            i += 1
-        if i == 0:
-            msg.retcode = self.returncode
-        return msg
+                stdout, stderr = self.communicate()
+        start = self._starttime or datetime.now()
+        return MessageBuffer(
+            out=stdout or b"",
+            err=stderr or b"",
+            retcode=self.returncode,
+            runtime=(datetime.now() - start).total_seconds(),
+        )
 
     def as_future(self, pool: Executor, timeout: float | None = None) -> Future:
         """
