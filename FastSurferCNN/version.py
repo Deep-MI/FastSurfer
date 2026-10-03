@@ -263,7 +263,8 @@ def main(
     Returns
     -------
     int or str
-        Returns 0, if the function was successful, or an error message.
+        Returns 0, if the function was successful, or an error message. A failed git status, checkpoints or python
+        packages section is left out of the output, which still contains the others.
     """
     has_build_cache = False
     # ignore build_cache, if it is False
@@ -368,17 +369,21 @@ def main(
         build_file_kwargs["git_hash"] = __future_or_cache("git_hash", futures, build_cache)
         if sections != "":
             build_file_kwargs["git_branch"] = __future_or_cache("git_branch", futures, build_cache)
-        keys: Sequence[VersionDictKeys] = ("git_status", "checkpoints", "pypackages")
-        for key in keys:
-            if DEFAULTS.VERSION_SECTIONS[key][0] in sections:
-                # stuff that is needed
-                build_file_kwargs[key] = __future_or_cache(key, futures, build_cache)
-
-        print_build_file(version, **build_file_kwargs, file=file)
     except RuntimeError as e:
         return e.args[0]
 
-    return 0
+    # a section that fails is left out and reported, the others are still written
+    errors = []
+    keys: Sequence[VersionDictKeys] = ("git_status", "checkpoints", "pypackages")
+    for key in keys:
+        if DEFAULTS.VERSION_SECTIONS[key][0] in sections:
+            try:
+                build_file_kwargs[key] = __future_or_cache(key, futures, build_cache)
+            except RuntimeError as e:
+                errors.append(e.args[0])
+
+    print_build_file(version, **build_file_kwargs, file=file)
+    return " ".join(errors) if errors else 0
 
 
 def get_default_version_info() -> VersionDict:
