@@ -706,7 +706,10 @@ aseg_presurf="$mdir/aseg.presurf.mgz"
 aseg_uchar="$mdir/aseg.presurf.uchar.mgz"
 # left over if an earlier run was killed in between, where its trap could not run
 if [[ -f "$aseg_uchar" ]] ; then
-  echo "INFO: Restoring $aseg_presurf from an interrupted earlier run." | tee -a "$LF"
+  {
+    echo "INFO: Restoring aseg.presurf.mgz from aseg.presurf.uchar.mgz, left by an interrupted earlier"
+    echo "  run. This replaces the int copy that run made in its place."
+  } | tee -a "$LF"
   RunIt "mv -f $aseg_uchar $aseg_presurf" "$LF"
 fi
 
