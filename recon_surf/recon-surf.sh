@@ -697,15 +697,23 @@ fi
   echo " "
 } | tee -a "$LF"
 
+# -segmentation runs mri_edit_wm_with_aseg on aseg.presurf.mgz, so for "skip" the uchar original is
+# moved aside and an int copy takes its name for this one call. Moving it back restores the
+# original with its timestamp, so FreeSurfer 8's update checks see no change. Same directory, so
+# the moves are renames. Not a PATH shim: recon-all and fs_time source SetUpFreeSurfer.csh on
+# macOS, which puts FreeSurfer's bin back in front of PATH.
+aseg_presurf="$mdir/aseg.presurf.mgz"
+aseg_uchar="$mdir/aseg.presurf.uchar.mgz"
+# left over if an earlier run was killed in between, where its trap could not run
+if [[ -f "$aseg_uchar" ]] ; then
+  echo "INFO: Restoring $aseg_presurf from an interrupted earlier run." | tee -a "$LF"
+  RunIt "mv -f $aseg_uchar $aseg_presurf" "$LF"
+fi
+
 cmd="recon-all -s $subject -asegmerge -normalization2 -maskbfs -umask $(umask) $hiresflag $fsthreads"
 RunIt "$cmd" "$LF"
 
-# -segmentation runs mri_edit_wm_with_aseg on aseg.presurf.mgz, so for "skip" that file is int for
-# this one call and uchar again before anything else reads it (lossless, all labels are below 256).
-# Not a PATH shim: recon-all and fs_time source SetUpFreeSurfer.csh on macOS, which puts
-# FreeSurfer's bin back in front of PATH.
-aseg_presurf="$mdir/aseg.presurf.mgz"
-aseg_was_uchar="false"
+aseg_moved="false"
 if [[ "$mtl_paths" == "skip" ]] ; then
   aseg_type="$(mri_info --type "$aseg_presurf" 2> /dev/null)"
   # an unknown type would silently run the step, so stop instead
@@ -714,9 +722,13 @@ if [[ "$mtl_paths" == "skip" ]] ; then
     exit 1
   fi
   if [[ "$aseg_type" == "uchar" ]] ; then
-    aseg_was_uchar="true"
     echo "INFO: aseg.presurf.mgz is int while -segmentation runs, so the MTL path step is skipped." | tee -a "$LF"
-    RunIt "mri_convert -odt int $aseg_presurf $aseg_presurf" "$LF"
+    RunIt "mv $aseg_presurf $aseg_uchar" "$LF"
+    aseg_moved="true"
+    # also when the run stops in between: FreeSurfer 8's -asegmerge does not overwrite a newer
+    # aseg.presurf.mgz, so a rerun would otherwise hand every later step the int copy
+    trap 'mv -f "$aseg_uchar" "$aseg_presurf"' EXIT
+    RunIt "mri_convert -odt int $aseg_uchar $aseg_presurf" "$LF"
   fi
 fi
 # In long, the WM segmentation is not skipped although the surfaces come from the base: wm.mgz is
@@ -724,8 +736,9 @@ fi
 # is not supported yet.
 cmd="recon-all -s $subject -segmentation -umask $(umask) $hiresflag $fsthreads"
 RunIt "$cmd" "$LF"
-if [[ "$aseg_was_uchar" == "true" ]] ; then
-  RunIt "mri_convert -odt uchar --no_scale 1 $aseg_presurf $aseg_presurf" "$LF"
+if [[ "$aseg_moved" == "true" ]] ; then
+  RunIt "mv -f $aseg_uchar $aseg_presurf" "$LF"
+  trap - EXIT
 fi
 
 if [[ "$long" == "true" ]] ; then
