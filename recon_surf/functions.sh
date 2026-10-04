@@ -392,3 +392,6 @@ function check_is_template()
     exit 1
   fi
 }
+
+# resolve_threads, set_thread_env and the other thread budget functions
+source "$(dirname "${BASH_SOURCE[0]}")/threads.sh"

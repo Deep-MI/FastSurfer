@@ -162,7 +162,6 @@ res_viewagg_device="auto"
 SED_CLEANUP_SUBJECTS='s/\r$//;s/[[:space:]]*\r[[:space:]]*/\
 /g;s/[[:space:]]*$//;/^[[:space:]]*$/d'
 prev_ifs="$IFS"
-i=0
 while [[ $# -gt 0 ]]
 do
 # make key lowercase
@@ -243,8 +242,7 @@ case $key in
     exit 1
     ;;
   *)    # unknown option/run_fastsurfer.sh option, make sure this is arg (to keep the case)
-    POSITIONAL_FASTSURFER["$i"]="$arg"
-    i=$((i + 1))
+    POSITIONAL_FASTSURFER+=("$arg")
     ;;
 esac
 done
@@ -399,6 +397,43 @@ fi
 if [[ "$parallel_pipelines" == "2" ]] ; then
   if [[ "$seg_only" == "true" ]] ; then parallel_pipelines=1
   elif [[ "$surf_only" == "true" ]] ; then parallel_pipelines=1; num_parallel_seg=$num_parallel_surf
+  fi
+fi
+
+# Without --threads or OMP_NUM_THREADS each case picks auto threads for itself, which several cases
+# at once would each take in full. So they share what auto gives the machine, passed as --threads,
+# which reaches the case through any --run_fastsurfer wrapper, a container included.
+threads_sh="$(dirname "$THIS_SCRIPT")/recon_surf/threads.sh"
+if [[ -f "$threads_sh" ]]
+then
+  source "$threads_sh"
+  function at_once() { if [[ "$1" == "max" ]] || [[ "$1" -gt "$2" ]] ; then echo "$2" ; else echo "$1" ; fi ; }
+  num_cases=$((subject_end - subject_start))
+  num_at_once=$(at_once "$num_parallel_seg" "$num_cases")
+  if [[ "$parallel_pipelines" == "2" ]] ; then num_at_once=$((num_at_once + $(at_once "$num_parallel_surf" "$num_cases"))) ; fi
+  if [[ "$num_at_once" -gt 1 ]] && threads_left_to_auto "${POSITIONAL_FASTSURFER[@]}"
+  then
+    share="$(share_threads "$num_at_once")"
+    # the caps auto would apply in each case, which an explicit --threads skips
+    share_seg="$(seg_cap_for_device "$res_device")"
+    if [[ "$share" -lt "$share_seg" ]] ; then share_seg="$share" ; fi
+    share_surf="$thread_auto_cap_cpu"
+    if [[ "$share" -lt "$share_surf" ]] ; then share_surf="$share" ; fi
+    POSITIONAL_FASTSURFER+=(--threads_seg "$share_seg" --threads_surf "$share_surf")
+    echo "INFO: Up to $num_at_once cases run at the same time and share the machine: each segmentation"
+    echo "  uses $share_seg threads and each surface reconstruction $share_surf. Pass --threads to choose them."
+    # the options of a subject line follow these, so its own --threads wins
+    threads_regex='(^|[[:space:]])--threads(_seg|_surf)?([[:space:]]|$)'
+    own_threads=()
+    for subject in "${subjects[@]:$subject_start:$num_cases}" ; do
+      if [[ "${subject#*=}" =~ $threads_regex ]] ; then own_threads+=("${subject%%=*}") ; fi
+    done
+    if [[ "${#own_threads[@]}" -gt 0 ]]
+    then
+      named="${own_threads[*]:0:5}" ; if [[ "${#own_threads[@]}" -gt 5 ]] ; then named+=" ..." ; fi
+      echo "WARNING: ${#own_threads[@]} subject line(s) set their own threads ($named). Those cases use"
+      echo "  them on top of the shared threads of the others, which can overload the machine."
+    fi
   fi
 fi
 

@@ -25,10 +25,10 @@ Run as a script, so run_fastsurfer.sh can check the device once per run:
 
     python3 FastSurferCNN/gpu_support.py --device auto
 
-Exit codes: 0 when the device can be used, 3 when "auto" found a GPU it cannot use and falls
-back to the cpu, 4 when "auto" falls back to the cpu for a reason that is only worth a note, 5
-when a requested cuda device cannot be used. None of them is 1 or 2, which a crash or an
-argument error returns.
+Exit codes: 0 when the device can be used, for "auto" a GPU, 3 when "auto" found a GPU it cannot
+use and falls back to the cpu, 4 when "auto" falls back to the cpu for a reason that is only worth
+a note, 5 when a requested cuda device cannot be used, 6 when "auto" finds no GPU at all and runs
+on the cpu. None of them is 1 or 2, which a crash or an argument error returns.
 
 Imports torch only inside the functions that need it, so the rest can be tested without it.
 """
@@ -248,6 +248,20 @@ def cuda_problem(device_index: int | None = None) -> tuple[Severity, list[str]] 
     return None
 
 
+def gpu_available() -> bool:
+    """
+    Whether "auto" picks a GPU, in the order FastSurferCNN.utils.common.find_device checks them.
+
+    Returns
+    -------
+    bool
+        True if cuda (which includes ROCm) or mps is available.
+    """
+    import torch
+
+    return torch.cuda.is_available() or (hasattr(torch.backends, "mps") and torch.backends.mps.is_available())
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(
         description="Check that the device FastSurfer is asked to run on can be used, and explain why not.",
@@ -269,7 +283,8 @@ def main() -> int:
     index = int(device.split(":", 1)[1]) if device.startswith("cuda:") else None
     problem = cuda_problem(index)
     if problem is None:
-        return 0
+        # no problem also covers a machine without any GPU, which "auto" runs on the cpu
+        return 6 if device == "auto" and not gpu_available() else 0
     severity, lines = problem
     if device != "auto":
         print(f"ERROR: {lines[0]}")
