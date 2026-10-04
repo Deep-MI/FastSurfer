@@ -469,6 +469,21 @@ echo "Log file for recon-surf.sh" >> "$LF"
   echo "Checking Input Segmentation Quality ..."
 } | tee -a "$LF"
 
+# An explicitly set value wins, and is the only way to reach "keep" without editing this script.
+# Checked here rather than where it is used, so that a wrong value stops the run before any work.
+mtl_paths="$wm_mtl_paths"
+if [[ -n "${FASTSURFER_WM_MTL_PATHS:-}" ]] ; then
+  mtl_paths="$FASTSURFER_WM_MTL_PATHS"
+  {
+    echo "WARNING: FASTSURFER_WM_MTL_PATHS is already set to '$mtl_paths', so it is"
+    echo "  used instead of '$wm_mtl_paths'. This is not the configuration FastSurfer tests."
+  } | tee -a "$LF"
+fi
+if [[ "$mtl_paths" != "skip" ]] && [[ "$mtl_paths" != "keep" ]] ; then
+  echo "ERROR: FASTSURFER_WM_MTL_PATHS='$mtl_paths' must be 'skip' or 'keep'." | tee -a "$LF"
+  exit 1
+fi
+
 cmd="$python $FASTSURFER_HOME/FastSurferCNN/quick_qc.py --asegdkt_segfile $asegdkt_segfile"
 RunIt "$cmd" "$LF"
 
@@ -682,20 +697,6 @@ fi
   echo " "
 } | tee -a "$LF"
 
-# An explicitly set value wins, and is the only way to reach "keep" without editing this script.
-mtl_paths="$wm_mtl_paths"
-if [[ -n "${FASTSURFER_WM_MTL_PATHS:-}" ]] ; then
-  mtl_paths="$FASTSURFER_WM_MTL_PATHS"
-  {
-    echo "WARNING: FASTSURFER_WM_MTL_PATHS is already set to '$mtl_paths', so it is"
-    echo "  used instead of '$wm_mtl_paths'. This is not the configuration FastSurfer tests."
-  } | tee -a "$LF"
-fi
-if [[ "$mtl_paths" != "skip" ]] && [[ "$mtl_paths" != "keep" ]] ; then
-  echo "ERROR: FASTSURFER_WM_MTL_PATHS='$mtl_paths' must be 'skip' or 'keep'." | tee -a "$LF"
-  exit 1
-fi
-
 cmd="recon-all -s $subject -asegmerge -normalization2 -maskbfs -umask $(umask) $hiresflag $fsthreads"
 RunIt "$cmd" "$LF"
 
@@ -705,11 +706,22 @@ RunIt "$cmd" "$LF"
 # FreeSurfer's bin back in front of PATH.
 aseg_presurf="$mdir/aseg.presurf.mgz"
 aseg_was_uchar="false"
-if [[ "$mtl_paths" == "skip" ]] && [[ "$(mri_info --type "$aseg_presurf" 2> /dev/null)" == "uchar" ]] ; then
-  aseg_was_uchar="true"
-  echo "INFO: aseg.presurf.mgz is int while -segmentation runs, so the MTL path step is skipped." | tee -a "$LF"
-  RunIt "mri_convert -odt int $aseg_presurf $aseg_presurf" "$LF"
+if [[ "$mtl_paths" == "skip" ]] ; then
+  aseg_type="$(mri_info --type "$aseg_presurf" 2> /dev/null)"
+  # an unknown type would silently run the step, so stop instead
+  if [[ -z "$aseg_type" ]] ; then
+    echo "ERROR: Cannot read the data type of $aseg_presurf, which decides whether the MTL path step runs." | tee -a "$LF"
+    exit 1
+  fi
+  if [[ "$aseg_type" == "uchar" ]] ; then
+    aseg_was_uchar="true"
+    echo "INFO: aseg.presurf.mgz is int while -segmentation runs, so the MTL path step is skipped." | tee -a "$LF"
+    RunIt "mri_convert -odt int $aseg_presurf $aseg_presurf" "$LF"
+  fi
 fi
+# In long, the WM segmentation is not skipped although the surfaces come from the base: wm.mgz is
+# needed in place_surface to clip bright. Copying edits from the base in maskbfs and wm segmentation
+# is not supported yet.
 cmd="recon-all -s $subject -segmentation -umask $(umask) $hiresflag $fsthreads"
 RunIt "$cmd" "$LF"
 if [[ "$aseg_was_uchar" == "true" ]] ; then
@@ -718,8 +730,6 @@ fi
 
 if [[ "$long" == "true" ]] ; then
   # in long we can skip fill as surfaces come from base
-  # it would be great to also skip WM, but it is needed in place_surface to clip bright
-  # maybe later add code to copy edits from base in maskbfs and wm segmentation, currently not supported!
   # copy over filled from base for stop-edits to transfer to long (a bit of a hack)
   cmd="cp $basedir/mri/filled.mgz $mdir/filled.mgz"
   RunIt "$cmd" "$LF"
