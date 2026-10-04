@@ -216,6 +216,7 @@
 <li class="toctree-l2"><a class="reference internal" href="../overview/license.html">FastSurfer License</a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="../overview/REPRODUCIBILITY.html">Reproducibility</a></li>
 <li class="toctree-l1 current has-children"><a class="reference internal" href="index.html">Scripts</a><input aria-label="Toggle navigation of Scripts" checked="" class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul class="current">
 <li class="toctree-l2"><a class="reference internal" href="RUN_FASTSURFER.html">run_fastsurfer.sh</a></li>
 <li class="toctree-l2"><a class="reference internal" href="long_fastsurfer.html">LONG: long_fastsurfer.sh</a></li>
@@ -591,6 +592,12 @@ processing of one of the four first cases is finished (<code class="docutils lit
 (<code class="docutils literal notranslate"><span class="pre">--threads</span> <span class="pre">2</span></code>) and perform reconstruction of left and right hemispheres in parallel (<code class="docutils literal notranslate"><span class="pre">--threads</span> <span class="pre">2</span></code>, 2 &gt;= 2).
 <code class="docutils literal notranslate"><span class="pre">--parallel</span> <span class="pre">max</span></code> will remove the limit and start all cases at the same time (each with the target number of threads
 given by <code class="docutils literal notranslate"><span class="pre">--threads</span></code>).</p>
+<p>Without <code class="docutils literal notranslate"><span class="pre">--threads</span></code> (and without an exported <code class="docutils literal notranslate"><span class="pre">OMP_NUM_THREADS</span></code>), each case would choose its threads itself and take
+what <code class="docutils literal notranslate"><span class="pre">auto</span></code> gives the whole machine. So when more than one case runs at a time, <code class="docutils literal notranslate"><span class="pre">brun_fastsurfer.sh</span></code> divides that
+between them instead and passes each case its share as <code class="docutils literal notranslate"><span class="pre">--threads_seg</span></code> and <code class="docutils literal notranslate"><span class="pre">--threads_surf</span></code>, within the same limits
+<code class="docutils literal notranslate"><span class="pre">auto</span></code> keeps to (at most 4 threads for a segmentation with <code class="docutils literal notranslate"><span class="pre">--device</span> <span class="pre">cuda</span></code> or <code class="docutils literal notranslate"><span class="pre">mps</span></code>, 8 otherwise). This also reaches
+cases started in a container through <code class="docutils literal notranslate"><span class="pre">--run_fastsurfer</span></code>. A subject line that sets its own <code class="docutils literal notranslate"><span class="pre">--threads</span></code> keeps it, on
+top of the shares of the others, and <code class="docutils literal notranslate"><span class="pre">brun_fastsurfer.sh</span></code> names such lines in a warning.</p>
 </section>
 <section id="dual-parallel-pipeline">
 <h3>Dual parallel pipeline<a class="headerlink" href="#dual-parallel-pipeline" title="Link to this heading">¶</a></h3>

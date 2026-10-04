@@ -216,6 +216,7 @@
 <li class="toctree-l2"><a class="reference internal" href="../overview/license.html">FastSurfer License</a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="../overview/REPRODUCIBILITY.html">Reproducibility</a></li>
 <li class="toctree-l1 current has-children"><a class="reference internal" href="index.html">Scripts</a><input aria-label="Toggle navigation of Scripts" checked="" class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul class="current">
 <li class="toctree-l2"><a class="reference internal" href="RUN_FASTSURFER.html">run_fastsurfer.sh</a></li>
 <li class="toctree-l2"><a class="reference internal" href="long_fastsurfer.html">LONG: long_fastsurfer.sh</a></li>
@@ -538,11 +539,16 @@ FLAGS:
   --3T                    Use the 3T atlas for talairach registration (gives
                             better eTIV estimates for 3T MR images, default:
                             1.5T atlas).
-  --threads &lt;int&gt;         Total thread budget, default 2. With 2 or more the two
-                            hemispheres run at the same time and split it, so 2
-                            gives one thread each and 8 gives four each. Use 1
-                            to keep every binary single threaded, which is what
-                            to use for reproducible results.
+  --threads &lt;int&gt;         Total thread budget, "auto" or "max". With 2 or more
+                            the two hemispheres run at the same time and split
+                            it, so 2 gives one thread each and 8 gives four
+                            each. Use 1 to keep every binary single threaded.
+                            Without the flag, OMP_NUM_THREADS sets the budget
+                            if exported, else auto: the allocation of a cgroup
+                            quota or a scheduler job, or else the physical
+                            cores less one (on Apple silicon all performance
+                            cores), at least 2 and at most 8. "max" uses all
+                            available CPUs.
   --parallel              Run the hemispheres at the same time with one thread
                             each, even at --threads 1. That keeps every binary
                             single threaded, and so reproducible, while still

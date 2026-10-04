@@ -216,6 +216,7 @@
 <li class="toctree-l2"><a class="reference internal" href="../overview/license.html">FastSurfer License</a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="../overview/REPRODUCIBILITY.html">Reproducibility</a></li>
 <li class="toctree-l1 current has-children"><a class="reference internal" href="index.html">Scripts</a><input aria-label="Toggle navigation of Scripts" checked="" class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul class="current">
 <li class="toctree-l2 current current-page"><a class="current reference internal" href="#">run_fastsurfer.sh</a></li>
 <li class="toctree-l2"><a class="reference internal" href="long_fastsurfer.html">LONG: long_fastsurfer.sh</a></li>
@@ -528,9 +529,10 @@ Here, we have also added the <code class="docutils literal notranslate"><span cl
 <section id="some-other-flags">
 <h3>Some other flags<a class="headerlink" href="#some-other-flags" title="Link to this heading">¶</a></h3>
 <ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">--threads</span></code>, <code class="docutils literal notranslate"><span class="pre">--threads_seg</span></code> and <code class="docutils literal notranslate"><span class="pre">--threads_surf</span></code>: Target number of threads for all modules, segmentation, and surface pipeline. Defaults: 1 for segmentation, 2 for surfaces.
-For surfaces the value is a <em>total</em> budget: with 2 or more the two hemispheres run at the same time and split it, so the default of 2 gives one thread each and 8 gives four each. <code class="docutils literal notranslate"><span class="pre">--parallel</span></code> runs the hemispheres at the same time with one thread each even at <code class="docutils literal notranslate"><span class="pre">--threads</span> <span class="pre">1</span></code>, which keeps every binary single threaded, and so reproducible, while still using two cores; above 1 it has no effect.
-The topology correction always runs single-threaded regardless, because its result depends on the processing order (see <a class="reference internal" href="#reproducibility"><span class="std std-ref">Reproducibility</span></a>).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--threads</span></code>, <code class="docutils literal notranslate"><span class="pre">--threads_seg</span></code> and <code class="docutils literal notranslate"><span class="pre">--threads_surf</span></code>: Target number of threads for all modules, segmentation, and surface pipeline: a number, <code class="docutils literal notranslate"><span class="pre">auto</span></code> or <code class="docutils literal notranslate"><span class="pre">max</span></code>.
+Without these flags, an exported <code class="docutils literal notranslate"><span class="pre">OMP_NUM_THREADS</span></code> sets the budget for both pipelines, and otherwise <code class="docutils literal notranslate"><span class="pre">auto</span></code> applies: inside a cgroup CPU quota (such as <code class="docutils literal notranslate"><span class="pre">docker</span> <span class="pre">run</span> <span class="pre">--cpus</span></code>) or a scheduler job (Slurm, SGE, PBS, LSF) the allocated CPUs, and otherwise the physical cores less one, which stays free for other work. On Apple silicon the efficiency cores stay free instead, so <code class="docutils literal notranslate"><span class="pre">auto</span></code> uses all performance cores. Either way <code class="docutils literal notranslate"><span class="pre">auto</span></code> uses at most 4 threads for a segmentation on a GPU, where only the steps around the networks run on the CPU, and at most 8 otherwise, beyond which more threads gain little. For surfaces it uses at least 2 where the CPUs allow, so that the two hemispheres run at the same time. <code class="docutils literal notranslate"><span class="pre">max</span></code> uses all available CPUs. <code class="docutils literal notranslate"><span class="pre">OMP_THREAD_LIMIT</span></code> caps the budget in every case.
+For surfaces the value is a <em>total</em> budget: with 2 or more the two hemispheres run at the same time and split it, so 2 gives one thread each and 8 gives four each. <code class="docutils literal notranslate"><span class="pre">--parallel</span></code> runs the hemispheres at the same time with one thread each even at <code class="docutils literal notranslate"><span class="pre">--threads</span> <span class="pre">1</span></code>, which keeps every binary single threaded while still using two cores; above 1 it has no effect.
+The topology correction always runs single-threaded regardless, because its result depends on the processing order (see <a class="reference internal" href="../overview/REPRODUCIBILITY.html"><span class="std std-doc">Reproducibility</span></a>). FastSurfer exports the budget to every library’s own thread variable (<code class="docutils literal notranslate"><span class="pre">OMP_NUM_THREADS</span></code>, <code class="docutils literal notranslate"><span class="pre">OPENBLAS_NUM_THREADS</span></code>, <code class="docutils literal notranslate"><span class="pre">MKL_NUM_THREADS</span></code>, <code class="docutils literal notranslate"><span class="pre">VECLIB_MAXIMUM_THREADS</span></code>, <code class="docutils literal notranslate"><span class="pre">ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS</span></code>), so that numpy’s BLAS follows it too. A library variable that you exported with a lower value is kept as a ceiling for that library. The log of each pipeline states the budget and where it came from.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">--vox_size</span></code>: Forces processing at a specific voxel size. If a number between 0.7 and 1 is specified (below is experimental) the T1w image is conformed to that isotropic voxel size and processed.
 If “min” is specified (default), the voxel size is read from the size of the minimal voxel size (smallest per-direction voxel size) in the T1w image:
 If the minimal voxel size is bigger than 0.98mm, the image is conformed to 1mm isotropic.
@@ -544,72 +546,8 @@ The voxel size (whether set manually or derived) determines whether the surfaces
 </section>
 <section id="reproducibility">
 <h2>Reproducibility<a class="headerlink" href="#reproducibility" title="Link to this heading">¶</a></h2>
-<section id="on-one-machine">
-<h3>On one machine<a class="headerlink" href="#on-one-machine" title="Link to this heading">¶</a></h3>
-<p>Re-running the same input on the same machine, with the same flags, the same thread count and the
-same FastSurfer and FreeSurfer versions, is expected to give the same result: two runs at the
-default of two threads came out identical in every file we compare.</p>
-<p>Within one machine the only source of deviation we know of is the topology correction, and that now
-always runs single-threaded. Other steps have not been tested at every thread count, so if you need
-certainty, use <code class="docutils literal notranslate"><span class="pre">--threads</span> <span class="pre">1</span></code>, or <code class="docutils literal notranslate"><span class="pre">--threads</span> <span class="pre">1</span> <span class="pre">--parallel</span></code> to keep every binary single threaded while
-still processing the two hemispheres at the same time.</p>
-</section>
-<section id="across-machines">
-<h3>Across machines<a class="headerlink" href="#across-machines" title="Link to this heading">¶</a></h3>
-<p>Numerical libraries choose their kernels from what the processor offers, so the same code can take
-a different path on a different machine. Two layers do this independently, and both had to be
-addressed:</p>
-<ul class="simple">
-<li><p><strong>torch</strong>, in the segmentation networks. The vector instruction set decides the convolution
-kernel, and within one instruction set the vendor can still decide the code branch. Capping the
-instruction set alone leaves a difference between vendors; fixing the branch alone leaves a
-difference between instruction sets. Both are needed.</p></li>
-<li><p><strong>LAPACK and BLAS</strong>, through numpy, in the surface pipeline and the registrations. These pick
-kernels the same way, independently of torch. A difference here is small, but the topology
-correction turns a rounding difference into a different retessellation that every later surface
-inherits, which is how a change far below single precision becomes a visible one.</p></li>
-</ul>
-<p>Only the second of these is pinned for you. The spherical projection, the talairach registration
-and the corpus callosum step set the numpy and OpenBLAS variables themselves, because that is where
-a rounding difference was found to become a structural one. Nothing sets the torch variables: they
-would slow every segmentation down for everyone, and most runs do not need to match another
-machine.</p>
-<p><strong>So a default run is not reproducible across machines.</strong> If you need that, set all of them
-yourself for the whole run:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span><span class="w"> </span><span class="nv">FASTSURFER_HOME</span><span class="o">=</span><span class="si">${</span><span class="nv">FASTSURFER_HOME</span><span class="k">:-</span><span class="p">/path/to/FastSurfer</span><span class="si">}</span>
-<span class="c1"># the numpy and OpenBLAS values depend on the host, so read them from the helper</span>
-<span class="nb">eval</span><span class="w"> </span><span class="s2">"</span><span class="k">$(</span>python<span class="w"> </span><span class="nv">$FASTSURFER_HOME</span>/recon_surf/pin_cpu_dispatch.py<span class="k">)</span><span class="s2">"</span>
-<span class="nb">export</span><span class="w"> </span><span class="nv">ATEN_CPU_CAPABILITY</span><span class="o">=</span>avx2<span class="w"> </span><span class="nv">ONEDNN_MAX_CPU_ISA</span><span class="o">=</span>AVX2<span class="w"> </span><span class="nv">MKL_CBWR</span><span class="o">=</span>COMPATIBLE
-</pre></div>
-</div>
-<p>Pass them into the container with <code class="docutils literal notranslate"><span class="pre">--env</span></code> if you run FastSurfer with docker or singularity. This is
-the configuration we test, and with it two x86-64 machines of different vendors produce identical
-output. The cost is some speed, because the faster kernels are the ones being declined.</p>
-<p><strong>It also covers the places we found, not every place that could exist.</strong> Any numpy or BLAS call in
-a step we have not examined is still free to dispatch on the hardware, which is the other reason to
-set these globally rather than to rely on the three steps that pin themselves.</p>
-<p><strong>GPU is not covered.</strong> None of this applies to <code class="docutils literal notranslate"><span class="pre">--device</span> <span class="pre">cuda</span></code>: the card model and the precision
-modes it selects are a separate source, and we have not tested it. A CPU run and a GPU run of the
-same input are not expected to agree, so <code class="docutils literal notranslate"><span class="pre">--device</span></code> is part of what you have to hold constant.</p>
-<p>Use one container image as well, see <a class="reference internal" href="../overview/SINGULARITY.html"><span class="std std-doc">Singularity</span></a>. On macOS the
-FreeSurfer binaries are built without OpenMP and run single-threaded regardless, and that
-combination is untested for cross-machine agreement.</p>
-<p>To see which kernels a run actually chose, look at the host block near the top of
-<code class="docutils literal notranslate"><span class="pre">scripts/deep-seg.log</span></code>. It records the CPU, the instruction set torch selected, the dispatch
-overrides in force and a numerical fingerprint. The fingerprint is the reliable key for “was this
-comparable hardware”: the CPU model name is not, because the same model can expose different
-features on different hosts.</p>
-<p>To compare two runs, use <code class="docutils literal notranslate"><span class="pre">tools/compare_subjects.py</span></code>: it compares voxels, vertices, transforms,
-statistics and labels rather than raw bytes, and reports how large each difference is. <code class="docutils literal notranslate"><span class="pre">diff</span></code> and
-checksums are no use here, because the headers record timestamps and the command line, so identical
-runs still differ byte for byte.</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span><span class="w"> </span><span class="nv">FASTSURFER_HOME</span><span class="o">=</span><span class="si">${</span><span class="nv">FASTSURFER_HOME</span><span class="k">:-</span><span class="p">/path/to/FastSurfer</span><span class="si">}</span>
-<span class="nb">export</span><span class="w"> </span><span class="nv">SUBJECTS_DIR</span><span class="o">=</span><span class="nv">$HOME</span>/my_fastsurfer_analysis
-python<span class="w"> </span><span class="nv">$FASTSURFER_HOME</span>/tools/compare_subjects.py<span class="w"> </span><span class="nv">$SUBJECTS_DIR</span>/subject_a<span class="w"> </span><span class="se">\</span>
-<span class="w">    </span><span class="nv">$SUBJECTS_DIR</span>/subject_b
-</pre></div>
-</div>
-</section>
+<p>Which results stay identical between two runs, how the thread count and the machine affect them,
+and how to compare two runs is described in <a class="reference internal" href="../overview/REPRODUCIBILITY.html"><span class="std std-doc">Reproducibility</span></a>.</p>
 </section>
 <section id="troubleshooting">
 <h2>Troubleshooting<a class="headerlink" href="#troubleshooting" title="Link to this heading">¶</a></h2>
@@ -831,14 +769,19 @@ Resource Options:
                             view agg is run on the cpu. Equivalently, if you
                             pass a different device, view agg will be run on that
                             device (no memory check will be done).
-  --threads &lt;int&gt;         Set openMP and ITK threads to &lt;int&gt; or "max", also
-  --threads_seg &lt;int&gt;       for definition of threads specific to segmentation
-  --threads_surf &lt;int&gt;      and surface reconstruction. For surfaces this is a
-                            total budget: with 2 or more the two hemispheres run
-                            at the same time and split it, so the default of 2
-                            gives one thread each. Use 1 for a single-threaded
-                            run, the setting to use if you need results to be
-                            reproducible (default: seg 1, surf 2).
+  --threads &lt;int&gt;         Set openMP, BLAS and ITK threads to &lt;int&gt;, "auto" or
+  --threads_seg &lt;int&gt;       "max", also for definition of threads specific to
+  --threads_surf &lt;int&gt;      segmentation and surface reconstruction. For
+                            surfaces this is a total budget: with 2 or more the
+                            two hemispheres run at the same time and split it,
+                            so 8 gives four each. Use 1 for a single-threaded
+                            run. Without these flags, OMP_NUM_THREADS sets the
+                            budget if exported, else auto: the allocation of a
+                            cgroup quota or a scheduler job, or else the
+                            physical cores less one (on Apple silicon all
+                            performance cores), at most 4 for a GPU
+                            segmentation and 8 otherwise, and at least 2 for
+                            surfaces. "max" uses all available CPUs.
   --parallel              Run the hemispheres at the same time with one thread
                             each, even at --threads 1. That keeps every binary
                             single threaded, and so reproducible, while still
@@ -1002,11 +945,7 @@ Reuter M, Schmansky NJ, Rosas HD, Fischl B. Within-subject template estimation
 <li><a class="reference internal" href="#some-other-flags">Some other flags</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#reproducibility">Reproducibility</a><ul>
-<li><a class="reference internal" href="#on-one-machine">On one machine</a></li>
-<li><a class="reference internal" href="#across-machines">Across machines</a></li>
-</ul>
-</li>
+<li><a class="reference internal" href="#reproducibility">Reproducibility</a></li>
 <li><a class="reference internal" href="#troubleshooting">Troubleshooting</a></li>
 <li><a class="reference internal" href="#full-list-of-flags">Full list of flags</a></li>
 </ul>
