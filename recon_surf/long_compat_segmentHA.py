@@ -253,6 +253,8 @@ def main(subjects_dir: Path, subject: str, fs_license: Path, threads: int = 1, i
         env = dict(os.environ)
         env["OMP_NUM_THREADS"] = str(threads)
         env["ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS"] = str(threads)
+        # recon-all's v8 steps off, as in recon-surf.sh; FreeSurfer 7 ignores this
+        env["FS_V8_XOPTS"] = "0"
 
         if Path(".") != fs_license:
             env["FS_LICENSE"] = str(fs_license)
