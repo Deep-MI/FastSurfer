@@ -4,7 +4,17 @@ url:
 - "https://b2share.fz-juelich.de/api/files/864b2ed5-e91e-4c2c-aa7a-c16b7c751b35"
 - "https://zenodo.org/records/10390742/files"
 
+# md5 is the checksum the hosts publish for the file. A download that does not match is retried, a
+# checkpoint that already exists is checked too, but a mismatch only logs a warning and the file is kept.
+# So the file behind a link (url + file name of path) must not change: publish a changed file under a
+# new link and update the link and the md5 together.
 checkpoint:
-  axial:  "checkpoints/CerebNet_axial_v1.0.0.pkl"
-  coronal: "checkpoints/CerebNet_coronal_v1.0.0.pkl"
-  sagittal: "checkpoints/CerebNet_sagittal_v1.0.0.pkl"
+  axial:
+    path: "checkpoints/CerebNet_axial_v1.0.0.pkl"
+    md5: "b62511c32e7ce059a68bb4e2728d5546"
+  coronal:
+    path: "checkpoints/CerebNet_coronal_v1.0.0.pkl"
+    md5: "840f87fa05cffdbf8b9d7e385acc76be"
+  sagittal:
+    path: "checkpoints/CerebNet_sagittal_v1.0.0.pkl"
+    md5: "eb836ed90893dc32950e83c8b060a360"

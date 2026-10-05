@@ -47,7 +47,7 @@ from FastSurferCNN.quick_qc import check_volume
 from FastSurferCNN.utils import PLANES, AffineMatrix4x4, Plane, logging, nibabelImage, parser_defaults
 from FastSurferCNN.utils.arg_types import OrientationType, VoxSizeOption
 from FastSurferCNN.utils.arg_types import vox_size as _vox_size
-from FastSurferCNN.utils.checkpoint import get_checkpoints, get_config_file, load_checkpoint_config_defaults
+from FastSurferCNN.utils.checkpoint import get_config_file, get_module_checkpoints
 from FastSurferCNN.utils.common import SubjectDirectory, SubjectList, find_device, handle_cuda_memory_exception
 from FastSurferCNN.utils.load_config import load_config
 from FastSurferCNN.utils.parallel import SerialExecutor, pipeline
@@ -630,12 +630,7 @@ def main(
     # Download checkpoints if they do not exist
     # see utils/checkpoint.py for default paths
     LOGGER.info("Checking or downloading default checkpoints ...")
-
-    config_file = get_config_file("FastSurferCNN")
-
-    urls = load_checkpoint_config_defaults("url", filename=config_file)
-
-    get_checkpoints(ckpt_ax, ckpt_cor, ckpt_sag, urls=urls)
+    get_module_checkpoints("FastSurferCNN", ckpt_ax, ckpt_cor, ckpt_sag)
 
     config = SubjectDirectoryConfig(
         orig_name=orig_name,
