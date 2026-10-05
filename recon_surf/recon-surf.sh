@@ -276,6 +276,8 @@ fi
 # FreeSurfer 8's recon-all defaults to its v8 steps (SynthStrip, SynthSeg, SynthMorph and surface
 # fixes). FastSurfer replaces those steps with its own, so they stay off; FreeSurfer 7 ignores this.
 export FS_V8_XOPTS=0
+# python's getpass, and nibabel's write_geometry with it, fail for a uid without a passwd entry
+if [[ -z "$USERNAME" ]] && ! id -un > /dev/null 2>&1 ; then export USERNAME="UNKNOWN" ; fi
 # a longitudinal time point copies the talairach registration from its base instead
 if [[ "$long" != "true" ]] && ! check_talairach_tools ; then exit 1 ; fi
 

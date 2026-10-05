@@ -330,8 +330,6 @@ EOF
 # runtime-writable image path outside the temporary directories.
 # FASTSURFER_DOCKER_DEFAULT_USER identifies the image user used when docker is
 # run without an explicit --user mapping.
-# USERNAME gives getpass.getuser() a name when the --user uid has no passwd entry,
-# so nibabel's write_geometry does not crash.
 ENV OS=Linux \
     FS_OVERRIDE=0 \
     FIX_VERTEX_AREA="" \
@@ -346,7 +344,6 @@ ENV OS=Linux \
     MPLCONFIGDIR=/tmp/matplotlib-config \
     XDG_DATA_HOME=/var/.local/share \
     FASTSURFER_DOCKER_DEFAULT_USER=nonroot \
-    USERNAME="UNKNOWN" \
     DO_NOT_SEARCH_FS_LICENSE_IN_FREESURFER_HOME="true"
 
 # Copy fastsurfer venv and pruned freesurfer from build images

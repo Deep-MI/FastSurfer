@@ -39,6 +39,8 @@ then
   # before `import torch`, so this must happen here, not later once the actual device is known
   export PYTORCH_ENABLE_MPS_FALLBACK=1
 fi
+# python's getpass, and nibabel's write_geometry with it, fail for a uid without a passwd entry
+if [[ -z "$USERNAME" ]] && ! id -un > /dev/null 2>&1 ; then export USERNAME="UNKNOWN" ; fi
 
 fastsurfercnndir="$FASTSURFER_HOME/FastSurferCNN"
 cerebnetdir="$FASTSURFER_HOME/CerebNet"
