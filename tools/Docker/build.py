@@ -42,8 +42,9 @@ Target = Literal["runtime", "build_common", "build_venv", "build_freesurfer", "b
 CacheType = Literal["inline", "registry", "local", "gha", "s3", "azblob"]
 # the devices the torch pinned in pyproject.toml ships wheels for; AllDeviceType adds the aliases cuda
 # and rocm, which resolve to DEFAULTS.CUDA and DEFAULTS.ROCM
-AllDeviceType = Literal["cpu", "cuda", "cu126", "cu130", "cu132", "rocm", "rocm7.14", "xpu"]
-DeviceType = Literal["cpu", "cu126", "cu130", "cu132", "rocm7.14", "xpu"]
+# Note, uv does not work with rocm7.14, but requires and only supports rocm7.2
+AllDeviceType = Literal["cpu", "cuda", "cu126", "cu130", "cu132", "rocm", "rocm7.2", "xpu"]
+DeviceType = Literal["cpu", "cu126", "cu130", "cu132", "rocm7.2", "xpu"]
 
 CREATE_BUILDER = "Create builder with 'docker buildx create --name fastsurfer'."
 CONTAINERD_MESSAGE = (
@@ -85,7 +86,7 @@ with open(default_home() / "pyproject.toml", "rb") as _pyproject:
 
 class DEFAULTS:
     CUDA_VERSION: str = _pyproject_tool["cuda"]["version"]
-    # the PyTorch backends of the versions: 13.2 -> cu132, 7.14 -> rocm7.14
+    # the PyTorch backends of the versions: 13.2 -> cu132, 7.14 -> rocm7.2 (uv)
     CUDA = cast(DeviceType, "cu" + CUDA_VERSION.replace(".", ""))
     ROCM = cast(DeviceType, "rocm" + _pyproject_tool["rocm"]["version"])
     MapDeviceType: dict[AllDeviceType, DeviceType] = dict(

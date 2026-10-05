@@ -303,10 +303,13 @@ shell_deps="time bc"
 # libgfortran5: the talairach (4dfp) tools of FreeSurfer 8's linux build need it
 freesurfer_deps="gawk libgfortran5 libgomp1 libquadmath0 tcsh"
 whippersnappy_egl_deps="libegl1 libgl1 libfontconfig1"
+# ROCm torch wheels require the 10KB libatomic1, installed into all for simplicity.
+torch_deps="libatomic1"
 apt-get install -y --no-install-recommends \
     $shell_deps \
     $freesurfer_deps \
     $whippersnappy_egl_deps \
+    $torch_deps \
     locales
 locale-gen en_US.UTF-8 C.UTF-8
 update-locale LANG=C.UTF-8 LC_NUMERIC=en_US.UTF-8

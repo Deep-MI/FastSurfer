@@ -179,8 +179,9 @@ version = "13.2"
 
 [tool.rocm]
 # The default ROCm version of the docker images. The PyTorch backend is rocm<version>
-# (7.14 -> rocm7.14), and the --device alias rocm of tools/Docker/build.py resolves to it.
-version = "7.14"
+# (7.14 -> rocm7.2), and the --device alias rocm of tools/Docker/build.py resolves to it.
+# Note, that pytorch itself calls this ROCm 7.14, but uv only knows rocm7.2
+version = "7.2"
 
 [tool.docker]
 # The default base images of the docker images that tools/Docker/build.py builds: build_base for the
