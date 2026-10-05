@@ -24,7 +24,7 @@ if [[ "$#" -lt 1 ]]; then
     echo "                                        [--name dirname] [--fs-download-cache path]"
     echo
     echo "--url is recommended! This is the download link for freesurfer, a .tar.gz, .rpm or .pkg."
-    echo "  The link can be found in pyproject.toml:tool.freesurfer.url!"
+    echo "  Without it, the url for this platform is read from pyproject.toml:tool.freesurfer.urls."
     echo "--insecure will skip certificate checks when downloading freesurfer."
     echo "--name sets the name of the directory the pruned install is placed in under install_dir"
     echo "  (default: freesurfer)."
@@ -74,7 +74,7 @@ for path in pathlib.Path("$THIS_SCRIPT").parents:
   try:
     if (path / "pyproject.toml").exists():
       with open(path / "pyproject.toml", "rb") as fp: dat = tomllib.load(fp)["tool"]["freesurfer"]
-      print(dat["urls"]["linux"].format(**dat))
+      print(dat["urls"]["macOS" if sys.platform == "darwin" else "linux"].format(**dat))
       break
   except Exception:
     continue # ignore all errors
@@ -483,8 +483,16 @@ case "$fslink" in
     fi
     patterns=()
     for file in "${copy_files[@]}" ; do patterns+=("./usr/local/freesurfer/*/$file") ; done
-    bsdtar -x --no-same-owner -f "$freesurfer_dl" -C "$fse" "${patterns[@]}"
+    bsdtar -x --no-same-owner -f "$freesurfer_dl" -C "$fse" "${patterns[@]}" 2> "$fse/bsdtar.log"
     extract_status=$?
+    cat "$fse/bsdtar.log" >&2
+    # bsdtar also fails on a listed file the rpm does not contain, while extracting the rest. That
+    # does not make the download broken, and the copy loop below names the missing files.
+    if [[ "$extract_status" != 0 ]] && \
+      ! grep -v -e "Not found in archive" -e "Error exit delayed" "$fse/bsdtar.log" | grep -q .
+    then
+      extract_status=0
+    fi
     fs_root="$(dirname "$(ls -d "$fse"/usr/local/freesurfer/*/build-stamp.txt 2> /dev/null | head -n 1)")"
     ;;
   *.pkg)
