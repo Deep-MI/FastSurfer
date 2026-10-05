@@ -6,7 +6,6 @@
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
 
-import ast
 import importlib
 import io
 import os
@@ -84,55 +83,50 @@ def _read_file_gitref(path: str, ref: str | None) -> str:
     ).stdout
 
 
-def _build_defaults_gitref(ref: str | None, *names: str) -> tuple:
-    """Return DEFAULTS.<name> of tools/Docker/build.py for each of names, in the working tree or at ref."""
-    for node in ast.walk(ast.parse(_read_file_gitref("tools/Docker/build.py", ref))):
-        if isinstance(node, ast.ClassDef) and node.name == "DEFAULTS":
-            values = {
-                target.id: stmt.value
-                for stmt in node.body if isinstance(stmt, ast.Assign)
-                for target in stmt.targets if isinstance(target, ast.Name)
-            }
-            if missing := [name for name in names if name not in values]:
-                raise RuntimeError(
-                    f"tools/Docker/build.py ({ref or 'working tree'}) does not define "
-                    f"{', '.join(f'DEFAULTS.{name}' for name in missing)}."
-                )
-            return tuple(ast.literal_eval(values[name]) for name in names)
-    raise RuntimeError(f"tools/Docker/build.py ({ref or 'working tree'}) has no class DEFAULTS.")
+# tool.<key> of releases whose pyproject.toml predates the key (python.version: ARG PYTHON_VERSION of their
+# tools/Docker/Dockerfile, cuda.version and docker.runtime_base: DEFAULTS.CUDA_VERSION, DEFAULTS.ROCM_VERSION,
+# DEFAULTS.BUILD_BASE_IMAGE and DEFAULTS.RUNTIME_BASE_IMAGE of their tools/Docker/build.py); remove an
+# entry once the newest release defines the keys
+_TOOL_VALUES_FALLBACK = {
+    "v2.5.4": {
+        "python.version": "3.12",
+        "cuda.version": "12.8",
+        "rocm.version": "6.3",
+        "docker.runtime_base": "ubuntu:24.04",
+        "docker.build_base": "ubuntu:24.04",
+    },
+}
 
 
-# tool.<name>.version of releases whose pyproject.toml predates the key (python: ARG PYTHON_VERSION of their
-# tools/Docker/Dockerfile); remove an entry once the newest release defines the key
-_TOOL_VERSIONS_FALLBACK = {"v2.5.4": {"python": "3.12"}}
-
-
-def _tool_versions_gitref(ref: str | None, *names: str) -> tuple[str, ...]:
-    """Return tool.<name>.version of pyproject.toml for each of names, in the working tree or at ref."""
+def _tool_values_gitref(ref: str | None, *keys: str) -> tuple[str, ...]:
+    """Return tool.<key> of pyproject.toml for each of keys (e.g. python.version), in the working tree or at ref."""
     tool = tomllib.loads(_read_file_gitref("pyproject.toml", ref)).get("tool", {})
-    versions = _TOOL_VERSIONS_FALLBACK.get(ref, {}) | {
-        name: tool[name]["version"] for name in names if "version" in tool.get(name, {})
-    }
-    if missing := [name for name in names if name not in versions]:
+    values = dict(_TOOL_VALUES_FALLBACK.get(ref, {}))
+    for key in keys:
+        section, _, name = key.partition(".")
+        if name in tool.get(section, {}):
+            values[key] = tool[section][name]
+    if missing := [key for key in keys if key not in values]:
         raise RuntimeError(
             f"pyproject.toml ({ref or 'working tree'}) does not define "
-            f"{', '.join(f'tool.{name}.version' for name in missing)}."
+            f"{', '.join(f'tool.{key}' for key in missing)}."
         )
-    return tuple(versions[name] for name in names)
+    return tuple(values[key] for key in keys)
 
 
 # the tree the images named by image_version were built from, which is also what the native installation clones
 # (--branch stable), so the versions of the software in both come from there as well
 _image_ref = None if documents_a_release else f"v{image_version}"
-# the CUDA device, the CUDA version and the base image of the images named by image_version, these are the device of
-# the `latest` image and the CUDA version it ships
-image_cuda, version_cuda, _runtime_base_image = _build_defaults_gitref(
-    _image_ref, "CUDA", "CUDA_VERSION", "RUNTIME_BASE_IMAGE",
+# the CUDA version and the base image of the images named by image_version, the CUDA version is the one of the
+# `latest` image
+version_python, version_freesurfer, version_cuda, _runtime_base_image = _tool_values_gitref(
+    _image_ref, "python.version", "freesurfer.version", "cuda.version", "docker.runtime_base",
 )
 if not _runtime_base_image.startswith("ubuntu:"):
-    raise RuntimeError(f"UBUNTU_VERSION needs an ubuntu image, DEFAULTS.RUNTIME_BASE_IMAGE is {_runtime_base_image}.")
+    raise RuntimeError(f"UBUNTU_VERSION needs an ubuntu image, tool.docker.runtime_base is {_runtime_base_image}.")
 version_ubuntu = _runtime_base_image.removeprefix("ubuntu:")
-version_python, version_freesurfer = _tool_versions_gitref(_image_ref, "python", "freesurfer")
+# the PyTorch backend and device name of that CUDA version (13.2 -> cu132)
+image_cuda = "cu" + version_cuda.replace(".", "")
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration

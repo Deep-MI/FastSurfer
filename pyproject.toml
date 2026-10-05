@@ -161,6 +161,40 @@ version = "8.2.0"
 linux = "https://surfer.nmr.mgh.harvard.edu/pub/dist/freesurfer/{version}/freesurfer-Rocky8-{version}-1.x86_64.rpm"
 macOS = "https://surfer.nmr.mgh.harvard.edu/pub/dist/freesurfer/{version}/freesurfer-macOS-darwin_arm64-{version}.pkg"
 
+[tool.cuda]
+# The default CUDA version of the docker images, which the `latest` image is built for. The PyTorch
+# backend is cu<version without dots> (13.2 -> cu132), and the --device alias cuda of
+# tools/Docker/build.py resolves to it.
+#
+# Who uses it today:
+#   - tools/Docker/build.py, for --device cuda and the tag fastsurfer:dev.
+#   - tools/update_requirements.sh, for the install example in the header of requirements.txt.
+#   - doc/conf.py reads this key for {{ CUDA_VERSION }} and {{ CUDA_STRING }} in the documentation,
+#     from the release the documentation refers to.
+#
+# Raising this version (or tool.rocm.version) also requires that the torch pinned in
+# project.dependencies ships wheels for the backend, and that DeviceType and AllDeviceType in
+# tools/Docker/build.py list it.
+version = "13.2"
+
+[tool.rocm]
+# The default ROCm version of the docker images. The PyTorch backend is rocm<version>
+# (7.14 -> rocm7.14), and the --device alias rocm of tools/Docker/build.py resolves to it.
+version = "7.14"
+
+[tool.docker]
+# The default base images of the docker images that tools/Docker/build.py builds: build_base for the
+# stages that build the python environment and FreeSurfer, runtime_base for the runtime image.
+#
+# Who uses it today:
+#   - tools/Docker/build.py, as the defaults of --build_base_image and --runtime_base_image.
+#   - doc/conf.py reads runtime_base for {{ UBUNTU_VERSION }} in the documentation, from the release
+#     the documentation refers to, so it has to be an ubuntu image.
+#   - tools/Docker/Dockerfile keeps copies as the defaults of ARG BUILD_BASE_IMAGE and
+#     ARG RUNTIME_BASE_IMAGE, for a direct `docker build`.
+build_base = "ubuntu:24.04"
+runtime_base = "ubuntu:24.04"
+
 [tool.setuptools.packages.find]
 # an explicit `packages = [...]` list is not recursive, so it silently dropped every subpackage
 # (FastSurferCNN.utils, CerebNet.models, ...) and, since it was added, CorpusCallosum as well

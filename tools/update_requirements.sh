@@ -34,6 +34,9 @@ fi
 
 repo=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 python_version=$(python3 "$repo/tools/read_toml.py" --file "$repo/pyproject.toml" --key tool.python.version)
+# the PyTorch backend of the default CUDA version (13.2 -> cu132), for the install example below
+cuda_version=$(python3 "$repo/tools/read_toml.py" --file "$repo/pyproject.toml" --key tool.cuda.version)
+cuda="cu${cuda_version//./}"
 
 compiled=$(cd "$repo" && uv pip compile --quiet --no-header --no-annotate --universal --extra container \
   pyproject.toml --python-version "$python_version" --torch-backend cpu)
@@ -49,10 +52,10 @@ trap 'rm -f "$tmp_target"' EXIT
   echo "# Resolved for Linux and macOS together with python $python_version, so every pin exists on both."
   echo "# PyTorch backend variants are not pinned; select one at install time, for example:"
   echo "#"
-  echo '#    resolved=$(uv pip compile --torch-backend=cu128 requirements.txt) && uv pip sync --torch-backend=cuda - <<< "$resolved"'
+  echo "#    resolved=\$(uv pip compile --torch-backend=$cuda requirements.txt) && uv pip sync --torch-backend=$cuda - <<< \"\$resolved\""
   echo '#    resolved=$(uv pip compile --torch-backend=cpu requirements.txt) && uv pip sync --torch-backend=cpu - <<< "$resolved"'
   echo "#"
-  # drop the local version suffix (torch==2.7.1+cpu); forks that then name the same version for
+  # drop the local version suffix (torch==X.Y.Z+cpu); forks that then name the same version for
   # every platform collapse into one unconditional pin
   echo "$compiled" | python3 -c '
 import re

@@ -25,7 +25,7 @@
 #   - default: build_freesurfer
 # - VENV_BUILD_IMAGE:
 #   Image to use to install the python environment from, the python environment should be in /venv/ in the image.
-#   - default: build_cuda
+#   - default: build_venv
 # - BUILDKIT_SBOM_SCAN_CONTEXT:
 #   Enables buildkit to provide and scan build images this is active by default to provide proper SBOM manifests,
 #   however, it may also include parts that are not part of the distributed image (specifically build image parts
@@ -36,12 +36,8 @@
 #   The version of uv to use to build the python environment.
 #   - default: 0.12.22
 # - FREESURFER_VERSION:
-#   The freesurfer version for the labels of the build_freesurfer image. The version and the url
-#   that are installed come from tool.freesurfer in pyproject.toml, which a label cannot read, so
-#   build.py passes tool.freesurfer.version here and the build_freesurfer stage fails if they differ.
-#   The default is for a direct `docker build`, test/lint/test_dockerfile_freesurfer_version.py
-#   checks it against tool.freesurfer.version.
-#   - default: build.py passes tool.freesurfer.version from pyproject.toml
+#   The version is needed to annotate the FreeSurfer version in the image labels.
+#   - default: same as tool.freesurfer.version in pyproject.toml, else an error is generated
 # - FASTSURFER_VERSION:
 #   The fastsurfer version to include in image labels.
 #   - default: dev

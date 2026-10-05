@@ -40,6 +40,8 @@ logger = logging.getLogger(__name__)
 
 Target = Literal["runtime", "build_common", "build_venv", "build_freesurfer", "build_base", "runtime_cuda"]
 CacheType = Literal["inline", "registry", "local", "gha", "s3", "azblob"]
+# the devices the torch pinned in pyproject.toml ships wheels for; AllDeviceType adds the aliases cuda
+# and rocm, which resolve to DEFAULTS.CUDA and DEFAULTS.ROCM
 AllDeviceType = Literal["cpu", "cuda", "cu126", "cu130", "cu132", "rocm", "rocm7.14", "xpu"]
 DeviceType = Literal["cpu", "cu126", "cu130", "cu132", "rocm7.14", "xpu"]
 
@@ -63,22 +65,36 @@ INSTALL_BUILDX = (
 __import_cache = {}
 
 
+def default_home() -> Path:
+    """
+    Find the fastsurfer path.
+
+    Returns
+    -------
+    Path
+        The FastSurfer root path belonging to this build.py file.
+    """
+    return Path(__file__).resolve().parents[2]
+
+
+# the defaults are tool.cuda.version, tool.rocm.version and tool.docker of the pyproject.toml of the
+# FastSurfer tree this build.py belongs to
+with open(default_home() / "pyproject.toml", "rb") as _pyproject:
+    _pyproject_tool = tomllib.load(_pyproject)["tool"]
+
+
 class DEFAULTS:
-    # Here (and in the Literals at the top of the document), we need to update the cuda
-    # and rocm versions, if pytorch comes with new versions.
-    # torch 2.14.1 comes compiled with cu126, cu130, cu132, rocm7.14, and xpu (intel)
-    CUDA="cu132"
-    CUDA_VERSION="13.2"
-    ROCM="rocm7.14"
+    CUDA_VERSION: str = _pyproject_tool["cuda"]["version"]
+    # the PyTorch backends of the versions: 13.2 -> cu132, 7.14 -> rocm7.14
+    CUDA = cast(DeviceType, "cu" + CUDA_VERSION.replace(".", ""))
+    ROCM = cast(DeviceType, "rocm" + _pyproject_tool["rocm"]["version"])
     MapDeviceType: dict[AllDeviceType, DeviceType] = dict(
         ((d, d) for d in get_args(DeviceType)),
         rocm=ROCM,
         cuda=CUDA,
     )
-    BUILD_BASE_IMAGE = "ubuntu:24.04"
-    RUNTIME_BASE_IMAGE = "ubuntu:24.04"
-    FREESURFER_BUILD_IMAGE = "build_freesurfer"
-    VENV_BUILD_IMAGE = "build_venv"
+    BUILD_BASE_IMAGE: str = _pyproject_tool["docker"]["build_base"]
+    RUNTIME_BASE_IMAGE: str = _pyproject_tool["docker"]["runtime_base"]
 
 
 def docker_image(arg) -> str:
@@ -739,16 +755,14 @@ def main(
     ]
     if debug:
         kwargs["build_arg"].append("DEBUG=true")
-    build_arg_list = [
-        "build_base_image",
-        "runtime_base_image",
-        "freesurfer_build_image",
-        "venv_build_image",
-    ]
-    for key in build_arg_list:
+    for key in ("build_base_image", "runtime_base_image"):
         upper_key = key.upper()
         value = keywords.get(key) or getattr(DEFAULTS, upper_key)
         kwargs["build_arg"].append(f"{upper_key}={value}")
+    # if they do not get passed to build.py, use the defaults from the Dockerfile (build stages)
+    for key in ("freesurfer_build_image", "venv_build_image"):
+        if value := keywords.get(key):
+            kwargs["build_arg"].append(f"{key.upper()}={value}")
 
     build_filename = fastsurfer_home / "tools" / "Docker" / "BUILD.info"
     if has_git():
@@ -896,18 +910,6 @@ def get_repository_url(branch: str = "HEAD") -> str | None:
         host = split.hostname + (f":{split.port}" if split.port else "")
         repository_url = urlunsplit(split._replace(netloc=host))
     return repository_url + "/tree/" + remote_branch
-
-
-def default_home() -> Path:
-    """
-    Find the fastsurfer path.
-
-    Returns
-    -------
-    Path
-        The FastSurfer root path belonging to this build.py file.
-    """
-    return Path(__file__).resolve().parents[2]
 
 
 if __name__ == "__main__":

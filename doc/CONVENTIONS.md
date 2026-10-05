@@ -148,9 +148,9 @@ Help texts of scripts shown with `command-output` follow the same limit: wrap th
 Official Docker images only exist for releases, so where a command names a version (in image tags and file names), it
 uses `{{ FASTSURFER_VERSION }}`. In the documentation of a release, this is that release; in the development
 documentation, the latest release. Likewise, the NVIDIA image of that release is
-`{{ CUDA_STRING }}-v{{ FASTSURFER_VERSION }}`: `{{ CUDA_STRING }}` is `DEFAULTS.CUDA` in `tools/Docker/build.py` of
-that release, its default CUDA version (the image `latest` points to while that release is the newest).
-`{{ CUDA_VERSION }}` is `DEFAULTS.CUDA_VERSION` of the same file, the CUDA version of that image. Name another CUDA
+`{{ CUDA_STRING }}-v{{ FASTSURFER_VERSION }}`: `{{ CUDA_VERSION }}` is `tool.cuda.version` in `pyproject.toml` of that
+release, the CUDA version of the image `latest` points to while that release is the newest, and
+`{{ CUDA_STRING }}` the PyTorch backend of that version (`cu` and the version without dots). Name another CUDA
 version only where the text is about choosing one; `tools/Docker/build.py --print_supported cuda|rocm` lists the
 supported versions.
 `fix_links` also renders a note on top of each code block that uses them (`fix_links_substitution_banners` in
@@ -160,7 +160,7 @@ Docker Hub. Do not add such notes by hand.
 
 The software in the images of that release, which is also what the native installation clones (`--branch stable`),
 comes with versions from the same tree: `{{ PYTHON_VERSION }}` is `tool.python.version` in `pyproject.toml`,
-`{{ UBUNTU_VERSION }}` the Ubuntu version of `DEFAULTS.RUNTIME_BASE_IMAGE` in `tools/Docker/build.py`, and
+`{{ UBUNTU_VERSION }}` the Ubuntu version of `tool.docker.runtime_base` in `pyproject.toml`, and
 `{{ FREESURFER_VERSION }}` is `tool.freesurfer.version` in `pyproject.toml`. Code blocks that use them get no note.
 
 reST files are not substituted, so commands there use the `latest` image instead: `deepmi/fastsurfer:latest` and
