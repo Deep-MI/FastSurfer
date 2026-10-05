@@ -433,6 +433,7 @@ SHELL ["/bin/bash", "--login", "-c"]
 RUN <<EOF
 getent group nonroot > /dev/null || groupadd --system nonroot
 id -u nonroot > /dev/null 2>&1 || useradd --system --gid nonroot --no-create-home --home-dir /nonexistent --shell /usr/sbin/nologin nonroot
+echo "if [[ -z \"\$USERNAME\" ]] && ! id -un > /dev/null 2>&1 ; then export USERNAME=\"UNKNOWN\" ; fi" >> /etc/bash.bashrc
 EOF
 USER nonroot
 WORKDIR "/fastsurfer"
