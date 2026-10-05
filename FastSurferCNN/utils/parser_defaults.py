@@ -430,7 +430,12 @@ def add_plane_flags[T_AddArgs: "CanAddArguments"](
     defaults = load_checkpoint_config_defaults(configtype, defaults_path)
 
     for plane, filepath in files.items():
-        path = defaults[plane] if str(filepath) == "default" else Path(filepath)
+        if str(filepath) != "default":
+            path = Path(filepath)
+        elif configtype == "checkpoint":
+            path = defaults[plane].path
+        else:
+            path = defaults[plane]
         if not path.is_absolute():
             path = FASTSURFER_ROOT / path
         # find the first vowel in the key

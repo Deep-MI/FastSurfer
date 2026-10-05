@@ -25,11 +25,7 @@ if TYPE_CHECKING:
     import yacs.config
 
 from FastSurferCNN.utils import PLANES, Plane, logging, nibabelHeader, parser_defaults
-from FastSurferCNN.utils.checkpoint import (
-    get_checkpoints,
-    get_config_file,
-    load_checkpoint_config_defaults,
-)
+from FastSurferCNN.utils.checkpoint import get_config_file, get_module_checkpoints
 from FastSurferCNN.utils.common import update_docstring
 from FastSurferCNN.utils.parallel import get_num_threads, set_num_threads, thread_executor
 from HypVINN.config.hypvinn_files import HYPVINN_MASK_NAME, HYPVINN_SEG_NAME, HYPVINN_STATS_NAME
@@ -418,9 +414,7 @@ def prepare_checkpoints(ckpt_ax: str | Path, ckpt_cor: str | Path, ckpt_sag: str
         The path to the sagittal checkpoint file.
     """
     logger.info("Checking or downloading default checkpoints ...")
-    config_file = get_config_file("HypVINN")
-    urls = load_checkpoint_config_defaults("url", filename=config_file)
-    get_checkpoints(ckpt_ax, ckpt_cor, ckpt_sag, urls=urls)
+    get_module_checkpoints("HypVINN", ckpt_ax, ckpt_cor, ckpt_sag)
 
 
 def load_volumes(
