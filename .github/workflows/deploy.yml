@@ -46,9 +46,10 @@ jobs:
           # uv fetches the relocatable standalone python and the dependencies that get bundled
           # into the package (see the BUNDLED PYTHON ENVIRONMENT section of the build script)
           brew update
+          # upgrade only when outdated: on a current formula brew warns, which becomes an annotation
           for formula in aria2 uv ; do
-            if brew list "$formula" > /dev/null 2>&1 ; then brew upgrade "$formula"
-            else brew install "$formula"
+            if ! brew list "$formula" > /dev/null 2>&1 ; then brew install "$formula"
+            elif [[ -n "$(brew outdated --quiet "$formula")" ]] ; then brew upgrade "$formula"
             fi
           done
       - name: Resolve cache keys
