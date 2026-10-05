@@ -2,17 +2,27 @@
 #
 # This pre-commit script is developed and extended from the github example pre-commit hook script from git.
 #
-# To install, copy of soft-link this file to FastSurfer/.git/hooks/pre-commit
-# The script uses bash, git, uv, ruff, codespell, sphinx.
+# To install, copy or soft-link this file to FastSurfer/.git/hooks/pre-commit
+# The script uses bash, git, uv, ruff, codespell, pytest, sphinx.
 # Of these, bash and git need to be installed for the script to function, uv needs to be installed
-# for ruff, codespell and sphinx to work.
+# for ruff, codespell, the tests and sphinx to work.
+#
+# The checks run in parallel. Each one writes its output to its own log. Only the log of a failed check
+# is printed, as one block when it finishes, so the output of concurrent checks does not interleave; a
+# passed check prints one line. The logs of all checks are collected in one file in $TMPDIR (named in
+# the summary), which the next run overwrites. A summary with the time each check took closes the
+# output. Every check runs to completion, and any failed check blocks the commit; `git commit
+# --no-verify` skips the hook.
+#
+# This script has to run under bash 3.2, which is /bin/bash on macOS: no `wait -n` (so finished checks
+# are polled for), no associative arrays.
 
 if git rev-parse --verify HEAD >/dev/null 2>&1
 then
-	against=HEAD
+  against=HEAD
 else
-	# Initial commit: diff against an empty tree object
-	against=$(git hash-object -t tree /dev/null)
+  # Initial commit: diff against an empty tree object
+  against=$(git hash-object -t tree /dev/null)
 fi
 
 # If you want to allow non-ASCII filenames set this variable to true.
@@ -21,18 +31,33 @@ allownonascii=$(git config --bool hooks.allownonascii)
 # Redirect output to stderr.
 exec 1>&2
 
-echo "INFO: pre-commit hook: Running allownonascii: ${allownnascii:-no}"
-# Cross platform projects tend to avoid non-ASCII filenames; prevent
-# them from being added to the repository. We exploit the fact that the
-# printable range starts at the space character and ends with tilde.
-if [ "$allownonascii" != "true" ] &&
-	# Note that the use of brackets around a tr range is ok here, (it's
-	# even required, for portability to Solaris 10's /usr/bin/tr), since
-	# the square bracket bytes happen to fall in the designated range.
-	test $(git diff --cached --name-only --diff-filter=A -z $against |
-	  LC_ALL=C tr -d '[ -~]\0' | wc -c) != 0
-then
-	cat <<EOF
+logdir=$(mktemp -d "${TMPDIR:-/tmp}/fastsurfer-pre-commit.XXXXXX") || exit 1
+trap 'rm -rf "$logdir"' EXIT
+# the logs of all checks, kept for review after the hook is done. The name is fixed per user and
+# repository, so the next run replaces it instead of piling up logs, and two clones do not share one.
+fulllog="${TMPDIR:-/tmp}/fastsurfer-pre-commit-$(id -u)-$(pwd | cksum | cut -d " " -f 1).log"
+: > "$fulllog" || exit 1
+# every time is reported as the elapsed wall time in seconds, with milliseconds
+TIMEFORMAT="%3R"
+
+# ---------------------------------------------------------------------------------------------------
+# The checks. Each one is a function that run_task calls with its output redirected to its log.
+# ---------------------------------------------------------------------------------------------------
+
+function check_nonascii()
+{
+  echo "hooks.allownonascii: ${allownonascii:-false}"
+  # Cross platform projects tend to avoid non-ASCII filenames; prevent
+  # them from being added to the repository. We exploit the fact that the
+  # printable range starts at the space character and ends with tilde.
+  if [ "$allownonascii" != "true" ] &&
+    # Note that the use of brackets around a tr range is ok here, (it's
+    # even required, for portability to Solaris 10's /usr/bin/tr), since
+    # the square bracket bytes happen to fall in the designated range.
+    test $(git diff --cached --name-only --diff-filter=A -z $against |
+      LC_ALL=C tr -d '[ -~]\0' | wc -c) != 0
+  then
+    cat <<EOF
 Error: Attempt to add a non-ASCII file name.
 
 This can cause problems if you want to work with people on other platforms.
@@ -43,42 +68,90 @@ If you know what you are doing you can disable this check using:
 
   git config hooks.allownonascii true
 EOF
-	exit 1
-fi
+    return 1
+  fi
+}
 
-if [ "$(which uv)" == "" ]
-then
-	echo "WARNING: pre-commit hook: install/source uv to run ruff and sphinx hooks!"
-else
-	echo "INFO: pre-commit hook: Running ruff"
-	uv run --extra style ruff check
+function check_whitespace()
+{
+  # If there are whitespace errors, print the offending file names and fail.
+  git diff-index --check --cached "$against" --
+}
 
-	echo "INFO: pre-commit hook: Running codespell"
-	# paths to skip that are not in .gitignore
-	skip_files='./doc/images,./Tutorial,./.git,./.mypy_cache,./.pytest_cache'
-	# add .gitignore patterns as codespell globs (fnmatch, "*" also matches "/", so anchored patterns may over-match)
-	skip_files+=$(uv run --extra style python - <<-'PYTHON'
-	from pathlib import Path
+# ignored_paths [prefix]: the paths git ignores (.gitignore files, .git/info/exclude, the global excludes)
+# that start with prefix, NUL-separated, folders collapsed and without their trailing slash
+function ignored_paths()
+{
+  local path
+  while IFS= read -r -d '' path
+  do
+    case "$path" in "$1"*) printf '%s\0' "${path%/}" ;; esac
+  done < <(git ls-files -z --others --ignored --exclude-standard --directory --no-empty-directory)
+}
 
-	for line in Path(".gitignore").read_text().splitlines():
-	    pattern = line.rstrip()
-	    # skip blank lines, comments, negations (unsupported by codespell) and commas (--skip separator)
-	    if not pattern or pattern.startswith(("#", "!")) or "," in pattern:
-	        continue
-	    # a trailing slash (directory-only) does not anchor
-	    pattern = pattern.removesuffix("/")
-	    # "**/x" matches at any depth; a slash at the start or in the middle anchors the pattern at the repository root
-	    if pattern.startswith("**/"):
-	        pattern = "*/" + pattern.removeprefix("**/")
-	    elif "/" in pattern:
-	        pattern = "./" + pattern.removeprefix("/")
-	    # "dir/**" -> skip the directory "dir"
-	    print("," + pattern.removesuffix("/**"), end="")
-	PYTHON
-	)
-	uv run --extra style codespell --check-filenames --check-hidden --context 3 \
-	  --skip "$skip_files" --ignore-words ./.codespellignore
+# pytest_ignores: set the array ignores to an --ignore argument for every ignored path in test
+function pytest_ignores()
+{
+  local path
+  ignores=()
+  while IFS= read -r -d '' path
+  do
+    ignores+=("--ignore=$path")
+  done < <(ignored_paths test/)
+}
 
+function check_lint_tests()
+{
+  # As in the code-style workflow: test/lint only reads files, so it needs pytest and not the project
+  # environment, and it does not wait for sync_environment.
+  # No cacheprovider: the unit tests run at the same time, and .pytest_cache (--lf) is left to them.
+  local ignores
+  pytest_ignores
+  uv run --no-project --with pytest pytest -p no:cacheprovider ${ignores[@]+"${ignores[@]}"} test/lint
+}
+
+function sync_environment()
+{
+  # One sync with every extra the checks below need, before they start: style (ruff, codespell) and doc
+  # (sphinx). They run `uv run --no-sync` concurrently, so none of them changes the environment while
+  # another one uses it. --inexact, as `uv run --extra ...` syncs, so packages of other extras stay installed.
+  uv sync --inexact --extra style --extra doc
+}
+
+function check_ruff()
+{
+  # ruff skips what git ignores by itself (respect-gitignore, on by default)
+  uv run --no-sync ruff check
+}
+
+function check_codespell()
+{
+  # paths to skip that git does not ignore, and every path it does ignore (by git, so nested .gitignore
+  # files and .git/info/exclude count too); a path with a comma cannot be given, comma is the separator
+  local skip_files='./doc/images,./Tutorial,./.git' path
+  while IFS= read -r -d '' path
+  do
+    case "$path" in *,*) ;; *) skip_files+=",./$path" ;; esac
+  done < <(ignored_paths)
+  uv run --no-sync codespell --check-filenames --check-hidden --context 3 \
+    --skip "$skip_files" --ignore-words ./.codespellignore
+}
+
+function check_unit_tests()
+{
+  # As in the unittest workflow, with two differences. test/shell/test_brun_bash32.py is collected: it
+  # skips itself unless /bin/bash is 3.x, so it runs on macOS, as in the macOS job of that workflow, and
+  # skips everywhere else. And the tests run in 4 pytest-xdist workers, which about halves their run time;
+  # more workers are not faster, because every worker spends about 10 s importing torch and the other
+  # heavy modules during collection. pytest and pytest-xdist come from --with, not from an extra.
+  local ignores
+  pytest_ignores
+  FASTSURFER_HOME="$PWD" uv run --no-sync --with pytest --with pytest-xdist python -m pytest -n 4 \
+    ${ignores[@]+"${ignores[@]}"} test/image test/shell test/utils
+}
+
+function build_doc()
+{
   # if this is a valid git repository and the doc/api/generated or doc-build folder exists, clean them before sphinx-doc
   if [[ -d ".git" ]] && [[ -n "$(which git)" ]] && git --git-dir=.git branch --show-current 2>/dev/null >/dev/null \
      && { [[ -d "doc/api/generated" ]] || [[ -d "doc-build" ]]; }
@@ -87,10 +160,178 @@ else
     if [[ -d "doc/api/generated" ]] ; then rm -rf doc/api/generated/* ; fi
     if [[ -d "doc-build" ]] ; then rm -rf doc/api/generated/* doc-build/* ; fi
   fi
-	echo "INFO: pre-commit hook: Build sphinx-doc"
-	uv run --extra doc sphinx-build -j auto -WT --keep-going doc ./doc-build
-fi
+  uv run --no-sync sphinx-build -j auto -WT --keep-going doc ./doc-build
+}
 
-echo "INFO: pre-commit hook: Checking for trailing whitespaces"
-# If there are whitespace errors, print the offending file names and fail.
-exec git diff-index --check --cached $against --
+# ---------------------------------------------------------------------------------------------------
+# Running the checks. Per check, indexed alike: its name, the pid of its background job (which is also
+# the job's process group), its status (passed, FAILED or skipped; empty while it runs) and its duration.
+# ---------------------------------------------------------------------------------------------------
+
+names=()
+pids=()
+status=()
+durations=()
+failed=0
+interrupted=""
+
+# run_task <index> <function>: run a check with its output going to its log, then record its duration
+# and exit code. The exit code is written last and by a rename, so an existing .rc file means: done.
+function run_task()
+{
+  { time "$2" > "$logdir/$1.log" 2>&1 < /dev/null ; } 2> "$logdir/$1.time"
+  echo "$?" > "$logdir/$1.rc.part"
+  mv "$logdir/$1.rc.part" "$logdir/$1.rc"
+}
+
+# start_task <name> <function>: run a check in the background, in a process group of its own
+function start_task()
+{
+  local i="${#names[@]}"
+  names[i]="$1"
+  # Monitor mode (set -m) only to start the job: that puts the job, and every process it starts, into a
+  # process group of its own, which stop_tasks signals and waits for. Commands in the foreground stay in
+  # the hook's process group, so Ctrl-C still reaches the hook.
+  set -m
+  run_task "$i" "$2" &
+  pids[i]=$!
+  set +m
+}
+
+# skip_task <name> <reason>: list a check that cannot run in the summary
+function skip_task()
+{
+  local i="${#names[@]}"
+  names[i]="$1 ($2)"
+  status[i]=skipped
+}
+
+# report_task <index>: print the result of a finished check, and its log if it failed; add the log to
+# the full log either way. The duration is only printed in the summary.
+function report_task()
+{
+  local i="$1" rc duration
+  read -r rc < "$logdir/$i.rc"
+  read -r duration < "$logdir/$i.time"
+  durations[i]="$duration s"
+  if [[ "$rc" == 0 ]]
+  then
+    status[i]=passed
+    echo "INFO: pre-commit hook: ${names[i]} passed"
+  else
+    status[i]=FAILED
+    failed=1
+    echo "ERROR: pre-commit hook: ${names[i]} failed with exit code $rc"
+    cat "$logdir/$i.log"
+  fi
+  {
+    echo "===== ${names[i]}: ${status[i]}, exit code $rc (${duration} s) ====="
+    cat "$logdir/$i.log"
+    echo
+  } >> "$fulllog"
+}
+
+# report_tasks: report every check as it finishes, polling, because bash 3.2 has no `wait -n`
+function report_tasks()
+{
+  local i pending=1
+  while [[ "$pending" == 1 ]] && [[ -z "$interrupted" ]]
+  do
+    pending=0
+    for (( i=0; i<${#names[@]}; i++ ))
+    do
+      if [[ -n "${status[i]}" ]] ; then continue
+      elif [[ -f "$logdir/$i.rc" ]] ; then report_task "$i"
+      else pending=1
+      fi
+    done
+    if [[ "$pending" == 1 ]] ; then sleep 0.2 ; fi
+  done
+  # reap the background jobs
+  wait
+}
+
+# On Ctrl-C or SIGTERM, stop the running checks before the hook exits. Their process groups (see
+# start_task) do not receive the Ctrl-C, so this terminates each group and waits until it is empty:
+# otherwise uv, pytest or sphinx-build could still be writing to doc-build or the log directory after the
+# hook is gone. A group still there after 5 s is killed.
+function stop_tasks()
+{
+  local i n pgid stopped=()
+  interrupted=1
+  for (( i=0; i<${#names[@]}; i++ ))
+  do
+    if [[ -n "${pids[i]}" ]] && [[ ! -f "$logdir/$i.rc" ]]
+    then
+      kill -TERM -- "-${pids[i]}" 2>/dev/null
+      stopped+=("${pids[i]}")
+    fi
+  done
+  for pgid in "${stopped[@]}"
+  do
+    n=0
+    while kill -0 -- "-$pgid" 2>/dev/null
+    do
+      if [[ "$n" == 50 ]] ; then kill -KILL -- "-$pgid" 2>/dev/null ; fi
+      sleep 0.1
+      n=$((n + 1))
+    done
+  done
+}
+trap stop_tasks INT TERM
+
+function run_checks()
+{
+  local i name rc
+  start_task "non-ASCII file names" check_nonascii
+  start_task "trailing whitespace" check_whitespace
+  if [[ -z "$(which uv)" ]]
+  then
+    echo "WARNING: pre-commit hook: install/source uv to run the ruff, codespell, test and sphinx hooks!"
+    for name in "lint tests" "uv sync" "ruff" "codespell" "unit tests" "sphinx-doc"
+    do
+      skip_task "$name" "uv not found"
+    done
+  else
+    start_task "lint tests" check_lint_tests
+    echo "INFO: pre-commit hook: running uv sync, the checks that use the project environment start after it"
+    i="${#names[@]}"
+    names[i]="uv sync"
+    run_task "$i" sync_environment
+    if [[ -n "$interrupted" ]] ; then return ; fi
+    read -r rc < "$logdir/$i.rc"
+    if [[ "$rc" == 0 ]]
+    then
+      start_task "ruff" check_ruff
+      start_task "codespell" check_codespell
+      start_task "unit tests" check_unit_tests
+      start_task "sphinx-doc" build_doc
+    else
+      for name in "ruff" "codespell" "unit tests" "sphinx-doc"
+      do
+        skip_task "$name" "uv sync failed"
+      done
+    fi
+  fi
+  report_tasks
+}
+
+# the time reported by `time` goes to total.time, the output of run_checks to stderr (fd 3)
+{ time run_checks 2>&3 ; } 3>&2 2> "$logdir/total.time"
+if [[ -n "$interrupted" ]]
+then
+  echo "ERROR: pre-commit hook: interrupted, stopped the running checks"
+  exit 130
+fi
+read -r total < "$logdir/total.time"
+
+echo "INFO: pre-commit hook: summary, ${total} s for all checks (full log: $fulllog)"
+for (( i=0; i<${#names[@]}; i++ ))
+do
+  printf "  %-7s  %10s  %s\n" "${status[i]}" "${durations[i]}" "${names[i]}"
+done
+if [[ "$failed" != 0 ]]
+then
+  echo "ERROR: pre-commit hook: a check failed, the commit is blocked (git commit --no-verify skips this hook)"
+fi
+exit "$failed"

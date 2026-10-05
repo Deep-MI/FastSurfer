@@ -316,7 +316,14 @@ def test_runs_as_a_script_from_an_unrelated_directory(tmp_path):
         capture_output=True, text=True, cwd=tmp_path, check=True,
     )
     fields = [line.split(" ")[0].rstrip(":") for line in result.stdout.splitlines()]
-    assert fields == ["Platform", "CPU", "CPU", "Torch", "Thread", "Dispatch"]
+    expected = ["Platform", "CPU", "CPU", "Torch", "Thread", "Dispatch"]
+    if HAS_TORCH:
+        import torch
+
+        # the script adds the CUDA line only where a GPU is usable, and runs in this environment
+        if torch.cuda.is_available():
+            expected.insert(4, "CUDA")
+    assert fields == expected
     if HAS_TORCH:
         # the point of running it from elsewhere: as a file rather than -m it used to import the
         # FastSurferCNN/utils/logging.py next to it and report torch as missing
