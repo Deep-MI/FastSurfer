@@ -276,6 +276,8 @@ fi
 # FreeSurfer 8's recon-all defaults to its v8 steps (SynthStrip, SynthSeg, SynthMorph and surface
 # fixes). FastSurfer replaces those steps with its own, so they stay off; FreeSurfer 7 ignores this.
 export FS_V8_XOPTS=0
+# a longitudinal time point copies the talairach registration from its base instead
+if [[ "$long" != "true" ]] && ! check_talairach_tools ; then exit 1 ; fi
 
 if [[ -z "$PYTHONUNBUFFERED" ]] ; then export PYTHONUNBUFFERED=0 ; fi
 
