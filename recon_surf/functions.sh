@@ -245,6 +245,22 @@ function auto_detect_fs_license()
   fi
 }
 
+function check_talairach_tools()
+{
+  # USAGE: check_talairach_tools
+  # The talairach registration runs talairach_avi, which some FreeSurfer packages leave out, among
+  # them FreeSurfer 8's packages for Ubuntu. Prints an error and returns 1 if it is missing.
+  if [[ -n "$FREESURFER_HOME" ]] && [[ ! -x "$FREESURFER_HOME/bin/talairach_avi" ]]
+  then
+    echo "ERROR: The talairach registration needs talairach_avi, which is not in"
+    echo "  $FREESURFER_HOME/bin."
+    echo "  Some FreeSurfer packages leave out the talairach tools, among them FreeSurfer 8's packages"
+    echo "  for Ubuntu. Use a FreeSurfer package that includes them, for example the one for Rocky"
+    echo "  Linux, or the FastSurfer Docker or Singularity image."
+    return 1
+  fi
+}
+
 function check_allow_root()
 {
   # Will check, if --allow_root is in arguments (to this function) and print an error message

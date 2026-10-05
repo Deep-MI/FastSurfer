@@ -43,7 +43,7 @@
 #   - default: see tool.python.version in pyproject.toml
 # - FREESURFER_VERSION:
 #   The freesurfer version used in the image.
-#   - default: 7.4.1
+#   - default: build.py passes tool.freesurfer.version from pyproject.toml
 # - FREESURFER_URL:
 #   The url to download the freesurfer install archive from, if "default", the
 #   - default: default
@@ -98,7 +98,7 @@ ARG VENV_BUILD_IMAGE="build_venv"
 ARG FREESURFER_BUILD_IMAGE="build_freesurfer"
 ARG UV_VERSION="0.9.22"
 ARG PYTHON_VERSION="3.12"
-ARG FREESURFER_VERSION="7.4.1"
+ARG FREESURFER_VERSION="8.2.0"
 ARG FREESURFER_URL="not set"
 ARG FASTSURFER_VERSION="dev"
 ARG GIT_HASH=""
@@ -131,7 +131,8 @@ apt-get install -qyy \
   -o APT::Install-Recommends=false \
   -o APT::Install-Suggests=false \
   aria2 \
-  ca-certificates
+  ca-certificates \
+  libarchive-tools
 apt clean
 rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 EOF
@@ -197,6 +198,18 @@ LABEL org.opencontainers.image.authors="$AUTHOR" \
       org.opencontainers.image.description="This image contains the python environment for the official FastSurfer docker image. The corresponding virtual environment is placed at /venv in the image." \
       org.opencontainers.image.base.name="$BUILD_BASE_IMAGE"
 
+# FreeSurfer's linux build is the Rocky 8 rpm, which links the system's libtiff.so.5; Ubuntu 24.04
+# only has libtiff.so.6, so the build stage below takes Rocky 8's libtiff and the libraries it needs.
+FROM rockylinux:8 AS rocky8_libs
+RUN <<EOF
+set -e
+dnf install -y libtiff
+dnf clean all
+# by soname, dereferenced: the names are symlinks to the versioned files
+mkdir /rocky8_libs
+cp -L /usr/lib64/libtiff.so.5 /usr/lib64/libjbig.so.2.1 /usr/lib64/libjpeg.so.62 /rocky8_libs/
+EOF
+
 # create a stage for pruned Freesurfer
 FROM build_base AS build_freesurfer
 
@@ -222,6 +235,9 @@ fi
 EOF
 
 COPY tools/build/fspython /opt/freesurfer/bin/fspython
+# sonames Ubuntu does not have, so they cannot shadow a system library; the runtime stage adds the
+# directory to the linker path
+COPY --from=rocky8_libs /rocky8_libs /opt/freesurfer/lib/rocky8
 
 # The labels go last, and so do the args they read. A label writes metadata and no filesystem
 # layer, but everything after it in the stage keys on it, so a version or a hash that changes with
@@ -271,7 +287,8 @@ RUN <<EOF
 # Install required packages for freesurfer to runtime
 apt-get update
 shell_deps="time bc"
-freesurfer_deps="gawk libgomp1 libquadmath0 tcsh"
+# libgfortran5: the talairach (4dfp) tools of FreeSurfer 8's linux build need it
+freesurfer_deps="gawk libgfortran5 libgomp1 libquadmath0 tcsh"
 whippersnappy_egl_deps="libegl1 libgl1 libfontconfig1"
 apt-get install -y --no-install-recommends \
     $shell_deps \
@@ -318,6 +335,17 @@ COPY --from=selected_freesurfer_build_image /opt/freesurfer /opt/freesurfer
 COPY --from=selected_venv_build_image /venv /venv
 # also copy the python installation to /opt/python from venv image
 COPY --from=selected_venv_build_image /opt/python /opt/python
+
+RUN <<EOF
+# the Rocky 8 libraries the FreeSurfer binaries need, see the build_freesurfer stage
+echo /opt/freesurfer/lib/rocky8 > /etc/ld.so.conf.d/freesurfer.conf
+ldconfig
+# fail the build rather than the first run that reaches a binary with a missing library
+missing="$(for b in /opt/freesurfer/bin/* ; do ldd "$b" 2> /dev/null | grep "not found" | sed "s|^|$b:|" ; done)"
+if [[ -n "$missing" ]] ; then
+  echo "ERROR: FreeSurfer binaries with missing libraries:" ; echo "$missing" ; exit 1
+fi
+EOF
 
 ENV PYTHONPATH=/fastsurfer:/opt/freesurfer/python/packages \
     FASTSURFER_HOME=/fastsurfer \
@@ -375,6 +403,8 @@ cd /fastsurfer
 python3 -m compileall *
 # update the build file with checkpoints md5sums and pip packages.
 python3 FastSurferCNN/version.py --sections +git+checkpoints+pip --build_cache tools/Docker/BUILD.info -o BUILD.info
+# recon-all calls fs_time from PATH; FreeSurfer's needs GNU time, ours runs on every platform
+ln -sf /fastsurfer/recon_surf/fs_time /opt/freesurfer/bin/fs_time
 EOF
 
 SHELL ["/bin/bash", "--login", "-c"]

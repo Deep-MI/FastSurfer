@@ -915,6 +915,14 @@ then
   if [[ "$exit_code" != 0 ]] ; then exit "$exit_code" ; fi
 fi
 
+# checked here rather than in recon-surf.sh alone, so a missing tool stops the run before the
+# segmentation; a longitudinal time point copies the talairach registration from its base instead
+if [[ "$long" != "true" ]] && { [[ "$run_surf_pipeline" == "true" ]] || \
+   { [[ "$run_seg_pipeline" == "true" ]] && [[ "$run_talairach_registration" == "true" ]] ; } ; }
+then
+  if ! check_talairach_tools ; then exit 1 ; fi
+fi
+
 # checks and t1 setup for longitudinal pipeline
 # generally any t1 input per command line is overwritten here
 if [[ "$long" == "true" ]] && [[ "$base" == "true" ]]

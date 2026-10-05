@@ -137,7 +137,9 @@ python3 $FASTSURFER_HOME/FastSurferCNN/download_checkpoints.py --all
 Once all dependencies are installed, you are ready to run the FastSurfer segmentation-only (!!) pipeline by calling ```run_fastsurfer.sh --seg_only ...``` , see [Example 3](EXAMPLES.md#example-3-native-fastsurfer-on-subjectx-with-parallel-processing-of-hemis) for command line flags.
 
 #### 5. FreeSurfer
-To run the full pipeline, you will need to install FreeSurfer (we recommend and support version {{ FREESURFER_VERSION }}) according to their [Instructions](https://surfer.nmr.mgh.harvard.edu/fswiki/rel7downloads)<!-- this link will need to be updated when we use FreeSurfer 8 -->. There is a freesurfer email list, if you run into problems during this step.
+To run the full pipeline, you will need to install FreeSurfer (we recommend and support version {{ FREESURFER_VERSION }}) according to their [Instructions](https://surfer.nmr.mgh.harvard.edu/fswiki/DownloadAndInstall). The packages for each version and operating system are in the [release directory](https://surfer.nmr.mgh.harvard.edu/pub/dist/freesurfer/). There is a freesurfer email list, if you run into problems during this step.
+
+FastSurfer runs FreeSurfer's talairach registration (`talairach_avi` and the tools it calls), which some FreeSurfer packages leave out, among them FreeSurfer 8's packages for Ubuntu. Use a package that includes these tools, for example the one for Rocky Linux, or run the full pipeline with the FastSurfer Docker or Singularity image. FastSurfer checks for `talairach_avi` before it starts and stops with an error if it is missing.
 
 Make sure, the `${FREESURFER_HOME}` environment variable is set, so FastSurfer finds the FreeSurfer binaries.
 
@@ -202,19 +204,6 @@ bash session itself -- though setting the environment up by hand (see below) nee
 Python installation and no Homebrew are needed: the package bundles its own Python, all Python
 dependencies, the network checkpoints and a reduced FreeSurfer, so installing it requires no
 internet connection and downloads nothing.
-
-On Apple silicon, the full pipeline additionally needs **Rosetta 2**. FastSurfer bundles the
-official FreeSurfer build, which upstream currently ships for Intel only, so the FreeSurfer
-executables run through Rosetta even in the Apple silicon package. Segmentation
-(`--seg_only`) does not use them and works without it. Most Macs already have Rosetta 2, and if not,
-you can install it once with:
-
-```bash
-softwareupdate --install-rosetta
-```
-
-Note this is the one step that does need an internet connection, so install it before you rely on
-the package being fully offline.
 
 In exchange the installer is large: expect a download of under a gigabyte and a couple of gigabytes
 of disk space once installed.
