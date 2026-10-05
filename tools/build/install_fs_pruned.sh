@@ -1,7 +1,8 @@
 #!/bin/bash
 
-# This file downloads the FreeSurfer tar ball and extracts from it only what is needed to run
-# FastSurfer
+# This file downloads the FreeSurfer installer and extracts from it only what is needed to run
+# FastSurfer. It reads a tarball (FreeSurfer 7), an rpm (FreeSurfer 8 on linux, needs bsdtar from
+# libarchive) or a macOS pkg (FreeSurfer 8 on macOS, needs pkgutil), chosen by the url's extension.
 #
 # In order to update to a new FreeSurfer version you need to update the fslink and then build a 
 # docker with this setup. Run it and whenever it crashes/exits, find the missing file (binary,
@@ -22,12 +23,12 @@ if [[ "$#" -lt 1 ]]; then
     echo "Usage: install_fs_pruned.sh install_dir [--url freesurfer_download_url] [--insecure]"
     echo "                                        [--name dirname] [--fs-download-cache path]"
     echo
-    echo "--url is recommended! This is the download link for freesurfer."
+    echo "--url is recommended! This is the download link for freesurfer, a .tar.gz, .rpm or .pkg."
     echo "  The link can be found in pyproject.toml:tool.freesurfer.url!"
     echo "--insecure will skip certificate checks when downloading freesurfer."
     echo "--name sets the name of the directory the pruned install is placed in under install_dir"
     echo "  (default: freesurfer)."
-    echo "--fs-download-cache points at a file path for the raw FreeSurfer tarball: if it already"
+    echo "--fs-download-cache points at a file path for the raw FreeSurfer download: if it already"
     echo "  exists there (e.g. from a prior, interrupted local run), it is reused as-is instead of"
     echo "  downloading again; if not, the download is saved there (and kept, not deleted, so a"
     echo "  later run can reuse it) instead of a throwaway, uniquely-named temp file."
@@ -143,7 +144,7 @@ elif [[ -d /install ]] ; then
     delete_freesurfer_dl="false"
   fi
 else
-  freesurfer_dl="freesurfer_$(date +%s).tar.gz"
+  freesurfer_dl="freesurfer_$(date +%s).${fslink##*.}"
   delete_freesurfer_dl="true"
 fi
 
@@ -186,85 +187,6 @@ fi
 # Only now that the archive is known to exist: stamping it earlier would leave a sidecar behind for
 # an archive that was never downloaded. A reused one already matched, so rewriting changes nothing.
 echo "$fslink" > "$freesurfer_dl_url"
-
-mkdir -p "$fse"
-tar zxv --no-same-owner -C "$fse" \
-      --exclude='freesurfer/average/*.gca' \
-      --exclude='freesurfer/average/Buckner_JNeurophysiol11_MNI152' \
-      --exclude='freesurfer/average/Choi_JNeurophysiol12_MNI152' \
-      --exclude='freesurfer/average/mult-comp-cor' \
-      --exclude='freesurfer/average/samseg' \
-      --exclude='freesurfer/average/Yeo_Brainmap_MNI152' \
-      --exclude='freesurfer/average/Yeo_JNeurophysiol11_MNI152' \
-      --exclude='freesurfer/bin/freeview.bin' \
-      --exclude='freesurfer/bin/freeview' \
-      --exclude='freesurfer/bin/fs_spmreg.glnxa64' \
-      --exclude='freesurfer/bin/mris_decimate_gui.bin' \
-      --exclude='freesurfer/bin/mris_decimate_gui' \
-      --exclude='freesurfer/bin/qdec_glmfit' \
-      --exclude='freesurfer/bin/qdec.bin' \
-      --exclude='freesurfer/bin/qdec' \
-      --exclude='freesurfer/bin/SegmentSubfieldsT1Longitudinal' \
-      --exclude='freesurfer/bin/SegmentSubjectT1_autoEstimateAlveusML' \
-      --exclude='freesurfer/bin/SegmentSubjectT1T2_autoEstimateAlveusML' \
-      --exclude='freesurfer/bin/SegmentSubjectT2_autoEstimateAlveusML' \
-      --exclude='freesurfer/diffusion' \
-      --exclude='freesurfer/fsafd' \
-      --exclude='freesurfer/fsfast' \
-      --exclude='freesurfer/lib/cuda' \
-      --exclude='freesurfer/lib/images' \
-      --exclude='freesurfer/lib/qt' \
-      --exclude='freesurfer/lib/tcl' \
-      --exclude='freesurfer/lib/tktools' \
-      --exclude='freesurfer/lib/vtk' \
-      --exclude='freesurfer/matlab' \
-      --exclude='freesurfer/mni-1.4' \
-      --exclude='freesurfer/mni' \
-      --exclude='freesurfer/models' \
-      --exclude='freesurfer/python/bin' \
-      --exclude='freesurfer/python/include' \
-      --exclude='freesurfer/python/lib' \
-      --exclude='freesurfer/python/share' \
-      --exclude='freesurfer/subjects/bert' \
-      --exclude='freesurfer/subjects/cvs_avg35_inMNI152' \
-      --exclude='freesurfer/subjects/cvs_avg35' \
-      --exclude='freesurfer/subjects/fsaverage_sym' \
-      --exclude='freesurfer/subjects/fsaverage3' \
-      --exclude='freesurfer/subjects/fsaverage4' \
-      --exclude='freesurfer/subjects/fsaverage5' \
-      --exclude='freesurfer/subjects/fsaverage6' \
-      --exclude='freesurfer/subjects/lh.EC_average' \
-      --exclude='freesurfer/subjects/rh.EC_average' \
-      --exclude='freesurfer/subjects/V1_average' \
-      --exclude='freesurfer/tktools' \
-      --exclude='freesurfer/trctrain' \
-      -f "$freesurfer_dl"
-
-if [[ "$?" != 0 ]] ; then
-  echo "ERROR: Extracting $freesurfer_dl failed (corrupt or incomplete download/cache?)."
-  # remove it so a broken --fs-download-cache/--install path isn't silently reused as "cached" again
-  rm -f "$freesurfer_dl" "$freesurfer_dl_url"
-  exit 1
-fi
-
-if [[ "$delete_freesurfer_dl" == "true" ]] ; then
-  echo "Deleting temporary download $freesurfer_dl ..."
-  # the .url sidecar goes with it; only a persistent cache needs to remember where it came from
-  rm -f "$freesurfer_dl" "$freesurfer_dl_url"
-fi
-
-# rename download to tmp
-mv "$fse/freesurfer" "$fss"
-
-# mk directories
-mkdir -p "$fsd/average"
-mkdir -p "$fsd/bin"
-mkdir -p "$fsd/etc"
-mkdir -p "$fsd/lib/bem"
-mkdir -p "$fsd/python/scripts"
-mkdir -p "$fsd/python/packages/fsbindings"
-mkdir -p "$fsd/subjects/fsaverage/label"
-mkdir -p "$fsd/subjects/fsaverage/surf"
 
 # We need these
 copy_files=(
@@ -318,13 +240,17 @@ copy_files=(
   "bin/fspython"
   "bin/fs_temp_dir"
   "bin/fs_temp_file"
+  "bin/fs_time"
+  "bin/fs-check-os"
   "bin/fs-check-version"
   "bin/fsr-getxopts"
   "bin/gauss_4dfp"
+  "bin/getfullpath"
   "bin/ifh2hdr"
   "bin/imgreg_4dfp"
   "bin/isanalyze"
   "bin/isnifti"
+  "bin/label-cortex"
   "bin/lta_convert"
   "bin/make_upright"
   "bin/mpr2mni305"
@@ -489,6 +415,122 @@ copy_files=(
   "subjects/fsaverage/surf/rh.sphere"
   "subjects/fsaverage/surf/rh.sphere.reg"
   "subjects/fsaverage/surf/rh.white")
+
+mkdir -p "$fse"
+case "$fslink" in
+  *.tar.gz|*.tgz)
+    # the tarball's top-level directory is "freesurfer"
+    tar zxv --no-same-owner -C "$fse" \
+          --exclude='freesurfer/average/*.gca' \
+          --exclude='freesurfer/average/Buckner_JNeurophysiol11_MNI152' \
+          --exclude='freesurfer/average/Choi_JNeurophysiol12_MNI152' \
+          --exclude='freesurfer/average/mult-comp-cor' \
+          --exclude='freesurfer/average/samseg' \
+          --exclude='freesurfer/average/Yeo_Brainmap_MNI152' \
+          --exclude='freesurfer/average/Yeo_JNeurophysiol11_MNI152' \
+          --exclude='freesurfer/bin/freeview.bin' \
+          --exclude='freesurfer/bin/freeview' \
+          --exclude='freesurfer/bin/fs_spmreg.glnxa64' \
+          --exclude='freesurfer/bin/mris_decimate_gui.bin' \
+          --exclude='freesurfer/bin/mris_decimate_gui' \
+          --exclude='freesurfer/bin/qdec_glmfit' \
+          --exclude='freesurfer/bin/qdec.bin' \
+          --exclude='freesurfer/bin/qdec' \
+          --exclude='freesurfer/bin/SegmentSubfieldsT1Longitudinal' \
+          --exclude='freesurfer/bin/SegmentSubjectT1_autoEstimateAlveusML' \
+          --exclude='freesurfer/bin/SegmentSubjectT1T2_autoEstimateAlveusML' \
+          --exclude='freesurfer/bin/SegmentSubjectT2_autoEstimateAlveusML' \
+          --exclude='freesurfer/diffusion' \
+          --exclude='freesurfer/fsafd' \
+          --exclude='freesurfer/fsfast' \
+          --exclude='freesurfer/lib/cuda' \
+          --exclude='freesurfer/lib/images' \
+          --exclude='freesurfer/lib/qt' \
+          --exclude='freesurfer/lib/tcl' \
+          --exclude='freesurfer/lib/tktools' \
+          --exclude='freesurfer/lib/vtk' \
+          --exclude='freesurfer/matlab' \
+          --exclude='freesurfer/mni-1.4' \
+          --exclude='freesurfer/mni' \
+          --exclude='freesurfer/models' \
+          --exclude='freesurfer/python/bin' \
+          --exclude='freesurfer/python/include' \
+          --exclude='freesurfer/python/lib' \
+          --exclude='freesurfer/python/share' \
+          --exclude='freesurfer/subjects/bert' \
+          --exclude='freesurfer/subjects/cvs_avg35_inMNI152' \
+          --exclude='freesurfer/subjects/cvs_avg35' \
+          --exclude='freesurfer/subjects/fsaverage_sym' \
+          --exclude='freesurfer/subjects/fsaverage3' \
+          --exclude='freesurfer/subjects/fsaverage4' \
+          --exclude='freesurfer/subjects/fsaverage5' \
+          --exclude='freesurfer/subjects/fsaverage6' \
+          --exclude='freesurfer/subjects/lh.EC_average' \
+          --exclude='freesurfer/subjects/rh.EC_average' \
+          --exclude='freesurfer/subjects/V1_average' \
+          --exclude='freesurfer/tktools' \
+          --exclude='freesurfer/trctrain' \
+          -f "$freesurfer_dl"
+    extract_status=$?
+    fs_root="$fse/freesurfer"
+    ;;
+  *.rpm)
+    # bsdtar reads the rpm directly; only the files listed above are extracted, the installer itself
+    # holds the whole FreeSurfer distribution. The tree sits in usr/local/freesurfer/<version>.
+    if ! command -v bsdtar > /dev/null 2>&1 ; then
+      echo "ERROR: bsdtar (libarchive-tools) is needed to extract $fslink."
+      exit 1
+    fi
+    patterns=()
+    for file in "${copy_files[@]}" ; do patterns+=("./usr/local/freesurfer/*/$file") ; done
+    bsdtar -x --no-same-owner -f "$freesurfer_dl" -C "$fse" "${patterns[@]}"
+    extract_status=$?
+    fs_root="$(dirname "$(ls -d "$fse"/usr/local/freesurfer/*/build-stamp.txt 2> /dev/null | head -n 1)")"
+    ;;
+  *.pkg)
+    # a macOS installer package; its payload installs freesurfer/<version> into /Applications
+    if ! command -v pkgutil > /dev/null 2>&1 ; then
+      echo "ERROR: pkgutil (macOS) is needed to extract $fslink."
+      exit 1
+    fi
+    pkgutil --expand-full "$freesurfer_dl" "$fse/pkg"
+    extract_status=$?
+    # Payload is at the top for a component package, one level down in a product archive
+    fs_root="$(dirname "$(ls -d "$fse"/pkg/Payload/freesurfer/*/build-stamp.txt \
+      "$fse"/pkg/*/Payload/freesurfer/*/build-stamp.txt 2> /dev/null | head -n 1)")"
+    ;;
+  *)
+    echo "ERROR: Do not know how to extract $fslink, expected a .tar.gz, .rpm or .pkg."
+    exit 1
+    ;;
+esac
+
+if [[ "$extract_status" != 0 ]] || [[ ! -f "$fs_root/build-stamp.txt" ]] ; then
+  echo "ERROR: Extracting $freesurfer_dl failed (corrupt or incomplete download/cache?)."
+  # remove it so a broken --fs-download-cache/--install path isn't silently reused as "cached" again
+  rm -f "$freesurfer_dl" "$freesurfer_dl_url"
+  exit 1
+fi
+
+if [[ "$delete_freesurfer_dl" == "true" ]] ; then
+  echo "Deleting temporary download $freesurfer_dl ..."
+  # the .url sidecar goes with it; only a persistent cache needs to remember where it came from
+  rm -f "$freesurfer_dl" "$freesurfer_dl_url"
+fi
+
+# rename download to tmp
+mv "$fs_root" "$fss"
+
+# mk directories
+mkdir -p "$fsd/average"
+mkdir -p "$fsd/bin"
+mkdir -p "$fsd/etc"
+mkdir -p "$fsd/lib/bem"
+mkdir -p "$fsd/python/scripts"
+mkdir -p "$fsd/python/packages/fsbindings"
+mkdir -p "$fsd/subjects/fsaverage/label"
+mkdir -p "$fsd/subjects/fsaverage/surf"
+
 echo
 for file in "${copy_files[@]}"
 do

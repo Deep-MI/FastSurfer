@@ -115,7 +115,7 @@ def get_supported_freesurfer_version() -> str:
         for line in fp.readlines():
             if line.lstrip().startswith("FS_VERSION_SUPPORT"):
                 return line.strip().removeprefix("FS_VERSION_SUPPORT").lstrip(" =").strip("\"")
-    return "7.4.1"
+    return "8.2.0"
 
 
 def run(command: list[str], *args, **kwargs) -> CompletedProcess:

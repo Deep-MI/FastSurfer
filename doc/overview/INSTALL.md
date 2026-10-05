@@ -203,19 +203,6 @@ Python installation and no Homebrew are needed: the package bundles its own Pyth
 dependencies, the network checkpoints and a reduced FreeSurfer, so installing it requires no
 internet connection and downloads nothing.
 
-On Apple silicon, the full pipeline additionally needs **Rosetta 2**. FastSurfer bundles the
-official FreeSurfer build, which upstream currently ships for Intel only, so the FreeSurfer
-executables run through Rosetta even in the Apple silicon package. Segmentation
-(`--seg_only`) does not use them and works without it. Most Macs already have Rosetta 2, and if not,
-you can install it once with:
-
-```bash
-softwareupdate --install-rosetta
-```
-
-Note this is the one step that does need an internet connection, so install it before you rely on
-the package being fully offline.
-
 In exchange the installer is large: expect a download of under a gigabyte and a couple of gigabytes
 of disk space once installed.
 

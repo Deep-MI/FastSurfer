@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FS_VERSION_SUPPORT="7.4.1"
+FS_VERSION_SUPPORT="8.2.0"
 
 # Regular flags default
 subject=""; # Subject name
@@ -204,6 +204,9 @@ then
     exit 1
   fi
 fi
+# FreeSurfer 8's recon-all defaults to its v8 steps (SynthStrip, SynthSeg, SynthMorph and surface
+# fixes). FastSurfer replaces those steps with its own, so they stay off; FreeSurfer 7 ignores this.
+export FS_V8_XOPTS=0
 
 if [ -z "$PYTHONUNBUFFERED" ]
 then

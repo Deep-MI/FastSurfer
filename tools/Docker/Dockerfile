@@ -43,7 +43,7 @@
 #   - default: see tool.python.version in pyproject.toml
 # - FREESURFER_VERSION:
 #   The freesurfer version used in the image.
-#   - default: 7.4.1
+#   - default: build.py passes tool.freesurfer.version from pyproject.toml
 # - FREESURFER_URL:
 #   The url to download the freesurfer install archive from, if "default", the
 #   - default: default
@@ -98,7 +98,7 @@ ARG VENV_BUILD_IMAGE="build_venv"
 ARG FREESURFER_BUILD_IMAGE="build_freesurfer"
 ARG UV_VERSION="0.9.22"
 ARG PYTHON_VERSION="3.12"
-ARG FREESURFER_VERSION="7.4.1"
+ARG FREESURFER_VERSION="8.2.0"
 ARG FREESURFER_URL="not set"
 ARG FASTSURFER_VERSION="dev"
 ARG GIT_HASH=""
@@ -131,7 +131,8 @@ apt-get install -qyy \
   -o APT::Install-Recommends=false \
   -o APT::Install-Suggests=false \
   aria2 \
-  ca-certificates
+  ca-certificates \
+  libarchive-tools
 apt clean
 rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 EOF
@@ -271,7 +272,8 @@ RUN <<EOF
 # Install required packages for freesurfer to runtime
 apt-get update
 shell_deps="time bc"
-freesurfer_deps="gawk libgomp1 libquadmath0 tcsh"
+# libgfortran5: the talairach (4dfp) tools of FreeSurfer 8's linux build need it
+freesurfer_deps="gawk libgfortran5 libgomp1 libquadmath0 tcsh"
 whippersnappy_egl_deps="libegl1 libgl1 libfontconfig1"
 apt-get install -y --no-install-recommends \
     $shell_deps \

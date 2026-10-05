@@ -72,8 +72,7 @@ jobs:
         with:
           path: ${{ steps.fs_cache.outputs.cache_dir }}
           # bumps on a FreeSurfer version/URL change (url_hash) or a change to what gets pruned
-          # (install_fs_pruned.sh). No arch in the key: FreeSurfer ships one darwin_x86_64 build that
-          # both a future intel job and today's arm job (via Rosetta) would download
+          # (install_fs_pruned.sh). No arch in the key: the url already names the architecture
           key: fs-pruned-${{ hashFiles('tools/build/install_fs_pruned.sh') }}-${{ steps.fs_cache.outputs.url_hash }}
       - name: Cache uv downloads
         uses: actions/cache@v6
