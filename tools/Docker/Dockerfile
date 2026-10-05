@@ -377,6 +377,8 @@ cd /fastsurfer
 python3 -m compileall *
 # update the build file with checkpoints md5sums and pip packages.
 python3 FastSurferCNN/version.py --sections +git+checkpoints+pip --build_cache tools/Docker/BUILD.info -o BUILD.info
+# recon-all calls fs_time from PATH; FreeSurfer's needs GNU time, ours runs on every platform
+ln -sf /fastsurfer/recon_surf/fs_time /opt/freesurfer/bin/fs_time
 EOF
 
 SHELL ["/bin/bash", "--login", "-c"]

@@ -44,3 +44,5 @@ FREESURFER_HOME="$FASTSURFER_HOME/fs-pruned"
 # use our python (not really needed in recon-all anyway)
 # TODO: soft-linking python has proven to break the python installation for the docker container
 ln -sf "$PYTHON" "$FREESURFER_HOME/bin/fspython"
+# recon-all calls fs_time from PATH; FreeSurfer's needs GNU time, so it runs commands untimed on macOS
+ln -sf "$FASTSURFER_HOME/recon_surf/fs_time" "$FREESURFER_HOME/bin/fs_time"
