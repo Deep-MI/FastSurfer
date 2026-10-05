@@ -78,15 +78,6 @@ def resafe_surface(
     bool
         Whether the surface was rewritten.
     """
-    import getpass
-    try:
-        getpass.getuser()
-    except Exception:
-        # nibabel crashes in write_geometry, if getpass.getuser does not return
-        # make sure the process has a username
-        from os import environ
-        environ.setdefault("USERNAME", "UNKNOWN")
-
     triamesh = lapy.TriaMesh.read_fssurf(str(surface_file))
     fsinfo = triamesh.fsinfo
 
