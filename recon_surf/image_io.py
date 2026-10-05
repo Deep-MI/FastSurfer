@@ -69,6 +69,14 @@ def mgh_from_sitk(
         dims = np.hstack((dims, [1]))
     h1["dims"] = dims
     h1["Pxyz_c"] = affine.dot(np.hstack((dims[:3] / 2.0, [1])))[:3]
+    # On the input's grid, keep its geometry exactly: the round trip through the sitk origin moves
+    # c_ras by float32 rounding, which FreeSurfer reports as a mismatch with files of the input.
+    if orig_mgh_header and np.array_equal(dims[:3], orig_mgh_header["dims"][:3]):
+        orig_affine = orig_mgh_header.get_affine()
+        if np.allclose(affine, orig_affine, rtol=0, atol=1e-4):
+            for key in ("delta", "Mdc", "Pxyz_c"):
+                h1[key] = orig_mgh_header[key]
+            affine = orig_affine
     # FreeSurfer keeps the largest of the three extents in fov; MGHHeader defaults it to 0 and a
     # header converted from a NIfTI has none to inherit
     h1["fov"] = float(np.max(dims[:3] * h1["delta"]))
