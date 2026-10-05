@@ -28,9 +28,9 @@ jobs:
         run: uv run --no-project --with ruff ruff check src
       - name: Run the static checks
         # test/lint holds the checks that only read files: the bash 3.2 scan over the shipped
-        # scripts, and the consistency of the declared python version across pyproject.toml, the
-        # Dockerfile and the workflows. They are style checks, not tests of behaviour, which is why
-        # they run here rather than in the test workflow.
+        # scripts, and the consistency of the versions declared in pyproject.toml with their copies
+        # in the Dockerfile and the workflows. They are style checks, not tests of behaviour, which
+        # is why they run here rather than in the test workflow.
         # --no-project on purpose: none of them needs anything but pytest, so there is no reason to
         # resolve FastSurfer's dependencies. They take a few seconds together.
         run: uv run --no-project --with pytest pytest -v src/test/lint

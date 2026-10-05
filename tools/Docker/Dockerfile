@@ -35,18 +35,13 @@
 # - UV_VERSION:
 #   The version of uv to use to build the python environment.
 #   - default: 0.12.22
-# - PYTHON_VERSION:
-#   The python version to use for the virtual environment. build.py always passes this explicitly
-#   from tool.python.version in pyproject.toml, which is the single source of truth; the ARG
-#   default only applies to a direct `docker build` and is checked against that key by
-#   test/lint/test_python_version.py.
-#   - default: see tool.python.version in pyproject.toml
 # - FREESURFER_VERSION:
-#   The freesurfer version used in the image.
+#   The freesurfer version for the labels of the build_freesurfer image. The version and the url
+#   that are installed come from tool.freesurfer in pyproject.toml, which a label cannot read, so
+#   build.py passes tool.freesurfer.version here and the build_freesurfer stage fails if they differ.
+#   The default is for a direct `docker build`, test/lint/test_dockerfile_freesurfer_version.py
+#   checks it against tool.freesurfer.version.
 #   - default: build.py passes tool.freesurfer.version from pyproject.toml
-# - FREESURFER_URL:
-#   The url to download the freesurfer install archive from, if "default", the
-#   - default: default
 # - FASTSURFER_VERSION:
 #   The fastsurfer version to include in image labels.
 #   - default: dev
@@ -97,9 +92,7 @@ ARG RUNTIME_BASE_IMAGE="ubuntu:24.04"
 ARG VENV_BUILD_IMAGE="build_venv"
 ARG FREESURFER_BUILD_IMAGE="build_freesurfer"
 ARG UV_VERSION="0.12.22"
-ARG PYTHON_VERSION="invalid-must-be-passed"
 ARG FREESURFER_VERSION="8.2.0"
-ARG FREESURFER_URL="not set"
 ARG FASTSURFER_VERSION="dev"
 ARG GIT_HASH=""
 ARG REPOSITORY_URL="<no repository set>"
@@ -116,8 +109,6 @@ FROM ghcr.io/astral-sh/uv:$UV_VERSION AS selected_uv_install_image
 
 ## Start with ubuntu base to build the venv base stage
 FROM $BUILD_BASE_IMAGE AS build_base
-
-ARG PYTHON_VERSION
 
 ENV LANG=C.UTF-8 \
     DEBIAN_FRONTEND=noninteractive
@@ -142,7 +133,6 @@ COPY --from=selected_uv_install_image /uv /uvx /bin/
 
 ENV UV_LINK_MODE=copy \
     UV_COMPILE_BYTECODE=1 \
-    UV_PYTHON=python$PYTHON_VERSION \
     UV_PYTHON_INSTALL_DIR=/opt/python \
     UV_NO_DEV=1 \
     UV_TOOL_BIN_DIR=/usr/local/bin
@@ -150,7 +140,6 @@ ENV UV_LINK_MODE=copy \
 # create a stage for the common components used across different DEVICE settings
 FROM build_base AS build_venv
 
-ARG PYTHON_VERSION
 ARG DEVICE
 ARG PINNED_REQUIREMENTS=false
 
@@ -159,9 +148,15 @@ SHELL ["/bin/bash", "--login", "-e", "-c"]
 # Install the project's dependencies using either pyproject.toml or the backend-neutral pinned requirements.
 RUN --mount=type=cache,target=/root/.cache/uv \
     --mount=type=bind,source=pyproject.toml,target=/install/pyproject.toml \
-    --mount=type=bind,source=requirements.txt,target=/install/requirements.txt <<EOF
+    --mount=type=bind,source=requirements.txt,target=/install/requirements.txt \
+    --mount=type=bind,source=tools/read_toml.py,target=/install/read_toml.py <<EOF
 function error() { echo "ERROR: $1" >&2; exit 1; }
-if ! uv venv --python ${PYTHON_VERSION} --relocatable /venv --prompt fastsurfer; then
+# tool.python.version in pyproject.toml is the only place the python version is defined. uv reads it
+# with its default python, installed into the uv cache rather than into UV_PYTHON_INSTALL_DIR: the
+# runtime image copies /opt/python, which must hold only the python of the venv.
+python_version="$(UV_PYTHON_INSTALL_DIR=/root/.cache/uv/python-read-toml \
+  uv run --no-project /install/read_toml.py --file /install/pyproject.toml --key tool.python.version)" || exit 1
+if ! uv venv --python "$python_version" --relocatable /venv --prompt fastsurfer; then
     error "uv venv failed, check uv."
 fi
 # activate the virtual environment
@@ -217,8 +212,9 @@ EOF
 # create a stage for pruned Freesurfer
 FROM build_base AS build_freesurfer
 
-ARG DEVICE
-ARG FREESURFER_URL
+# The labels read this arg too, but unlike their other args it is declared before the RUN, which
+# checks it. That rebuilds nothing extra: a new version changes the url, so the install re-runs anyway.
+ARG FREESURFER_VERSION
 # redeclared, because a global arg is not in scope inside a stage: without this the RUN below
 # expands it to empty and --insecure never reaches the installer
 ARG INSECURE_FLAG
@@ -226,15 +222,33 @@ ARG INSECURE_FLAG
 # install freesurfer and point to new python location
 RUN --mount=type=bind,source=tools/build/install_fs_pruned.sh,target=/install/install_fs_pruned.sh \
     --mount=type=bind,source=tools/build/link_fs.sh,target=/install/link_fs.sh \
+    --mount=type=bind,source=tools/read_toml.py,target=/install/read_toml.py \
+    --mount=type=cache,target=/root/.cache/uv \
     --mount=type=cache,target=/install/download \
     --mount=type=bind,source=pyproject.toml,target=/install/pyproject.toml <<EOF
+function error() { echo "ERROR: $1" >&2; exit 1; }
 # the INSECURE_FLAG build arg may be set to "--insecure" to skip ssl certificate verification during download
 # for production environments, this should never be used. This option is only provided to deal with an outdated
 # ssl certificate on the freesurfer download server.
 if [[ -n "$INSECURE_FLAG" ]]; then
     echo "SECURITY NOTICE: Downloading freesurfer for the build image without ssl validation."
 fi
-/install/install_fs_pruned.sh /opt --url $FREESURFER_URL $INSECURE_FLAG
+# uv reads pyproject.toml with its default python, installed into the uv cache rather than into
+# UV_PYTHON_INSTALL_DIR, so that this image does not carry it (same as in build_venv)
+function read_pyproject() {
+    UV_PYTHON_INSTALL_DIR=/root/.cache/uv/python-read-toml \
+      uv run --no-project /install/read_toml.py --file /install/pyproject.toml --key "$1"
+}
+# tool.freesurfer in pyproject.toml defines what is installed: the version, and the url with its
+# {version} placeholder
+fs_version="$(read_pyproject tool.freesurfer.version)" || exit 1
+fs_url="$(read_pyproject tool.freesurfer.urls.linux)" || exit 1
+# FREESURFER_VERSION only feeds the labels, which cannot read pyproject.toml. A mismatch would label
+# the image with a version it does not contain.
+if [[ "$FREESURFER_VERSION" != "$fs_version" ]]; then
+    error "FREESURFER_VERSION is '$FREESURFER_VERSION', but pyproject.toml installs FreeSurfer $fs_version. Build with tools/Docker/build.py or pass --build-arg FREESURFER_VERSION=$fs_version."
+fi
+/install/install_fs_pruned.sh /opt --url "${fs_url//\{version\}/$fs_version}" $INSECURE_FLAG
 /install/link_fs.sh /opt/freesurfer
 EOF
 
@@ -250,7 +264,6 @@ ARG AUTHOR
 ARG REPOSITORY_URL
 ARG SOURCE_URL
 ARG DOC_URL
-ARG FREESURFER_VERSION
 ARG FASTSURFER_VERSION
 ARG GIT_HASH
 ARG VENDOR
@@ -455,14 +468,11 @@ FROM runtime AS runtime_cuda
 # DEVICE is redeclared, because arg scope does not cross stages: without it the substitutions
 # below all start from an empty string and NVIDIA_REQUIRE_CUDA ends up as "cuda>=".
 ARG DEVICE
-ARG CUDA_VERSION__0=${DEVICE/cu11/11.}
-ARG CUDA_VERSION__1=${CUDA_VERSION__0/cu12/12.}
-ARG CUDA_VERSION__2=${CUDA_VERSION__1/cu13/13.}
-ARG CUDA_VERSION__3=${CUDA_VERSION__2/cu14/14.}
+ARG CUDA_VERSION__0="${DEVICE#cu}"
 
 # to support AWS docker images, see Issue #352
 # https://sarus.readthedocs.io/en/stable/user/custom-cuda-images.html#controlling-the-nvidia-container-runtime
 
 ENV NVIDIA_VISIBLE_DEVICES=all \
     NVIDIA_DRIVER_CAPABILITIES=all \
-    NVIDIA_REQUIRE_CUDA="cuda>=${CUDA_VERSION__3}"
+    NVIDIA_REQUIRE_CUDA="cuda>=${CUDA_VERSION__0%?}.${CUDA_VERSION__0#??}"

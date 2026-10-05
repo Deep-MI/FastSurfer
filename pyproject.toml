@@ -124,14 +124,16 @@ tracker = 'https://github.com/Deep-MI/FastSurfer/issues'
 # The single exact python version FastSurfer is built and shipped with.
 #
 # Who uses it today:
-#   - tools/Docker/build.py reads this key and passes it to the build as PYTHON_VERSION.
+#   - tools/Docker/Dockerfile reads this key from the pyproject.toml in the build context, with
+#     tools/read_toml.py run by uv.
 #   - tools/macos_build/build_release_package.sh reads it to fetch the relocatable standalone
 #     CPython it bundles into the installer, and substitutes it into the paths that name the
 #     version: python/bin/python<version>, python/lib/python<version>/site-packages.
-#   - Two places keep a hardcoded copy because neither can read this file: the ARG PYTHON_VERSION
-#     default in tools/Docker/Dockerfile (a Dockerfile cannot parse toml) and the python-version
-#     in .github/workflows/pipelinetest.yaml (that step provides the interpreter which then reads
-#     this file). test/lint/test_python_version.py asserts both against this key.
+#   - tools/update_requirements.sh reads it to resolve requirements.txt for this version.
+#   - .github/workflows/deploy.yml reads it for the key of the uv cache of the macOS package build.
+#   - One place keeps a hardcoded copy because it cannot read this file: the python-version in
+#     .github/workflows/pipelinetest.yaml (that step provides the interpreter which then reads
+#     this file). test/lint/test_python_version.py asserts it against this key.
 #   - doc/conf.py reads this key for {{ PYTHON_VERSION }} in the documentation, from the release
 #     the documentation refers to.
 #   - NOT .github/workflows/unittest.yaml, which pins the requires-python floor on purpose.
@@ -142,15 +144,16 @@ tracker = 'https://github.com/Deep-MI/FastSurfer/issues'
 # range cannot express -- wheels are cp3XX-tagged, so anything shipping a pre-resolved
 # environment needs an exact version.
 #
-# Raising this version also requires updating the following, none of which can read this key:
+# Raising this version also requires updating the following:
 #   - requirements.txt, regenerated for the new interpreter (tools/update_requirements.sh)
-#   - the two hardcoded copies listed above (CI will fail if you miss one)
+#   - the hardcoded copy listed above (CI will fail if you miss it)
 version = "3.12"
 
 [tool.freesurfer]
 version = "8.2.0"
 # The following URLs use the {version} placeholder, which should be replaced
 # with the actual version string using Python's .format(version=...).
+# tools/Docker/Dockerfile reads version and urls.linux from this file.
 # FreeSurfer 8 ships packages, not tarballs. On linux the Rocky 8 rpm: its binaries are
 # self-contained, while the Ubuntu debs link the system ITK, VTK and Qt and leave out the talairach
 # (4dfp) tools. On macOS the arm64 pkg, the only architecture the FastSurfer package is built for.
