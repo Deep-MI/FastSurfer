@@ -31,7 +31,7 @@ with, or accept the wrong one, and a direct ``docker build`` of the FreeSurfer i
 """
 
 import re
-import sys
+import tomllib
 from pathlib import Path
 
 import pytest
@@ -42,39 +42,15 @@ PYPROJECT = FASTSURFER_HOME / "pyproject.toml"
 
 def _pyproject_freesurfer() -> dict:
     """
-    Read the [tool.freesurfer] table of pyproject.toml, tolerating the absence of a toml parser.
-
-    The unittest CI job runs on the oldest supported python, which may have neither tomllib nor
-    tomli, so fall back to a regex over the two keys this module needs.
+    Read the [tool.freesurfer] table of pyproject.toml.
 
     Returns
     -------
     dict
         A mapping with the "version" key and the "urls" mapping.
     """
-    if sys.version_info >= (3, 11):
-        import tomllib
-    else:
-        try:
-            import tomli as tomllib
-        except ImportError:
-            tomllib = None
-
-    if tomllib is not None:
-        with open(PYPROJECT, "rb") as fp:
-            return tomllib.load(fp)["tool"]["freesurfer"]
-
-    text = PYPROJECT.read_text()
-
-    def table(name: str) -> str:
-        found = re.search(rf"^\[{re.escape(name)}]$(.*?)(?=^\[|\Z)", text, re.M | re.S)
-        assert found is not None, f"no [{name}] table in {PYPROJECT}"
-        return found.group(1)
-
-    key_value = r"^(\w+)\s*=\s*[\"']([^\"']+)[\"']"
-    freesurfer = dict(re.findall(key_value, table("tool.freesurfer"), re.M))
-    assert "version" in freesurfer, f"no version key in the [tool.freesurfer] table of {PYPROJECT}"
-    return {"version": freesurfer["version"], "urls": dict(re.findall(key_value, table("tool.freesurfer.urls"), re.M))}
+    with open(PYPROJECT, "rb") as fp:
+        return tomllib.load(fp)["tool"]["freesurfer"]
 
 
 # each copy: the file and a pattern whose first group is the version it holds

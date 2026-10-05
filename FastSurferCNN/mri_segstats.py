@@ -36,7 +36,7 @@ USAGE = "python mri_segstats.py --seg segvol [optional arguments]"
 HELPTEXT = """
 Dependencies:
 
-    Python 3.10
+    Python 3.12
 
     Numpy
     http://www.numpy.org

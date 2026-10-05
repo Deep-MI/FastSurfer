@@ -30,7 +30,7 @@ jobs:
       - name: Set up python environment
         uses: actions/setup-python@v7
         with:
-          python-version: '3.10'
+          python-version: '3.12'
       - name: install dependencies
         run: |
           python -m venv .venv
@@ -38,8 +38,6 @@ jobs:
           echo "$GITHUB_WORKSPACE/.venv/bin" >> "$GITHUB_PATH"
           . .venv/bin/activate
           python -m pip install --upgrade pip
-          # tomli is used by read_toml.py (python 3.10 here has no stdlib tomllib)
-          python -m pip install tomli
           
           # the newest version of only the two tools the build needs, unpinned on purpose; the rest
           # of the runner's Homebrew packages stay as the image ships them.

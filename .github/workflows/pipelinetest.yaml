@@ -254,9 +254,9 @@ jobs:
           # keep in sync with tool.python.version in pyproject.toml. It cannot be read from there:
           # this step is what provides the interpreter that reads pyproject.toml in the first place.
           # This python only reads toml and drives build.py; FastSurfer itself runs inside the
-          # container, so this value does not affect any test result. Any version >= 3.11 satisfies
-          # the stdlib tomllib requirement below.
-          python-version: '3.12'
+          # container, so this value does not affect any test result. Any version >= 3.12 satisfies
+          # the requires-python of the project and provides the stdlib tomllib.
+          python-version: '3.14'
       - name: Get the FreeSurfer version
         # we want to build the docker image, get what we want to do for freesurfer (read fslink from install_pruned.sh,
         if: steps.parse.outputs.CONTINUE == 'true' && steps.parse.outputs.DOCKER_IMAGE == 'build-cached'

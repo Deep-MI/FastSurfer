@@ -46,7 +46,7 @@ DESCRIPTION = "Script to calculate partial volumes and other segmentation statis
 HELPTEXT = """
 Dependencies:
 
-    Python 3.10
+    Python 3.12
 
     Numpy
     http://www.numpy.org

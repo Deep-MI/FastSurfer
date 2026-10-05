@@ -20,21 +20,10 @@ import logging
 import os
 import subprocess
 import sys
+import tomllib
 from collections.abc import Sequence
 from pathlib import Path
 from typing import Literal, cast, get_args
-
-# tomllib is standard library from 3.11. tomli covers older interpreters, but it is not a
-# dependency of this project, so this script needs 3.11 or newer in practice.
-if sys.version_info >= (3, 11):
-    import tomllib
-else:
-    try:
-        import tomli as tomllib
-    except ImportError as e:
-        raise RuntimeError(
-            "The FastSurfer build script requires tomli or python 3.11 to load the pyproject.toml file."
-        ) from e
 
 logger = logging.getLogger(__name__)
 

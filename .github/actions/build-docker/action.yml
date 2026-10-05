@@ -62,8 +62,8 @@ runs:
         # library plus FastSurferCNN.version and .utils.run_tools, which are themselves standard
         # library only, and the one heavy import it has falls back to argparse when absent. Syncing
         # the project instead downloads the CUDA wheels onto a cpu-only runner every run.
-        # This needs the interpreter uv picks to be 3.11 or newer, because build.py reads
-        # pyproject.toml with tomllib and tomli is not a dependency. setup-uv sets UV_PYTHON from
+        # This needs the interpreter uv picks to be 3.12 or newer, because build.py reads
+        # pyproject.toml with the stdlib tomllib. setup-uv sets UV_PYTHON from
         # the python-version of the calling workflow, which pipelinetest.yaml pins to
         # tool.python.version.
         cmd=(uv run --no-project python "$FASTSURFER_HOME/tools/Docker/build.py" --device cpu --tag "$image_name" --target "${{ inputs.target }}")

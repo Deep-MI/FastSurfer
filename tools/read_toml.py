@@ -16,13 +16,8 @@
 
 import argparse
 import sys
+import tomllib
 from pathlib import Path
-
-# python 3.11 supports tomllib, but we have tomli in fastsurfer
-if sys.version_info >= (3, 11):
-    import tomllib
-else:
-    import tomli as tomllib
 
 
 def make_parser() -> argparse.ArgumentParser:

@@ -47,7 +47,7 @@ USAGE = "python mri_brainvol_stats.py -s <subject>"
 HELPTEXT = """
 Dependencies:
 
-    Python 3.10
+    Python 3.12
 
     Numpy
     http://www.numpy.org

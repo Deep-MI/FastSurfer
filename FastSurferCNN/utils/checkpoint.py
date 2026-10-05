@@ -14,7 +14,6 @@
 
 # IMPORTS
 import os
-import sys
 from collections.abc import MutableSequence
 from functools import lru_cache
 from pathlib import Path
@@ -370,7 +369,7 @@ def download_checkpoint(
 
     Each url is tried up to DOWNLOAD_ATTEMPTS times, backing off between attempts, for a broken
     transfer or a status in DOWNLOAD_RETRY_STATUS. Any other status moves straight to the next url.
-    Raises an ExceptionGroup, or a RuntimeError before Python 3.11 and whenever no host answered at
+    Raises an ExceptionGroup, or a RuntimeError whenever no host answered at
     all, once every url has been exhausted.
 
     Parameters
@@ -429,16 +428,14 @@ def download_checkpoint(
         for _response in responses:
             message += f"\n\nResponse code from {_response.url}: {_response.status_code}"
             message += f"\nResponse text:\n{textwrap.indent(_response.text, '    ')}"
-            if sys.version_info >= (3, 11):
-                try:
-                    _ = _response.raise_for_status()
-                except Exception as e:
-                    exceptions.append(e)
-        # ExceptionGroup is introduced in Python 3.11
+            try:
+                _ = _response.raise_for_status()
+            except Exception as e:
+                exceptions.append(e)
         # exceptions is empty when every url failed in transport, which leaves no response to
         # raise_for_status, and an ExceptionGroup must hold at least one exception
-        if sys.version_info >= (3, 11) and exceptions:
-            raise ExceptionGroup(message, exceptions)  # noqa: F821
+        if exceptions:
+            raise ExceptionGroup(message, exceptions)
         else:
             raise RuntimeError(message, responses)
     else:

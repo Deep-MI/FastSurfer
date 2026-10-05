@@ -65,10 +65,7 @@ then
   # --url not provided, try getting it from pyproject.toml
 link=$(python3 <<EOF
 import sys, pathlib
-if sys.version_info >= (3, 11): import tomllib
-else:
-  try: import tomli as tomllib
-  except Exception: sys.exit()
+import tomllib
 
 for path in pathlib.Path("$THIS_SCRIPT").parents:
   try:
