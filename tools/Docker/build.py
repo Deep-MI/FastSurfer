@@ -42,7 +42,8 @@ Target = Literal["runtime", "build_common", "build_venv", "build_freesurfer", "b
 CacheType = Literal["inline", "registry", "local", "gha", "s3", "azblob"]
 # the devices the torch pinned in pyproject.toml ships wheels for; AllDeviceType adds the aliases cuda
 # and rocm, which resolve to DEFAULTS.CUDA and DEFAULTS.ROCM
-# Note, uv does not work with rocm7.14, but requires and only supports rocm7.2
+# PyTorch also publishes rocm7.14 builds, but uv's --torch-backend does not accept rocm7.14, so the
+# newest ROCm it can install is rocm7.2
 AllDeviceType = Literal["cpu", "cuda", "cu126", "cu130", "cu132", "rocm", "rocm7.2", "xpu"]
 DeviceType = Literal["cpu", "cu126", "cu130", "cu132", "rocm7.2", "xpu"]
 
@@ -86,7 +87,7 @@ with open(default_home() / "pyproject.toml", "rb") as _pyproject:
 
 class DEFAULTS:
     CUDA_VERSION: str = _pyproject_tool["cuda"]["version"]
-    # the PyTorch backends of the versions: 13.2 -> cu132, 7.14 -> rocm7.2 (uv)
+    # the PyTorch backends of the versions: 13.2 -> cu132, 7.2 -> rocm7.2
     CUDA = cast(DeviceType, "cu" + CUDA_VERSION.replace(".", ""))
     ROCM = cast(DeviceType, "rocm" + _pyproject_tool["rocm"]["version"])
     MapDeviceType: dict[AllDeviceType, DeviceType] = dict(

@@ -178,9 +178,10 @@ macOS = "https://surfer.nmr.mgh.harvard.edu/pub/dist/freesurfer/{version}/freesu
 version = "13.2"
 
 [tool.rocm]
-# The default ROCm version of the docker images. The PyTorch backend is rocm<version>
-# (7.14 -> rocm7.2), and the --device alias rocm of tools/Docker/build.py resolves to it.
-# Note, that pytorch itself calls this ROCm 7.14, but uv only knows rocm7.2
+# The default ROCm version of the docker images. The PyTorch backend is rocm<version> (7.2 ->
+# rocm7.2), and the --device alias rocm of tools/Docker/build.py resolves to it. PyTorch also
+# publishes builds for newer ROCm versions than uv's --torch-backend accepts (rocm7.14 for torch
+# 2.14), so this is the newest one uv can install.
 version = "7.2"
 
 [tool.docker]

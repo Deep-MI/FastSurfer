@@ -147,6 +147,9 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     --mount=type=bind,source=requirements.txt,target=/install/requirements.txt \
     --mount=type=bind,source=tools/read_toml.py,target=/install/read_toml.py <<EOF
 function error() { echo "ERROR: $1" >&2; exit 1; }
+if [[ "$DEVICE" == "invalid-must-be-passed" ]]; then
+    error "DEVICE is not set. Build with tools/Docker/build.py or pass --build-arg DEVICE=<cpu|cuXYZ|rocmX.Y|xpu>."
+fi
 # tool.python.version in pyproject.toml is the only place the python version is defined. uv reads it
 # with its default python, installed into the uv cache rather than into UV_PYTHON_INSTALL_DIR: the
 # runtime image copies /opt/python, which must hold only the python of the venv.
