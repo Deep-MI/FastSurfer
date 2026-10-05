@@ -41,13 +41,16 @@ jobs:
           # tomli is used by read_toml.py (python 3.10 here has no stdlib tomllib)
           python -m pip install tomli
           
-          # update system to the newest version, not pin pointing package version on purpose
-          brew update  
-          brew upgrade || true
-          brew list aria2 >/dev/null 2>&1 || brew install aria2
+          # the newest version of only the two tools the build needs, unpinned on purpose; the rest
+          # of the runner's Homebrew packages stay as the image ships them.
           # uv fetches the relocatable standalone python and the dependencies that get bundled
           # into the package (see the BUNDLED PYTHON ENVIRONMENT section of the build script)
-          brew list uv >/dev/null 2>&1 || brew install uv
+          brew update
+          for formula in aria2 uv ; do
+            if brew list "$formula" > /dev/null 2>&1 ; then brew upgrade "$formula"
+            else brew install "$formula"
+            fi
+          done
       - name: Resolve cache keys
         id: fs_cache
         run: |
