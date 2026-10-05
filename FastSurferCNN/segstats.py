@@ -1050,10 +1050,10 @@ def dataframe_to_table(dataframe: pd.DataFrame) -> list[PVStats]:
     return [{c: row[c] for c in required_cols + optional_cols} for _, row in dataframe.iterrows()]
 
 
-def update_structnames(
+def update_structnames[IntType: np.integer](
     table: list[PVStats],
     lut: pd.DataFrame,
-    merged_labels: dict[_IntType, Sequence[_IntType]] | None = None
+    merged_labels: dict[IntType, Sequence[IntType]] | None = None
 ) -> None:
     """
     Update StructNames from `lut` and `merged_labels` in `table`.
@@ -1392,10 +1392,10 @@ def read_statsfile(path: Path) -> tuple[dict[str, MeasureTuple | str], pd.DataFr
     return annotations, dataframe
 
 
-def preproc_image(
+def preproc_image[NumberType: Number](
         ops: Sequence[str],
-        data: npt.NDArray[_NumberType]
-) -> npt.NDArray[_NumberType]:
+        data: npt.NDArray[NumberType]
+) -> npt.NDArray[NumberType]:
     """
     Apply preprocessing operations to data. Performs, --mul, --abs, --sqr, --sqrt
     operations in that order.
@@ -1427,8 +1427,8 @@ def preproc_image(
     return data
 
 
-def seg_borders(
-    _array: _ArrayType,
+def seg_borders[ArrayType: np.ndarray](
+    _array: ArrayType,
     label: np.integer | bool,
     out: npt.NDArray[bool] | None = None,
     cmp_dtype: npt.DTypeLike = "int8",
@@ -1471,8 +1471,8 @@ def seg_borders(
         return np.not_equal(laplace_data, zeros, out=out)
 
 
-def borders(
-    _array: _ArrayType,
+def borders[ArrayType: np.ndarray](
+    _array: ArrayType,
     labels: Iterable[np.integer] | bool,
     max_label: np.integer | None = None,
     six_connected: bool = True,
@@ -1561,7 +1561,7 @@ def borders(
         # all indexes of the neighbors: ((0, 0, 0), (0, 0, 1) ... (2, 2, 2))
         ndindexes = tuple(np.ndindex((3,) * dim))
 
-        def nbr_i(__array: _ArrayType, neighbor_index: int) -> _ArrayType:
+        def nbr_i(__array: ArrayType, neighbor_index: int) -> ArrayType:
             """Assuming a padded array __array, returns just the neighbor_index-th
             neighbors throughout the array."""
             # sample from 1d neighbor index to ndindex
@@ -1618,12 +1618,12 @@ def pad_slicer(
     return padded_slicer, unpadded_slicer
 
 
-def uniform_filter(
-    data: _ArrayType,
+def uniform_filter[ArrayType: np.ndarray](
+    data: ArrayType,
     filter_size: int,
     fillval: float = 0.,
     slicer_patch: SlicingTuple | None = None,
-) -> _ArrayType:
+) -> ArrayType:
     """
     Apply a uniform filter (with kernel size `filter_size`) to `input`.
 
@@ -1663,8 +1663,8 @@ def uniform_filter(
 
 
 @overload
-def pv_calc(
-    seg: npt.NDArray[_IntType],
+def pv_calc[IntType: np.integer](
+    seg: npt.NDArray[IntType],
     pv_guide: np.ndarray,
     norm: np.ndarray,
     labels: npt.ArrayLike,
@@ -1681,8 +1681,8 @@ def pv_calc(
 
 
 @overload
-def pv_calc(
-    seg: npt.NDArray[_IntType],
+def pv_calc[IntType: np.integer](
+    seg: npt.NDArray[IntType],
     pv_guide: np.ndarray,
     norm: np.ndarray,
     labels: npt.ArrayLike,
@@ -1698,8 +1698,8 @@ def pv_calc(
     ...
 
 
-def pv_calc(
-    seg: npt.NDArray[_IntType],
+def pv_calc[IntType: np.integer](
+    seg: npt.NDArray[IntType],
     pv_guide: np.ndarray,
     norm: np.ndarray | None,
     labels: npt.ArrayLike,
@@ -1892,7 +1892,7 @@ def pv_calc(
         robust_vc_it = robust_voxel_counts.items()
         means = {lab: sums.get(lab, 0.) / cnt for lab, cnt in robust_vc_it if cnt > eps}
 
-        def get_std(lab: _IntType, nvox: int) -> float:
+        def get_std(lab: IntType, nvox: int) -> float:
             # *std = sqrt((sum * (*mean) - 2 * (*mean) * sum + sum2) / (nvoxels - 1));
             return np.sqrt((sums_2[lab] - means[lab] * sums[lab]) / max(1,(nvox - 1)))
 
@@ -1923,15 +1923,15 @@ def pv_calc(
     return table
 
 
-def calculate_merged_labels(
+def calculate_merged_labels[IntType: np.integer](
         merged_labels: VirtualLabel,
-        voxel_counts: dict[_IntType, int],
-        robust_voxel_counts: dict[_IntType, int],
-        volumes: dict[_IntType, float],
-        mins: dict[_IntType, float] | None = None,
-        maxes: dict[_IntType, float] | None = None,
-        sums: dict[_IntType, float] | None = None,
-        sums_of_squares: dict[_IntType, float] | None = None,
+        voxel_counts: dict[IntType, int],
+        robust_voxel_counts: dict[IntType, int],
+        volumes: dict[IntType, float],
+        mins: dict[IntType, float] | None = None,
+        maxes: dict[IntType, float] | None = None,
+        sums: dict[IntType, float] | None = None,
+        sums_of_squares: dict[IntType, float] | None = None,
         eps: float = 1e-6,
 ) -> Iterator[PVStats]:
     """
@@ -2014,13 +2014,13 @@ def calculate_merged_labels(
         yield stats
 
 
-def global_stats(
-    lab: _IntType,
-    norm: npt.NDArray[_NumberType] | None,
-    seg: npt.NDArray[_IntType],
+def global_stats[IntType: np.integer, NumberType: Number](
+    lab: IntType,
+    norm: npt.NDArray[NumberType] | None,
+    seg: npt.NDArray[IntType],
     out: npt.NDArray[bool] | None = None,
     robust_percentage: float | None = None,
-) -> tuple[_IntType, _GlobalStats]:
+) -> tuple[IntType, _GlobalStats]:
     """
     Compute Label, Number of voxels, 'robust' number of voxels, norm minimum, maximum,
     sum, sum of squares and 6-connected border of label lab (out references the border).
@@ -2074,8 +2074,8 @@ def global_stats(
         data = np.sort(data)
         sym_drop_samples = int((1 - robust_percentage / 2) * nvoxels)
         data = data[sym_drop_samples:-sym_drop_samples]
-        _min: _NumberType = data[0].item()
-        _max: _NumberType = data[-1].item()
+        _min: NumberType = data[0].item()
+        _max: NumberType = data[-1].item()
         __voxel_count = nvoxels - 2 * sym_drop_samples
     else:
         _min = data.min().item()
@@ -2127,8 +2127,8 @@ def patch_filter(
     return crop_patch_to_mask(mask, sub_patch=patch)
 
 
-def crop_patch_to_mask(
-    mask: npt.NDArray[_NumberType],
+def crop_patch_to_mask[NumberType: Number](
+    mask: npt.NDArray[NumberType],
     sub_patch: SlicingSequence | None = None,
 ) -> tuple[bool, SlicingSequence]:
     """
@@ -2191,21 +2191,21 @@ def crop_patch_to_mask(
     return _target_slicer[0].start != _target_slicer[0].stop, target_slicer
 
 
-def pv_calc_patch(
+def pv_calc_patch[IntType: np.integer](
     slicer_patch: SlicingTuple,
     global_crop: SlicingTuple,
-    borders: dict[_IntType, npt.NDArray[bool]],
-    seg: npt.NDArray[_IntType],
+    borders: dict[IntType, npt.NDArray[bool]],
+    seg: npt.NDArray[IntType],
     pv_guide: npt.NDArray,
     border: npt.NDArray[bool],
     full_pv: npt.NDArray[float] | None = None,
     full_ipv: npt.NDArray[float] | None = None,
-    full_nbr_label: npt.NDArray[_IntType] | None = None,
+    full_nbr_label: npt.NDArray[IntType] | None = None,
     full_seg_mean: npt.NDArray[float] | None = None,
     full_nbr_mean: npt.NDArray[float] | None = None,
     eps: float = 1e-6,
     legacy_freesurfer: bool = False,
-) -> dict[_IntType, float]:
+) -> dict[IntType, float]:
     """
     Calculate PV for patch.
 
@@ -2382,7 +2382,7 @@ def pv_calc_patch(
     if full_seg_mean is not None:
         full_seg_mean[slicer_patch][pat_border] = mean_label
 
-    def _vox_calc_pv(lab: _IntType) -> float:
+    def _vox_calc_pv(lab: IntType) -> float:
         """
         Compute the PV of voxels labels lab and voxels not labeled lab, but chosen as
         mixing label.
@@ -2394,12 +2394,12 @@ def pv_calc_patch(
     return {lab: _vox_calc_pv(lab) for lab in label_lookup}
 
 
-def patch_neighbors(
-    labels: Sequence[_IntType],
+def patch_neighbors[IntType: np.integer](
+    labels: Sequence[IntType],
     pv_guide: npt.NDArray,
-    seg: npt.NDArray[_IntType],
+    seg: npt.NDArray[IntType],
     border_patch: npt.NDArray[bool],
-    borders: dict[_IntType, npt.NDArray[bool]],
+    borders: dict[IntType, npt.NDArray[bool]],
     slicer_large_patch: SlicingTuple,
     slicer_patch: SlicingTuple,
     slicer_large_to_small: SlicingTuple,

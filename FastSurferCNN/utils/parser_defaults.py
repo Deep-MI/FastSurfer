@@ -354,7 +354,7 @@ ALL_FLAGS = {
 }
 
 
-def add_arguments(parser: T_AddArgs, flags: Iterable[str]) -> T_AddArgs:
+def add_arguments[T_AddArgs: "CanAddArguments"](parser: T_AddArgs, flags: Iterable[str]) -> T_AddArgs:
     """
     Add default flags to the parser from the flags list in order.
 
@@ -389,7 +389,7 @@ def add_arguments(parser: T_AddArgs, flags: Iterable[str]) -> T_AddArgs:
     return parser
 
 
-def add_plane_flags(
+def add_plane_flags[T_AddArgs: "CanAddArguments"](
     parser: T_AddArgs,
     configtype: Literal["checkpoint", "config"],
     files: Mapping[Plane, Path | str],

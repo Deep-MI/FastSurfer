@@ -5,7 +5,7 @@ from collections.abc import Callable, Generator, Iterable, Sequence
 from concurrent.futures import Executor, Future
 from contextlib import contextmanager
 from pathlib import Path
-from typing import TYPE_CHECKING, Generic, Literal, Protocol, TextIO, TypedDict, TypeVar, Union, cast, overload
+from typing import TYPE_CHECKING, Literal, Protocol, TextIO, TypedDict, TypeVar, Union, cast, overload
 
 import numpy as np
 
@@ -549,7 +549,7 @@ class NullMeasure(AbstractMeasure):
         return "NullMeasure()"
 
 
-class Measure(AbstractMeasure, Generic[T_BufferType], metaclass=abc.ABCMeta):
+class Measure[T_BufferType: AnyBufferType](AbstractMeasure, metaclass=abc.ABCMeta):
     """
     Class to buffer computed values, buffers computed values. Implements a value buffering interface for computed
     measure values and implement the read_subject pattern.

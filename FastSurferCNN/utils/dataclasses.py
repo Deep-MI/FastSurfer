@@ -39,9 +39,9 @@ _T = TypeVar("_T")
 
 
 @overload
-def field(
+def field[T](
         *,
-        default: _T,
+        default: T,
         help: str = "",
         flags: tuple[str] = (),
         init: bool = True,
@@ -50,13 +50,13 @@ def field(
         compare: bool = True,
         metadata: Mapping[Any, Any] | None = None,
         kw_only: bool = ...,
-) -> _T: ...
+) -> T: ...
 
 
 @overload
-def field(
+def field[T](
         *,
-        default_factory: Callable[[], _T],
+        default_factory: Callable[[], T],
         help: str = "",
         flags: tuple[str] = (),
         init: bool = True,
@@ -65,7 +65,7 @@ def field(
         compare: bool = True,
         metadata: Mapping[Any, Any] | None = None,
         kw_only: bool = ...,
-) -> _T: ...
+) -> T: ...
 
 
 @overload
@@ -82,10 +82,10 @@ def field(
 ) -> Any: ...
 
 
-def field(
+def field[T](
         *,
-        default: _T = MISSING,
-        default_factory: Callable[[], _T] = MISSING,
+        default: T = MISSING,
+        default_factory: Callable[[], T] = MISSING,
         help: str = "",
         flags: tuple[str] = (),
         init: bool = True,
@@ -94,7 +94,7 @@ def field(
         compare: bool = True,
         metadata: Mapping[Any, Any] | None = None,
         kw_only: bool = False,
-) -> _T:
+) -> T:
     """
     Extends :func:`dataclasses.field` to add `help` and `flags` to the metadata.
 

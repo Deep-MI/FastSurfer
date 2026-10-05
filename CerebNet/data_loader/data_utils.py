@@ -406,7 +406,7 @@ def get_binary_map(lbl_map, class_names):
     return bin_map
 
 
-def slice_lia2ras(plane: Plane, data: AT, /, thick_slices: bool = False) -> AT:
+def slice_lia2ras[AT: (np.ndarray, torch.Tensor)](plane: Plane, data: AT, /, thick_slices: bool = False) -> AT:
     """
     Maps the data from LIA to RAS orientation.
 
@@ -442,7 +442,7 @@ def slice_lia2ras(plane: Plane, data: AT, /, thick_slices: bool = False) -> AT:
         raise ValueError("invalid plane")
 
 
-def slice_ras2lia(plane: Plane, data: AT, /, thick_slices: bool = False) -> AT:
+def slice_ras2lia[AT: (np.ndarray, torch.Tensor)](plane: Plane, data: AT, /, thick_slices: bool = False) -> AT:
     """
     Maps the data from RAS to LIA orientation.
 

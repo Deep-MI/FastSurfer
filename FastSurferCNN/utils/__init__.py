@@ -133,7 +133,7 @@ if HAS_NUMPY:
 
 LiteralType = TypeVar("LiteralType")
 
-def check_literal_type(value, literal_type: type[LiteralType]) -> tuple[bool, LiteralType]:
+def check_literal_type[LiteralType](value, literal_type: type[LiteralType]) -> tuple[bool, LiteralType]:
     """
     A simple type checker and converter.
 

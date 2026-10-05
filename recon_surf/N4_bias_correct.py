@@ -106,8 +106,8 @@ logger = logging.getLogger(__name__)
 _T = TypeVar("_T", bound=str)
 
 
-def path_or_(*constants: _T) -> Callable[[str], _T]:
-    def wrapper(a: str) -> Path | _T:
+def path_or_[T: str](*constants: T) -> Callable[[str], T]:
+    def wrapper(a: str) -> Path | T:
         if a in constants:
             return a
         return Path(a)

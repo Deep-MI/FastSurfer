@@ -21,7 +21,6 @@ from numbers import Integral, Number
 from pathlib import Path
 from typing import (
     Any,
-    Generic,
     Literal,
     TextIO,
     TypeVar,
@@ -89,7 +88,7 @@ def is_int(a_object) -> bool:
         return False
 
 
-def to_same_type(data, type_hint: AT) -> AT:
+def to_same_type[AT: (npt.NDArray[Number], torch.Tensor)](data, type_hint: AT) -> AT:
     """
     Convert data to the same type as type_hint.
 
@@ -115,7 +114,7 @@ def to_same_type(data, type_hint: AT) -> AT:
         return data
 
 
-class Mapper(Generic[KT, VT]):
+class Mapper[KT, VT]:
     """
     Map from one label space to a generic 'label'-space.
     """
@@ -612,7 +611,7 @@ class Mapper(Generic[KT, VT]):
     map_probs = partialmethod(_map_logits, mode="prob")
 
 
-class ColorLookupTable(Generic[KT]):
+class ColorLookupTable[KT]:
     """
     This class provides utility in creating color palettes from colormaps. It will map from class
     (see :func:`ColorLookupTable.__init__`) to color/other info.
