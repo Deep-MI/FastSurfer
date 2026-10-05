@@ -589,7 +589,8 @@ python3<span class="w"> </span><span class="nv">$FASTSURFER_HOME</span>/FastSurf
 </section>
 <section id="freesurfer">
 <h4>5. FreeSurfer<a class="headerlink" href="#freesurfer" title="Link to this heading">¶</a></h4>
-<p>To run the full pipeline, you will need to install FreeSurfer (we recommend and support version 7.4.1) according to their <a class="reference external" href="https://surfer.nmr.mgh.harvard.edu/fswiki/rel7downloads">Instructions</a><!-- this link will need to be updated when we use FreeSurfer 8 -->. There is a freesurfer email list, if you run into problems during this step.</p>
+<p>To run the full pipeline, you will need to install FreeSurfer (we recommend and support version 7.4.1) according to their <a class="reference external" href="https://surfer.nmr.mgh.harvard.edu/fswiki/DownloadAndInstall">Instructions</a>. The packages for each version and operating system are in the <a class="reference external" href="https://surfer.nmr.mgh.harvard.edu/pub/dist/freesurfer/">release directory</a>. There is a freesurfer email list, if you run into problems during this step.</p>
+<p>FastSurfer runs FreeSurfer’s talairach registration (<code class="docutils literal notranslate"><span class="pre">talairach_avi</span></code> and the tools it calls), which some FreeSurfer packages leave out, among them FreeSurfer 8’s packages for Ubuntu. Use a package that includes these tools, for example the one for Rocky Linux, or run the full pipeline with the FastSurfer Docker or Singularity image. FastSurfer checks for <code class="docutils literal notranslate"><span class="pre">talairach_avi</span></code> before it starts and stops with an error if it is missing.</p>
 <p>Make sure, the <code class="docutils literal notranslate"><span class="pre">${FREESURFER_HOME}</span></code> environment variable is set, so FastSurfer finds the FreeSurfer binaries.</p>
 </section>
 </section>
@@ -650,16 +651,6 @@ bash session itself – though setting the environment up by hand (see below) ne
 Python installation and no Homebrew are needed: the package bundles its own Python, all Python
 dependencies, the network checkpoints and a reduced FreeSurfer, so installing it requires no
 internet connection and downloads nothing.</p>
-<p>On Apple silicon, the full pipeline additionally needs <strong>Rosetta 2</strong>. FastSurfer bundles the
-official FreeSurfer build, which upstream currently ships for Intel only, so the FreeSurfer
-executables run through Rosetta even in the Apple silicon package. Segmentation
-(<code class="docutils literal notranslate"><span class="pre">--seg_only</span></code>) does not use them and works without it. Most Macs already have Rosetta 2, and if not,
-you can install it once with:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>softwareupdate<span class="w"> </span>--install-rosetta
-</pre></div>
-</div>
-<p>Note this is the one step that does need an internet connection, so install it before you rely on
-the package being fully offline.</p>
 <p>In exchange the installer is large: expect a download of under a gigabyte and a couple of gigabytes
 of disk space once installed.</p>
 </section>
