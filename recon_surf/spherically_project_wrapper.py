@@ -101,9 +101,6 @@ if __name__ == "__main__":
         projected_surface = opts.sd / opts.subject / "surf" / f"{opts.hemi}.qsphere.nofix"
         print(f"Reading in surface: {source_surface} ...")
 
-        # make sure the process has a username, so nibabel does not crash in write_geometry
-        environ.setdefault("USERNAME", "UNKNOWN")
-
         # only switch cholmod on if we have scikit sparse cholmod (cholmod on will be faster)
         spherically_project_surface(source_surface, projected_surface, use_cholmod=has_sksparse)
         print(f"Spherically projected surface output to: {projected_surface}")

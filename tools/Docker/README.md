@@ -237,35 +237,38 @@ Make sure, you are building on a machine that has [containerd-storage and Buildk
 ```bash
 # configuration
 build_dir=$HOME/FastSurfer-build
-img=deepmi/fastsurfer
+# <repo>/<name> (the push needs both!)
+image=deepmi/fastsurfer
 # the version can be identified with: $build_dir/run_fastsurfer.sh --version
 version={{ FASTSURFER_VERSION }}
-# the FreeSurfer build image is tagged with the FreeSurfer version without dots
+# available cuda and rocm version can be identified with:
+# python $build_dir/tools/Docker/build.py --print_supported cuda # or rocm
+device_for_latest={{ CUDA_STRING }} # tag this as latest
+# if you change the FreeSurfer version, create and upload or rename the
+# FreeSurfer build image below or remove the --freesurfer_build_image argument
 freesurfer_version={{ FREESURFER_VERSION }}
-freesurfer_tag=freesurfer${freesurfer_version//./}
-# the cuda and rocm version can be identified with:
-# python $build_dir/tools/Docker/build.py --help | grep -E ^[[:space:]]+--device
-cuda=128
-cudas=("cu118" "cu126" "cu128")
-rocms=("rocm6.3")
+freesurfer_image=deepmi/fastsurfer-build:freesurfer${freesurfer_version//./}
 # end of config
 
 # code
 git clone --branch stable --single-branch \
     https://github.com/Deep-MI/FastSurfer $build_dir
 cd $build_dir
+# supported cuda and rocm versions of this checkout's build.py
+cudas=($(python3 tools/Docker/build.py --print_supported cuda))
+rocms=($(python3 tools/Docker/build.py --print_supported rocm))
 all_tags=("latest" "cpu-latest")
 # build all distinct images
 for dev in cpu xpu "${rocms[@]}" "${cudas[@]}"
 do
-  python3 tools/Docker/build.py --tag $img:$dev-v$version \
-      --freesurfer_build_image $img-build:$freesurfer_tag --attest \
-      --device $dev --pinned_requirements
+  python3 tools/Docker/build.py --tag $image:$dev-v$version \
+      $([[ -n "$freesurfer_image" ]] && echo "--freesurfer_build_image $freesurfer_image") \
+      --attest --device $dev --pinned_requirements
   all_tags+=("$dev-v$version")
 done
 # labels that are just references
-docker tag $img:cpu-v$version $img:cpu-latest
-docker tag $img:cu$cuda-v$version $img:latest
+docker tag $image:cpu-v$version $image:cpu-latest
+docker tag $image:$device_for_latest-v$version $image:latest
 # push all labels
-for tag in "${all_tags[@]}" ; do docker push $img:$tag ; done
+for tag in "${all_tags[@]}" ; do docker push $image:$tag ; done
 ```

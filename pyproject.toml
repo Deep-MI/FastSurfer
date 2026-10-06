@@ -53,9 +53,9 @@ dependencies = [
     'scipy>=1.10.1,!=1.13.0',
     'simpleitk>=2.2.1',
     'tensorboard>=2.12.1',
-    'torch==2.7.*', # pinned to 2.7, so compatibility to CUDA 11 is ensured for same torch version
+    'torch==2.14.*', # pinned to 2.14
     'torchio>=0.18.83',
-    'torchvision>=0.22.1,<0.23',
+    'torchvision>=0.29.0,<0.30.0',
     'tqdm>=4.65',
     'yacs>=0.1.8',
 ]
@@ -124,14 +124,16 @@ tracker = 'https://github.com/Deep-MI/FastSurfer/issues'
 # The single exact python version FastSurfer is built and shipped with.
 #
 # Who uses it today:
-#   - tools/Docker/build.py reads this key and passes it to the build as PYTHON_VERSION.
+#   - tools/Docker/Dockerfile reads this key from the pyproject.toml in the build context, with
+#     tools/read_toml.py run by uv.
 #   - tools/macos_build/build_release_package.sh reads it to fetch the relocatable standalone
 #     CPython it bundles into the installer, and substitutes it into the paths that name the
 #     version: python/bin/python<version>, python/lib/python<version>/site-packages.
-#   - Two places keep a hardcoded copy because neither can read this file: the ARG PYTHON_VERSION
-#     default in tools/Docker/Dockerfile (a Dockerfile cannot parse toml) and the python-version
-#     in .github/workflows/pipelinetest.yaml (that step provides the interpreter which then reads
-#     this file). test/lint/test_python_version.py asserts both against this key.
+#   - tools/update_requirements.sh reads it to resolve requirements.txt for this version.
+#   - .github/workflows/deploy.yml reads it for the key of the uv cache of the macOS package build.
+#   - One place keeps a hardcoded copy because it cannot read this file: the python-version in
+#     .github/workflows/pipelinetest.yaml (that step provides the interpreter which then reads
+#     this file). test/lint/test_python_version.py asserts it against this key.
 #   - doc/conf.py reads this key for {{ PYTHON_VERSION }} in the documentation, from the release
 #     the documentation refers to.
 #   - NOT .github/workflows/unittest.yaml, which pins the requires-python floor on purpose.
@@ -142,21 +144,58 @@ tracker = 'https://github.com/Deep-MI/FastSurfer/issues'
 # range cannot express -- wheels are cp3XX-tagged, so anything shipping a pre-resolved
 # environment needs an exact version.
 #
-# Raising this version also requires updating the following, none of which can read this key:
+# Raising this version also requires updating the following:
 #   - requirements.txt, regenerated for the new interpreter (tools/update_requirements.sh)
-#   - the two hardcoded copies listed above (CI will fail if you miss one)
+#   - the hardcoded copy listed above (CI will fail if you miss it)
 version = "3.12"
 
 [tool.freesurfer]
 version = "8.2.0"
 # The following URLs use the {version} placeholder, which should be replaced
 # with the actual version string using Python's .format(version=...).
+# tools/Docker/Dockerfile reads version and urls.linux from this file.
 # FreeSurfer 8 ships packages, not tarballs. On linux the Rocky 8 rpm: its binaries are
 # self-contained, while the Ubuntu debs link the system ITK, VTK and Qt and leave out the talairach
 # (4dfp) tools. On macOS the arm64 pkg, the only architecture the FastSurfer package is built for.
 [tool.freesurfer.urls]
 linux = "https://surfer.nmr.mgh.harvard.edu/pub/dist/freesurfer/{version}/freesurfer-Rocky8-{version}-1.x86_64.rpm"
 macOS = "https://surfer.nmr.mgh.harvard.edu/pub/dist/freesurfer/{version}/freesurfer-macOS-darwin_arm64-{version}.pkg"
+
+[tool.cuda]
+# The default CUDA version of the docker images, which the `latest` image is built for. The PyTorch
+# backend is cu<version without dots> (13.2 -> cu132), and the --device alias cuda of
+# tools/Docker/build.py resolves to it.
+#
+# Who uses it today:
+#   - tools/Docker/build.py, for --device cuda and the tag fastsurfer:dev.
+#   - tools/update_requirements.sh, for the install example in the header of requirements.txt.
+#   - doc/conf.py reads this key for {{ CUDA_VERSION }} and {{ CUDA_STRING }} in the documentation,
+#     from the release the documentation refers to.
+#
+# Raising this version (or tool.rocm.version) also requires that the torch pinned in
+# project.dependencies ships wheels for the backend, and that DeviceType and AllDeviceType in
+# tools/Docker/build.py list it.
+version = "13.2"
+
+[tool.rocm]
+# The default ROCm version of the docker images. The PyTorch backend is rocm<version> (7.2 ->
+# rocm7.2), and the --device alias rocm of tools/Docker/build.py resolves to it. PyTorch also
+# publishes builds for newer ROCm versions than uv's --torch-backend accepts (rocm7.14 for torch
+# 2.14), so this is the newest one uv can install.
+version = "7.2"
+
+[tool.docker]
+# The default base images of the docker images that tools/Docker/build.py builds: build_base for the
+# stages that build the python environment and FreeSurfer, runtime_base for the runtime image.
+#
+# Who uses it today:
+#   - tools/Docker/build.py, as the defaults of --build_base_image and --runtime_base_image.
+#   - doc/conf.py reads runtime_base for {{ UBUNTU_VERSION }} in the documentation, from the release
+#     the documentation refers to, so it has to be an ubuntu image.
+#   - tools/Docker/Dockerfile keeps copies as the defaults of ARG BUILD_BASE_IMAGE and
+#     ARG RUNTIME_BASE_IMAGE, for a direct `docker build`.
+build_base = "ubuntu:24.04"
+runtime_base = "ubuntu:24.04"
 
 [tool.setuptools.packages.find]
 # an explicit `packages = [...]` list is not recursive, so it silently dropped every subpackage

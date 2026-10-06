@@ -16,17 +16,18 @@
 Guard the copies of the supported FreeSurfer version.
 
 ``tool.freesurfer.version`` in pyproject.toml is the version FastSurfer ships and supports.
-tools/Docker/build.py and tools/macos_build/build_release_package.sh read it directly, but four
-places hold copies, because they run where pyproject.toml cannot be read or before python is
-available:
+tools/Docker/build.py, the build_freesurfer stage of tools/Docker/Dockerfile and
+tools/macos_build/build_release_package.sh read it directly, but four places hold copies, because
+they run where pyproject.toml cannot be read or before python is available:
 
 * ``FS_VERSION_SUPPORT`` in recon_surf/recon-surf.sh and recon_surf/recon-surfreg.sh, the version
   check against ``$FREESURFER_HOME/build-stamp.txt``,
 * the fallback of ``get_supported_freesurfer_version`` in recon_surf/long_compat_segmentHA.py,
-* the ``ARG FREESURFER_VERSION`` default in tools/Docker/Dockerfile.
+* the ``ARG FREESURFER_VERSION`` default in tools/Docker/Dockerfile, which only feeds the image
+  labels; the build_freesurfer stage fails when it differs from the version it installs.
 
 A copy left behind on a version bump makes the surface pipeline refuse the FreeSurfer it ships
-with, or accept the wrong one.
+with, or accept the wrong one, and a direct ``docker build`` of the FreeSurfer image fail.
 """
 
 import re

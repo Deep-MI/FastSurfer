@@ -25,7 +25,7 @@
 #   - default: build_freesurfer
 # - VENV_BUILD_IMAGE:
 #   Image to use to install the python environment from, the python environment should be in /venv/ in the image.
-#   - default: build_cuda
+#   - default: build_venv
 # - BUILDKIT_SBOM_SCAN_CONTEXT:
 #   Enables buildkit to provide and scan build images this is active by default to provide proper SBOM manifests,
 #   however, it may also include parts that are not part of the distributed image (specifically build image parts
@@ -34,19 +34,10 @@
 #   - default: true
 # - UV_VERSION:
 #   The version of uv to use to build the python environment.
-#   - default: 0.9.22
-# - PYTHON_VERSION:
-#   The python version to use for the virtual environment. build.py always passes this explicitly
-#   from tool.python.version in pyproject.toml, which is the single source of truth; the ARG
-#   default only applies to a direct `docker build` and is checked against that key by
-#   test/lint/test_python_version.py.
-#   - default: see tool.python.version in pyproject.toml
+#   - default: 0.12.22
 # - FREESURFER_VERSION:
-#   The freesurfer version used in the image.
-#   - default: build.py passes tool.freesurfer.version from pyproject.toml
-# - FREESURFER_URL:
-#   The url to download the freesurfer install archive from, if "default", the
-#   - default: default
+#   The version is needed to annotate the FreeSurfer version in the image labels.
+#   - default: same as tool.freesurfer.version in pyproject.toml, else an error is generated
 # - FASTSURFER_VERSION:
 #   The fastsurfer version to include in image labels.
 #   - default: dev
@@ -71,9 +62,9 @@
 #   The author string to include in image labels.
 #   - default: "FastSurfer Developers <https://github.com/Deep-MI/FastSurfer>"
 # - DEVICE:
-#   The device type to build the python environment for, this affects the installed torch packages.
-#   Supported values are what is supported by uv, e.g.: cu128, xpu, rocm6.2.4, etc.
-#   - default: cu128
+#   The device type to build the python environment for, build.py must pass this value! This
+#   affects the installed torch packages with supported values defined by torch and uv of
+#   the format: cpu, cuXXX, xpu, rocmX.YY, etc.
 # - DEBUG:
 #   If set to "true", retains build debug output during build.
 #   - default: false
@@ -96,10 +87,8 @@ ARG BUILD_BASE_IMAGE="ubuntu:24.04"
 ARG RUNTIME_BASE_IMAGE="ubuntu:24.04"
 ARG VENV_BUILD_IMAGE="build_venv"
 ARG FREESURFER_BUILD_IMAGE="build_freesurfer"
-ARG UV_VERSION="0.9.22"
-ARG PYTHON_VERSION="3.12"
+ARG UV_VERSION="0.12.22"
 ARG FREESURFER_VERSION="8.2.0"
-ARG FREESURFER_URL="not set"
 ARG FASTSURFER_VERSION="dev"
 ARG GIT_HASH=""
 ARG REPOSITORY_URL="<no repository set>"
@@ -108,7 +97,7 @@ ARG DOC_URL="https://deep-mi.org/FastSurfer/dev"
 ARG VENDOR="DeepMI Lab, DZNE https://deep-mi.org/"
 ARG AUTHOR="FastSurfer Developers <https://github.com/Deep-MI/FastSurfer>"
 ARG BUILDKIT_SBOM_SCAN_CONTEXT="true"
-ARG DEVICE="cu128"
+ARG DEVICE="invalid-must-be-passed"
 ARG DEBUG="false"
 ARG INSECURE_FLAG=""
 
@@ -116,8 +105,6 @@ FROM ghcr.io/astral-sh/uv:$UV_VERSION AS selected_uv_install_image
 
 ## Start with ubuntu base to build the venv base stage
 FROM $BUILD_BASE_IMAGE AS build_base
-
-ARG PYTHON_VERSION
 
 ENV LANG=C.UTF-8 \
     DEBIAN_FRONTEND=noninteractive
@@ -142,7 +129,6 @@ COPY --from=selected_uv_install_image /uv /uvx /bin/
 
 ENV UV_LINK_MODE=copy \
     UV_COMPILE_BYTECODE=1 \
-    UV_PYTHON=python$PYTHON_VERSION \
     UV_PYTHON_INSTALL_DIR=/opt/python \
     UV_NO_DEV=1 \
     UV_TOOL_BIN_DIR=/usr/local/bin
@@ -150,7 +136,6 @@ ENV UV_LINK_MODE=copy \
 # create a stage for the common components used across different DEVICE settings
 FROM build_base AS build_venv
 
-ARG PYTHON_VERSION
 ARG DEVICE
 ARG PINNED_REQUIREMENTS=false
 
@@ -159,19 +144,32 @@ SHELL ["/bin/bash", "--login", "-e", "-c"]
 # Install the project's dependencies using either pyproject.toml or the backend-neutral pinned requirements.
 RUN --mount=type=cache,target=/root/.cache/uv \
     --mount=type=bind,source=pyproject.toml,target=/install/pyproject.toml \
-    --mount=type=bind,source=requirements.txt,target=/install/requirements.txt <<EOF
-uv venv --python ${PYTHON_VERSION} --relocatable /venv --prompt fastsurfer
+    --mount=type=bind,source=requirements.txt,target=/install/requirements.txt \
+    --mount=type=bind,source=tools/read_toml.py,target=/install/read_toml.py <<EOF
+function error() { echo "ERROR: $1" >&2; exit 1; }
+if [[ "$DEVICE" == "invalid-must-be-passed" ]]; then
+    error "DEVICE is not set. Build with tools/Docker/build.py or pass --build-arg DEVICE=<cpu|cuXYZ|rocmX.Y|xpu>."
+fi
+# tool.python.version in pyproject.toml is the only place the python version is defined. uv reads it
+# with its default python, installed into the uv cache rather than into UV_PYTHON_INSTALL_DIR: the
+# runtime image copies /opt/python, which must hold only the python of the venv.
+python_version="$(UV_PYTHON_INSTALL_DIR=/root/.cache/uv/python-read-toml \
+  uv run --no-project /install/read_toml.py --file /install/pyproject.toml --key tool.python.version)" || exit 1
+if ! uv venv --python "$python_version" --relocatable /venv --prompt fastsurfer; then
+    error "uv venv failed, check uv."
+fi
 # activate the virtual environment
 source /venv/bin/activate
 # uv pip sync only installs "exactly" the packages in the lockfile, but does not resolve dependencies
 # therefore, we first compile the environment to resolve dependencies, and then sync to install both directly and
 # indirectly required packages
-# pipefail: fail the build if uv pip compile fails, uv pip sync succeeds on the resulting empty input
-set -o pipefail
-if [[ "$PINNED_REQUIREMENTS" == "true" ]]; then
-    uv pip compile --torch-backend=${DEVICE} /install/requirements.txt | uv pip sync --torch-backend=${DEVICE} -
-else
-    uv pip compile --torch-backend=${DEVICE} --extra container /install/pyproject.toml | uv pip sync --torch-backend=${DEVICE} -
+if [[ "$PINNED_REQUIREMENTS" == "true" ]]; then uv_compile_args=(/install/requirements.txt)
+else uv_compile_args=(--extra container /install/pyproject.toml)
+fi
+# avoid silent failures of uv compile/pip sync
+if ! uv pip compile --torch-backend=${DEVICE} "${uv_compile_args[@]}" -o /install/requirements.lock \
+  || ! uv pip sync --torch-backend=${DEVICE} /install/requirements.lock; then
+    error "uv compile/pip sync failed, check/fix ${uv_compile_args[-1]/\/install\//}."
 fi
 EOF
 
@@ -213,8 +211,9 @@ EOF
 # create a stage for pruned Freesurfer
 FROM build_base AS build_freesurfer
 
-ARG DEVICE
-ARG FREESURFER_URL
+# The labels read this arg too, but unlike their other args it is declared before the RUN, which
+# checks it. That rebuilds nothing extra: a new version changes the url, so the install re-runs anyway.
+ARG FREESURFER_VERSION
 # redeclared, because a global arg is not in scope inside a stage: without this the RUN below
 # expands it to empty and --insecure never reaches the installer
 ARG INSECURE_FLAG
@@ -222,15 +221,33 @@ ARG INSECURE_FLAG
 # install freesurfer and point to new python location
 RUN --mount=type=bind,source=tools/build/install_fs_pruned.sh,target=/install/install_fs_pruned.sh \
     --mount=type=bind,source=tools/build/link_fs.sh,target=/install/link_fs.sh \
+    --mount=type=bind,source=tools/read_toml.py,target=/install/read_toml.py \
+    --mount=type=cache,target=/root/.cache/uv \
     --mount=type=cache,target=/install/download \
     --mount=type=bind,source=pyproject.toml,target=/install/pyproject.toml <<EOF
+function error() { echo "ERROR: $1" >&2; exit 1; }
 # the INSECURE_FLAG build arg may be set to "--insecure" to skip ssl certificate verification during download
 # for production environments, this should never be used. This option is only provided to deal with an outdated
 # ssl certificate on the freesurfer download server.
 if [[ -n "$INSECURE_FLAG" ]]; then
     echo "SECURITY NOTICE: Downloading freesurfer for the build image without ssl validation."
 fi
-/install/install_fs_pruned.sh /opt --url $FREESURFER_URL $INSECURE_FLAG
+# uv reads pyproject.toml with its default python, installed into the uv cache rather than into
+# UV_PYTHON_INSTALL_DIR, so that this image does not carry it (same as in build_venv)
+function read_pyproject() {
+    UV_PYTHON_INSTALL_DIR=/root/.cache/uv/python-read-toml \
+      uv run --no-project /install/read_toml.py --file /install/pyproject.toml --key "$1"
+}
+# tool.freesurfer in pyproject.toml defines what is installed: the version, and the url with its
+# {version} placeholder
+fs_version="$(read_pyproject tool.freesurfer.version)" || exit 1
+fs_url="$(read_pyproject tool.freesurfer.urls.linux)" || exit 1
+# FREESURFER_VERSION only feeds the labels, which cannot read pyproject.toml. A mismatch would label
+# the image with a version it does not contain.
+if [[ "$FREESURFER_VERSION" != "$fs_version" ]]; then
+    error "FREESURFER_VERSION is '$FREESURFER_VERSION', but pyproject.toml installs FreeSurfer $fs_version. Build with tools/Docker/build.py or pass --build-arg FREESURFER_VERSION=$fs_version."
+fi
+/install/install_fs_pruned.sh /opt --url "${fs_url//\{version\}/$fs_version}" $INSECURE_FLAG
 /install/link_fs.sh /opt/freesurfer
 EOF
 
@@ -246,7 +263,6 @@ ARG AUTHOR
 ARG REPOSITORY_URL
 ARG SOURCE_URL
 ARG DOC_URL
-ARG FREESURFER_VERSION
 ARG FASTSURFER_VERSION
 ARG GIT_HASH
 ARG VENDOR
@@ -290,10 +306,13 @@ shell_deps="time bc"
 # libgfortran5: the talairach (4dfp) tools of FreeSurfer 8's linux build need it
 freesurfer_deps="gawk libgfortran5 libgomp1 libquadmath0 tcsh"
 whippersnappy_egl_deps="libegl1 libgl1 libfontconfig1"
+# ROCm torch wheels require the 10KB libatomic1, installed into all for simplicity.
+torch_deps="libatomic1"
 apt-get install -y --no-install-recommends \
     $shell_deps \
     $freesurfer_deps \
     $whippersnappy_egl_deps \
+    $torch_deps \
     locales
 locale-gen en_US.UTF-8 C.UTF-8
 update-locale LANG=C.UTF-8 LC_NUMERIC=en_US.UTF-8
@@ -414,6 +433,7 @@ SHELL ["/bin/bash", "--login", "-c"]
 RUN <<EOF
 getent group nonroot > /dev/null || groupadd --system nonroot
 id -u nonroot > /dev/null 2>&1 || useradd --system --gid nonroot --no-create-home --home-dir /nonexistent --shell /usr/sbin/nologin nonroot
+echo "if [[ -z \"\$USERNAME\" ]] && ! id -un > /dev/null 2>&1 ; then export USERNAME=\"UNKNOWN\" ; fi" >> /etc/bash.bashrc
 EOF
 USER nonroot
 WORKDIR "/fastsurfer"
@@ -448,19 +468,14 @@ LABEL org.opencontainers.image.authors="$AUTHOR" \
 
 FROM runtime AS runtime_cuda
 # parse DEVICE to extract the CUDA version, this is needed to correctly initialize NVIDIA_REQUIRE_CUDA below
-# Note, here 'cuda' defaults to 12.8
 # DEVICE is redeclared, because arg scope does not cross stages: without it the substitutions
 # below all start from an empty string and NVIDIA_REQUIRE_CUDA ends up as "cuda>=".
 ARG DEVICE
-ARG CUDA_VERSION__0=${DEVICE/cu11/11.}
-ARG CUDA_VERSION__1=${CUDA_VERSION__0/cu12/12.}
-ARG CUDA_VERSION__2=${CUDA_VERSION__1/cu13/13.}
-ARG CUDA_VERSION__3=${CUDA_VERSION__2/cu14/14.}
-ARG CUDA_VERSION__4=${CUDA_VERSION__3/cuda/12.8}
+ARG CUDA_VERSION__0="${DEVICE#cu}"
 
 # to support AWS docker images, see Issue #352
 # https://sarus.readthedocs.io/en/stable/user/custom-cuda-images.html#controlling-the-nvidia-container-runtime
 
 ENV NVIDIA_VISIBLE_DEVICES=all \
     NVIDIA_DRIVER_CAPABILITIES=all \
-    NVIDIA_REQUIRE_CUDA="cuda>=${CUDA_VERSION__4}"
+    NVIDIA_REQUIRE_CUDA="cuda>=${CUDA_VERSION__0%?}.${CUDA_VERSION__0#??}"

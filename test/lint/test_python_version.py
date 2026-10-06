@@ -16,15 +16,14 @@
 Guard the single-source-of-truth for the shipped python version.
 
 ``tool.python.version`` in pyproject.toml declares the exact interpreter FastSurfer is built
-with. tools/Docker/build.py and tools/macos_build/build_release_package.sh read it directly, but
-two consumers cannot and therefore hold hardcoded copies:
+with. tools/Docker/Dockerfile, tools/macos_build/build_release_package.sh and
+tools/update_requirements.sh read it directly, but one consumer cannot and therefore holds a
+hardcoded copy:
 
-* the ``ARG PYTHON_VERSION`` default in tools/Docker/Dockerfile -- a Dockerfile cannot parse a
-  toml file at build time,
 * the ``python-version`` in .github/workflows/pipelinetest.yaml -- that step *provides* the
   interpreter which later reads pyproject.toml.
 
-Without these tests, bumping the key leaves those copies behind silently. The failure mode is a
+Without these tests, bumping the key leaves that copy behind silently. The failure mode is a
 confusing build rather than a red test, which is exactly what this module prevents.
 """
 
@@ -36,7 +35,6 @@ import pytest
 
 FASTSURFER_HOME = Path(__file__).parent.parent.parent
 PYPROJECT = FASTSURFER_HOME / "pyproject.toml"
-DOCKERFILE = FASTSURFER_HOME / "tools" / "Docker" / "Dockerfile"
 PIPELINETEST_YAML = FASTSURFER_HOME / ".github" / "workflows" / "pipelinetest.yaml"
 UNITTEST_YAML = FASTSURFER_HOME / ".github" / "workflows" / "unittest.yaml"
 MACOS_BUILD_SH = FASTSURFER_HOME / "tools" / "macos_build" / "build_release_package.sh"
@@ -164,17 +162,6 @@ def test_shipped_version_satisfies_the_support_floor(config: dict) -> None:
     assert _as_tuple(config["python_version"]) >= _as_tuple(floor), (
         f"tool.python.version ({config['python_version']}) is older than the "
         f"project.requires-python floor ({config['requires_python']!r}, floor {floor})"
-    )
-
-
-def test_dockerfile_arg_default_matches(config: dict) -> None:
-    """Check the Dockerfile ARG fallback agrees with the key it cannot read."""
-    match = re.search(r"^ARG PYTHON_VERSION=\"([^\"]+)\"", DOCKERFILE.read_text(), re.M)
-    assert match is not None, f"no 'ARG PYTHON_VERSION=\"...\"' found in {DOCKERFILE}"
-    assert match.group(1) == config["python_version"], (
-        f"{DOCKERFILE.name} pins python {match.group(1)} but tool.python.version is "
-        f"{config['python_version']}; the ARG default is the fallback for a direct `docker build` "
-        f"and has to be updated alongside the key"
     )
 
 

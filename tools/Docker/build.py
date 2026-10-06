@@ -40,8 +40,12 @@ logger = logging.getLogger(__name__)
 
 Target = Literal["runtime", "build_common", "build_venv", "build_freesurfer", "build_base", "runtime_cuda"]
 CacheType = Literal["inline", "registry", "local", "gha", "s3", "azblob"]
-AllDeviceType = Literal["cpu", "cuda", "cu118", "cu126", "cu128", "rocm", "rocm6.3", "xpu"]
-DeviceType = Literal["cpu", "cu118", "cu126", "cu128", "rocm6.3"]
+# the devices the torch pinned in pyproject.toml ships wheels for; AllDeviceType adds the aliases cuda
+# and rocm, which resolve to DEFAULTS.CUDA and DEFAULTS.ROCM
+# PyTorch also publishes rocm7.14 builds, but uv's --torch-backend does not accept rocm7.14, so the
+# newest ROCm it can install is rocm7.2
+AllDeviceType = Literal["cpu", "cuda", "cu126", "cu130", "cu132", "rocm", "rocm7.2", "xpu"]
+DeviceType = Literal["cpu", "cu126", "cu130", "cu132", "rocm7.2", "xpu"]
 
 CREATE_BUILDER = "Create builder with 'docker buildx create --name fastsurfer'."
 CONTAINERD_MESSAGE = (
@@ -63,26 +67,36 @@ INSTALL_BUILDX = (
 __import_cache = {}
 
 
+def default_home() -> Path:
+    """
+    Find the fastsurfer path.
+
+    Returns
+    -------
+    Path
+        The FastSurfer root path belonging to this build.py file.
+    """
+    return Path(__file__).resolve().parents[2]
+
+
+# the defaults are tool.cuda.version, tool.rocm.version and tool.docker of the pyproject.toml of the
+# FastSurfer tree this build.py belongs to
+with open(default_home() / "pyproject.toml", "rb") as _pyproject:
+    _pyproject_tool = tomllib.load(_pyproject)["tool"]
+
+
 class DEFAULTS:
-    # Here (and in the Literals at the top of the document), we need to update the cuda
-    # and rocm versions, if pytorch comes with new versions.
-    # torch 1.12.0 comes compiled with cu113, cu116, rocm5.0 and rocm5.1.1
-    # torch 2.0.1 comes compiled with cu117, cu118, and rocm5.4.2
-    # torch 2.4 comes compiled with cu118, cu121, cu124 and rocm6.1
-    # torch 2.6 comes compiled with cu118, cu124, cu126 and rocm6.2.4
-    # torch 2.7.1 comes compiled with cu118, cu126, cu128, rocm6.3, and xpu (intel)
-    CUDA="cu128"
-    CUDA_VERSION="12.8"
-    ROCM="rocm6.3"
+    CUDA_VERSION: str = _pyproject_tool["cuda"]["version"]
+    # the PyTorch backends of the versions: 13.2 -> cu132, 7.2 -> rocm7.2
+    CUDA = cast(DeviceType, "cu" + CUDA_VERSION.replace(".", ""))
+    ROCM = cast(DeviceType, "rocm" + _pyproject_tool["rocm"]["version"])
     MapDeviceType: dict[AllDeviceType, DeviceType] = dict(
         ((d, d) for d in get_args(DeviceType)),
         rocm=ROCM,
         cuda=CUDA,
     )
-    BUILD_BASE_IMAGE = "ubuntu:24.04"
-    RUNTIME_BASE_IMAGE = "ubuntu:24.04"
-    FREESURFER_BUILD_IMAGE = "build_freesurfer"
-    VENV_BUILD_IMAGE = "build_venv"
+    BUILD_BASE_IMAGE: str = _pyproject_tool["docker"]["build_base"]
+    RUNTIME_BASE_IMAGE: str = _pyproject_tool["docker"]["runtime_base"]
 
 
 def docker_image(arg) -> str:
@@ -121,6 +135,40 @@ def target(arg) -> Target:
         raise argparse.ArgumentTypeError(
             f"target must be one of {', '.join(get_args(Target))}, but was {arg}."
         )
+
+
+def device(arg) -> DeviceType:
+    """Returns the device to build for, resolving the aliases cuda and rocm to DEFAULTS.CUDA and DEFAULTS.ROCM.
+
+    Raises
+    ======
+    ArgumentTypeError
+        if not valid."""
+    if isinstance(arg, str) and arg in DEFAULTS.MapDeviceType:
+        return DEFAULTS.MapDeviceType[arg]
+    else:
+        raise argparse.ArgumentTypeError(
+            f"device must be one of {', '.join(get_args(AllDeviceType))}, but was {arg}."
+        )
+
+
+class PrintSupportedAction(argparse.Action):
+    """Print the versions of a device backend (cuda or rocm) this script can build for and exit.
+
+    Like the builtin 'version' action, this exits while parsing, so required arguments like --device
+    are not needed.
+    """
+
+    def __init__(self, option_strings, dest, default=argparse.SUPPRESS, **kwargs):
+        super().__init__(option_strings, dest, default=default, **kwargs)
+
+    def __call__(self, parser, namespace, values, option_string=None):
+        # versions start with the first letters of the backend: cuda -> cuXXX, ...; rocm -> rocmX.YY
+        prefix = {"cuda": "cu"}.get(values, values)
+        for version in get_args(DeviceType):
+            if version.startswith(prefix):
+                print(f"  {version}")
+        parser.exit()
 
 
 class CacheSpec:
@@ -200,6 +248,7 @@ def make_parser() -> argparse.ArgumentParser:
 
     parser.add_argument(
         "--device",
+        type=device,
         choices=list(get_args(AllDeviceType)),
         required=True,
         help=f"""selection of internal build stages to build for a specific platform.<br>
@@ -348,6 +397,12 @@ def make_parser() -> argparse.ArgumentParser:
         "--insecure",
         action="store_true",
         help="disables certificate check for downloads, e.g. freesurfer.",
+    )
+    expert.add_argument(
+        "--print_supported",
+        action=PrintSupportedAction,
+        choices=["cuda", "rocm"],
+        help="print the supported CUDA/ROCm versions and exit.",
     )
     expert.add_argument(
         "--debug",
@@ -678,18 +733,16 @@ def main(
         logger.warning("--refresh_cache has no effect without --cache, which is what it refreshes.")
 
     fastsurfer_home = Path(fastsurfer_home) if fastsurfer_home else default_home()
-    # read the freesurfer download url from pyproject.toml
+    # read the repository url and the freesurfer version for the image labels from pyproject.toml
     with open(fastsurfer_home / "pyproject.toml", "rb") as fp:
         pyproject_toml = tomllib.load(fp)
         pyproject_repository_url = pyproject_toml["project"]["urls"]["source"]
         pyproject_freesurfer = pyproject_toml["tool"]["freesurfer"]
-        pyproject_python = pyproject_toml["tool"]["python"]
 
     if target not in get_args(Target):
         raise ValueError(f"Invalid target: {target}")
-    if device not in get_args(AllDeviceType):
-        raise ValueError(f"Invalid device: {device}")
-    mapped_device = DEFAULTS.MapDeviceType.get(device, "cpu")
+    if device not in get_args(DeviceType):
+        raise ValueError(f"Invalid device: {device}, must be one of {', '.join(get_args(DeviceType))}.")
     if keywords.get("action", "load") == "push":
         kwargs["action"] = "push"
     # special case to add extra environment variables to better support AWS and ROCm
@@ -697,27 +750,21 @@ def main(
         target = "runtime_cuda"
     kwargs["target"] = target
     kwargs["build_arg"] = [
-        f"DEVICE={mapped_device}",
-        f"FREESURFER_URL={pyproject_freesurfer['urls']['linux'].format(version=pyproject_freesurfer['version'])}",
+        f"DEVICE={device}",
         f"FREESURFER_VERSION={pyproject_freesurfer['version']}",
         f"INSECURE_FLAG={'--insecure' if insecure else ''}",
         f"PINNED_REQUIREMENTS={'true' if pinned_requirements else 'false'}",
-        # a Dockerfile ARG cannot read pyproject.toml, so the version is passed in here; the
-        # ARG default in the Dockerfile is only a fallback for a direct `docker build`
-        f"PYTHON_VERSION={pyproject_python['version']}",
     ]
     if debug:
         kwargs["build_arg"].append("DEBUG=true")
-    build_arg_list = [
-        "build_base_image",
-        "runtime_base_image",
-        "freesurfer_build_image",
-        "venv_build_image",
-    ]
-    for key in build_arg_list:
+    for key in ("build_base_image", "runtime_base_image"):
         upper_key = key.upper()
         value = keywords.get(key) or getattr(DEFAULTS, upper_key)
         kwargs["build_arg"].append(f"{upper_key}={value}")
+    # if they do not get passed to build.py, use the defaults from the Dockerfile (build stages)
+    for key in ("freesurfer_build_image", "venv_build_image"):
+        if value := keywords.get(key):
+            kwargs["build_arg"].append(f"{key.upper()}={value}")
 
     build_filename = fastsurfer_home / "tools" / "Docker" / "BUILD.info"
     if has_git():
@@ -775,17 +822,14 @@ def main(
         f"SOURCE_URL={source_url}",
     ])
     version_tag = build_info["version_tag"]
-    image_prefix = ""
-    if device != "cuda":
-        image_prefix = f"{device}-"
     # image_tag is None or ""
     if not bool(image_tag):
-        image_tag = f"fastsurfer:{image_prefix}v{version_tag}".replace("+", "_")
+        image_tag = f"fastsurfer:{device}-v{version_tag}".replace("+", "_")
         logger.info(f"No image name/tag provided, auto-generated tag: {image_tag}")
 
     attestation = bool(keywords.get("attest"))
     if tag_dev:
-        kwargs["tag"] = f"fastsurfer:{image_prefix}dev"
+        kwargs["tag"] = "fastsurfer:dev" if device == DEFAULTS.CUDA else f"fastsurfer:{device}-dev"
     if keywords.get("image_path", False):
         kwargs["image_path"] = keywords["image_path"]
 
@@ -868,18 +912,6 @@ def get_repository_url(branch: str = "HEAD") -> str | None:
         host = split.hostname + (f":{split.port}" if split.port else "")
         repository_url = urlunsplit(split._replace(netloc=host))
     return repository_url + "/tree/" + remote_branch
-
-
-def default_home() -> Path:
-    """
-    Find the fastsurfer path.
-
-    Returns
-    -------
-    Path
-        The FastSurfer root path belonging to this build.py file.
-    """
-    return Path(__file__).resolve().parents[2]
 
 
 if __name__ == "__main__":
