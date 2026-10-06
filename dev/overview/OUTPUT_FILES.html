@@ -838,9 +838,9 @@
 <section id="lesion-inpainting-tool-lit-optional">
 <h2>Lesion Inpainting Tool (LIT, optional)<a class="headerlink" href="#lesion-inpainting-tool-lit-optional" title="Link to this heading">¶</a></h2>
 <p>When <code class="docutils literal notranslate"><span class="pre">--lesion_mask</span> <span class="pre">&lt;lesion_mask_path&gt;</span></code> is provided, FastSurfer wraps the segmentation and surface
-pipelines with lesion inpainting using LIT. The extension is currently experimental. It inpaints
-the lesion region, runs the requested FastSurfer modules on the inpainted image, and then maps the
-lesion back into the resulting outputs. The current LIT postprocessing workflow updates the primary
+pipelines with lesion inpainting using LIT. It inpaints the lesion region, runs the requested
+FastSurfer modules on the inpainted image, and then maps the lesion back into the resulting outputs.
+The current LIT postprocessing workflow updates the primary
 FastSurfer files in place and keeps the original pre-lesion outputs either as <code class="docutils literal notranslate"><span class="pre">.lit</span></code> backups or,
 for some surface-derived files, in the original <code class="docutils literal notranslate"><span class="pre">.mapped.*</span></code> files.</p>
 <p>For lesion mask requirements, see the <a class="reference internal" href="modules/LIT.html#lesion-mask-requirements"><span class="std std-ref">FastSurfer-LIT module documentation</span></a>.</p>

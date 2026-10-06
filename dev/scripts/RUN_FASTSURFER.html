@@ -508,7 +508,7 @@ Here, we have also added the <code class="docutils literal notranslate"><span cl
 <li><p><code class="docutils literal notranslate"><span class="pre">--no_cereb</span></code>: Switch off the cerebellum sub-segmentation.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">--no_hypothal</span></code>: Skip the hypothalamus segmentation.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">--no_cc</span></code>: Skip the segmentation and analysis of the corpus callosum.</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">--lesion_mask</span> <span class="pre">&lt;lesion_mask_path&gt;</span></code>: Path to a binary lesion mask in the same space as the T1 input. If provided, FastSurfer will wrap the segmentation and surface pipelines with lesion inpainting using LIT. This experimental feature is useful for images with tumors or other large lesions; review LIT-modified outputs before downstream use.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--lesion_mask</span> <span class="pre">&lt;lesion_mask_path&gt;</span></code>: Path to a binary lesion mask in the same space as the T1 input. If provided, FastSurfer will wrap the segmentation and surface pipelines with lesion inpainting using LIT. This feature is useful for images with tumors or other large lesions; review LIT-modified outputs before downstream use.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">--cereb_segfile</span></code>: Name of the cerebellum segmentation file. Requires an ABSOLUTE Path! Default location: <code class="docutils literal notranslate"><span class="pre">$SUBJECTS_DIR/&lt;subject_id&gt;/mri/cerebellum.CerebNet.nii.gz</span></code></p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">--no_biasfield</span></code>: Deactivate the biasfield correction and calculation of partial volume-corrected statistics in the segmentation modules. HypVINN does run but expects that biasfields are corrected externally.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">--native_image</span></code> or <code class="docutils literal notranslate"><span class="pre">--keepgeom</span></code>: <strong>Only supported for <code class="docutils literal notranslate"><span class="pre">--seg_only</span></code></strong>. Preserve the native image geometry (orientation, image size, and voxel size) for saved outputs. Internally, FastSurfer may temporarily reorder/flip the image to a soft-LIA layout so the 2D networks still see the expected plane ordering, but written outputs stay in native geometry; only intensity scaling and dtype conversion are applied as needed. This also includes experimental support for anisotropic images (no extreme anisotropy).</p></li>
@@ -578,7 +578,7 @@ FLAGS:
   --t1  &lt;t1_path&gt;         T1 full head input (not bias corrected). Requires an
                             ABSOLUTE Path!
   --lesion_mask &lt;lesion_mask_path&gt;
-                          Lesion mask input for experimental lesion inpainting.
+                          Lesion mask input for lesion inpainting.
                             Requires an ABSOLUTE Path!
   --asegdkt_segfile &lt;asegdkt_segfile&gt;
                           Name of the segmentation file, which includes the
