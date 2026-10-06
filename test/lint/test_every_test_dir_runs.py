@@ -27,6 +27,7 @@ a regex.
 """
 
 import re
+import subprocess
 from pathlib import Path
 
 import pytest
@@ -106,12 +107,15 @@ def _directories_ci_runs() -> set[str]:
 
 
 def _test_directories() -> set[str]:
-    """Every test/<name> that holds tests, which is what CI has to reach."""
-    return {
-        directory.name
-        for directory in TEST_ROOT.iterdir()
-        if directory.is_dir() and any(directory.glob("test_*.py"))
-    }
+    """Every test/<name> that holds tests, which is what CI has to reach; git-ignored ones are local only."""
+    directories = [d for d in TEST_ROOT.iterdir() if d.is_dir() and any(d.glob("test_*.py"))]
+    result = subprocess.run(
+        ["git", "check-ignore", "--stdin", "-z"],
+        input="\0".join(str(directory) for directory in directories),
+        cwd=FASTSURFER_HOME, capture_output=True, text=True,
+    )
+    ignored = {Path(path) for path in result.stdout.split("\0") if path}
+    return {directory.name for directory in directories if directory not in ignored}
 
 
 def test_ci_files_were_found() -> None:

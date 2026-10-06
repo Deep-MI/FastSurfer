@@ -253,7 +253,7 @@ select = [
 
 [tool.pytest.ini_options]
 minversion = '6.0'
-addopts = '--durations 20 --junit-xml=junit-results.xml --verbose'
+addopts = '--durations 20 --verbose'
 filterwarnings = []
 
 [tool.coverage.run]

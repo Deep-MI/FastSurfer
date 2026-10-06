@@ -12,11 +12,22 @@ counterpart, which needs a real bash 3.2, is test/shell/test_brun_bash32.py.
 """
 
 import re
+import subprocess
 from pathlib import Path
 
 import pytest
 
 FASTSURFER_HOME = Path(__file__).parent.parent.parent
+
+
+def _gitignored(paths: list[Path]) -> set[Path]:
+    """The paths git ignores; none outside a git work tree (an unpacked release, say)."""
+    result = subprocess.run(
+        ["git", "check-ignore", "--stdin", "-z"],
+        input="\0".join(str(path) for path in paths),
+        cwd=FASTSURFER_HOME, capture_output=True, text=True,
+    )
+    return {Path(path) for path in result.stdout.split("\0") if path}
 
 
 def _recon_surf_shell_scripts() -> list[str]:
@@ -28,8 +39,10 @@ def _recon_surf_shell_scripts() -> list[str]:
     make_upright (csh) and fs_time (python), which this scan has nothing useful to say about.
     """
     scripts = []
-    for path in sorted((FASTSURFER_HOME / "recon_surf").iterdir()):
-        if not path.is_file():
+    paths = sorted((FASTSURFER_HOME / "recon_surf").iterdir())
+    ignored = _gitignored(paths)
+    for path in paths:
+        if not path.is_file() or path in ignored:
             continue
         first_line = path.read_text(errors="replace").split("\n", 1)[0]
         is_bash = "bash" in first_line if first_line.startswith("#!") else path.suffix == ".sh"
@@ -39,8 +52,8 @@ def _recon_surf_shell_scripts() -> list[str]:
 
 
 # Everything that runs under a *macOS* bash: the pipeline entry points, the recon_surf scripts they
-# call, the macOS build and the requirements update, and the scripts that run at install time or
-# ship inside the package.
+# call, the macOS build, the requirements update and the git pre-commit hook, and the scripts that
+# run at install time or ship inside the package.
 # Deliberately excluded: tools/Docker/entrypoint.sh and tools/build/fspython (both run inside the
 # linux image, the second one activating /venv) and
 # CerebNet/datasets/realistic_deformations.sh (a training helper), none of which macOS ever executes.
@@ -48,7 +61,7 @@ SHIPPED_SCRIPTS = (
     ["run_fastsurfer.sh", "brun_fastsurfer.sh", "srun_fastsurfer.sh", "long_fastsurfer.sh", "stools.sh"]
     + _recon_surf_shell_scripts()
     + ["tools/build/install_fs_pruned.sh", "tools/build/link_fs.sh", "tools/macos_build/build_release_package.sh"]
-    + ["tools/update_requirements.sh"]
+    + ["tools/update_requirements.sh", "tools/git-hooks/pre-commit"]
     # rendered by the build into the installed package, so they run on the user's machine
     + [
         "tools/macos_build/macos_setup_fastsurfer.sh.template",
