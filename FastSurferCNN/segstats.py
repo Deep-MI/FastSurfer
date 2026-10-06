@@ -1185,7 +1185,7 @@ def write_statsfile(
 
         try:
             file.write(f"# user       {getuser()}\n")
-        except KeyError:
+        except (KeyError, OSError):
             file.write("# user       UNKNOWN\n")
 
     def _extra_header(file: IO, lines_extra_header: Iterable[str]) -> None:

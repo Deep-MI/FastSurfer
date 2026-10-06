@@ -1,0 +1,2 @@
+# runs fastsurfer_startup.main() at interpreter start from python 3.15 on, see fastsurfer_startup.py
+fastsurfer_startup:main
