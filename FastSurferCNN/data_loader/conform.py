@@ -63,7 +63,7 @@ conform.py  -i <input> -o <output> <options>
 OR
 conform.py  -i <input> --check_only <options>
 Dependencies:
-    Python 3.10+
+    Python 3.12+
     Numpy
     https://www.numpy.org
     Nibabel to read and write FreeSurfer data
@@ -646,7 +646,7 @@ class Reorientation:
         return vector[io_orientation(self.vox2vox)[:, 0].astype(np.int64)]
 
 
-def apply_orientation(arr: _TB | npt.ArrayLike, ornt: OrntArrayType) -> _TB:
+def apply_orientation[TB: np.ndarray](arr: TB | npt.ArrayLike, ornt: OrntArrayType) -> TB:
     """
     Apply transformations implied by `ornt` to the first n axes of the array `arr`.
 
@@ -689,7 +689,7 @@ def apply_orientation(arr: _TB | npt.ArrayLike, ornt: OrntArrayType) -> _TB:
             full_transpose = np.arange(arr.ndim)
             # ornt indicates the transpose that has occurred - we reverse it
             full_transpose[:n] = np.argsort(ornt[:, 0])
-            return cast(_TB, arr.permute(*full_transpose))
+            return cast(TB, arr.permute(*full_transpose))
 
     return _apply_orientation(arr, ornt)
 
@@ -742,14 +742,14 @@ def map_image(
     return apply_vox2vox(image_data, vox2vox, out_shape=out_shape, order=order, vox_eps=vox_eps, rot_eps=rot_eps)
 
 
-def apply_vox2vox(
-        image_data: _TA,
+def apply_vox2vox[TA: np.ndarray](
+        image_data: TA,
         vox2vox: AffineMatrix4x4,
         out_shape: np.ndarray[tuple[int], np.dtype[np.integer]] | Iterable[int],
         order: int = 1,
         vox_eps: float = 1e-4,
         rot_eps: float = 1e-6,
-    ) -> _TA:
+    ) -> TA:
     """
     Map image to new voxel space (RAS orientation).
 
@@ -1769,8 +1769,8 @@ def _crop_transform_make_indices(image_shape: Sequence[int], offsets: Sequence[i
     return paddings if any_pad else None, tuple(indices)
 
 
-def _crop_transform_pad_fn(image: _TA, pad_tuples: list[tuple[int, int]], pad: str | float) \
-        -> Callable[[_TA], _TA] | None:
+def _crop_transform_pad_fn[TA: np.ndarray](image: TA, pad_tuples: list[tuple[int, int]], pad: str | float) \
+        -> Callable[[TA], TA] | None:
     """
     Generate a parameterized pad function.
 
@@ -1803,7 +1803,7 @@ def _crop_transform_pad_fn(image: _TA, pad_tuples: list[tuple[int, int]], pad: s
         mode = pad
     else:
         mode = "constant"
-    _func : Callable[[_TA], _TA]
+    _func : Callable[[TA], TA]
     if isinstance(image, np.ndarray):
         _pad_width = [(0, 0)] * (image.ndim - len(pad_tuples)) + pad_tuples
         _func = partial(np.pad, mode=mode, pad_width=_pad_width)  # ty:ignore[invalid-assignment]
@@ -1822,13 +1822,13 @@ def _crop_transform_pad_fn(image: _TA, pad_tuples: list[tuple[int, int]], pad: s
     return _func
 
 
-def crop_transform(
-        image: _TA,
+def crop_transform[TA: np.ndarray](
+        image: TA,
         offsets: Sequence[int] | None = None,
         target_shape: Sequence[int] | None = None,
-        out: _TA | None = None,
+        out: TA | None = None,
         pad: int = 0,
-) -> _TA:
+) -> TA:
     """
     Perform a crop transform of the last N dimensions on the image data.
 
@@ -1907,7 +1907,7 @@ def crop_transform(
     pad_tuples, indices = _crop_transform_make_indices(
         image.shape, offsets, _target_shape
     )
-    outval: _TA = image[indices]  # ty:ignore[invalid-argument-type, invalid-assignment]
+    outval: TA = image[indices]  # ty:ignore[invalid-argument-type, invalid-assignment]
     if pad_tuples is not None:
         pad_fn = _crop_transform_pad_fn(image, pad_tuples, pad)
         outval = outval if pad_fn is None else pad_fn(outval)

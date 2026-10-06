@@ -165,8 +165,11 @@ def create_connection_line(point1: Vector3d, point2: Vector3d) -> list[tuple[int
     return line_points
 
 
-def connect_nearby_components(seg_arr: ArrayType, max_connection_distance: float = 3.0, plot: bool = False) \
-        -> ArrayType:
+def connect_nearby_components[ArrayType: np.ndarray](
+        seg_arr: ArrayType,
+        max_connection_distance: float = 3.0,
+        plot: bool = False,
+    ) -> ArrayType:
     """Connect nearby disconnected components that should be connected.
 
     This function identifies disconnected components in the segmentation and creates

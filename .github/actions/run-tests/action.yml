@@ -50,10 +50,10 @@ runs:
         mkdir -p "$JUNIT_DIR"
         echo "FS_JUNIT_ARTIFACT=$artifact" >> "$GITHUB_ENV"
         echo "FS_JUNIT_FILE=$JUNIT_DIR/$artifact.xml" >> "$GITHUB_ENV"
-    - name: Setup uv and Python 3.10
+    - name: Setup uv and Python 3.12
       uses: astral-sh/setup-uv@v10.2.0
       with:
-        python-version: '3.10'
+        python-version: '3.12'
     - name: Download and unpack reference data
       shell: bash
       env:

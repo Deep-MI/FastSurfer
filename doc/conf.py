@@ -14,11 +14,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-# tomllib is standard library from python 3.11, older interpreters need tomli
-if sys.version_info >= (3, 11):
-    import tomllib
-else:
-    import tomli as tomllib
+import tomllib
 
 # relative path so sphinx can locate the different modules directly for autosummary
 sys.path.append(str(Path(__file__).parents[1]))

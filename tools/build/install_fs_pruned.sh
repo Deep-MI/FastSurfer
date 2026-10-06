@@ -65,6 +65,7 @@ then
   # --url not provided, try getting it from pyproject.toml
 link=$(python3 <<EOF
 import sys, pathlib
+# the system python3 runs this, not FastSurfer's environment, so it may predate 3.11
 if sys.version_info >= (3, 11): import tomllib
 else:
   try: import tomli as tomllib

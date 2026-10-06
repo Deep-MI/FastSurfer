@@ -197,13 +197,13 @@ thread_executor = ParallelConfig.thread_executor
 process_executor = ParallelConfig.process_executor
 
 
-def pipeline(
+def pipeline[Ti, T](
     pool: Executor,
-    func: Callable[[_Ti], _T],
-    iterable: Iterable[_Ti],
+    func: Callable[[Ti], T],
+    iterable: Iterable[Ti],
     *,
     pipeline_size: int = 1,
-) -> Iterator[tuple[_Ti, _T]]:
+) -> Iterator[tuple[Ti, T]]:
     """
     Pipeline a function to be executed in the pool.
 
@@ -245,9 +245,9 @@ def pipeline(
         yield element, future.result()
 
 
-def iterate(
-    pool: Executor, func: Callable[[_Ti], _T], iterable: Iterable[_Ti],
-) -> Iterator[tuple[_Ti, _T]]:
+def iterate[Ti, T](
+    pool: Executor, func: Callable[[Ti], T], iterable: Iterable[Ti],
+) -> Iterator[tuple[Ti, T]]:
     """
     Iterate over iterable, yield pairs of elements and func(element).
 

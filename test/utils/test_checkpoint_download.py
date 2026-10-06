@@ -22,18 +22,14 @@ and not a transfer that breaks on a host that is otherwise up. No network is tou
 is replaced with stubs.
 """
 
-import sys
-
 import pytest
 import requests
 
 from FastSurferCNN.utils import checkpoint
 
-# what a failed download raises: an ExceptionGroup where that builtin exists, a RuntimeError
-# before 3.11, and a RuntimeError either way when no host produced a response to group
-DOWNLOAD_FAILED: tuple[type[Exception], ...] = (RuntimeError,)
-if sys.version_info >= (3, 11):
-    DOWNLOAD_FAILED += (ExceptionGroup,)  # noqa: F821
+# what a failed download raises: an ExceptionGroup, or a RuntimeError when no host produced a
+# response to group
+DOWNLOAD_FAILED: tuple[type[Exception], ...] = (RuntimeError, ExceptionGroup)
 
 
 class Reply:

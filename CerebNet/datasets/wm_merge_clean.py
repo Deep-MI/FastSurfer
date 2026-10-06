@@ -47,7 +47,7 @@ def locating_unknowns(gm_binary, wm_mask):
     return boundary_holes
 
 
-def drop_disconnected_component(
+def drop_disconnected_component[NT: Number](
     img_data: npt.NDArray[NT], classes: Iterable[NT]) -> npt.NDArray[NT]:
     """
     Dropping the smaller disconnected component of each label.

@@ -20,7 +20,7 @@ jobs:
       - name: Install uv
         uses: astral-sh/setup-uv@v7
         with:
-          python-version: '3.10'
+          python-version: '3.12'
       - name: Run Ruff
         # --no-project, like CONTRIBUTING.md tells contributors to run it: ruff reads its config
         # from src/pyproject.toml but needs none of the project's 28 dependencies, and --project

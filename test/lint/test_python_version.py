@@ -28,7 +28,7 @@ confusing build rather than a red test, which is exactly what this module preven
 """
 
 import re
-import sys
+import tomllib
 from pathlib import Path
 
 import pytest
@@ -42,42 +42,19 @@ MACOS_BUILD_SH = FASTSURFER_HOME / "tools" / "macos_build" / "build_release_pack
 
 def _load_pyproject() -> dict:
     """
-    Parse pyproject.toml, tolerating the absence of a toml parser.
-
-    tomllib is stdlib only from python 3.11, and the unittest CI job deliberately runs on the
-    oldest supported version, so neither tomllib nor tomli is guaranteed. Fall back to a narrow
-    regex over just the two keys this module needs rather than adding a test-only dependency.
+    Parse pyproject.toml.
 
     Returns
     -------
     dict
         A mapping with the "python_version" and "requires_python" keys.
     """
-    if sys.version_info >= (3, 11):
-        import tomllib
-    else:
-        try:
-            import tomli as tomllib
-        except ImportError:
-            tomllib = None
-
-    if tomllib is not None:
-        with open(PYPROJECT, "rb") as fp:
-            parsed = tomllib.load(fp)
-        return {
-            "python_version": parsed["tool"]["python"]["version"],
-            "requires_python": parsed["project"]["requires-python"],
-        }
-
-    text = PYPROJECT.read_text()
-    # scope to the [tool.python] section so an unrelated `version =` cannot match
-    section = re.search(r"^\[tool\.python]$(.*?)^\[", text, re.M | re.S)
-    assert section is not None, f"no [tool.python] section in {PYPROJECT}"
-    version = re.search(r"^version\s*=\s*[\"']([^\"']+)[\"']", section.group(1), re.M)
-    assert version is not None, f"no version key in the [tool.python] section of {PYPROJECT}"
-    requires = re.search(r"^requires-python\s*=\s*[\"']([^\"']+)[\"']", text, re.M)
-    assert requires is not None, f"no requires-python in {PYPROJECT}"
-    return {"python_version": version.group(1), "requires_python": requires.group(1)}
+    with open(PYPROJECT, "rb") as fp:
+        parsed = tomllib.load(fp)
+    return {
+        "python_version": parsed["tool"]["python"]["version"],
+        "requires_python": parsed["project"]["requires-python"],
+    }
 
 
 def _as_tuple(version: str) -> tuple[int, ...]:
@@ -107,8 +84,7 @@ def _support_floor(requires_python: str) -> str:
     tightest one is the effective floor.
 
     Uses packaging rather than a regex because packaging is a declared runtime dependency of this
-    project (see project.dependencies), so it is present wherever the test suite runs. That is not
-    true of tomli, which is why _load_pyproject above has to hand-roll a fallback.
+    project (see project.dependencies), so it is present wherever the test suite runs.
 
     Parameters
     ----------

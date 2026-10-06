@@ -8,7 +8,7 @@ version = '2.6.0-dev0'
 description = 'A fast and accurate deep-learning based neuroimaging pipeline'
 readme = 'README.md'
 license = { file = 'LICENSE' }
-requires-python = '>=3.10'
+requires-python = '>=3.12'
 authors = [{ name = 'FastSurfer Developers' }]
 maintainers = [{ name = 'FastSurfer Developers' }]
 keywords = [
@@ -24,10 +24,9 @@ classifiers = [
     'Operating System :: Unix',
     'Operating System :: MacOS',
     'Programming Language :: Python :: 3 :: Only',
-    'Programming Language :: Python :: 3.10',
-    'Programming Language :: Python :: 3.11',
     'Programming Language :: Python :: 3.12',
     'Programming Language :: Python :: 3.13',
+    'Programming Language :: Python :: 3.14',
     'Natural Language :: English',
     'License :: OSI Approved :: Apache Software License',
     'Intended Audience :: Science/Research',
@@ -147,7 +146,7 @@ tracker = 'https://github.com/Deep-MI/FastSurfer/issues'
 # Raising this version also requires updating the following:
 #   - requirements.txt, regenerated for the new interpreter (tools/update_requirements.sh)
 #   - the hardcoded copy listed above (CI will fail if you miss it)
-version = "3.12"
+version = "3.14"
 
 [tool.freesurfer]
 version = "8.2.0"
@@ -222,7 +221,7 @@ add_ignore = 'D100,D104,D107'
 
 [tool.ruff]
 line-length = 120
-target-version = "py310"
+target-version = "py312"
 # recon_surf/fs_time is python, but carries no .py suffix because the pipeline invokes it as a
 # command; without this ruff would skip it
 extend-include = ["recon_surf/fs_time"]

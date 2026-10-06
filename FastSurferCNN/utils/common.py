@@ -71,7 +71,7 @@ def suppress_stderr():
 
 
 @contextmanager
-def array_flags(array: _TA, **flags) -> Generator[_TA, None, None]:
+def array_flags[TA: np.ndarray](array: TA, **flags) -> Generator[TA, None, None]:
     """
     Contextmanager that temporarily sets a flag on an array.
 
