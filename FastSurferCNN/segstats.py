@@ -65,7 +65,6 @@ COLUMNS = ["Index", "SegId", "NVoxels", "Volume_mm3", "StructName", "Mean", "Std
 # Type definitions
 _NumberType = TypeVar("_NumberType", bound=Number)
 _IntType = TypeVar("_IntType", bound=np.integer)
-_DType = TypeVar("_DType", bound=np.dtype)
 _ArrayType = TypeVar("_ArrayType", bound=np.ndarray)
 SlicingTuple = tuple[slice, ...]
 SlicingSequence = Sequence[slice]

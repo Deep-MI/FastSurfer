@@ -16,7 +16,7 @@ from dataclasses import (
 from dataclasses import (
     field as _field,
 )
-from typing import Any, TypeVar, overload
+from typing import Any, overload
 
 __all__ = [
     "field",
@@ -34,8 +34,6 @@ __all__ = [
     "KW_ONLY",
     "replace",
 ]
-
-_T = TypeVar("_T")
 
 
 @overload
