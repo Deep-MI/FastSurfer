@@ -471,17 +471,29 @@ This CI/CD expands on github workflows executing them locally. They require a lo
 <a class="reference internal" href="../overview/INSTALL.html#native-ubuntu"><span class="std std-ref">Native installation</span></a>.</p>
 <section id="pre-commit-hook">
 <h2>Pre-commit Hook<a class="headerlink" href="#pre-commit-hook" title="Link to this heading">¶</a></h2>
-<p>The pre-commit hook script will:</p>
+<p>The pre-commit hook script will (ignoring files that are git-ignored):</p>
 <ol class="arabic">
+<li><p>Check for non-ASCII file names being added (allow them with <code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">config</span> <span class="pre">hooks.allownonascii</span> <span class="pre">true</span></code>)</p></li>
 <li><p>Check for trailing white spaces in files</p></li>
+<li><p>Run the lint tests in <code class="docutils literal notranslate"><span class="pre">test/lint</span></code>, like the code-style workflow</p></li>
+<li><p>Sync the uv environment with the <code class="docutils literal notranslate"><span class="pre">style</span></code> and <code class="docutils literal notranslate"><span class="pre">doc</span></code> extras (<code class="docutils literal notranslate"><span class="pre">uv</span> <span class="pre">sync</span> <span class="pre">--inexact</span></code>); the following checks start
+once it is in sync</p></li>
 <li><p>Run ruff to verify python code formatting is valid</p></li>
 <li><p>Run codespell to check the spelling</p></li>
+<li><p>Run the unit tests in <code class="docutils literal notranslate"><span class="pre">test/image</span></code>, <code class="docutils literal notranslate"><span class="pre">test/shell</span></code> and <code class="docutils literal notranslate"><span class="pre">test/utils</span></code>, like the unittest workflow, but in 4
+(optimal choice, 09-2026) parallel pytest-xdist workers (pytest and pytest-xdist are added with
+<code class="docutils literal notranslate"><span class="pre">uv</span> <span class="pre">run</span> <span class="pre">--with</span></code>)</p></li>
 <li><p>Run sphinx-build to rebuild the documentation into <code class="docutils literal notranslate"><span class="pre">FastSurfer/doc-build</span></code>.</p>
 <p>Here, one important caveat for documentation editors is that sphinx-build may fail if the documentation file
 structure is changed, without first cleaning the autosummary/autodoc-generated files. To do this, delete the following
 directory <code class="docutils literal notranslate"><span class="pre">FastSurfer/doc/api/generated</span></code>.</p>
 </li>
 </ol>
+<p>The checks run in parallel. A passed check prints one line; the output of a failed check is printed as one block
+when it finishes. The output of all checks is saved in <code class="docutils literal notranslate"><span class="pre">$TMPDIR/fastsurfer-pre-commit-&lt;uid&gt;-&lt;checksum&gt;.log</span></code>, the
+summary names the file, and the next run overwrites it. The summary lists the status and run time of every check.
+All checks run to completion, and any failed check blocks the commit; <code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">commit</span> <span class="pre">--no-verify</span></code> skips the hook.
+Ctrl-C stops all running checks.</p>
 <section id="installation">
 <h3>Installation<a class="headerlink" href="#installation" title="Link to this heading">¶</a></h3>
 <p>To install the pre-commit hook, in the FastSurfer directory call</p>
