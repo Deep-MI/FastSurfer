@@ -126,15 +126,13 @@ function check_ruff()
 
 function check_codespell()
 {
-  # paths to skip that git does not ignore, and every path it does ignore (by git, so nested .gitignore
-  # files and .git/info/exclude count too); a path with a comma cannot be given, comma is the separator
-  local skip_files='./doc/images,./Tutorial,./.git' path
-  while IFS= read -r -d '' path
-  do
-    case "$path" in *,*) ;; *) skip_files+=",./$path" ;; esac
-  done < <(ignored_paths)
-  uv run --no-sync codespell --check-filenames --check-hidden --context 3 \
-    --skip "$skip_files" --ignore-words ./.codespellignore
+  # explicitly passes all files to codespell that are in the working directory unless they are
+  # ignored by git, because codespell does not respect .gitignore automatically.
+  # Further filtered for paths that are included, but known to have codespell false positives
+  # (skip_files), and for paths that are excluded from the checks in the code-style workflow.
+  local skip_files='doc/images/*,Tutorial/*'
+  uv run --no-sync codespell --check-filenames --check-hidden --context 3 --skip "$skip_files"\
+    --ignore-words ./.codespellignore $(git ls-files -c -o --exclude-standard)
 }
 
 function check_unit_tests()
