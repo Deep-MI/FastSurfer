@@ -261,6 +261,7 @@ When T1w images contain large lesions such as tumors, surgical cavities, or othe
 FastSurfer segmentation and surfaces can be affected by the altered anatomy. FastSurfer can be
 wrapped with the Lesion Inpainting Tool (LIT) by providing `--lesion_mask <lesion_mask_path>`.
 
+> **Note:** Review the LIT-modified outputs before using them for downstream analyses.
 
 ### Docker
 ```bash

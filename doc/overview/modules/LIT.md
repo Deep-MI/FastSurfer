@@ -6,6 +6,7 @@ tool LIT is designed to paint healthy-looking tissue into those lesions, downstr
 FastSurfer can produce more reliable whole-brain segmentation and cortical surface reconstruction
 in cases with significant structural alterations.
 
+> **Note:** Review the LIT-modified outputs before using them for downstream analyses.
 
 ## FastSurfer Usage
 
