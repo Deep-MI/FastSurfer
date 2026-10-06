@@ -1,0 +1,2 @@
+# runs fastsurfer_startup.main() at interpreter start up to python 3.14, see fastsurfer_startup.py
+import fastsurfer_startup; fastsurfer_startup.main()

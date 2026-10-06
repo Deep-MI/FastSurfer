@@ -24,7 +24,8 @@
 #   the image.
 #   - default: build_freesurfer
 # - VENV_BUILD_IMAGE:
-#   Image to use to install the python environment from, the python environment should be in /venv/ in the image.
+#   Image to use to install the python environment from, the python environment should be in /venv/ in the image,
+#   including the startup hook the build_venv stage installs (tools/Docker/fastsurfer_startup.py).
 #   - default: build_venv
 # - BUILDKIT_SBOM_SCAN_CONTEXT:
 #   Enables buildkit to provide and scan build images this is active by default to provide proper SBOM manifests,
@@ -145,7 +146,10 @@ SHELL ["/bin/bash", "--login", "-e", "-c"]
 RUN --mount=type=cache,target=/root/.cache/uv \
     --mount=type=bind,source=pyproject.toml,target=/install/pyproject.toml \
     --mount=type=bind,source=requirements.txt,target=/install/requirements.txt \
-    --mount=type=bind,source=tools/read_toml.py,target=/install/read_toml.py <<EOF
+    --mount=type=bind,source=tools/read_toml.py,target=/install/read_toml.py \
+    --mount=type=bind,source=tools/Docker/fastsurfer_startup.py,target=/install/fastsurfer_startup.py \
+    --mount=type=bind,source=tools/Docker/fastsurfer_startup.pth,target=/install/fastsurfer_startup.pth \
+    --mount=type=bind,source=tools/Docker/fastsurfer_startup.start,target=/install/fastsurfer_startup.start <<EOF
 function error() { echo "ERROR: $1" >&2; exit 1; }
 if [[ "$DEVICE" == "invalid-must-be-passed" ]]; then
     error "DEVICE is not set. Build with tools/Docker/build.py or pass --build-arg DEVICE=<cpu|cuXYZ|rocmX.Y|xpu>."
@@ -171,6 +175,16 @@ if ! uv pip compile --torch-backend=${DEVICE} "${uv_compile_args[@]}" -o /instal
   || ! uv pip sync --torch-backend=${DEVICE} /install/requirements.lock; then
     error "uv compile/pip sync failed, check/fix ${uv_compile_args[-1]/\/install\//}."
 fi
+# The startup hook of every python in the venv, which sets USERNAME=UNKNOWN for a uid without passwd
+# entry, see tools/Docker/fastsurfer_startup.py. In the venv rather than in /fastsurfer, so it also
+# works with python -E or -I, which ignore PYTHONPATH. Its three files are bind-mounted into this
+# step, so changing them also resolves and installs the environment again. Once FastSurfer is
+# installed into the venv as a package, its wheel ships these three files and these lines go.
+site_packages="$(/venv/bin/python -c 'import sysconfig; print(sysconfig.get_path("purelib"))')"
+install -m 0644 /install/fastsurfer_startup.py /install/fastsurfer_startup.pth \
+  /install/fastsurfer_startup.start "$site_packages/"
+# compiled here, because the runtime image runs as a user that cannot write bytecode into the venv
+/venv/bin/python -m compileall -q "$site_packages/fastsurfer_startup.py"
 EOF
 
 # The labels go last, and so do the args they read, see the runtime stage.
@@ -433,7 +447,6 @@ SHELL ["/bin/bash", "--login", "-c"]
 RUN <<EOF
 getent group nonroot > /dev/null || groupadd --system nonroot
 id -u nonroot > /dev/null 2>&1 || useradd --system --gid nonroot --no-create-home --home-dir /nonexistent --shell /usr/sbin/nologin nonroot
-echo "if [[ -z \"\$USERNAME\" ]] && ! id -un > /dev/null 2>&1 ; then export USERNAME=\"UNKNOWN\" ; fi" >> /etc/bash.bashrc
 EOF
 USER nonroot
 WORKDIR "/fastsurfer"
