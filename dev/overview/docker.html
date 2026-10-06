@@ -708,41 +708,44 @@ Add <code class="docutils literal notranslate"><span class="pre">--action</span>
 <p>Make sure, you are building on a machine that has <a class="reference internal" href="#"><span class="doc std std-ref">containerd-storage and Buildkit</span></a>.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>This documents the development version 2.6.0-dev0. Official Docker images only exist for releases, so the commands below use the latest release, 2.5.4. To run the development version, <a class="reference internal" href="#"><span class="doc">build your own image</span></a>.</p>
+<p>This documents the development version 2.6.0-dev0. Official Docker images only exist for releases, so the commands below use the latest release, 2.5.4, for its default CUDA version, 12.8. Images of 2.5.4 for other CUDA versions, ROCm and CPU are available on <a class="reference external" href="https://hub.docker.com/r/deepmi/fastsurfer/tags?name=v2.5.4">Docker Hub</a>. To run the development version, <a class="reference internal" href="#"><span class="doc">build your own image</span></a>.</p>
 </div>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># configuration</span>
 <span class="nv">build_dir</span><span class="o">=</span><span class="nv">$HOME</span>/FastSurfer-build
-<span class="nv">img</span><span class="o">=</span>deepmi/fastsurfer
+<span class="c1"># &lt;repo&gt;/&lt;name&gt; (the push needs both!)</span>
+<span class="nv">image</span><span class="o">=</span>deepmi/fastsurfer
 <span class="c1"># the version can be identified with: $build_dir/run_fastsurfer.sh --version</span>
 <span class="nv">version</span><span class="o">=</span><span class="m">2</span>.5.4
-<span class="c1"># the FreeSurfer build image is tagged with the FreeSurfer version without dots</span>
+<span class="c1"># available cuda and rocm version can be identified with:</span>
+<span class="c1"># python $build_dir/tools/Docker/build.py --print_supported cuda # or rocm</span>
+<span class="nv">device_for_latest</span><span class="o">=</span>cu128<span class="w"> </span><span class="c1"># tag this as latest</span>
+<span class="c1"># if you change the FreeSurfer version, create and upload or rename the</span>
+<span class="c1"># FreeSurfer build image below or remove the --freesurfer_build_image argument</span>
 <span class="nv">freesurfer_version</span><span class="o">=</span><span class="m">7</span>.4.1
-<span class="nv">freesurfer_tag</span><span class="o">=</span>freesurfer<span class="si">${</span><span class="nv">freesurfer_version</span><span class="p">//./</span><span class="si">}</span>
-<span class="c1"># the cuda and rocm version can be identified with:</span>
-<span class="c1"># python $build_dir/tools/Docker/build.py --help | grep -E ^[[:space:]]+--device</span>
-<span class="nv">cuda</span><span class="o">=</span><span class="m">128</span>
-<span class="nv">cudas</span><span class="o">=(</span><span class="s2">"cu118"</span><span class="w"> </span><span class="s2">"cu126"</span><span class="w"> </span><span class="s2">"cu128"</span><span class="o">)</span>
-<span class="nv">rocms</span><span class="o">=(</span><span class="s2">"rocm6.3"</span><span class="o">)</span>
+<span class="nv">freesurfer_image</span><span class="o">=</span>deepmi/fastsurfer-build:freesurfer<span class="si">${</span><span class="nv">freesurfer_version</span><span class="p">//./</span><span class="si">}</span>
 <span class="c1"># end of config</span>
 
 <span class="c1"># code</span>
 git<span class="w"> </span>clone<span class="w"> </span>--branch<span class="w"> </span>stable<span class="w"> </span>--single-branch<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>https://github.com/Deep-MI/FastSurfer<span class="w"> </span><span class="nv">$build_dir</span>
 <span class="nb">cd</span><span class="w"> </span><span class="nv">$build_dir</span>
+<span class="c1"># supported cuda and rocm versions of this checkout's build.py</span>
+<span class="nv">cudas</span><span class="o">=(</span><span class="k">$(</span>python3<span class="w"> </span>tools/Docker/build.py<span class="w"> </span>--print_supported<span class="w"> </span>cuda<span class="k">)</span><span class="o">)</span>
+<span class="nv">rocms</span><span class="o">=(</span><span class="k">$(</span>python3<span class="w"> </span>tools/Docker/build.py<span class="w"> </span>--print_supported<span class="w"> </span>rocm<span class="k">)</span><span class="o">)</span>
 <span class="nv">all_tags</span><span class="o">=(</span><span class="s2">"latest"</span><span class="w"> </span><span class="s2">"cpu-latest"</span><span class="o">)</span>
 <span class="c1"># build all distinct images</span>
 <span class="k">for</span><span class="w"> </span>dev<span class="w"> </span><span class="k">in</span><span class="w"> </span>cpu<span class="w"> </span>xpu<span class="w"> </span><span class="s2">"</span><span class="si">${</span><span class="nv">rocms</span><span class="p">[@]</span><span class="si">}</span><span class="s2">"</span><span class="w"> </span><span class="s2">"</span><span class="si">${</span><span class="nv">cudas</span><span class="p">[@]</span><span class="si">}</span><span class="s2">"</span>
 <span class="k">do</span>
-<span class="w">  </span>python3<span class="w"> </span>tools/Docker/build.py<span class="w"> </span>--tag<span class="w"> </span><span class="nv">$img</span>:<span class="nv">$dev</span>-v<span class="nv">$version</span><span class="w"> </span><span class="se">\</span>
-<span class="w">      </span>--freesurfer_build_image<span class="w"> </span><span class="nv">$img</span>-build:<span class="nv">$freesurfer_tag</span><span class="w"> </span>--attest<span class="w"> </span><span class="se">\</span>
-<span class="w">      </span>--device<span class="w"> </span><span class="nv">$dev</span><span class="w"> </span>--pinned_requirements
+<span class="w">  </span>python3<span class="w"> </span>tools/Docker/build.py<span class="w"> </span>--tag<span class="w"> </span><span class="nv">$image</span>:<span class="nv">$dev</span>-v<span class="nv">$version</span><span class="w"> </span><span class="se">\</span>
+<span class="w">      </span><span class="k">$(</span><span class="o">[[</span><span class="w"> </span>-n<span class="w"> </span><span class="s2">"</span><span class="nv">$freesurfer_image</span><span class="s2">"</span><span class="w"> </span><span class="o">]]</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="nb">echo</span><span class="w"> </span><span class="s2">"--freesurfer_build_image </span><span class="nv">$freesurfer_image</span><span class="s2">"</span><span class="k">)</span><span class="w"> </span><span class="se">\</span>
+<span class="w">      </span>--attest<span class="w"> </span>--device<span class="w"> </span><span class="nv">$dev</span><span class="w"> </span>--pinned_requirements
 <span class="w">  </span><span class="nv">all_tags</span><span class="o">+=(</span><span class="s2">"</span><span class="nv">$dev</span><span class="s2">-v</span><span class="nv">$version</span><span class="s2">"</span><span class="o">)</span>
 <span class="k">done</span>
 <span class="c1"># labels that are just references</span>
-docker<span class="w"> </span>tag<span class="w"> </span><span class="nv">$img</span>:cpu-v<span class="nv">$version</span><span class="w"> </span><span class="nv">$img</span>:cpu-latest
-docker<span class="w"> </span>tag<span class="w"> </span><span class="nv">$img</span>:cu<span class="nv">$cuda</span>-v<span class="nv">$version</span><span class="w"> </span><span class="nv">$img</span>:latest
+docker<span class="w"> </span>tag<span class="w"> </span><span class="nv">$image</span>:cpu-v<span class="nv">$version</span><span class="w"> </span><span class="nv">$image</span>:cpu-latest
+docker<span class="w"> </span>tag<span class="w"> </span><span class="nv">$image</span>:<span class="nv">$device_for_latest</span>-v<span class="nv">$version</span><span class="w"> </span><span class="nv">$image</span>:latest
 <span class="c1"># push all labels</span>
-<span class="k">for</span><span class="w"> </span>tag<span class="w"> </span><span class="k">in</span><span class="w"> </span><span class="s2">"</span><span class="si">${</span><span class="nv">all_tags</span><span class="p">[@]</span><span class="si">}</span><span class="s2">"</span><span class="w"> </span><span class="p">;</span><span class="w"> </span><span class="k">do</span><span class="w"> </span>docker<span class="w"> </span>push<span class="w"> </span><span class="nv">$img</span>:<span class="nv">$tag</span><span class="w"> </span><span class="p">;</span><span class="w"> </span><span class="k">done</span>
+<span class="k">for</span><span class="w"> </span>tag<span class="w"> </span><span class="k">in</span><span class="w"> </span><span class="s2">"</span><span class="si">${</span><span class="nv">all_tags</span><span class="p">[@]</span><span class="si">}</span><span class="s2">"</span><span class="w"> </span><span class="p">;</span><span class="w"> </span><span class="k">do</span><span class="w"> </span>docker<span class="w"> </span>push<span class="w"> </span><span class="nv">$image</span>:<span class="nv">$tag</span><span class="w"> </span><span class="p">;</span><span class="w"> </span><span class="k">done</span>
 </pre></div>
 </div>
 </section>

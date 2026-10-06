@@ -733,7 +733,7 @@ MPS-capable GPU, rather than falling back.</p>
 <div class="highlight-text notranslate"><div class="highlight"><pre><span></span>run_fastsurfer.sh --seg_only --device mps ...
 </pre></div>
 </div>
-<p>This will be at least twice as fast as <code class="docutils literal notranslate"><span class="pre">--device</span> <span class="pre">cpu</span></code>. The fallback is needed because <code class="docutils literal notranslate"><span class="pre">aten::max_unpool2d</span></code> is not yet implemented for MPS; expect a one-time warning about it, which is harmless.</p>
+<p>This will be at least twice as fast as <code class="docutils literal notranslate"><span class="pre">--device</span> <span class="pre">cpu</span></code>. The fallback lets an operation without an MPS implementation run on the CPU instead of failing; PyTorch then prints a warning naming the operation, which is harmless.</p>
 </section>
 <section id="uninstalling">
 <h4>6. Uninstalling<a class="headerlink" href="#uninstalling" title="Link to this heading">¶</a></h4>

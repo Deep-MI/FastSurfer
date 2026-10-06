@@ -290,7 +290,7 @@ On modern M-Chips you can try the Apple Silicon AI Accelerator by passing `--dev
 run_fastsurfer.sh --seg_only --device mps ...
 ```
 
-This will be at least twice as fast as `--device cpu`. The fallback is needed because `aten::max_unpool2d` is not yet implemented for MPS; expect a one-time warning about it, which is harmless.
+This will be at least twice as fast as `--device cpu`. The fallback lets an operation without an MPS implementation run on the CPU instead of failing; PyTorch then prints a warning naming the operation, which is harmless.
 
 #### 6. Uninstalling
 Drag both items from your Applications folder to the Trash:
