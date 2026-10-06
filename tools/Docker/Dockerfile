@@ -146,10 +146,7 @@ SHELL ["/bin/bash", "--login", "-e", "-c"]
 RUN --mount=type=cache,target=/root/.cache/uv \
     --mount=type=bind,source=pyproject.toml,target=/install/pyproject.toml \
     --mount=type=bind,source=requirements.txt,target=/install/requirements.txt \
-    --mount=type=bind,source=tools/read_toml.py,target=/install/read_toml.py \
-    --mount=type=bind,source=tools/Docker/fastsurfer_startup.py,target=/install/fastsurfer_startup.py \
-    --mount=type=bind,source=tools/Docker/fastsurfer_startup.pth,target=/install/fastsurfer_startup.pth \
-    --mount=type=bind,source=tools/Docker/fastsurfer_startup.start,target=/install/fastsurfer_startup.start <<EOF
+    --mount=type=bind,source=tools/read_toml.py,target=/install/read_toml.py <<EOF
 function error() { echo "ERROR: $1" >&2; exit 1; }
 if [[ "$DEVICE" == "invalid-must-be-passed" ]]; then
     error "DEVICE is not set. Build with tools/Docker/build.py or pass --build-arg DEVICE=<cpu|cuXYZ|rocmX.Y|xpu>."
@@ -175,11 +172,16 @@ if ! uv pip compile --torch-backend=${DEVICE} "${uv_compile_args[@]}" -o /instal
   || ! uv pip sync --torch-backend=${DEVICE} /install/requirements.lock; then
     error "uv compile/pip sync failed, check/fix ${uv_compile_args[-1]/\/install\//}."
 fi
+EOF
+
 # The startup hook of every python in the venv, which sets USERNAME=UNKNOWN for a uid without passwd
 # entry, see tools/Docker/fastsurfer_startup.py. In the venv rather than in /fastsurfer, so it also
-# works with python -E or -I, which ignore PYTHONPATH. Its three files are bind-mounted into this
-# step, so changing them also resolves and installs the environment again. Once FastSurfer is
-# installed into the venv as a package, its wheel ships these three files and these lines go.
+# works with python -E or -I, which ignore PYTHONPATH. A step of its own, so changing the hook does
+# not resolve the dependencies again. Once FastSurfer is installed into the venv as a package, its
+# wheel ships these three files and this step goes.
+RUN --mount=type=bind,source=tools/Docker/fastsurfer_startup.py,target=/install/fastsurfer_startup.py \
+    --mount=type=bind,source=tools/Docker/fastsurfer_startup.pth,target=/install/fastsurfer_startup.pth \
+    --mount=type=bind,source=tools/Docker/fastsurfer_startup.start,target=/install/fastsurfer_startup.start <<EOF
 site_packages="$(/venv/bin/python -c 'import sysconfig; print(sysconfig.get_path("purelib"))')"
 install -m 0644 /install/fastsurfer_startup.py /install/fastsurfer_startup.pth \
   /install/fastsurfer_startup.start "$site_packages/"

@@ -223,10 +223,9 @@ jobs:
           # The baseline run resolves its dependencies rather than restoring them, and still writes
           # what it resolved so the rest of the week reuses it. Without this the dependency layer
           # never moves: it lives in build_venv, `COPY . /fastsurfer/` is in a later stage, and its
-          # key is the files bind-mounted into it (pyproject.toml, requirements.txt, and the startup
-          # hook tools/Docker/fastsurfer_startup.*), so committing anything else does not invalidate
-          # it and a new release on PyPI is invisible to it. A run that restored that layer is only
-          # showing that our own code is deterministic, never that the environment held still.
+          # key is the two bind-mounted files, so no amount of committing invalidates it and a new
+          # release on PyPI is invisible to it. A run that restored that layer is only showing that
+          # our own code is deterministic, never that the environment held still.
           #
           # Read and write have to be separable for that. The variable below is the default for
           # build.py --refresh_cache, which the composite action cannot pass because its inputs are
