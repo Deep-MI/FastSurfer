@@ -256,7 +256,8 @@ def make_arguments(helpformatter: bool = False) -> argparse.ArgumentParser:
         default=[],
         action="append",
         help="Add a 'virtual' label (first value) that is the combination of all following values, e.g. "
-             "`--merged_label 100 3 4 8` will compute the statistics for label 100 by aggregating labels 3, 4 and 8.",
+             "`--merged_label 100 3 4 8` will compute the statistics for label 100 by aggregating labels 3, 4 and 8. "
+             "With --robust, the values are dropped from the union of these labels.",
     )
     parser.add_argument(
         "--robust",
@@ -265,7 +266,8 @@ def make_arguments(helpformatter: bool = False) -> argparse.ArgumentParser:
         default=None,
         help="Whether to calculate robust segmentation metrics. This parameter expects the fraction of values to keep, "
              "e.g. `--robust 0.95` will ignore the 2.5%% smallest and the 2.5%% largest values in the segmentation "
-             "when calculating the statistics (default: no robust statistics == `--robust 1.0`).",
+             "when calculating the statistics (default: no robust statistics == `--robust 1.0`). With "
+             "--legacy_freesurfer, one value less is ignored at the top, like mri_segstats does.",
     )
     parser.add_argument(
         "--measure_only",
@@ -1731,7 +1733,8 @@ def pv_calc[IntType: np.integer](
     eps : float, default=1e-6
         Threshold for computation of equality.
     robust_percentage : float, optional
-        Fraction for robust calculation of statistics.
+        Fraction of the voxels to keep for the intensity statistics, see `robust_slice`. Merged labels trim the union
+        of their labels.
     merged_labels : VirtualLabel, optional
         Defines labels to compute statistics for that are.
     threads : concurrent.futures.Executor, optional
@@ -1816,6 +1819,7 @@ def pv_calc[IntType: np.integer](
         norm=norm[global_crop] if has_norm else None,
         seg=seg[global_crop],
         robust_percentage=robust_percentage,
+        legacy_freesurfer=legacy_freesurfer,
     )
 
     executor = threads if isinstance(threads, Executor) else thread_executor()
@@ -1907,8 +1911,32 @@ def pv_calc[IntType: np.integer](
             )
     if merged_labels is not None:
         labs_vol_args = (merged_labels, voxel_counts, robust_voxel_counts, volumes)
-        intensity_args = (mins, maxes, sums, sums_2) if has_norm else ()
-        table.extend(calculate_merged_labels(*labs_vol_args, *intensity_args, eps=eps))
+        if has_norm and robust_percentage is not None:
+            # trim the union of the labels, like mri_segstats does for a merged segmentation; the statistics of the
+            # separately trimmed labels cannot reproduce that
+            seg_crop, norm_crop = seg[global_crop], norm[global_crop]
+
+            def union_stats(group: Sequence[IntType]) -> dict[str, float]:
+                members = [lb for lb in group if robust_voxel_counts.get(lb, 0) > eps]
+                if not members:
+                    return {"Mean": 0.0, "StdDev": 0.0, "Min": 0.0, "Max": 0.0, "Range": 0.0}
+                data = np.sort(norm_crop[np.isin(seg_crop, members)].astype(float))
+                data = data[robust_slice(data.shape[0], robust_percentage, legacy_freesurfer)]
+                return {
+                    "Mean": data.mean().item(),
+                    "StdDev": data.std(ddof=1).item() if data.shape[0] > 1 else 0.0,
+                    "Min": data[0].item(),
+                    "Max": data[-1].item(),
+                    "Range": (data[-1] - data[0]).item(),
+                }
+
+            merged_table = list(calculate_merged_labels(*labs_vol_args, eps=eps))
+            for this in merged_table:
+                this.update(union_stats(merged_labels[this["SegId"]]))
+        else:
+            intensity_args = (mins, maxes, sums, sums_2) if has_norm else ()
+            merged_table = calculate_merged_labels(*labs_vol_args, *intensity_args, eps=eps)
+        table.extend(merged_table)
 
     if return_maps:
         maps = {
@@ -1971,15 +1999,9 @@ def calculate_merged_labels[IntType: np.integer](
         _data = [source.get(lb, 0) for lb in merge_labels if num_robust_voxels(lb) > eps]
         return f(_data).item()
 
-    def aggregate_std(sums, sums2, merge_labels, nvox):
-        """aggregate std of labels `merge_labels` from `source`"""
-        s2 = [(s := sums.get(lb, 0)) * s / r for lb in group
-              if (r := num_robust_voxels(lb)) > eps]
-        return np.sqrt((aggregate(sums2, merge_labels) - np.sum(s2)) / nvox).item()
-
     for lab, group in merged_labels.items():
         stats = {"SegId": lab}
-        if all(lb not in robust_voxel_counts for lb in group):
+        if not any(num_robust_voxels(lb) > eps for lb in group):
             logging.getLogger(__name__).warning(
                 f"None of the labels {group} for merged label {lab} exist in the "
                 f"segmentation."
@@ -2002,15 +2024,47 @@ def calculate_merged_labels[IntType: np.integer](
                 if "Min" in stats:
                     stats["Range"] = stats["Max"] - stats["Min"]
             if sums is not None:
-                stats["Mean"] = aggregate(sums, group) / num_voxels
+                intensity_voxels = aggregate(robust_voxel_counts, group)
+                intensity_sum = aggregate(sums, group)
+                stats["Mean"] = intensity_sum / intensity_voxels
                 if sums_of_squares is not None:
-                    stats["StdDev"] = aggregate_std(
-                        sums,
-                        sums_of_squares,
-                        group,
-                        num_voxels - 1,
-                    )
+                    # Include variation between parcels, not only within them.
+                    variance_sum = aggregate(sums_of_squares, group) - intensity_sum * stats["Mean"]
+                    stats["StdDev"] = np.sqrt(max(0.0, variance_sum) / max(1, intensity_voxels - 1)).item()
         yield stats
+
+
+def robust_slice(nvoxels: int, robust_percentage: float, legacy_freesurfer: bool = False) -> slice:
+    """
+    Return the slice of the sorted intensities of a region that robust statistics keep.
+
+    Parameters
+    ----------
+    nvoxels : int
+        Number of voxels in the region.
+    robust_percentage : float
+        Fraction of the voxels to keep, e.g. 0.95 drops 2.5% of the voxels at each end.
+    legacy_freesurfer : bool, default=False
+        Whether to reproduce mri_segstats --robust, which drops one voxel less at the top than at the bottom.
+
+    Returns
+    -------
+    slice
+        The slice into the sorted intensities, at least one voxel for `nvoxels` > 0.
+    """
+    from math import ceil, floor
+
+    # number of voxels to drop per end, rounded to remove floating-point error, e.g. (1 - 0.9) * 20 / 2 < 1
+    tail = round((1 - robust_percentage) * nvoxels / 2, 6)
+    if legacy_freesurfer:
+        # mri_segstats --robust p keeps the sorted indices ceil(p% * N) to floor((1 - p%) * N)
+        start, stop = ceil(tail), floor(nvoxels - tail) + 1
+        if start < stop:
+            return slice(start, min(stop, nvoxels))
+        # mri_segstats keeps no voxel here (e.g. N=1) and reports nan, so use the symmetric slice instead
+    drop = min(floor(tail), (nvoxels - 1) // 2)
+    return slice(drop, nvoxels - drop)
+
 
 
 def global_stats[IntType: np.integer, NumberType: Number](
@@ -2019,6 +2073,7 @@ def global_stats[IntType: np.integer, NumberType: Number](
     seg: npt.NDArray[IntType],
     out: npt.NDArray[bool] | None = None,
     robust_percentage: float | None = None,
+    legacy_freesurfer: bool = False,
 ) -> tuple[IntType, _GlobalStats]:
     """
     Compute Label, Number of voxels, 'robust' number of voxels, norm minimum, maximum,
@@ -2036,7 +2091,9 @@ def global_stats[IntType: np.integer, NumberType: Number](
     out : npt.NDArray[bool], optional
         Output array to store the computed borders.
     robust_percentage : float, optional
-        A robustness percentile to compute the statistics with (default: None/off = 1).
+        Fraction of the voxels to keep for the intensity statistics, see `robust_slice` (default: None/off = 1).
+    legacy_freesurfer : bool, default=False
+        Whether to drop voxels for robust statistics like mri_segstats, see `robust_slice`.
 
     Returns
     -------
@@ -2070,16 +2127,13 @@ def global_stats[IntType: np.integer, NumberType: Number](
     out = __compute_borders(out)
 
     if robust_percentage is not None:
-        data = np.sort(data)
-        sym_drop_samples = int((1 - robust_percentage / 2) * nvoxels)
-        data = data[sym_drop_samples:-sym_drop_samples]
+        data = np.sort(data)[robust_slice(nvoxels, robust_percentage, legacy_freesurfer)]
         _min: NumberType = data[0].item()
         _max: NumberType = data[-1].item()
-        __voxel_count = nvoxels - 2 * sym_drop_samples
     else:
         _min = data.min().item()
         _max = data.max().item()
-        __voxel_count = nvoxels
+    __voxel_count = data.shape[0]
     _sum: float = data.sum().item()
     sum_2: float = (data * data).sum().item()
     # this is independent of the robustness criterium

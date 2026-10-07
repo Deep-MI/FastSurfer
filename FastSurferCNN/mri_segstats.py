@@ -15,8 +15,29 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""
+FreeSurfer's mri_segstats command line interface for segstats.py.
+
+mri_segstats.py translates the mri_segstats options listed in its help to segstats.py; other options of mri_segstats
+are not supported.
+
+Limitations
+-----------
+These supported options do not behave like mri_segstats (FreeSurfer 8.1.0):
+
+- --sqr, --sqrt, --abs, --mul and --div modify the partial volume image (--pv, or --i without --pv), so they change
+  the volumes, but not the intensity statistics. mri_segstats applies them to --i only.
+- Without --pv, mri_segstats.py corrects partial volume effects with --i. mri_segstats reports the number of voxels as
+  the volume, unless --pv is passed.
+- mri_segstats.py needs --i or --pv to compute the table, mri_segstats reports the number of voxels and the volume of
+  each segmentation also without them.
+- --robust keeps the voxel of single-voxel segmentations, where mri_segstats keeps no voxel and reports nan, and
+  rejects percentages of 50 and above, where mri_segstats keeps no voxel of some segmentations.
+"""
+
 # IMPORTS
 import argparse
+import sys
 from collections.abc import Iterable, Sequence
 from itertools import chain, pairwise
 from pathlib import Path
@@ -109,6 +130,33 @@ class _ExtendConstAction(argparse.Action):
         setattr(namespace, self.dest, items)
 
 
+class _MulDivAction(argparse.Action):
+    """Combine the factors of all --mul and --div into one 'mul=<factor>' operation, like mri_segstats."""
+
+    def __call__(
+            self,
+            parser: argparse.ArgumentParser,
+            namespace: argparse.Namespace,
+            values: float,
+            option_string: str | None = None,
+    ) -> None:
+        """Multiply or divide the factor in `self.dest` of `namespace` by `values`."""
+        ops = list(getattr(namespace, self.dest, None) or [])
+        factor = next((float(op[4:]) for op in ops if op.startswith("mul=")), 1.0)
+        if option_string == "--div":
+            if values == 0:
+                parser.error("--div 0 is not a valid division.")
+            factor /= values
+        else:
+            factor *= values
+        setattr(namespace, self.dest, [op for op in ops if not op.startswith("mul=")] + [f"mul={factor}"])
+
+
+def _absolute_path(value: str) -> Path:
+    """Interpret the path relative to the working directory, like mri_segstats."""
+    return Path(value).absolute()
+
+
 def make_arguments() -> argparse.ArgumentParser:
     """Create an argument parser object with all parameters of the script."""
     parser = argparse.ArgumentParser(
@@ -123,19 +171,23 @@ def make_arguments() -> argparse.ArgumentParser:
         measures: list[tuple[bool, str]] = getattr(args, "measures", [])
         measure_strings = list(map(lambda x: x[1], measures))
         if all(m in measure_strings for m in (ETIV_RATIO_KEY, ETIV_FROM_TAL)):
-
-            measures = [m for m in measures if m[1] == ETIV_RATIO_KEY]
+            # replace the placeholder by the ratios to eTIV of the measures that are computed
+            measures = [m for m in measures if m[1] != ETIV_RATIO_KEY]
             for k, v in ETIV_RATIOS.items():
-                for _is_imported, m in measures:
-                    if m == v or m.startswith(v + "("):
-                        measures.append((False, k))
-                        continue
+                if any(m == v or m.startswith(v + "(") for _is_imported, m in measures):
+                    measures.append((False, k))
             args.measures = measures
 
     def _update_what_to_import(args: argparse.Namespace) -> argparse.Namespace:
         """
         Update the Namespace object based on the existence of the brainvol.stats file.
         """
+        if args.out_dir is None or args.sid is None:
+            if args.measures:
+                # like mri_segstats, which skips the global stats without a subject
+                print("WARNING: no subject (--sd and --subject), not computing global stats.", file=sys.stderr)
+                args.measures = []
+            return args
         cachefile = Path(args.measurefile)
         if not cachefile.is_absolute():
             cachefile = args.out_dir / args.sid / cachefile
@@ -154,9 +206,16 @@ def make_arguments() -> argparse.ArgumentParser:
             args.measures = list(map(update_key, getattr(args, "measures", [])))
         return args
 
+    def _no_global_stats(args: argparse.Namespace) -> argparse.Namespace:
+        """Drop all measures for --no-global-stats, wherever it is on the command line."""
+        if args.no_global_stats:
+            args.measures = []
+        return args
+
     parser.set_defaults(
         measurefile="stats/brainvol.stats",
-        parse_actions=[(1, add_etiv_measures), (10, _update_what_to_import)],
+        measures=[],
+        parse_actions=[(1, add_etiv_measures), (10, _update_what_to_import), (20, _no_global_stats)],
         volume_precision=1,
     )
 
@@ -191,7 +250,7 @@ def make_arguments() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--seg",
-        type=Path,
+        type=_absolute_path,
         metavar="segvol",
         dest="segfile",
         help="Specify the segmentation file.",
@@ -204,70 +263,74 @@ def make_arguments() -> argparse.ArgumentParser:
     parser.add_argument(
         "--o",
         "--sum",
-        type=Path,
+        type=_absolute_path,
         metavar="file",
         dest="segstatsfile",
         help="Specify the output summary statistics file.",
     )
     parser.add_argument(
         "--pv",
-        type=Path,
+        type=_absolute_path,
         metavar="pvvol",
         dest="pvfile",
-        help="file to compensate for partial volume effects.",
+        help="Use pvvol to compensate for partial volume effects. Without --pv, --i is used (mri_segstats reports "
+             "the number of voxels as the volume instead).",
     )
     parser.add_argument(
         "--i",
         "--in",
-        type=Path,
+        type=_absolute_path,
         metavar="invol",
         dest="normfile",
-        help="file to compute intensity values.",
+        help="Input volume from which to compute the intensity statistics (Mean, StdDev, Min, Max and Range).",
     )
 
     # --seg-erode Nerodes
     # --frame frame
     def _percent(__value) -> float:
-        return float(__value) / 50
+        """Convert the percentage to drop at each end to the fraction to keep (--robust of segstats.py)."""
+        percent = float(__value)
+        if not 0 <= percent < 50:
+            raise ValueError(f"'{__value}' is not a percentage in [0, 50).")
+        return 1 - percent / 50
 
     parser.add_argument(
         "--robust",
         type=_percent,
         metavar="percent",
         dest="robust",
-        help="Compute stats after excluding percent from high and and low values, e.g. "
-             "with --robust 2, min and max are the 2nd and the 98th percentiles.",
+        help="Compute stats after excluding percent (0 <= percent < 50) from high and low values (the volume "
+             "reported is still the full volume). Like mri_segstats, this excludes one voxel less from the high values "
+             "than from the low values, unless --no_legacy is passed.",
     )
 
-    def _add_invol_op(*flags: str, op: str, metavar: str | None = None) -> None:
+    def _add_invol_op(flag: str, op: str, metavar: str | None = None) -> None:
+        target = "the partial volume image (--pv, or --i without --pv)"
         if metavar:
-            def _optype(_a) -> str:
-                # test the argtype for float as well
-                return f"{flags[0].lstrip('-')}={float(_a)}"
             kwargs = {
-                "action": "append",
-                "type": _optype,
-                "dest": "pvfile_preproc",
-                "help": f"Apply the {op} with `{metavar}` to `invol` (--in)",
+                "action": _MulDivAction,
+                "type": float,
+                "metavar": metavar,
+                "help": f"{op} {target} by {metavar}, before --abs, --sqr and --sqrt; multiple --mul and --div "
+                        f"combine. mri_segstats applies this to --i instead.",
             }
         else:
             kwargs = {
                 "action": "append_const",
-                "const": flags[0].lstrip("-"),
-                "dest": "pvfile_preproc",
-                "help": f"Apply {op} to `invol` (--in)",
+                "const": flag.lstrip("-"),
+                "help": f"Compute {op} of {target}. mri_segstats applies this to --i instead.",
             }
-        parser.add_argument(*flags, **kwargs)
+        parser.add_argument(flag, dest="pvfile_preproc", **kwargs)
 
     def _no_import(*args: str) -> list[tuple[bool, str]]:
         return list((False, a) for a in args)
 
-    _add_invol_op("--sqr", op="squaring")
+    _add_invol_op("--sqr", op="the square")
     _add_invol_op("--sqrt", op="the square root")
-    _add_invol_op("--mul", op="multiplication", metavar="val")
-    _add_invol_op("--div", op="division", metavar="val")
+    _add_invol_op("--mul", op="Multiply", metavar="val")
+    _add_invol_op("--div", op="Divide", metavar="val")
     # --snr
-    _add_invol_op("--abs", op="absolute value")
+    _add_invol_op("--abs", op="the absolute value")
     # --accumulate
     parser.add_argument(
         "--ctab",
@@ -304,15 +367,18 @@ def make_arguments() -> argparse.ArgumentParser:
         action="extend",
         dest="ids",
         default=[],
-        help="Specify segmentation Exclude segmentation ids from report.",
+        help="Specify the segmentation ids to report on. Multiple ids can be given after a single --id or with "
+             "multiple --id.",
     )
     parser.add_argument(
         "--excludeid",
         type=int,
         nargs="+",
         metavar="segid",
+        action="extend",
         dest="excludeid",
-        help="Exclude segmentation ids from report.",
+        help="Exclude the given segmentation ids from the report. Multiple ids can be given after a single "
+             "--excludeid or with multiple --excludeid.",
     )
     parser.add_argument(
         "--no-cached",
@@ -325,7 +391,7 @@ def make_arguments() -> argparse.ArgumentParser:
         dest="excludeid",
         action=_ExtendConstAction,
         const=[2, 3, 41, 42],
-        help="Exclude cortical gray and white matter regions from volume stats.",
+        help="Exclude cortical gray and white matter (ids 2, 3, 41 and 42) from the report.",
     )
     surf_wm = ["rhCerebralWhiteMatter", "lhCerebralWhiteMatter", "CerebralWhiteMatter"]
     parser.add_argument(
@@ -350,11 +416,12 @@ def make_arguments() -> argparse.ArgumentParser:
         ),
     )
     parser.add_argument(
+        "--no-global-stats",
         "--no_global_stats",
-        action="store_const",
-        dest="measures",
-        const=[],
-        help="Resets the computed global stats.",
+        action="store_true",
+        dest="no_global_stats",
+        help="Turn off the computation of global stats (the measures in the header, e.g. BrainSeg, eTIV or "
+             "SupraTentorial), wherever this option is on the command line.",
     )
     parser.add_argument(
         "--empty",
@@ -378,8 +445,9 @@ def make_arguments() -> argparse.ArgumentParser:
         help=help_add_measures("Compute measures BrainSeg measures:", brainseg),
     )
 
-    def _mask(__value):
-        return False, "Mask(" + str(__value) + ")"
+    def _mask(__value) -> tuple[bool, str]:
+        # count the voxels > 0 like mri_segstats (the Mask measure counts the voxels > 0.5 by default)
+        return False, f"Mask({_absolute_path(__value)}, threshold=0)"
 
     parser.add_argument(
         "--brainmask",
@@ -387,7 +455,7 @@ def make_arguments() -> argparse.ArgumentParser:
         metavar="brainmask",
         action="append",
         dest="measures",
-        help="Report the Volume of the brainmask",
+        help="Report the volume of the non-zero voxels in brainmask.",
     )
     supratent = ["SupraTentorial", "SupraTentorialNotVent"]
     parser.add_argument(
@@ -411,7 +479,8 @@ def make_arguments() -> argparse.ArgumentParser:
         const=(False, "TotalGray"),
         help=help_add_measures("Compute measure TotalGray:", ["TotalGray"]),
     )
-    etiv_measures = [f"{k} (if also --brain-vol-from-seg)" for k in ETIV_RATIOS]
+    ratio_options = {"BrainSeg": "--brain-vol-from-seg", "Mask": "--brainmask"}
+    etiv_measures = [f"{k} (if also {ratio_options[v]})" for k, v in ETIV_RATIOS.items()]
     parser.add_argument(
         "--etiv",
         action=_ExtendConstAction,
@@ -474,15 +543,23 @@ def make_arguments() -> argparse.ArgumentParser:
         "--no_legacy",
         action="store_false",
         dest="legacy_freesurfer",
-        help="use fastsurfer algorithms instead of fastsurfer."
+        help="Use the FastSurfer algorithms instead of reproducing mri_segstats (partial volume correction and "
+             "--robust).",
     )
     return parser
+
+
+def parse_arguments(argv: Sequence[str] | None = None) -> argparse.Namespace:
+    """Parse the command line `argv` and apply the parse actions, e.g. --no-global-stats or the eTIV ratios."""
+    args = make_arguments().parse_args(argv)
+    for _i, parse_action in sorted(getattr(args, "parse_actions", []), key=lambda x: x[0], reverse=True):
+        parse_action(args)
+    return args
 
 
 def print_and_exit(args: object):
     """Print the commandline arguments of the segstats script to stdout and exit."""
     print(" ".join(format_cmdline_args(args)))
-    import sys
     sys.exit(0)
 
 
@@ -532,10 +609,4 @@ def format_cmdline_args(args: object) -> list[str]:
 
 
 if __name__ == "__main__":
-    import sys
-
-    args = make_arguments().parse_args()
-    parse_actions = getattr(args, "parse_actions", [])
-    for _i, parse_action in sorted(parse_actions, key=lambda x: x[0], reverse=True):
-        parse_action(args)
-    sys.exit(main(args))
+    sys.exit(main(parse_arguments()))
