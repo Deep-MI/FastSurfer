@@ -474,21 +474,44 @@
         <article role="main" id="furo-main-content">
           <section id="module-FastSurferCNN.mri_segstats">
 <span id="fastsurfercnn-mri-segstats"></span><h1>FastSurferCNN.mri_segstats<a class="headerlink" href="#module-FastSurferCNN.mri_segstats" title="Link to this heading">¶</a></h1>
+<p>FreeSurfer’s mri_segstats command line interface for segstats.py.</p>
+<p>mri_segstats.py translates the mri_segstats options listed in its help to segstats.py; other options of mri_segstats
+are not supported.</p>
+<section id="limitations">
+<h2>Limitations<a class="headerlink" href="#limitations" title="Link to this heading">¶</a></h2>
+<p>These supported options do not behave like mri_segstats (FreeSurfer 8.1.0):</p>
+<ul class="simple">
+<li><p>–sqr, –sqrt, –abs, –mul and –div modify the partial volume image (–pv, or –i without –pv), so they change
+the volumes, but not the intensity statistics. mri_segstats applies them to –i only.</p></li>
+<li><p>Without –pv, mri_segstats.py corrects partial volume effects with –i. mri_segstats reports the number of voxels as
+the volume, unless –pv is passed.</p></li>
+<li><p>mri_segstats.py needs –i or –pv to compute the table, mri_segstats reports the number of voxels and the volume of
+each segmentation also without them.</p></li>
+<li><p>–robust keeps the voxel of single-voxel segmentations, where mri_segstats keeps no voxel and reports nan, and
+rejects percentages of 50 and above, where mri_segstats keeps no voxel of some segmentations.</p></li>
+</ul>
+</section>
 <dl class="py function">
 <dt class="sig sig-object py" id="FastSurferCNN.mri_segstats.format_cmdline_args">
-<span class="sig-prename descclassname"><span class="pre">FastSurferCNN.mri_segstats.</span></span><span class="sig-name descname"><span class="pre">format_cmdline_args</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/6dec7a1/FastSurferCNN/mri_segstats.py#L489-L531"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.mri_segstats.format_cmdline_args" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">FastSurferCNN.mri_segstats.</span></span><span class="sig-name descname"><span class="pre">format_cmdline_args</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/2143441/FastSurferCNN/mri_segstats.py#L566-L608"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.mri_segstats.format_cmdline_args" title="Link to this definition">¶</a></dt>
 <dd><p>Format the commandline arguments of the segstats script.</p>
 </dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="FastSurferCNN.mri_segstats.make_arguments">
-<span class="sig-prename descclassname"><span class="pre">FastSurferCNN.mri_segstats.</span></span><span class="sig-name descname"><span class="pre">make_arguments</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/6dec7a1/FastSurferCNN/mri_segstats.py#L112-L479"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.mri_segstats.make_arguments" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">FastSurferCNN.mri_segstats.</span></span><span class="sig-name descname"><span class="pre">make_arguments</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/2143441/FastSurferCNN/mri_segstats.py#L160-L549"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.mri_segstats.make_arguments" title="Link to this definition">¶</a></dt>
 <dd><p>Create an argument parser object with all parameters of the script.</p>
 </dd></dl>
 
 <dl class="py function">
+<dt class="sig sig-object py" id="FastSurferCNN.mri_segstats.parse_arguments">
+<span class="sig-prename descclassname"><span class="pre">FastSurferCNN.mri_segstats.</span></span><span class="sig-name descname"><span class="pre">parse_arguments</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">argv</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/2143441/FastSurferCNN/mri_segstats.py#L552-L557"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.mri_segstats.parse_arguments" title="Link to this definition">¶</a></dt>
+<dd><p>Parse the command line <code class="xref py py-obj docutils literal notranslate"><span class="pre">argv</span></code> and apply the parse actions, e.g. –no-global-stats or the eTIV ratios.</p>
+</dd></dl>
+
+<dl class="py function">
 <dt class="sig sig-object py" id="FastSurferCNN.mri_segstats.print_and_exit">
-<span class="sig-prename descclassname"><span class="pre">FastSurferCNN.mri_segstats.</span></span><span class="sig-name descname"><span class="pre">print_and_exit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/6dec7a1/FastSurferCNN/mri_segstats.py#L482-L486"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.mri_segstats.print_and_exit" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">FastSurferCNN.mri_segstats.</span></span><span class="sig-name descname"><span class="pre">print_and_exit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/2143441/FastSurferCNN/mri_segstats.py#L560-L563"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.mri_segstats.print_and_exit" title="Link to this definition">¶</a></dt>
 <dd><p>Print the commandline arguments of the segstats script to stdout and exit.</p>
 </dd></dl>
 
@@ -556,8 +579,10 @@
           <div class="toc-tree">
             <ul>
 <li><a class="reference internal" href="#">FastSurferCNN.mri_segstats</a><ul>
+<li><a class="reference internal" href="#limitations">Limitations</a></li>
 <li><a class="reference internal" href="#FastSurferCNN.mri_segstats.format_cmdline_args"><code class="docutils literal notranslate"><span class="pre">format_cmdline_args()</span></code></a></li>
 <li><a class="reference internal" href="#FastSurferCNN.mri_segstats.make_arguments"><code class="docutils literal notranslate"><span class="pre">make_arguments()</span></code></a></li>
+<li><a class="reference internal" href="#FastSurferCNN.mri_segstats.parse_arguments"><code class="docutils literal notranslate"><span class="pre">parse_arguments()</span></code></a></li>
 <li><a class="reference internal" href="#FastSurferCNN.mri_segstats.print_and_exit"><code class="docutils literal notranslate"><span class="pre">print_and_exit()</span></code></a></li>
 </ul>
 </li>

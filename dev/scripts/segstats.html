@@ -507,11 +507,11 @@
 <dd><p>List of exclusive segmentation ids (integers) to use (default: all ids in –lut or all ids in image).</p>
 </dd>
 <dt><kbd>--merged_label</kbd></dt>
-<dd><p>Add a ‘virtual’ label (first value) that is the combination of all following values, e.g. <cite>–merged_label 100 3 4 8</cite> will compute the statistics for label 100 by aggregating labels 3, 4 and 8.</p>
+<dd><p>Add a ‘virtual’ label (first value) that is the combination of all following values, e.g. <cite>–merged_label 100 3 4 8</cite> will compute the statistics for label 100 by aggregating labels 3, 4 and 8. With –robust, the values are dropped from the union of these labels.</p>
 <p>Default: <code class="docutils literal notranslate"><span class="pre">[]</span></code></p>
 </dd>
 <dt><kbd>--robust</kbd></dt>
-<dd><p>Whether to calculate robust segmentation metrics. This parameter expects the fraction of values to keep, e.g. <cite>–robust 0.95</cite> will ignore the 2.5% smallest and the 2.5% largest values in the segmentation when calculating the statistics (default: no robust statistics == <cite>–robust 1.0</cite>).</p>
+<dd><p>Whether to calculate robust segmentation metrics. This parameter expects the fraction of values to keep, e.g. <cite>–robust 0.95</cite> will ignore the 2.5% smallest and the 2.5% largest values in the segmentation when calculating the statistics (default: no robust statistics == <cite>–robust 1.0</cite>). With –legacy_freesurfer, one value less is ignored at the top, like mri_segstats does.</p>
 </dd>
 <dt><kbd>--measure_only</kbd></dt>
 <dd><p>Only calculate the Measures in the header, no PV table.</p>
