@@ -24,7 +24,10 @@ References
 ----------
 If you use FastSurfer-CC in your research, please cite:
 
-*Pollak C, Diers K, Estrada S, Kuegler D, Reuter M. FastSurfer-CC: A robust, accurate, and comprehensive framework for corpus callosum morphometry. Imaging Neuroscience 2026. https://doi.org/10.1162/IMAG.a.1221*
+- Pollak C, Diers K, Estrada S, Kuegler D, Reuter M.
+  **FastSurfer-CC: A robust, accurate, and comprehensive framework for corpus callosum morphometry.**
+  *Imaging Neuroscience* (2026).
+  [doi:10.1162/IMAG.a.1221](https://doi.org/10.1162/IMAG.a.1221)
 
 JSON Output Structure
 ---------------------

@@ -8,7 +8,7 @@ Most importantly, they allow for exactly same setup across different machines an
 Additionally, errors and unexpected behavior is easier to track down, since the setup is significantly easier to reproduce for developers.
 Finally, containers provide a security advantage, because the access to data is restricted to explicitly shared data reducing both the risk of data theft and data encryption attacks. This is strategy also called [sandboxing](https://en.wikipedia.org/wiki/Sandbox_(computer_security)).
 
-Using Singularity (or Apptainer)
+Using Apptainer (or Singularity)
 --------------------------------
 In the following, we write "Singularity", but all steps work the same with the [open source Apptainer](https://apptainer.org).
 
@@ -28,7 +28,7 @@ singularity build <sif_path> <source>
 ```
 For example:
 ```bash
-singularity build $HOME/my_singularity_images/fastsurfer-{{ FASTSURFER_VERSION }}.sif \
+singularity build $HOME/my_singularity_images/fastsurfer-{{ CUDA_STRING }}-v{{ FASTSURFER_VERSION }}.sif \
     docker://deepmi/fastsurfer:{{ CUDA_STRING }}-v{{ FASTSURFER_VERSION }}
 ```
 Singularity images are files with extension `.sif`. Here, we save the image in `$HOME/my_singularity_images`.
@@ -66,7 +66,7 @@ singularity exec --nv \
                  -B $HOME/my_mri_data \
                  -B $HOME/my_fastsurfer_analysis \
                  -B $freesurfer_license \
-                  $HOME/my_singularity_images/fastsurfer-{{ FASTSURFER_VERSION }}.sif \
+                  $HOME/my_singularity_images/fastsurfer-{{ CUDA_STRING }}-v{{ FASTSURFER_VERSION }}.sif \
                   /fastsurfer/run_fastsurfer.sh \
                  --fs_license $freesurfer_license \
                  --t1 $HOME/my_mri_data/subjectX/t1_weighted.nii.gz \
@@ -94,14 +94,14 @@ You can run the Singularity equivalent of CPU-Docker by building a Singularity i
 ```bash
 freesurfer_license=${freesurfer_license:-/path/to/your/freesurfer/license_file}
 cd $HOME/my_singularity_images
-singularity build fastsurfer-cpu-{{ FASTSURFER_VERSION }}.sif \
+singularity build fastsurfer-cpu-v{{ FASTSURFER_VERSION }}.sif \
                   docker://deepmi/fastsurfer:cpu-v{{ FASTSURFER_VERSION }}
 
 singularity exec --no-mount home,cwd -e \
                  -B $HOME/my_mri_data \
                  -B $HOME/my_fastsurfer_analysis \
                  -B $freesurfer_license \
-                 $HOME/my_singularity_images/fastsurfer-cpu-{{ FASTSURFER_VERSION }}.sif \
+                 $HOME/my_singularity_images/fastsurfer-cpu-v{{ FASTSURFER_VERSION }}.sif \
                    /fastsurfer/run_fastsurfer.sh \
                      --fs_license $freesurfer_license \
                      --t1 $HOME/my_mri_data/subjectX/t1_weighted.nii.gz \

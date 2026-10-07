@@ -55,4 +55,7 @@ The complete list of LIT-related output files is documented in the
 
 If you use LIT in your research, please cite:
 
-*Pollak C, Kuegler D, Bauer T, Rueber T, Reuter M, FastSurfer-LIT: Lesion Inpainting Tool for Whole Brain MRI Segmentation with Tumors, Cavities and Abnormalities, Imaging Neuroscience 2025. https://doi.org/10.1162/imag_a_00446*
+- Pollak C, Kuegler D, Bauer T, Rueber T, Reuter M.
+  **FastSurfer-LIT: Lesion Inpainting Tool for Whole Brain MRI Segmentation with Tumors, Cavities and Abnormalities.**
+  *Imaging Neuroscience* (2025).
+  [doi:10.1162/imag_a_00446](https://doi.org/10.1162/imag_a_00446)

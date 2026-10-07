@@ -10,9 +10,8 @@ User Guide
     EXAMPLES.md
     OUTPUT_FILES.md
     modules/index
-    docker
-    SINGULARITY.md
     EDITING.md
     LONG.md
+    REPRODUCIBILITY.md
     SECURITY.md
     license
