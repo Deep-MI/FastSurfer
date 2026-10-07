@@ -29,7 +29,7 @@ docker pull deepmi/fastsurfer:{{ CUDA_STRING }}-v{{ FASTSURFER_VERSION }}
 and run FastSurfer as in [Example 2](../EXAMPLES.md#example-2-fastsurfer-docker), for example:
 
 ```bash
-docker run --gpus all --rm \
+docker run --gpus all --rm --user 1000:1000 \
     -v C:/Users/user/my_mri_data:/home/user/my_mri_data \
     -v C:/Users/user/my_fastsurfer_analysis:/home/user/my_fastsurfer_analysis \
     -v C:/path/to/your/freesurfer/license_file:/home/user/freesurfer_license \
@@ -50,7 +50,7 @@ docker pull deepmi/fastsurfer:cpu-v{{ FASTSURFER_VERSION }}
 and run FastSurfer as in [Example 2](../EXAMPLES.md#example-2-fastsurfer-docker), for example:
 
 ```bash
-docker run --rm \
+docker run --rm --user 1000:1000 \
     -v C:/Users/user/my_mri_data:/home/user/my_mri_data \
     -v C:/Users/user/my_fastsurfer_analysis:/home/user/my_fastsurfer_analysis \
     -v C:/path/to/your/freesurfer/license_file:/home/user/freesurfer_license \
@@ -67,6 +67,10 @@ docker run --rm \
 Windows paths cannot be mounted at the same path inside the container, so the examples map
 `C:/Users/user/<dir_name>` to `/home/user/<dir_name>` and pass the container paths to FastSurfer. The full pipeline
 needs a [FreeSurfer license](../INSTALL.md#freesurfer-license), mounted from where you saved it.
+
+FastSurfer refuses to run as root or as the image's default user, so the examples pass a user with `--user`. On Linux
+that is your own user (`$(id -u):$(id -g)`), but PowerShell has no `id` command, and Windows folders do not have
+Linux user IDs anyway, so pass a fixed user ID instead, for example `1000:1000`.
 
 Docker Desktop reserves only part of your memory for WSL2. FastSurfer needs at least the memory in the
 [system requirements](../intro.rst#system-requirements); if it fails, check
