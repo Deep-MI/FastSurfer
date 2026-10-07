@@ -216,8 +216,11 @@ function RunBatchJobs()
 function auto_detect_fs_license()
 {
   # USAGE: auto_detect_fs_license <what needs the license>
-  local what_needs_license="$1"
-  local msg="T${what_needs_license:6} require(s) a FreeSurfer License"
+  # e.g. "the surface pipeline"; a list built as " and the A and the B" works too
+   local what_needs_license="${1# and }"
+  local first
+  first=$(printf '%s' "${what_needs_license:0:1}" | tr '[:lower:]' '[:upper:]')
+  local msg="$first${what_needs_license:1} require(s) a FreeSurfer License"
   if [[ -z "$FS_LICENSE" ]]
   then
     msg="$msg, but no license was provided via --fs_license or the FS_LICENSE environment variable"
