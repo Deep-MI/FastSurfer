@@ -30,7 +30,7 @@ Install
 1. Download the installer with the button above. It always points to the newest release.
 2. Double-click the downloaded `.pkg` file and follow the installer. You need about 2.5 GB of free disk space.
 3. The installer places two items in your Applications folder: `FastSurfer<version>`, the installation, and
-   `FastSurfer<version>.app`, the app that starts FastSurfer.
+   `FastSurfer<version>.app`, a small app that opens a Terminal window set up to run FastSurfer.
 
 ````{dropdown} macOS blocks the installer ("cannot be opened")
 :icon: shield-lock
@@ -42,15 +42,15 @@ warning may not offer an "Open" button at all, only "Done" or "Move to Trash". T
 2. Open **System Settings > Privacy & Security** and scroll down to the **Security** section.
 3. Click **Open Anyway** next to the message about the blocked installer, and confirm once more (with your password
    or Touch ID).
-4. Double-click the `.pkg` file again to start the installation.
+4. The installer usually starts by itself now; if it does not, double-click the `.pkg` file again.
 ````
 
 Run FastSurfer
 --------------
-Start the FastSurfer app from your Applications folder (or with Spotlight). It opens a Terminal window with a
-FastSurfer console, recognizable by the `(FastSurfer<version>)` prompt, where everything is set up to run
-FastSurfer. The first time, macOS asks whether FastSurfer may control Terminal; allow it, because that is how the app
-opens the console. If you declined, switch on **Terminal** below **FastSurfer** in
+Open the FastSurfer app from your Applications folder (or with Spotlight). It opens a Terminal window, the
+FastSurfer console, in which the environment is set up to run FastSurfer; you recognize it by the
+`(FastSurfer<version>)` prompt. The first time, macOS asks whether FastSurfer may control Terminal; allow it,
+because that is how the app opens the console. If you declined, switch on **Terminal** below **FastSurfer** in
 **System Settings > Privacy & Security > Automation**.
 
 In the console, call `run_fastsurfer.sh` with the [FastSurfer flags](../../scripts/RUN_FASTSURFER.md). For example,
@@ -128,7 +128,7 @@ would be Apple's system Python, which is too old for FastSurfer, and `FREESURFER
 ````{dropdown} Uninstalling
 Drag both items from your Applications folder to the Trash:
 - `FastSurfer<version>` (the installation)
-- `FastSurfer<version>.app` (the app)
+- `FastSurfer<version>.app` (the app that opens the console)
 
 macOS asks for your password, because the installer placed them as `root`. Everything FastSurfer installed is in
 these two items: no shell profile is modified and nothing is written elsewhere. Installations of other versions are

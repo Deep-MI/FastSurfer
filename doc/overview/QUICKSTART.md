@@ -70,8 +70,8 @@ docker run --gpus all -v "$PWD:$PWD" \
 ````
 
 ````{tab-item} macOS package
-[Install the package](install/MACOS.md), start the FastSurfer app from your Applications folder, and run these
-commands in the console it opens:
+[Install the package](install/MACOS.md), open the FastSurfer app from your Applications folder, and run these
+commands in the Terminal window it opens:
 
 ```bash
 # 0. Create a directory for this test
