@@ -54,6 +54,15 @@ runs:
       uses: astral-sh/setup-uv@v10.2.0
       with:
         python-version: '3.12'
+    - name: Install the test environment
+      # The tests only import torch, so the CPU wheels suffice; --torch-backend exists only in the
+      # uv pip interface, uv run would install the CUDA build.
+      shell: bash
+      run: |
+        echo "::group::Install the test environment"
+        uv venv .venv
+        uv pip install --torch-backend cpu -e ".[pipelinetest]"
+        echo "::endgroup::"
     - name: Download and unpack reference data
       shell: bash
       env:
@@ -104,7 +113,7 @@ runs:
         then 
           flags+=(-vv --log_cli_level=DEBUG)
         fi
-        uv run --extra pipelinetest python -m pytest "${flags[@]}" test/pipelinetest
+        .venv/bin/python -m pytest "${flags[@]}" test/pipelinetest
         echo "::endgroup::"
     - name: Upload the the JUnit XML file as an artifact
       uses: actions/upload-artifact@v7
@@ -133,7 +142,7 @@ runs:
         # no --subject: the reference tarball names its own directory, which the suite discovers
         # rather than assumes, and compare_subjects does the same and says so if it cannot.
         # An if, so the exit code is read rather than ending the step under `bash -e`.
-        if uv run --extra pipelinetest python tools/compare_subjects.py \
+        if .venv/bin/python tools/compare_subjects.py \
              "$REF_DIR" "$SUBJECTS_DIR" > /tmp/compare.txt 2>&1
         then compared=0 ; else compared=$? ; fi
         cat /tmp/compare.txt
