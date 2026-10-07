@@ -40,15 +40,14 @@ A native installation on Ubuntu, for developers and systems without containers.
 Which method should I use?
 --------------------------
 
-| Your system                          | Recommended                           | Alternatives                                              |
-|--------------------------------------|---------------------------------------|-----------------------------------------------------------|
-| Mac with Apple silicon (M1 or newer) | [macOS package][macos]                |                                                           |
-| Mac with an Intel CPU                | [Docker][macos-docker]                |                                                           |
-| Compute cluster (HPC)                | [Apptainer/Singularity][apptainer]    |                                                           |
-| Linux workstation with NVIDIA GPU    | [Docker][docker]                      | [Apptainer/Singularity][apptainer], [from source][native] |
-| Linux with AMD GPU                   | [Docker, ROCm build][amd]             |                                                           |
-| Linux without GPU                    | [Apptainer or Docker, CPU image][cpu] |                                                           |
-| Windows                              | [Docker in WSL2][windows]             |                                                           |
+| Your system                                    | Recommended                                            | Alternatives          |
+|------------------------------------------------|--------------------------------------------------------|-----------------------|
+| Mac with Apple silicon (M1 or newer)           | [macOS package][macos]                                 |                       |
+| Mac with an Intel CPU                          | [Docker][macos-docker]                                 |                       |
+| Linux with NVIDIA GPU (workstation or cluster) | [Apptainer/Singularity][apptainer] or [Docker][docker] | [from source][native] |
+| Linux with AMD GPU                             | [Docker, ROCm build][amd]                              |                       |
+| Linux without GPU                              | [Apptainer or Docker, CPU image][cpu]                  |                       |
+| Windows                                        | [Docker in WSL2][windows]                              |                       |
 
 [macos]: install/MACOS.md
 [macos-docker]: install/MACOS.md#docker-intel-macs

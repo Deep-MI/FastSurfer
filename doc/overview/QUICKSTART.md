@@ -20,11 +20,11 @@ cd fastsurfer_test
 
 # 1. Download the docker image and create the singularity image
 #    (do this only the first time)
-#    It will produce the fastsurfer-{{ FASTSURFER_VERSION }}.sif singularity image
+#    It will produce the fastsurfer-{{ CUDA_STRING }}-v{{ FASTSURFER_VERSION }}.sif singularity image
 #    file in $HOME/my_singularity_images
 mkdir -p $HOME/my_singularity_images
 singularity build \
-    $HOME/my_singularity_images/fastsurfer-{{ FASTSURFER_VERSION }}.sif \
+    $HOME/my_singularity_images/fastsurfer-{{ CUDA_STRING }}-v{{ FASTSURFER_VERSION }}.sif \
     docker://deepmi/fastsurfer:{{ CUDA_STRING }}-v{{ FASTSURFER_VERSION }}
 
 # 2. Download an example brain MRI (if you don't have your own)
@@ -38,7 +38,7 @@ curl -k \
 singularity exec --nv \
                  --no-mount home,cwd -e \
                  -B "$PWD" \
-                 $HOME/my_singularity_images/fastsurfer-{{ FASTSURFER_VERSION }}.sif \
+                 $HOME/my_singularity_images/fastsurfer-{{ CUDA_STRING }}-v{{ FASTSURFER_VERSION }}.sif \
                  /fastsurfer/run_fastsurfer.sh \
                  --t1 "$PWD/140_orig.mgz" \
                  --sid subjectX --sd "$PWD" \
@@ -106,7 +106,7 @@ You will find the full brain segmentation in ```./subjectX/mri/aparc.DKTatlas+as
 singularity exec --nv \
                  --no-mount home -e \
                  -B "$PWD" \
-                 $HOME/my_singularity_images/fastsurfer-{{ FASTSURFER_VERSION }}.sif \
+                 $HOME/my_singularity_images/fastsurfer-{{ CUDA_STRING }}-v{{ FASTSURFER_VERSION }}.sif \
                  nib-convert "$PWD/subjectX/mri/aparc.DKTatlas+aseg.deep.mgz" \
                              "$PWD/subjectX/mri/aparc.DKTatlas+aseg.deep.nii.gz"
 ```

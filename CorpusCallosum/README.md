@@ -61,7 +61,7 @@ the subject directory and invoke the expert script directly:
 ```bash
 export SUBJECTS_DIR=$HOME/my_fastsurfer_analysis
 subject_id=subjectX
-fastsurfer_sif=$HOME/my_singularity_images/fastsurfer-{{ FASTSURFER_VERSION }}.sif
+fastsurfer_sif=$HOME/my_singularity_images/fastsurfer-{{ CUDA_STRING }}-v{{ FASTSURFER_VERSION }}.sif
 
 singularity exec --nv --no-mount home,cwd -e \
     --bind "$SUBJECTS_DIR" \

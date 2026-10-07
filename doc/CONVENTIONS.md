@@ -115,7 +115,7 @@ Names are snake_case, except `subjectX` and the file names of container images.
 | BIDS dataset                              | `$HOME/my_bids_dataset`                                                                                                        |
 | `FASTSURFER_HOME` (FastSurfer checkout)   | `${FASTSURFER_HOME:-/path/to/FastSurfer}`                                                                                      |
 | `FREESURFER_HOME`                         | `${FREESURFER_HOME:-/path/to/freesurfer}`                                                                                      |
-| Singularity image                         | `$HOME/my_singularity_images/fastsurfer-{{ FASTSURFER_VERSION }}.sif`, for the CPU image `fastsurfer-cpu-{{ FASTSURFER_VERSION }}.sif` |
+| Singularity image                         | `$HOME/my_singularity_images/fastsurfer-{{ CUDA_STRING }}-v{{ FASTSURFER_VERSION }}.sif`, for the CPU image `fastsurfer-cpu-v{{ FASTSURFER_VERSION }}.sif` |
 | FastSurfer scripts (native)               | `$FASTSURFER_HOME/run_fastsurfer.sh`, likewise `brun_fastsurfer.sh`, `long_fastsurfer.sh`, ...                                 |
 
 ## Containers

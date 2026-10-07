@@ -67,8 +67,8 @@ docker run --rm --user 1000:1000 \
 `````
 
 Windows paths cannot be mounted at the same path inside the container, so the examples map
-`C:/Users/user/<dir_name>` to `/home/user/<dir_name>` and pass the container paths to FastSurfer. The full pipeline
-needs a [FreeSurfer license](../INSTALL.md#freesurfer-license), mounted from where you saved it.
+`C:/Users/user/<dir_name>` to `/home/user/<dir_name>` and pass the container paths to FastSurfer, the FreeSurfer
+license file included.
 
 FastSurfer refuses to run as root or as the image's default user, so the examples pass a user with `--user`. On Linux
 that is your own user (`$(id -u):$(id -g)`), but PowerShell has no `id` command, and Windows folders do not have

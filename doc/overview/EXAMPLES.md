@@ -14,7 +14,7 @@ intend to generate surfaces, it is often not necessary to obtain a FreeSurfer li
 ```bash
 # Build the singularity image (if it does not exist)
 singularity build \
-    $HOME/my_singularity_images/fastsurfer-{{ FASTSURFER_VERSION }}.sif \
+    $HOME/my_singularity_images/fastsurfer-{{ CUDA_STRING }}-v{{ FASTSURFER_VERSION }}.sif \
     docker://deepmi/fastsurfer:{{ CUDA_STRING }}-v{{ FASTSURFER_VERSION }}
 ```
 
@@ -29,7 +29,7 @@ singularity exec --nv \
                  -B $HOME/my_mri_data \
                  -B $HOME/my_fastsurfer_analysis \
                  -B $freesurfer_license \
-                 $HOME/my_singularity_images/fastsurfer-{{ FASTSURFER_VERSION }}.sif \
+                 $HOME/my_singularity_images/fastsurfer-{{ CUDA_STRING }}-v{{ FASTSURFER_VERSION }}.sif \
                    /fastsurfer/run_fastsurfer.sh \
                      --fs_license $freesurfer_license \
                      --t1 $HOME/my_mri_data/subjectX/t1_weighted.nii.gz \
@@ -55,7 +55,7 @@ Note, that the paths following `--fs_license`, `--t1`, and `--sd` are __inside__
 
 A directory with the name as specified in `--sid` (here subjectX) will be created in the output directory. So in this example output will be written to `$HOME/my_fastsurfer_analysis/subjectX/` . Make sure the output directory is empty, to avoid overwriting existing files.
 
-If you have no supported GPU, most Singularity images should automatically work (default to the CPU, just drop the `--nv` flag). Since execution on the CPU requires less driver installation, a custom, smaller CPU image is available `singularity build $HOME/my_singularity_images/fastsurfer-cpu-{{ FASTSURFER_VERSION }}.sif docker://deepmi/fastsurfer:cpu-v{{ FASTSURFER_VERSION }}`.
+If you have no supported GPU, most Singularity images should automatically work (default to the CPU, just drop the `--nv` flag). Since execution on the CPU requires less driver installation, a custom, smaller CPU image is available `singularity build $HOME/my_singularity_images/fastsurfer-cpu-v{{ FASTSURFER_VERSION }}.sif docker://deepmi/fastsurfer:cpu-v{{ FASTSURFER_VERSION }}`.
 
 Example 2: FastSurfer Docker
 ----------------------------
@@ -168,7 +168,7 @@ singularity exec --nv \
                  -B $HOME/my_mri_data \
                  -B $HOME/my_fastsurfer_analysis \
                  -B $freesurfer_license \
-                 $HOME/my_singularity_images/fastsurfer-{{ FASTSURFER_VERSION }}.sif \
+                 $HOME/my_singularity_images/fastsurfer-{{ CUDA_STRING }}-v{{ FASTSURFER_VERSION }}.sif \
                  /fastsurfer/brun_fastsurfer.sh \
                  --fs_license $freesurfer_license \
                  --sd $HOME/my_fastsurfer_analysis \
@@ -249,7 +249,8 @@ $FASTSURFER_HOME/srun_fastsurfer.sh --partition_seg GPU_Partition \
     --data $HOME/my_mri_data \
     --pattern '*/t1_weighted.nii.gz' \
     --remove_suffix /t1_weighted.nii.gz \
-    --singularity_image $HOME/my_singularity_images/fastsurfer-{{ FASTSURFER_VERSION }}.sif \
+    --singularity_image \
+        $HOME/my_singularity_images/fastsurfer-{{ CUDA_STRING }}-v{{ FASTSURFER_VERSION }}.sif \
     --3T # fastsurfer flags
 ```
 

@@ -99,7 +99,7 @@ All installation methods use the `run_fastsurfer.sh` call interface (replace the
                       -B $HOME/my_mri_data \
                       -B $HOME/my_fastsurfer_analysis \
                       -B $freesurfer_license \
-                      $HOME/my_singularity_images/fastsurfer-{{ FASTSURFER_VERSION }}.sif \
+                      $HOME/my_singularity_images/fastsurfer-{{ CUDA_STRING }}-v{{ FASTSURFER_VERSION }}.sif \
                       --t1 $HOME/my_mri_data/subjectX/t1_weighted.nii.gz \
                       --sd $HOME/my_fastsurfer_analysis \
                       --sid subjectX \

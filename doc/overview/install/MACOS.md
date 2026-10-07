@@ -61,7 +61,7 @@ run_fastsurfer.sh --seg_only --sd $HOME/my_fastsurfer_analysis --sid subjectX \
     --t1 $HOME/my_mri_data/subjectX/t1_weighted.nii.gz
 ```
 
-The full pipeline with surfaces needs a [FreeSurfer license](#freesurfer-license), for example:
+For the full pipeline with surfaces, pass your FreeSurfer license, for example:
 
 ```bash
 freesurfer_license=${freesurfer_license:-/path/to/your/freesurfer/license_file}
@@ -75,10 +75,10 @@ implementation yet and run on the CPU instead; PyTorch prints a warning naming t
 
 FreeSurfer license
 ------------------
-The [FreeSurfer license](../INSTALL.md#freesurfer-license) is needed for the surface pipeline and for `--tal_reg`.
-On macOS, FastSurfer cannot find it inside the bundled FreeSurfer (`$FREESURFER_HOME`), because the installer places
-that folder as `root` and you cannot copy files into it. Save the license file in your home folder instead, and
-either pass it with `--fs_license` as above or set it for the current console:
+On macOS, FastSurfer cannot find the [FreeSurfer license](../INSTALL.md#freesurfer-license) inside the bundled
+FreeSurfer (`$FREESURFER_HOME`), because the installer places that folder as `root` and you cannot copy files into
+it. Save the license file in your home folder instead, and either pass it with `--fs_license` as above or set it
+for the current console:
 
 ```bash
 export FS_LICENSE=/path/to/your/freesurfer/license_file
