@@ -70,8 +70,7 @@ run_fastsurfer.sh --sd $HOME/my_fastsurfer_analysis --sid subjectX \
     --fs_license $freesurfer_license
 ```
 
-FastSurfer uses the Apple GPU (`mps`) automatically, so no `--device` flag is needed. A few operations have no GPU
-implementation yet and run on the CPU instead; PyTorch prints a warning naming them, which is harmless.
+FastSurfer uses the Apple GPU (`mps`) automatically, so no `--device` flag is needed.
 
 FreeSurfer license
 ------------------
@@ -84,8 +83,8 @@ for the current console:
 export FS_LICENSE=/path/to/your/freesurfer/license_file
 ```
 
-To set it in every console, add that line to your shell profile yourself (`~/.zprofile` for zsh, the macOS default,
-or `~/.bash_profile` for bash). FastSurfer does not change these files.
+To set it in every console, including the one the FastSurfer app opens, add that line to your shell profile yourself
+(`~/.zprofile` for zsh, the macOS default, or `~/.bash_profile` for bash). FastSurfer does not change these files.
 
 More details
 ------------
