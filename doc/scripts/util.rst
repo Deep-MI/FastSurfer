@@ -1,5 +1,5 @@
-FastSurfer Utilities
-====================
+Utilities
+=========
 
 .. toctree::
     :maxdepth: 2

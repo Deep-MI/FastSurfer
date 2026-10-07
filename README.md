@@ -20,25 +20,25 @@ The FastSurfer pipeline consists of two main parts for segmentation and surface 
 - approximately 5 minutes (GPU), `--seg_only` only runs this part. 
  
 Modules (all run by default):
-1. `asegdkt:` [FastSurferVINN](FastSurferCNN/README.md) for whole brain segmentation (deactivate with `--no_asegdkt`)
+1. `asegdkt:` [FastSurferVINN](doc/overview/modules/ASEGDKT.md) for whole brain segmentation (deactivate with `--no_asegdkt`)
    - the core, outputs anatomical segmentation and cortical parcellation and statistics of 95 classes, mimics FreeSurfer’s DKTatlas.
    - requires a T1w image ([notes on input images](#requirements-to-input-images)), supports high-res (up to 0.7mm, experimental beyond that).
    - performs bias-field correction and calculates volume statistics corrected for partial volume effects (skipped if `--no_biasfield` is passed).
-2. `cc`: [CorpusCallosum](CorpusCallosum/README.md) for corpus callosum segmentation and shape analysis (deactivate with `--no_cc`)
+2. `cc`: [CorpusCallosum](doc/overview/modules/CC.md) for corpus callosum segmentation and shape analysis (deactivate with `--no_cc`)
    - requires `asegdkt_segfile` (segmentation) and `orig.mgz` from the segmentation stage. In the standard pipeline this image is in FastSurfer conform space; with `--seg_only --keepgeom` it stays in native geometry, with only intensity scaling and dtype conversion as needed. Outputs include CC segmentation, thickness, and shape metrics.
    - standardizes brain orientation based on AC/PC landmarks (orient_volume.lta).
-3. `cereb:` [CerebNet](CerebNet/README.md) for cerebellum sub-segmentation (deactivate with `--no_cereb`)
+3. `cereb:` [CerebNet](doc/overview/modules/CEREBNET.md) for cerebellum sub-segmentation (deactivate with `--no_cereb`)
    - requires `asegdkt_segfile`, outputs cerebellar sub-segmentation with detailed WM/GM delineation.
    - requires a T1w image ([notes on input images](#requirements-to-input-images)), which will be resampled to 1mm isotropic images (no native high-res support).
    - calculates volume statistics corrected for partial volume effects (skipped if `--no_biasfield` is passed).
-4. `hypothal`: [HypVINN](HypVINN/README.md) for hypothalamus subsegmentation (deactivate with `--no_hypothal`)
+4. `hypothal`: [HypVINN](doc/overview/modules/HYPVINN.md) for hypothalamus subsegmentation (deactivate with `--no_hypothal`)
    - outputs a hypothalamic subsegmentation including 3rd ventricle, c. mammilare, fornix and optic tracts.
    - a T1w image is highly recommended ([notes on input images](#requirements-to-input-images)), supports high-res (up to 0.7mm, but experimental beyond that).
    - allows the additional passing of a T2w image with `--t2 <t2_path>`, which will be registered to the T1w image (see `--reg_mode` option).
    - calculates summary statistics based on the biasfield-corrected T1w image (skipped if `--no_biasfield` is passed).
 
 ### Surface reconstruction
-- approximately 60-90 minutes, `--surf_only` runs only [the surface part](recon_surf/README.md).
+- approximately 60-90 minutes, `--surf_only` runs only [the surface part](doc/overview/modules/SURFACE.md).
 - supports high-resolution images (up to 0.7mm, experimental beyond that).
 - requires a FreeSurfer license file as it uses some FreeSurfer binaries internally.
 - requires outputs of the `asegdkt` and the `cc` modules as a prerequisite (can be included in the same run).
