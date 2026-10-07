@@ -119,7 +119,7 @@ freeview -v 140_orig.mgz \
     subjectX/mri/aparc.DKTatlas+aseg.deep.mgz:colormap=lut:opacity=0.2
 ```
 
-Other interesting outputs of the segmentation are the ```aseg.auto_noCCseg.mgz``` containing a reduced segmentation according to FreeSurfer's aseg (no cortical sub-division and no corpus callosum, which is added later). Also ```mask.mgz``` can come in handy if you need a brainmask. And you get all of this within a few seconds (including startup of singularity or docker it is **20 sec** in total with a GeForce RTX 4080, **40 sec** with a Quadro RTX 4000 or Titan XP, CPU-only takes **5 minutes** longer on my machine).
+Other interesting outputs of the segmentation are the ```aseg.auto_noCCseg.mgz``` containing a reduced segmentation according to FreeSurfer's aseg (no cortical sub-division and no corpus callosum, which is added later). Also ```mask.mgz``` can come in handy if you need a brainmask. And you get all of this within a few seconds (including startup of singularity or docker it is **20 sec** in total with a GeForce RTX 4080, **40 sec** with a Quadro RTX 4000 or Titan XP, CPU-only processing takes about **5 minutes** longer).
 
 Google Colab
 ------------

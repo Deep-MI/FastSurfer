@@ -9,8 +9,7 @@ Welcome to FastSurfer!
 
 Overview
 --------
-This README contains all information needed to run FastSurfer - a fast and accurate deep-learning based neuroimaging pipeline. FastSurfer provides a fully compatible [FreeSurfer](https://freesurfer.net/) alternative for volumetric analysis (within minutes) and surface-based thickness analysis (within only around 1h run time). 
-FastSurfer is transitioning to sub-millimeter resolution support throughout the pipeline.
+FastSurfer is a fast and accurate deep-learning based neuroimaging pipeline. It provides a fully compatible [FreeSurfer](https://freesurfer.net/) alternative for volumetric analysis (within minutes) and surface-based thickness analysis (within only around 1h run time), and it supports sub-millimeter resolutions down to 0.7mm (see the modules below for details).
 
 The FastSurfer pipeline consists of two main parts for segmentation and surface reconstruction.  
 
@@ -170,10 +169,12 @@ System Requirements
 -------------------
 
 ### Recommendation
-- intel or AMD CPU (6 or more cores)
+- Intel or AMD CPU (6 or more cores)
 - 16 GB system memory
-- nVidia graphics card (2016 or newer) 
+- NVIDIA graphics card (2016 or newer)
 - 12 GB graphics memory
+
+On a Mac, we recommend Apple silicon (M1 or newer) with 16 GB memory; FastSurfer uses its GPU automatically.
 
 FastSurfer supports multiple hardware acceleration modes: fully CPU (`--device cpu`), partial GPU 
 (`--device cuda --viewagg_device cpu`) and fully GPU (`--device cuda`). By default, FastSurfer will try to pick the best
@@ -196,12 +197,12 @@ Specifically, the segmentation modules feature options for optimized paralleliza
 
 FreeSurfer Downstream Modules
 -----------------------------
-FreeSurfer provides several Add-on modules for downstream processing, such as subfield segmentation ( [hippocampus/amygdala](https://surfer.nmr.mgh.harvard.edu/fswiki/HippocampalSubfieldsAndNucleiOfAmygdala), [brainstem](https://surfer.nmr.mgh.harvard.edu/fswiki/BrainstemSubstructures), [thalamus](https://freesurfer.net/fswiki/ThalamicNuclei) and [hypothalamus](https://surfer.nmr.mgh.harvard.edu/fswiki/HypothalamicSubunits) ) as well as [TRACULA](https://surfer.nmr.mgh.harvard.edu/fswiki/Tracula). We now provide symlinks to the required files, as FastSurfer creates them with a different name (e.g. using "mapped" or "DKT" to make clear that these file are from our segmentation using the DKT Atlas protocol, and mapped to the surface). Most subfield segmentations require `wmparc.mgz` and work very well with FastSurfer,  so feel free to run those pipelines after FastSurfer. TRACULA requires `aparc+aseg.mgz` which we now link, but have not tested if it works, given that [DKT-atlas](https://mindboggle.readthedocs.io/en/latest/labels.html) merged a few labels. You should source FreeSurfer {{ FREESURFER_VERSION }} to run these modules. 
+FreeSurfer provides several Add-on modules for downstream processing, such as subfield segmentation ( [hippocampus/amygdala](https://surfer.nmr.mgh.harvard.edu/fswiki/HippocampalSubfieldsAndNucleiOfAmygdala), [brainstem](https://surfer.nmr.mgh.harvard.edu/fswiki/BrainstemSubstructures), [thalamus](https://freesurfer.net/fswiki/ThalamicNuclei) and [hypothalamus](https://surfer.nmr.mgh.harvard.edu/fswiki/HypothalamicSubunits) ) as well as [TRACULA](https://surfer.nmr.mgh.harvard.edu/fswiki/Tracula). FastSurfer creates the files these modules need under different names (e.g. using "mapped" or "DKT" to make clear that these files are from our segmentation using the DKT Atlas protocol, and mapped to the surface), and provides symlinks with the names the modules expect. Most subfield segmentations require `wmparc.mgz` and work very well with FastSurfer, so feel free to run those pipelines after FastSurfer. TRACULA requires `aparc+aseg.mgz`, which is linked as well, but we have not tested if it works, given that [DKT-atlas](https://mindboggle.readthedocs.io/en/latest/labels.html) merged a few labels. You should source FreeSurfer {{ FREESURFER_VERSION }} to run these modules. 
 
 
 Want to know more?
 ------------------
-The DeepMI lab hosts an annual **FastSurfer course** at the German Center for Neurodegenerative Diseaes in Bonn, Germany. This is a 2.5-day, hands-on, introductory course on state-of-the-art deep-learning methods for fast and reliable neuroimage analysis. Participants will gain an understanding of modern methods for the analysis of structural brain images, learn how to run both the FastSurfer and FreeSurfer packages, and will know how to set up an analysis and work with the resulting outputs in the context of their own research projects. The course consists of lectures, demonstrations, practical exercises, and provides ample opportunities for discussions and informal exchange. The course typically takes place in **September**. Check out our [website](https://deep-mi.org/events) for details and current information!
+The DeepMI lab hosts an annual **FastSurfer course** at the German Center for Neurodegenerative Diseases in Bonn, Germany. This is a 2.5-day, hands-on, introductory course on state-of-the-art deep-learning methods for fast and reliable neuroimage analysis. Participants will gain an understanding of modern methods for the analysis of structural brain images, learn how to run both the FastSurfer and FreeSurfer packages, and will know how to set up an analysis and work with the resulting outputs in the context of their own research projects. The course consists of lectures, demonstrations, practical exercises, and provides ample opportunities for discussions and informal exchange. The course typically takes place in **September**. Check out our [website](https://deep-mi.org/events) for details and current information!
 
 Intended Use
 ------------
