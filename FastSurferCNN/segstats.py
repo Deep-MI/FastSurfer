@@ -1971,15 +1971,9 @@ def calculate_merged_labels[IntType: np.integer](
         _data = [source.get(lb, 0) for lb in merge_labels if num_robust_voxels(lb) > eps]
         return f(_data).item()
 
-    def aggregate_std(sums, sums2, merge_labels, nvox):
-        """aggregate std of labels `merge_labels` from `source`"""
-        s2 = [(s := sums.get(lb, 0)) * s / r for lb in group
-              if (r := num_robust_voxels(lb)) > eps]
-        return np.sqrt((aggregate(sums2, merge_labels) - np.sum(s2)) / nvox).item()
-
     for lab, group in merged_labels.items():
         stats = {"SegId": lab}
-        if all(lb not in robust_voxel_counts for lb in group):
+        if not any(num_robust_voxels(lb) > eps for lb in group):
             logging.getLogger(__name__).warning(
                 f"None of the labels {group} for merged label {lab} exist in the "
                 f"segmentation."
@@ -2002,14 +1996,13 @@ def calculate_merged_labels[IntType: np.integer](
                 if "Min" in stats:
                     stats["Range"] = stats["Max"] - stats["Min"]
             if sums is not None:
-                stats["Mean"] = aggregate(sums, group) / num_voxels
+                intensity_voxels = aggregate(robust_voxel_counts, group)
+                intensity_sum = aggregate(sums, group)
+                stats["Mean"] = intensity_sum / intensity_voxels
                 if sums_of_squares is not None:
-                    stats["StdDev"] = aggregate_std(
-                        sums,
-                        sums_of_squares,
-                        group,
-                        num_voxels - 1,
-                    )
+                    # Include variation between parcels, not only within them.
+                    variance_sum = aggregate(sums_of_squares, group) - intensity_sum * stats["Mean"]
+                    stats["StdDev"] = np.sqrt(max(0.0, variance_sum) / max(1, intensity_voxels - 1)).item()
         yield stats
 
 
@@ -2071,8 +2064,8 @@ def global_stats[IntType: np.integer, NumberType: Number](
 
     if robust_percentage is not None:
         data = np.sort(data)
-        sym_drop_samples = int((1 - robust_percentage / 2) * nvoxels)
-        data = data[sym_drop_samples:-sym_drop_samples]
+        sym_drop_samples = int((1 - robust_percentage) * nvoxels / 2)
+        data = data[sym_drop_samples:nvoxels - sym_drop_samples]
         _min: NumberType = data[0].item()
         _max: NumberType = data[-1].item()
         __voxel_count = nvoxels - 2 * sym_drop_samples
