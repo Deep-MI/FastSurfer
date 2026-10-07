@@ -69,7 +69,7 @@ singularity exec --nv \
                  -B $HOME/my_mri_data \
                  -B $HOME/my_fastsurfer_analysis \
                  -B $freesurfer_license \
-                 $HOME/my_singularity_images/fastsurfer-{{ FASTSURFER_VERSION }}.sif \
+                 $HOME/my_singularity_images/fastsurfer-{{ CUDA_STRING }}-v{{ FASTSURFER_VERSION }}.sif \
                  /fastsurfer/long_fastsurfer.sh \
                  --fs_license $freesurfer_license \
                  --tid subjectX \

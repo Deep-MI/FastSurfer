@@ -1,6 +1,6 @@
 Examples
 ========
-Example 1: FastSurfer Singularity (or Apptainer)
+Example 1: FastSurfer Apptainer (or Singularity)
 ------------------------------------------------
 Singularity and Apptainer are alternative containerization solutions. Both have open-source distributions and are often
 available in HPC settings. See our [Singularity docs](SINGULARITY.md) for more details.
@@ -14,7 +14,7 @@ intend to generate surfaces, it is often not necessary to obtain a FreeSurfer li
 ```bash
 # Build the singularity image (if it does not exist)
 singularity build \
-    $HOME/my_singularity_images/fastsurfer-{{ FASTSURFER_VERSION }}.sif \
+    $HOME/my_singularity_images/fastsurfer-{{ CUDA_STRING }}-v{{ FASTSURFER_VERSION }}.sif \
     docker://deepmi/fastsurfer:{{ CUDA_STRING }}-v{{ FASTSURFER_VERSION }}
 ```
 
@@ -29,7 +29,7 @@ singularity exec --nv \
                  -B $HOME/my_mri_data \
                  -B $HOME/my_fastsurfer_analysis \
                  -B $freesurfer_license \
-                 $HOME/my_singularity_images/fastsurfer-{{ FASTSURFER_VERSION }}.sif \
+                 $HOME/my_singularity_images/fastsurfer-{{ CUDA_STRING }}-v{{ FASTSURFER_VERSION }}.sif \
                    /fastsurfer/run_fastsurfer.sh \
                      --fs_license $freesurfer_license \
                      --t1 $HOME/my_mri_data/subjectX/t1_weighted.nii.gz \
@@ -49,17 +49,17 @@ singularity exec --nv \
 * The `--sid` is the subject ID name (output folder name)
 * The `--sd` points to the output directory (must be mounted via `-B`)
 * The `--3T` changes the atlas for registration to the 3T atlas for better Talairach transforms and ICV estimates (eTIV)
-* The `--threads` tells FastSurfer to use that many threads in segmentation and surface reconstruction. `max` will auto-detect the number of threads available, i.e. `16` on an 8-core system with hypterthreading. If the number of threads is greater than 1, FastSurfer will process the left and right hemispheres in parallel.
+* The `--threads` tells FastSurfer to use that many threads in segmentation and surface reconstruction. `max` will auto-detect the number of threads available, i.e. `16` on an 8-core system with hyperthreading. If the number of threads is greater than 1, FastSurfer will process the left and right hemispheres in parallel.
 
 Note, that the paths following `--fs_license`, `--t1`, and `--sd` are __inside__ the container, not global paths on your system, so they should point to the places where you mapped these paths above with the `-B` arguments (here, the same paths as on your system).
 
 A directory with the name as specified in `--sid` (here subjectX) will be created in the output directory. So in this example output will be written to `$HOME/my_fastsurfer_analysis/subjectX/` . Make sure the output directory is empty, to avoid overwriting existing files.
 
-If you have no supported GPU, most Singularity images should automatically work (default to the CPU, just drop the `--nv` flag). Since execution on the CPU requires less driver installation, a custom, smaller CPU image is available `singularity build $HOME/my_singularity_images/fastsurfer-cpu-{{ FASTSURFER_VERSION }}.sif docker://deepmi/fastsurfer:cpu-v{{ FASTSURFER_VERSION }}`.
+If you have no supported GPU, most Singularity images should automatically work (default to the CPU, just drop the `--nv` flag). Since execution on the CPU requires less driver installation, a custom, smaller CPU image is available `singularity build $HOME/my_singularity_images/fastsurfer-cpu-v{{ FASTSURFER_VERSION }}.sif docker://deepmi/fastsurfer:cpu-v{{ FASTSURFER_VERSION }}`.
 
 Example 2: FastSurfer Docker
 ----------------------------
-After pulling one of our images from Dockerhub, you do not need to have a separate installation of FreeSurfer on your computer (it is already included in the Docker image). However, if you want to run ___more than just the segmentation CNN___, you need to [register at the FreeSurfer website](https://surfer.nmr.mgh.harvard.edu/registration.html) to acquire a valid license for free. The license file needs to be mounted and passed to the script via the `--fs_license` flag. Basically for Docker (as for Singularity below) you are starting a container image (with the run command) and pass several parameters for that, e.g. if GPUs will be used and mounting (linking) the input and output directories to the inside of the container image. In the second half of that call you pass parameters to our `run_fastsurfer.sh` script that runs inside the container (e.g. where to find the FreeSurfer license file, and the input data and other flags).
+After pulling one of our images from Dockerhub, you do not need to have a separate installation of FreeSurfer on your computer (it is already included in the Docker image). However, if you want to run ___more than just the segmentation CNN___, you need to [register at the FreeSurfer website](https://surfer.nmr.mgh.harvard.edu/registration.html) to acquire a valid license for free. The license file needs to be mounted and passed to the script via the `--fs_license` flag. Basically for Docker (as for Singularity above) you are starting a container image (with the run command) and pass several parameters for that, e.g. if GPUs will be used and mounting (linking) the input and output directories to the inside of the container image. In the second half of that call you pass parameters to our `run_fastsurfer.sh` script that runs inside the container (e.g. where to find the FreeSurfer license file, and the input data and other flags).
 
 To run FastSurfer on a given subject using the provided GPU-Docker, execute the following command:
 
@@ -68,7 +68,8 @@ freesurfer_license=${freesurfer_license:-/path/to/your/freesurfer/license_file}
 docker run --gpus all -v $HOME/my_mri_data:$HOME/my_mri_data \
     -v $HOME/my_fastsurfer_analysis:$HOME/my_fastsurfer_analysis \
     -v $freesurfer_license:$freesurfer_license \
-    --rm --user $(id -u):$(id -g) deepmi/fastsurfer:{{ CUDA_STRING }}-v{{ FASTSURFER_VERSION }} \
+    --rm --user $(id -u):$(id -g) \
+    deepmi/fastsurfer:{{ CUDA_STRING }}-v{{ FASTSURFER_VERSION }} \
     --fs_license $freesurfer_license \
     --t1 $HOME/my_mri_data/subjectX/t1_weighted.nii.gz \
     --sid subjectX --sd $HOME/my_fastsurfer_analysis \
@@ -106,7 +107,7 @@ git clone --branch stable https://github.com/Deep-MI/FastSurfer.git \
     $FASTSURFER_HOME
 ```
 
-More details (e.g. you need all dependencies in the right versions and also FreeSurfer locally) can be found in our [Installation guide](INSTALL.md).
+More details (e.g. you need all dependencies in the right versions and also FreeSurfer locally) can be found in our [guide to installing from source](install/NATIVE.md).
 Given you want to analyze data for subject which is stored on your computer under `$HOME/my_mri_data/subjectX/t1_weighted.nii.gz`, run the following command from the console (do not forget to source FreeSurfer!):
 
 ```bash
@@ -151,7 +152,8 @@ docker run --gpus all -v $HOME/my_mri_data:$HOME/my_mri_data \
     -v $HOME/my_fastsurfer_analysis:$HOME/my_fastsurfer_analysis \
     -v $freesurfer_license:$freesurfer_license \
     --entrypoint "/fastsurfer/brun_fastsurfer.sh" \
-    --rm --user $(id -u):$(id -g) deepmi/fastsurfer:{{ CUDA_STRING }}-v{{ FASTSURFER_VERSION }} \
+    --rm --user $(id -u):$(id -g) \
+    deepmi/fastsurfer:{{ CUDA_STRING }}-v{{ FASTSURFER_VERSION }} \
     --fs_license $freesurfer_license \
     --sd $HOME/my_fastsurfer_analysis \
     --subjects_list $HOME/my_mri_data/subjects_list.txt \
@@ -166,7 +168,7 @@ singularity exec --nv \
                  -B $HOME/my_mri_data \
                  -B $HOME/my_fastsurfer_analysis \
                  -B $freesurfer_license \
-                 $HOME/my_singularity_images/fastsurfer-{{ FASTSURFER_VERSION }}.sif \
+                 $HOME/my_singularity_images/fastsurfer-{{ CUDA_STRING }}-v{{ FASTSURFER_VERSION }}.sif \
                  /fastsurfer/brun_fastsurfer.sh \
                  --fs_license $freesurfer_license \
                  --sd $HOME/my_fastsurfer_analysis \
@@ -222,7 +224,8 @@ The above ```run_fastsurfer.sh``` commands can also be called from the Docker or
 docker run --gpus all \
     -v $HOME/my_mri_data:$HOME/my_mri_data \
     -v $HOME/my_fastsurfer_analysis:$HOME/my_fastsurfer_analysis \
-    --rm --user $(id -u):$(id -g) deepmi/fastsurfer:{{ CUDA_STRING }}-v{{ FASTSURFER_VERSION }} \
+    --rm --user $(id -u):$(id -g) \
+    deepmi/fastsurfer:{{ CUDA_STRING }}-v{{ FASTSURFER_VERSION }} \
       --t1 $HOME/my_mri_data/subjectX/t1_weighted.nii.gz \
       --asegdkt_segfile \
         $HOME/my_fastsurfer_analysis/subjectX/aparc.DKTatlas+aseg.deep.mgz \
@@ -246,7 +249,8 @@ $FASTSURFER_HOME/srun_fastsurfer.sh --partition_seg GPU_Partition \
     --data $HOME/my_mri_data \
     --pattern '*/t1_weighted.nii.gz' \
     --remove_suffix /t1_weighted.nii.gz \
-    --singularity_image $HOME/my_singularity_images/fastsurfer-{{ FASTSURFER_VERSION }}.sif \
+    --singularity_image \
+        $HOME/my_singularity_images/fastsurfer-{{ CUDA_STRING }}-v{{ FASTSURFER_VERSION }}.sif \
     --3T # fastsurfer flags
 ```
 
@@ -269,7 +273,8 @@ freesurfer_license=${freesurfer_license:-/path/to/your/freesurfer/license_file}
 docker run --gpus all -v $HOME/my_mri_data:$HOME/my_mri_data \
     -v $HOME/my_fastsurfer_analysis:$HOME/my_fastsurfer_analysis \
     -v $freesurfer_license:$freesurfer_license \
-    --rm --user $(id -u):$(id -g) deepmi/fastsurfer:{{ CUDA_STRING }}-v{{ FASTSURFER_VERSION }} \
+    --rm --user $(id -u):$(id -g) \
+    deepmi/fastsurfer:{{ CUDA_STRING }}-v{{ FASTSURFER_VERSION }} \
     --fs_license $freesurfer_license \
     --t1 $HOME/my_mri_data/subjectX/t1_weighted.nii.gz \
     --lesion_mask $HOME/my_mri_data/subjectX/lesion_mask.nii.gz \

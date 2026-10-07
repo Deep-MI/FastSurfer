@@ -71,14 +71,14 @@ the surface pipeline on top of it (i.e. on a different cluster), the following c
 freesurfer_license=${freesurfer_license:-/path/to/your/freesurfer/license_file}
 # 1. Build the singularity image (only if it does not exist)
 singularity build \
-    $HOME/my_singularity_images/fastsurfer-cpu-{{ FASTSURFER_VERSION }}.sif \
+    $HOME/my_singularity_images/fastsurfer-cpu-v{{ FASTSURFER_VERSION }}.sif \
     docker://deepmi/fastsurfer:cpu-v{{ FASTSURFER_VERSION }}
 
 # 2. Run command
 singularity exec --no-mount home,cwd -e \
     -B $HOME/my_fastsurfer_analysis \
     -B $freesurfer_license \
-    $HOME/my_singularity_images/fastsurfer-cpu-{{ FASTSURFER_VERSION }}.sif \
+    $HOME/my_singularity_images/fastsurfer-cpu-v{{ FASTSURFER_VERSION }}.sif \
     /fastsurfer/recon_surf/recon-surf.sh \
     --fs_license $freesurfer_license \
     --sid subjectX --sd $HOME/my_fastsurfer_analysis --3T \
@@ -141,7 +141,7 @@ singularity exec --no-mount home,cwd -e \
             -B $HOME/my_fastsurfer_analysis \
             -B $HOME/my_mri_data \
             -B $freesurfer_license \
-            $HOME/my_singularity_images/fastsurfer-cpu-{{ FASTSURFER_VERSION }}.sif \
+            $HOME/my_singularity_images/fastsurfer-cpu-v{{ FASTSURFER_VERSION }}.sif \
             /fastsurfer/brun_fastsurfer.sh \
             --surf_only \
             --subjects_list $HOME/my_mri_data/subjects_list.txt \

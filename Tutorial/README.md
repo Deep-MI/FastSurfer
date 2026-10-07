@@ -42,8 +42,8 @@ If you want to follow along on your local machine, you need a working installati
 covered in the second notebook (Sections B for Use case 1 and 2). In order to follow the installation instructions, some
 basic requirements have to be met. In general, you need either a Linux OS, macOS (Apple Silicon: the FastSurfer package,
 Intel: Docker) or Windows (+Docker) to run FastSurfer. Further, the segmentation requires a little less than 10 GB RAM.
-If you are using Docker on MAC, you have to make sure to adjust the memory settings accordingly (by default, they are
-limited to 2 GB runtime memory). See the [installation instructions](../doc/overview/INSTALL.md) for details.
+If you are using Docker on an Intel Mac, make sure Docker Desktop may use enough memory, see
+[Docker on Intel Macs](../doc/overview/install/MACOS.md#docker-intel-macs).
 
 ### 1. Recommendation - Docker
 Docker is an open platform for developing, shipping, and running applications. In a way, it allows the user to create 
@@ -54,7 +54,7 @@ need for running the application. You do not need to install anything else. See 
 ### 2. Local installation
 If you decide against using Docker, install FastSurfer natively with [uv](https://docs.astral.sh/uv/), a fast Python
 package and environment manager (FastSurfer previously recommended conda or pip, we now recommend uv). The
-[native installation instructions](../doc/overview/INSTALL.md#native-ubuntu) cover all steps, in short:
+[native installation instructions](../doc/overview/install/NATIVE.md) cover all steps, in short:
 
 ```bash
 # install uv
@@ -62,6 +62,6 @@ wget -qO- https://astral.sh/uv/install.sh | sh
 # get FastSurfer and create its python environment in FastSurfer/.venv (uv downloads python, if needed)
 git clone --branch stable https://github.com/Deep-MI/FastSurfer.git
 cd FastSurfer
-uv venv --python python3.12
+uv venv --python python3.14
 resolved=$(uv pip compile --no-build --torch-backend auto requirements.txt) && uv pip sync --no-build --torch-backend auto - <<< "$resolved"
 ```

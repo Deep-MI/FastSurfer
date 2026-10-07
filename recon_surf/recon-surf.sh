@@ -164,7 +164,7 @@ Henschel L, Conjeti S, Estrada S, Diers K, Fischl B, Reuter M, FastSurfer - A
 Henschel L*, Kuegler D*, Reuter M. (*co-first). FastSurferVINN: Building
  Resolution-Independence into Deep Learning Segmentation Methods - A Solution
  for HighRes Brain MRI. NeuroImage 251 (2022), 118933. 
- http://dx.doi.org/10.1016/j.neuroimage.2022.118933
+ https://doi.org/10.1016/j.neuroimage.2022.118933
 
 EOF
 

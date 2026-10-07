@@ -128,11 +128,9 @@ Note: These weights (version 1.1) are retrained compared to paper ([version 1.0]
 Santiago Estrada : santiago.estrada@dzne.de
 
 ### Citation
-If you use the HypVINN module please cite
-```text
-Santiago Estrada, David Kügler, Emad Bahrami, Peng Xu, Dilshad Mousa,
-  Monique M.B. Breteler, N. Ahmad Aziz, Martin Reuter; FastSurfer-HypVINN: 
-  Automated sub-segmentation of the hypothalamus and adjacent structures on 
-  high-resolutional brain MRI. Imaging Neuroscience 2023; 1 1–32.
-  doi: https://doi.org/10.1162/imag_a_00034
-```
+If you use the HypVINN module, please cite:
+
+- Estrada S, Kuegler D, Bahrami E, Xu P, Mousa D, Breteler MMB, Aziz NA, Reuter M.
+  **FastSurfer-HypVINN: Automated sub-segmentation of the hypothalamus and adjacent structures on high-resolutional brain MRI.**
+  *Imaging Neuroscience* 1 (2023), 1–32.
+  [doi:10.1162/imag_a_00034](https://doi.org/10.1162/imag_a_00034)

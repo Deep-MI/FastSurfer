@@ -24,4 +24,11 @@ So, there is really no reason why you should not try this out!
     :parser: fix_links.parser
     :relative-docs: .
     :relative-images:
+    :start-after: <!-- start of image requirements -->
+    :end-before: <!-- end of image requirements -->
+
+.. include:: ../../README.md
+    :parser: fix_links.parser
+    :relative-docs: .
+    :relative-images:
     :start-after: <!-- start of system requirements -->

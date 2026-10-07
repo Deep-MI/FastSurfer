@@ -44,10 +44,10 @@ unset fastsurfer_caller_opts
 PS1="(<fastsurfer>) ${PS1-}"
 
 echo
-echo "This is the FastSurfer console. Call \`run_fastsurfer.sh -t1 ...\` in here! " 
+echo "This is the FastSurfer console. Call \`run_fastsurfer.sh --t1 ...\` in here! "
 echo "In any other bash or zsh Terminal window, set up the same environment with:"
 echo "  source $FASTSURFER_HOME/macos_setup_fastsurfer.sh"
-echo "See also https://deep-mi.org/FastSurfer/stable/overview/INSTALL.html#macos"
+echo "See also https://deep-mi.org/FastSurfer/stable/overview/install/MACOS.html"
 
 # run_fastsurfer.sh lives here.
 fastsurfer_prepend_path "$FASTSURFER_HOME"
