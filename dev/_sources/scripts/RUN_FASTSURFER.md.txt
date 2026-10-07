@@ -66,7 +66,7 @@ Optional arguments
   If the minimal voxel size is bigger than 0.98mm, the image is conformed to 1mm isotropic.
   If the minimal voxel size is smaller or equal to 0.98mm, the T1w image will be conformed to isotropic voxels of that voxel size.
   The voxel size (whether set manually or derived) determines whether the surfaces are processed with highres options (below 1mm) or not.
-* `--py`: Command for python, used in both pipelines. Default: python3
+* `--py`: Command for python, used in both pipelines. Default: `python3 -s` (`-s` keeps packages in your home directory out)
 * `--conformed_name`: Name of the file in which the conformed input image will be saved. Default location: `$SUBJECTS_DIR/<subject_id>/mri/orig.mgz`
 * `-h`, `--help`: Prints help text
 

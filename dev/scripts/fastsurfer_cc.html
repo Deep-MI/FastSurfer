@@ -628,7 +628,7 @@ commands.</p>
 <p>Default: <code class="docutils literal notranslate"><span class="pre">'mri/aseg.auto_noCCseg.mgz'</span></code></p>
 </dd>
 <dt><kbd>--device</kbd></dt>
-<dd><p>Select device to run inference on: cpu, or cuda (= Nvidia gpu) or specify a certain gpu (e.g. cuda:1)</p>
+<dd><p>Device to run inference on: auto (default), cpu, cuda (NVIDIA, or AMD with ROCm), a specific gpu (e.g. cuda:1), or mps (Apple silicon gpu). auto uses cuda if available, else mps, else cpu.</p>
 <p>Default: <code class="docutils literal notranslate"><span class="pre">'auto'</span></code></p>
 </dd>
 <dt><kbd>--num_thickness_points</kbd></dt>

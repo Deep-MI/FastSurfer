@@ -541,7 +541,7 @@ situations, it will be called from <code class="xref py py-obj docutils literal 
 <h2>Advanced options<a class="headerlink" href="#HypVINN.run_prediction-option_parse-advanced-options" title="Link to this heading">¶</a></h2>
 <dl class="option-list">
 <dt><kbd>--device</kbd></dt>
-<dd><p>Select device to run inference on: cpu, or cuda (= Nvidia gpu) or specify a certain gpu (e.g. cuda:1)</p>
+<dd><p>Device to run inference on: auto (default), cpu, cuda (NVIDIA, or AMD with ROCm), a specific gpu (e.g. cuda:1), or mps (Apple silicon gpu). auto uses cuda if available, else mps, else cpu.</p>
 <p>Default: <code class="docutils literal notranslate"><span class="pre">'auto'</span></code></p>
 </dd>
 <dt><kbd>--viewagg_device</kbd></dt>
