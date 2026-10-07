@@ -154,7 +154,7 @@ Henschel L, Conjeti S, Estrada S, Diers K, Fischl B, Reuter M, FastSurfer - A
 Henschel L*, Kuegler D*, Reuter M. (*co-first). FastSurferVINN: Building
  Resolution-Independence into Deep Learning Segmentation Methods - A Solution
  for HighRes Brain MRI. NeuroImage 251 (2022), 118933. 
- http://dx.doi.org/10.1016/j.neuroimage.2022.118933
+ https://doi.org/10.1016/j.neuroimage.2022.118933
 
 And for longitudinal processing:
 Reuter M, Schmansky NJ, Rosas HD, Fischl B. Within-subject template estimation
@@ -167,7 +167,7 @@ Faber J*, Kuegler D*, Bahrami E*, et al. (*co-first). CerebNet: A fast and
  NeuroImage 264 (2022), 119703.
  https://doi.org/10.1016/j.neuroimage.2022.119703
 
-For hypothalamus sub-segemntation:
+For hypothalamus sub-segmentation:
 Estrada S, Kuegler D, Bahrami E, Xu P, Mousa D, Breteler MMB, Aziz NA, Reuter M.
  FastSurfer-HypVINN: Automated sub-segmentation of the hypothalamus and adjacent
  structures on high-resolutional brain MRI. Imaging Neuroscience 2023; 1 1–32.

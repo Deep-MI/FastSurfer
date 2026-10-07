@@ -12,5 +12,6 @@ User Guide
     modules/index
     EDITING.md
     LONG.md
+    REPRODUCIBILITY.md
     SECURITY.md
     license

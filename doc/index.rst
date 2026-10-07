@@ -49,7 +49,6 @@
    :hidden:
 
    overview/index
-   overview/REPRODUCIBILITY.md
    scripts/index
    developer/index
    api/index
