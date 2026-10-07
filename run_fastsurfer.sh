@@ -1738,7 +1738,7 @@ then
   if [[ "$run_hypvinn_module" == "true" ]]
   then
     echo "MODULE: HypVINN hypothalamus segmentation" >> "$exec_time_log"
-    # currently, the order of the T2 preprocessing only is registration to T1w
+    # currently, the T2 preprocessing step in HypVINN is registration to T1w
     # before --t1, which takes the value appended below
     cmd=($python "$hypvinndir/run_prediction.py" --sd "${sd}" --sid "${subject}" --reg_mode "$hypvinn_regmode"
          "${hypvinn_flags[@]}" --threads "$threads_seg" --async_io --batch_size "$batch_size" --seg_log "$seg_log"
