@@ -17,6 +17,7 @@
 
 # IMPORTS
 import argparse
+import sys
 from collections.abc import Iterable, Sequence
 from itertools import chain, pairwise
 from pathlib import Path
@@ -228,15 +229,20 @@ def make_arguments() -> argparse.ArgumentParser:
     # --seg-erode Nerodes
     # --frame frame
     def _percent(__value) -> float:
-        return float(__value) / 50
+        """Convert the percentage to drop at each end to the fraction to keep (--robust of segstats.py)."""
+        percent = float(__value)
+        if not 0 <= percent < 50:
+            raise ValueError(f"'{__value}' is not a percentage in [0, 50).")
+        return 1 - percent / 50
 
     parser.add_argument(
         "--robust",
         type=_percent,
         metavar="percent",
         dest="robust",
-        help="Compute stats after excluding percent from high and and low values, e.g. "
-             "with --robust 2, min and max are the 2nd and the 98th percentiles.",
+        help="Compute stats after excluding percent (0 <= percent < 50) from high and low values, e.g. "
+             "with --robust 2, min and max are the 2nd and the 98th percentiles. Like mri_segstats, this excludes "
+             "one voxel less from the high values than from the low values, unless --no_legacy is passed.",
     )
 
     def _add_invol_op(*flags: str, op: str, metavar: str | None = None) -> None:
@@ -482,7 +488,6 @@ def make_arguments() -> argparse.ArgumentParser:
 def print_and_exit(args: object):
     """Print the commandline arguments of the segstats script to stdout and exit."""
     print(" ".join(format_cmdline_args(args)))
-    import sys
     sys.exit(0)
 
 
@@ -532,8 +537,6 @@ def format_cmdline_args(args: object) -> list[str]:
 
 
 if __name__ == "__main__":
-    import sys
-
     args = make_arguments().parse_args()
     parse_actions = getattr(args, "parse_actions", [])
     for _i, parse_action in sorted(parse_actions, key=lambda x: x[0], reverse=True):
