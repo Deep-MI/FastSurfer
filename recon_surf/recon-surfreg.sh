@@ -68,7 +68,7 @@ FLAGS:
                           Path to FreeSurfer license key file. Register at
                             https://surfer.nmr.mgh.harvard.edu/registration.html
                             for free to obtain it if you do not have FreeSurfer
-			    installed already
+                            installed already
   -h --help               Print Help
 
 Dev Flags:
