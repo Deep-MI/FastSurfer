@@ -127,9 +127,10 @@ FLAGS:
   -h --help                Print Help
 
 Resource Options:
-  --device                Set device on which inference should be run ("cpu" for
-                            CPU, "cuda" for Nvidia GPU, or pass specific device,
-                            e.g. cuda:1), default check GPU and then CPU
+  --device <device>       Device for the network inference: "auto" (default),
+                            "cpu", "cuda" (NVIDIA, or AMD with ROCm), a specific
+                            GPU such as "cuda:1", or "mps" (Apple silicon GPU).
+                            "auto" uses cuda if available, else mps, else cpu.
   --viewagg_device <str>  Define where the view aggregation should be run on.
                             Can be "auto" or a device (see --device). By
                             default, the program checks if you have enough
