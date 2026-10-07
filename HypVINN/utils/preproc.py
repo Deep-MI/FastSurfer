@@ -36,7 +36,7 @@ def t1_to_t2_registration(
         threads: int = -1,
 ) -> Path:
     """
-    Register T1 to T2 images using either mri_coreg or mri_robust_register.
+    Register the T2 image to the T1 reference using either mri_coreg or mri_robust_register.
 
     Parameters
     ----------
@@ -125,7 +125,8 @@ def hypvinn_preproc(
     mode : ModalityMode
         The mode for HypVINN. It should be "t1t2".
     reg_mode : RegistrationMode
-        The registration mode. If it is not "none", the function will register T1 to T2 images.
+        The registration mode. If it is not "none", the function will register the
+        T2 image to the T1 reference.
     t1_path : Path
         The path to the T1 image.
     t2_path : Path
@@ -162,7 +163,7 @@ def hypvinn_preproc(
                 f"T2 image will be interpolated to the resolution of the T1 image."
             )
 
-        LOGGER.info("Registering T1 to T2 ...")
+        LOGGER.info("Registering T2 to T1 ...")
         t1_to_t2_registration(
             t1_path=t1_path,
             t2_path=t2_path,

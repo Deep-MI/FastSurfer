@@ -237,6 +237,10 @@ fi
 # check that SUBJECTS_DIR exists
 check_create_subjects_dir_properties "$SUBJECTS_DIR"
 
+# the FreeSurfer tools below (mri_convert, mri_mask, mri_diff, mri_robust_template, ...) refuse to
+# run without a license, so fail here rather than after the segmentation of every time point
+auto_detect_fs_license "the longitudinal template preparation" || exit $?
+
 ################################## SETUP and LOGFILE ##############################
 
 
