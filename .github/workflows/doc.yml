@@ -28,12 +28,18 @@ jobs:
         uses: astral-sh/setup-uv@v7
         with:
           python-version: '3.12'
+      - name: Install the documentation environment
+        # The docs only import torch, so the CPU wheels suffice; --torch-backend exists only in the
+        # uv pip interface, uv run --project would install the CUDA build.
+        run: |
+          uv venv .venv
+          uv pip install --torch-backend cpu -e "./src[doc]"
       - name: Build doc
         env:
           PYTHONPATH: ${{ env.PYTHONPATH != '' && format( '{1}:src', env.PYTHONPATH ) || 'src' }}
           TZ: UTC
         run: |
-          uv run --project src --extra doc sphinx-build -WT --keep-going -j auto src/doc doc-build
+          .venv/bin/sphinx-build -WT --keep-going -j auto src/doc doc-build
       - name: Upload documentation
         uses: actions/upload-artifact@v7
         with:
