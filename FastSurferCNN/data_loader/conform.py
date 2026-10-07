@@ -55,7 +55,7 @@ from FastSurferCNN.utils.common import array_flags
 AXCODES = ("lr", "pa", "is")
 
 HELPTEXT = """
-Script to conform an MRI brain image to UCHAR, RAS orientation, 
+Script to conform an MRI brain image to UCHAR, LIA orientation,
 and 1mm or minimal isotropic voxels
 
 USAGE:

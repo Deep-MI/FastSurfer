@@ -7,4 +7,5 @@ Utilities
     fastsurfercnn.download_checkpoints.rst
     fastsurfercnn.generate_hdf5.rst
     fastsurfercnn.run_model.rst
+    fastsurfercnn.conform.rst
     compare_subjects.rst

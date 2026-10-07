@@ -37,7 +37,7 @@ The surface reconstruction runs by default, after the segmentation. The most imp
 - `--3T`: use the 3T atlas for the Talairach registration, for better eTIV estimates of 3T images.
 - `--threads_surf <n>`: the number of threads for this part.
 - `--no_surfreg`: skip the registration to `fsaverage` (saves time, but is needed for cross-subject analyses of
-  thickness maps).
+  thickness maps; [recon-surfreg.sh](../../scripts/recon_surfreg.rst) adds it later).
 - `--fsaparc`: also compute FreeSurfer's own cortical parcellation, in addition to the mapped one.
 
 Usage:
