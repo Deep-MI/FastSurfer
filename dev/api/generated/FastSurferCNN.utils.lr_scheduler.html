@@ -240,6 +240,7 @@
 <li class="toctree-l3"><a class="reference internal" href="../../scripts/fastsurfer_cc.html">CorpusCallosum: fastsurfer_cc.py</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../scripts/cc_visualization.html">CorpusCallosum: cc_visualization.py</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../scripts/recon_surf.html">Surface pipeline: recon-surf.sh</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../scripts/recon_surfreg.html">Surface registration: recon-surfreg.sh</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../scripts/segstats.html">FastSurferCNN: segstats.py</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../scripts/long_compat_segmentHA.html">recon_surf: long_compat_segmentHA.py</a></li>
 </ul>
@@ -248,6 +249,8 @@
 <li class="toctree-l3"><a class="reference internal" href="../../scripts/fastsurfercnn.download_checkpoints.html">FastSurferCNN: download_checkpoints.py</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../scripts/fastsurfercnn.generate_hdf5.html">FastSurferCNN: generate_hdf5.py</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../scripts/fastsurfercnn.run_model.html">FastSurferCNN: run_model.py</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../scripts/fastsurfercnn.conform.html">FastSurferCNN: conform.py</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../scripts/compare_subjects.html">tools: compare_subjects.py</a></li>
 </ul>
 </li>
 </ul>
@@ -476,7 +479,7 @@
 <span id="fastsurfercnn-utils-lr-scheduler"></span><h1>FastSurferCNN.utils.lr_scheduler<a class="headerlink" href="#module-FastSurferCNN.utils.lr_scheduler" title="Link to this heading">¶</a></h1>
 <dl class="py function">
 <dt class="sig sig-object py" id="FastSurferCNN.utils.lr_scheduler.get_lr_scheduler">
-<span class="sig-prename descclassname"><span class="pre">FastSurferCNN.utils.lr_scheduler.</span></span><span class="sig-name descname"><span class="pre">get_lr_scheduler</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">optimizer</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cfg</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/cf9a075/FastSurferCNN/utils/lr_scheduler.py#L22-L62"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.utils.lr_scheduler.get_lr_scheduler" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">FastSurferCNN.utils.lr_scheduler.</span></span><span class="sig-name descname"><span class="pre">get_lr_scheduler</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">optimizer</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cfg</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/60ae696/FastSurferCNN/utils/lr_scheduler.py#L22-L62"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.utils.lr_scheduler.get_lr_scheduler" title="Link to this definition">¶</a></dt>
 <dd><p>Give a schedular for left-right scheduling.</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>

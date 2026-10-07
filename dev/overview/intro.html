@@ -240,6 +240,7 @@
 <li class="toctree-l3"><a class="reference internal" href="../scripts/fastsurfer_cc.html">CorpusCallosum: fastsurfer_cc.py</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../scripts/cc_visualization.html">CorpusCallosum: cc_visualization.py</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../scripts/recon_surf.html">Surface pipeline: recon-surf.sh</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../scripts/recon_surfreg.html">Surface registration: recon-surfreg.sh</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../scripts/segstats.html">FastSurferCNN: segstats.py</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../scripts/long_compat_segmentHA.html">recon_surf: long_compat_segmentHA.py</a></li>
 </ul>
@@ -248,6 +249,8 @@
 <li class="toctree-l3"><a class="reference internal" href="../scripts/fastsurfercnn.download_checkpoints.html">FastSurferCNN: download_checkpoints.py</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../scripts/fastsurfercnn.generate_hdf5.html">FastSurferCNN: generate_hdf5.py</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../scripts/fastsurfercnn.run_model.html">FastSurferCNN: run_model.py</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../scripts/fastsurfercnn.conform.html">FastSurferCNN: conform.py</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../scripts/compare_subjects.html">tools: compare_subjects.py</a></li>
 </ul>
 </li>
 </ul>
@@ -544,7 +547,7 @@ option. These modes require different system and video memory capacities, see th
 <section id="expert-usage">
 <h2>Expert usage<a class="headerlink" href="#expert-usage" title="Link to this heading">¶</a></h2>
 <p>Individual modules and the surface pipeline can be run independently of the full pipeline script documented in this documentation.
-This is documented in READMEs in subfolders, for example: <a class="reference internal" href="../scripts/fastsurfercnn.run_model.html"><span class="doc std std-ref">whole brain segmentation only with FastSurferVINN</span></a>, <a class="reference internal" href="../scripts/cerebnet.html"><span class="doc std std-ref">cerebellum sub-segmentation</span></a>, <a class="reference internal" href="../scripts/hypvinn.html"><span class="doc std std-ref">hypothalamic sub-segmentation</span></a>, <a class="reference internal" href="../scripts/fastsurfer_cc.html"><span class="doc std std-ref">corpus callosum analysis</span></a> and <a class="reference internal" href="../scripts/recon_surf.html"><span class="doc std std-ref">surface pipeline only (recon-surf)</span></a>.</p>
+This is documented in READMEs in subfolders, for example: <a class="reference internal" href="../scripts/fastsurfercnn.html"><span class="doc std std-ref">whole brain segmentation only with FastSurferVINN</span></a>, <a class="reference internal" href="../scripts/cerebnet.html"><span class="doc std std-ref">cerebellum sub-segmentation</span></a>, <a class="reference internal" href="../scripts/hypvinn.html"><span class="doc std std-ref">hypothalamic sub-segmentation</span></a>, <a class="reference internal" href="../scripts/fastsurfer_cc.html"><span class="doc std std-ref">corpus callosum analysis</span></a> and <a class="reference internal" href="../scripts/recon_surf.html"><span class="doc std std-ref">surface pipeline only (recon-surf)</span></a>.</p>
 <p>Specifically, the segmentation modules feature options for optimized parallelization of batch processing.</p>
 </section>
 <section id="freesurfer-downstream-modules">

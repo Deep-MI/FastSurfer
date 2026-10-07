@@ -240,6 +240,7 @@
 <li class="toctree-l3"><a class="reference internal" href="../../scripts/fastsurfer_cc.html">CorpusCallosum: fastsurfer_cc.py</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../scripts/cc_visualization.html">CorpusCallosum: cc_visualization.py</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../scripts/recon_surf.html">Surface pipeline: recon-surf.sh</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../scripts/recon_surfreg.html">Surface registration: recon-surfreg.sh</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../scripts/segstats.html">FastSurferCNN: segstats.py</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../scripts/long_compat_segmentHA.html">recon_surf: long_compat_segmentHA.py</a></li>
 </ul>
@@ -248,6 +249,8 @@
 <li class="toctree-l3"><a class="reference internal" href="../../scripts/fastsurfercnn.download_checkpoints.html">FastSurferCNN: download_checkpoints.py</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../scripts/fastsurfercnn.generate_hdf5.html">FastSurferCNN: generate_hdf5.py</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../scripts/fastsurfercnn.run_model.html">FastSurferCNN: run_model.py</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../scripts/fastsurfercnn.conform.html">FastSurferCNN: conform.py</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../scripts/compare_subjects.html">tools: compare_subjects.py</a></li>
 </ul>
 </li>
 </ul>
@@ -512,7 +515,7 @@ hemispheres in parallel.</p>
 <li><p><code class="docutils literal notranslate"><span class="pre">--3T</span></code>: use the 3T atlas for the Talairach registration, for better eTIV estimates of 3T images.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">--threads_surf</span> <span class="pre">&lt;n&gt;</span></code>: the number of threads for this part.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">--no_surfreg</span></code>: skip the registration to <code class="docutils literal notranslate"><span class="pre">fsaverage</span></code> (saves time, but is needed for cross-subject analyses of
-thickness maps).</p></li>
+thickness maps; <a class="reference internal" href="../../scripts/recon_surfreg.html"><span class="std std-doc">recon-surfreg.sh</span></a> adds it later).</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">--fsaparc</span></code>: also compute FreeSurfer’s own cortical parcellation, in addition to the mapped one.</p></li>
 </ul>
 <p>Usage:</p>

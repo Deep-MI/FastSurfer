@@ -14,5 +14,6 @@ who want to call them directly, for example to parallelize batch processing. Wha
     fastsurfer_cc
     cc_visualization
     recon_surf
+    recon_surfreg
     segstats
     long_compat_segmentHA

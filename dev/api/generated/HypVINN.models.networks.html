@@ -240,6 +240,7 @@
 <li class="toctree-l3"><a class="reference internal" href="../../scripts/fastsurfer_cc.html">CorpusCallosum: fastsurfer_cc.py</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../scripts/cc_visualization.html">CorpusCallosum: cc_visualization.py</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../scripts/recon_surf.html">Surface pipeline: recon-surf.sh</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../scripts/recon_surfreg.html">Surface registration: recon-surfreg.sh</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../scripts/segstats.html">FastSurferCNN: segstats.py</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../scripts/long_compat_segmentHA.html">recon_surf: long_compat_segmentHA.py</a></li>
 </ul>
@@ -248,6 +249,8 @@
 <li class="toctree-l3"><a class="reference internal" href="../../scripts/fastsurfercnn.download_checkpoints.html">FastSurferCNN: download_checkpoints.py</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../scripts/fastsurfercnn.generate_hdf5.html">FastSurferCNN: generate_hdf5.py</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../scripts/fastsurfercnn.run_model.html">FastSurferCNN: run_model.py</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../scripts/fastsurfercnn.conform.html">FastSurferCNN: conform.py</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../scripts/compare_subjects.html">tools: compare_subjects.py</a></li>
 </ul>
 </li>
 </ul>
@@ -476,7 +479,7 @@
 <span id="hypvinn-models-networks"></span><h1>HypVINN.models.networks<a class="headerlink" href="#module-HypVINN.models.networks" title="Link to this heading">¶</a></h1>
 <dl class="py class">
 <dt class="sig sig-object py" id="HypVINN.models.networks.HypVINN">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">HypVINN.models.networks.</span></span><span class="sig-name descname"><span class="pre">HypVINN</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">padded_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">256</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/cf9a075/HypVINN/models/networks.py#L29-L237"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#HypVINN.models.networks.HypVINN" title="Link to this definition">¶</a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">HypVINN.models.networks.</span></span><span class="sig-name descname"><span class="pre">HypVINN</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">padded_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">256</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/60ae696/HypVINN/models/networks.py#L29-L237"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#HypVINN.models.networks.HypVINN" title="Link to this definition">¶</a></dt>
 <dd><p>HypVINN class that extends the FastSurferCNNBase class.</p>
 <p>This class represents a HypVINN model. It includes methods for initializing the model,
 setting up the layers, and performing forward propagation.</p>
@@ -538,7 +541,7 @@ setting up the layers, and performing forward propagation.</p>
 </div>
 <dl class="py method">
 <dt class="sig sig-object py" id="HypVINN.models.networks.HypVINN.forward">
-<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scale_factor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">weight_factor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scale_factor_out</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/cf9a075/HypVINN/models/networks.py#L158-L237"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#HypVINN.models.networks.HypVINN.forward" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scale_factor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">weight_factor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scale_factor_out</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/60ae696/HypVINN/models/networks.py#L158-L237"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#HypVINN.models.networks.HypVINN.forward" title="Link to this definition">¶</a></dt>
 <dd><p>Forward propagation method for the HypVINN model.</p>
 <p>This method takes an input tensor, a scale factor, a weight factor, and an optional output scale factor.
 It performs forward propagation through the model, applying the input blocks, interpolation layers, output
@@ -577,7 +580,7 @@ of the input images.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="HypVINN.models.networks.build_model">
-<span class="sig-prename descclassname"><span class="pre">HypVINN.models.networks.</span></span><span class="sig-name descname"><span class="pre">build_model</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cfg</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/cf9a075/HypVINN/models/networks.py#L245-L268"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#HypVINN.models.networks.build_model" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">HypVINN.models.networks.</span></span><span class="sig-name descname"><span class="pre">build_model</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cfg</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/60ae696/HypVINN/models/networks.py#L245-L268"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#HypVINN.models.networks.build_model" title="Link to this definition">¶</a></dt>
 <dd><p>Build and return the requested model.</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
