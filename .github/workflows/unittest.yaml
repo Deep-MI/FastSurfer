@@ -69,8 +69,10 @@ jobs:
           echo "::group::Create python environment"
           python -m pip install --progress-bar off --upgrade pip setuptools wheel
           # the same python environment as the pipeline test, so the tests guarded on numpy and
-          # torch actually run rather than skipping
-          python -m pip install --progress-bar off .[pipelinetest]
+          # torch actually run rather than skipping. The runner has no GPU: the extra index provides
+          # the CPU build of torch, which pip prefers over the CUDA build from PyPI (+cpu sorts higher).
+          python -m pip install --progress-bar off \
+            --extra-index-url https://download.pytorch.org/whl/cpu .[pipelinetest]
           echo "::endgroup::"
       - name: Resolve the artifact and JUnit file names
         shell: bash
