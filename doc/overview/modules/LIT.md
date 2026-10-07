@@ -46,8 +46,8 @@ FastSurfer with LIT updates the standard subject directory instead of writing a 
 tree. The primary FastSurfer files are lesion-integrated, while pre-lesion versions are preserved
 as `.lit` backups or, for selected surface-derived files, as mapped backup files.
 
-`lesion_impact_summary.yaml` is currently emitted as YAML by neurolit. The accompanying text
-reports provide a human-readable summary of the affected anatomical structures.
+`stats/lesion_impact_summary.json` is a machine-readable summary of the affected anatomical
+structures. The accompanying text reports provide a human-readable summary.
 The complete list of LIT-related output files is documented in the
 [FastSurfer output files overview](../OUTPUT_FILES.md#lesion-inpainting-tool-lit-optional).
 

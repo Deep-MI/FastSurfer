@@ -141,7 +141,7 @@ LIT regenerates the relevant stats files after lesion mapping, keeps the pre-les
 
 | directory | filename | module | description |
 |:----------|----------|--------|-------------|
-| stats | lesion_impact_summary.yaml | lit | machine-readable summary of affected brain regions |
+| stats | lesion_impact_summary.json | lit | machine-readable summary of affected brain regions |
 | stats | aparc.DKTatlas+aseg.lesion_report.txt | lit | report of volumetric structures affected by the lesion |
 | stats | aseg.lesion_report.txt | lit | report of affected structures in the FreeSurfer aseg segmentation |
 | stats | aseg+DKT.VINN.stats | lit | lesion-integrated whole-brain/VINN summary statistics |

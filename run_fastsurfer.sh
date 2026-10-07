@@ -724,13 +724,14 @@ if [[ -z "$norm_name_t2" ]] ; then norm_name_t2="$subject_dir/mri/T2_nu.mgz" ;  
 # - lit_inpainting_result: inpainted T1w image from lit-inpainting --fastsurfer_dir.
 # - lit_mask_output: processed lesion mask from lit-inpainting --fastsurfer_dir.
 # - lit_original_mask_output: original input lesion mask copied by lit-inpainting --fastsurfer_dir.
-# - lit_postprocessing_summary: summary written by lit-postprocessing after lesion-aware stats/mapping.
+# - lit_postprocessing_summary: summary written by lit-postprocessing after lesion-aware stats/mapping
+#   (neurolit<0.7.0 wrote it as .yaml, which subjects processed with older versions still have).
 # Keep the paths centralized here for FastSurfer checks; switch to explicit
 # neurolit output-path arguments if the neurolit CLI adds them.
 lit_mask_output="${subject_dir}/mri/mask.lit.nii.gz"
 lit_inpainting_result="${subject_dir}/mri/inpainted.lit.nii.gz"
 lit_original_mask_output="${subject_dir}/mri/orig/mask.lit.nii.gz"
-lit_postprocessing_summary="${subject_dir}/stats/lesion_impact_summary.yaml"
+lit_postprocessing_summary="${subject_dir}/stats/lesion_impact_summary.json"
 if [[ -z "$exec_time_log" ]] ; then exec_time_log="$subject_dir/${FASTSURFER_EXECTIMELOG:-scripts/exectime.log}" ; fi
 if [[ -z "$seg_log" ]] ; then seg_log="$subject_dir/scripts/deep-seg.log" ; fi
 if [[ -z "$build_log" ]] ; then build_log="$subject_dir/scripts/build.log" ; fi
@@ -1050,7 +1051,8 @@ then
   exit 1
 fi
 
-if [[ "$run_seg_pipeline" != "true" ]] && [[ "$run_surf_pipeline" == "true" ]] && [[ -f "$lit_postprocessing_summary" ]]
+if [[ "$run_seg_pipeline" != "true" ]] && [[ "$run_surf_pipeline" == "true" ]] \
+  && { [[ -f "$lit_postprocessing_summary" ]] || [[ -f "${lit_postprocessing_summary%.json}.yaml" ]] ; }
 then
   echo "ERROR: Existing LIT postprocessing outputs were detected in $subject_dir,"
   echo "  but --surf_only after LIT postprocessing is not supported."
