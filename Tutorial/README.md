@@ -54,7 +54,7 @@ need for running the application. You do not need to install anything else. See 
 ### 2. Local installation
 If you decide against using Docker, install FastSurfer natively with [uv](https://docs.astral.sh/uv/), a fast Python
 package and environment manager (FastSurfer previously recommended conda or pip, we now recommend uv). The
-[native installation instructions](../doc/overview/INSTALL.md#native-ubuntu) cover all steps, in short:
+[native installation instructions](../doc/overview/install/NATIVE.md) cover all steps, in short:
 
 ```bash
 # install uv

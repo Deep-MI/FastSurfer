@@ -10,8 +10,6 @@ User Guide
     EXAMPLES.md
     OUTPUT_FILES.md
     modules/index
-    docker
-    SINGULARITY.md
     EDITING.md
     LONG.md
     SECURITY.md

@@ -10,8 +10,9 @@ To build the macOS package of FastSurfer, run:
 `arm` (arm64, Apple silicon) is the only buildable architecture. PyTorch publishes no macOS x86_64
 wheels after 2.2, so the environment this package bundles cannot be resolved for Intel; an `intel`
 invocation is refused. Intel Mac users run the Docker image instead, see
-[INSTALL.md](../../doc/overview/INSTALL.md). Run the script without arguments for the full list of
-options (cache directories for the FreeSurfer download, the pruned install, uv and the checkpoints).
+[the macOS installation page](../../doc/overview/install/MACOS.md#docker-intel-macs). Run the script
+without arguments for the full list of options (cache directories for the FreeSurfer download, the
+pruned install, uv and the checkpoints).
 
 ### Dependencies for the script
 

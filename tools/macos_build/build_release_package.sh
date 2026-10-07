@@ -11,7 +11,7 @@ set -o pipefail
 if [[ "${1-}" == "intel" ]] ; then
   echo "ERROR: the Intel package cannot be built." >&2
   echo "  PyTorch publishes no macOS x86_64 wheels after 2.2, so the bundled environment does not" >&2
-  echo "  resolve. Intel Mac users run the Docker image, see doc/overview/INSTALL.md." >&2
+  echo "  resolve. Intel Mac users run the Docker image, see doc/overview/install/MACOS.md." >&2
   exit 1
 fi
 if [[ "$#" -lt 1 ]] || [[ "$1" != "arm" ]] ; then
@@ -258,7 +258,7 @@ fi
 
 # The oldest macOS the package can run on is set by the wheels, not by us: numpy and scipy are at 14
 # today, against the interpreter's own 11.0. uv accepts platform tags up to the build host's version,
-# so a dependency update can raise this silently. The value below is what doc/overview/INSTALL.md
+# so a dependency update can raise this silently. The value below is what doc/overview/install/MACOS.md
 # tells users, so the check makes that statement fail loudly rather than rot.
 MACOS_MIN_DOCUMENTED="14.0"
 echo "Checking the macOS deployment target of the bundled binaries ..."
@@ -272,7 +272,7 @@ then
   exit 1
 elif [[ "$(printf '%s\n%s\n' "$MACOS_MIN_DOCUMENTED" "$macos_min_found" | sort -t. -k1,1n -k2,2n -k3,3n | tail -1)" != "$MACOS_MIN_DOCUMENTED" ]]
 then
-  echo "ERROR: a bundled binary needs macOS $macos_min_found, but doc/overview/INSTALL.md says the" >&2
+  echo "ERROR: a bundled binary needs macOS $macos_min_found, but doc/overview/install/MACOS.md says the" >&2
   echo "  package runs on $MACOS_MIN_DOCUMENTED. Update both together." >&2
   exit 1
 fi

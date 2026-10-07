@@ -106,7 +106,7 @@ git clone --branch stable https://github.com/Deep-MI/FastSurfer.git \
     $FASTSURFER_HOME
 ```
 
-More details (e.g. you need all dependencies in the right versions and also FreeSurfer locally) can be found in our [Installation guide](INSTALL.md).
+More details (e.g. you need all dependencies in the right versions and also FreeSurfer locally) can be found in our [guide to installing from source](install/NATIVE.md).
 Given you want to analyze data for subject which is stored on your computer under `$HOME/my_mri_data/subjectX/t1_weighted.nii.gz`, run the following command from the console (do not forget to source FreeSurfer!):
 
 ```bash

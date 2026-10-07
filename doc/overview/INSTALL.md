@@ -1,368 +1,94 @@
 Installation
 ============
-FastSurfer is a pipeline for the segmentation of human brain MRI data. It consists of two main components: the networks for the fast segmentation of an MRI (FastSurferVINN, CerebNet, ...) and the recon_surf script for the efficient creation of surfaces and most files and statistics that also FreeSurfer provides.
+FastSurfer works the same way on every system: you call `run_fastsurfer.sh` with a T1-weighted MRI image. How you
+install it depends on your system. Pick yours:
 
-The preferred way of installing and running FastSurfer is via Singularity or Docker containers on a Linux host system (with a GPU). We provide pre-built images at Dockerhub for NVIDIA GPUs (CUDA), for AMD GPUs (ROCm, experimental) and for CPU only; each image contains the full pipeline (segmentation and surface reconstruction).
+````{grid} 1 2 2 2
+:gutter: 3
 
-We also provide information on a native install on some operating systems, but since dependencies may vary, this can produce results different from our testing environment and we may not be able to support you if things don't work. Our testing is performed on Ubuntu {{ UBUNTU_VERSION }} via our provided Docker images.
+```{grid-item-card} macOS
+:link: install/MACOS
+:link-type: doc
 
+**Apple silicon:** the installer package, with everything included.
 
-Linux
------
-Recommended System Spec: 8 GB system memory, NVIDIA GPU with 8 GB graphics memory.
-
-Minimum System Spec: 8 GB system memory (this requires running FastSurfer on the CPU only, which is much slower)
-
-Non-NVIDIA GPU architectures (AMD) are experimental and not officially supported, but seem to work well also.
-
-### Singularity (or Apptainer)
-Assuming you have singularity installed already (by a system admin), you can build a Singularity image easily from our Dockerhub images. Run these commands to store the singularity image in `$HOME/my_singularity_images`:
-
-```bash
-mkdir -p $HOME/my_singularity_images
-singularity build $HOME/my_singularity_images/fastsurfer-{{ FASTSURFER_VERSION }}.sif \
-    docker://deepmi/fastsurfer:{{ CUDA_STRING }}-v{{ FASTSURFER_VERSION }}
-```
-Additionally, [the Singularity documentation](SINGULARITY.md) contains detailed directions for building your own Singularity images from Docker.
-
-[Example 1](EXAMPLES.md#example-1-fastsurfer-singularity-or-apptainer) explains how to run FastSurfer (for the full pipeline you will also need a FreeSurfer .license file!) and you can find details on how to build your own images here: [Docker](../../tools/Docker/README.md) and [Singularity](SINGULARITY.md).
-
-
-### Docker
-This is very similar to Singularity. Assuming you have Docker installed (by a system admin) you just need to pull one of our pre-build Docker images from dockerhub:
-
-```bash
-docker pull deepmi/fastsurfer:{{ CUDA_STRING }}-v{{ FASTSURFER_VERSION }}
+**Intel Macs:** Docker.
 ```
 
-[Example 2](EXAMPLES.md#example-2-fastsurfer-docker) explains how to run FastSurfer (for the full pipeline you will also need a FreeSurfer .license file!) and you can find details on how to [build your own image](../../tools/Docker/README.md).
+```{grid-item-card} Linux
+:link: install/LINUX
+:link-type: doc
 
-If you are using the **rootless mode**, you have to install the [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html) and follow the [configuration for the rootless mode](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html#rootless-mode). Otherwise, running FastSurfer with Docker will give you this error message ```docker: Error response from daemon: could not select device driver "" with capabilities: [[gpu]]```.
-
-
-### Native (Ubuntu)
-In a native install you need to install all dependencies (distro packages, FreeSurfer in the supported version, python dependencies) yourself. Here we will walk you through what you need. We tested FastSurfer {{ FASTSURFER_VERSION }} with Ubuntu {{ UBUNTU_VERSION }} (the base of our Docker images).
-
-#### 1. System Packages
-You will need a few additional packages that may be missing on your system (for this you need sudo access or ask a system admin):
-
-```bash
-sudo apt-get update && sudo apt-get install -y --no-install-recommends \
-      wget \
-      git \
-      ca-certificates \
-      file
+**Docker** or **Singularity/Apptainer** images, for NVIDIA GPUs, AMD GPUs (experimental) or CPU only.
 ```
 
-You also need to have bash-3.2 or higher (check with `bash --version`).
+```{grid-item-card} Windows
+:link: install/WINDOWS
+:link-type: doc
 
-You also need a working version of python3 (we do not support other versions). These packages should be sufficient to install python dependencies and then run the FastSurfer neural network segmentation. If you want to run the full pipeline, you also need a [working installation of FreeSurfer](https://surfer.nmr.mgh.harvard.edu/fswiki/rel7downloads) (including its dependencies and a license file).
-
-If you are using pip, make sure pip is updated as older versions will fail.
-
-#### 2. uv for python
-
-We recommend to install uv as your python environment and package manager. [uv](https://docs.astral.sh/uv/) is a very
-fast package manager, which makes managing different environments even easier. See
-[uv's documentation](https://docs.astral.sh/uv/getting-started/installation/) for more information on installation such
-as [autocompletion info](https://docs.astral.sh/uv/getting-started/installation/#shell-autocompletion).
-
-```bash
-wget -qO- https://astral.sh/uv/install.sh | sh
+**Docker** in WSL2, for NVIDIA GPUs or CPU only.
 ```
 
-#### 3. FastSurfer
-Get FastSurfer from GitHub. Here you can decide if you want to install the current experimental "dev" version (which can be broken) or the "stable" branch (that has been tested thoroughly):
+```{grid-item-card} From source
+:link: install/NATIVE
+:link-type: doc
 
-```bash
-export FASTSURFER_HOME=${FASTSURFER_HOME:-/path/to/FastSurfer}
-# FastSurfer will get cloned to $FASTSURFER_HOME
-git clone --branch stable https://github.com/Deep-MI/FastSurfer.git \
-    $FASTSURFER_HOME
-cd $FASTSURFER_HOME
+A native installation on Ubuntu, for developers and systems without containers.
 ```
+````
 
-#### 4. Python environment
-Create a new environment and install FastSurfer dependencies:
+Which method should I use?
+--------------------------
 
-```bash
-# make sure you are in the FastSurfer directory!
-# create a .venv environment directory inside the FastSurfer directory,
-# e.g., python {{ PYTHON_VERSION }} (recommended)
-uv venv --python python{{ PYTHON_VERSION }}
-# install packages with pinned versions from the last stable release
-# (recommended, that is what we tested with)
-# uv pip sync only runs if uv pip compile succeeds
-resolved=$(uv pip compile --no-build --torch-backend auto requirements.txt) && \
-    uv pip sync --no-build --torch-backend auto - <<< "$resolved"
+| Your system                          | Recommended                             | Alternatives                                                |
+|--------------------------------------|-----------------------------------------|-------------------------------------------------------------|
+| Mac with Apple silicon (M1 or newer) | [macOS package][macos]                  |                                                             |
+| Mac with an Intel CPU                | [Docker][macos-docker]                  |                                                             |
+| Linux workstation with NVIDIA GPU    | [Docker][docker]                        | [Singularity/Apptainer][singularity], [from source][native] |
+| Compute cluster (HPC)                | [Singularity/Apptainer][singularity]    |                                                             |
+| Linux with AMD GPU                   | [Docker, ROCm build][amd]               |                                                             |
+| Linux without GPU                    | [Docker or Singularity, CPU image][cpu] |                                                             |
+| Windows                              | [Docker in WSL2][windows]               |                                                             |
+
+[macos]: install/MACOS.md
+[macos-docker]: install/MACOS.md#docker-intel-macs
+[docker]: install/LINUX.md#docker
+[singularity]: install/LINUX.md#singularity-or-apptainer
+[amd]: install/LINUX.md#amd-gpus-experimental
+[cpu]: install/LINUX.md#cpu-only
+[windows]: install/WINDOWS.md
+[native]: install/NATIVE.md
+
+The containers include everything FastSurfer needs, and they are what we test and validate FastSurfer with (Ubuntu
+{{ UBUNTU_VERSION }}). A native installation depends on the software on your system, so its results can differ from
+ours, and we may not be able to help if it does not work.
+
+Before you start
+----------------
+
+### Hardware
+
+A GPU makes the segmentation much faster. How much memory FastSurfer needs depends on the voxel size and on whether
+the GPU or the CPU does the work; the [system requirements](intro.rst#system-requirements) list both.
+
+### FreeSurfer license
+
+The surface pipeline uses some FreeSurfer tools, so it needs a FreeSurfer license file, as does the Talairach
+registration in the segmentation (`--tal_reg`, used for the estimated total intracranial volume, eTIV). A
+segmentation without `--tal_reg` does not need one.
+
+The license is free: [register at the FreeSurfer website](https://surfer.nmr.mgh.harvard.edu/registration.html) and
+you receive it by email. Save the file in your home folder and pass it to FastSurfer with
+`--fs_license <freesurfer_license_path>`, or set the `FS_LICENSE` environment variable to its path. A container also
+needs access to the file, see the examples on the page of your system.
+
+```{toctree}
+:hidden:
+
+install/MACOS.md
+install/LINUX.md
+install/WINDOWS.md
+install/NATIVE.md
+docker
+SINGULARITY.md
 ```
-To select the PyTorch backend manually, e.g. for testing, replace `auto` in both commands, for example with `cpu` or `{{ CUDA_STRING }}`:
-```bash
-# make sure you are in the FastSurfer directory!
-resolved=$(uv pip compile --no-build --torch-backend cpu requirements.txt) && \
-    uv pip sync --no-build --torch-backend cpu - <<< "$resolved"
-```
-
-
-> **For developers:** To install the latest compatible dependency versions instead of the pinned stable ones, resolve from `pyproject.toml`, optionally with extras such as `--extra doc` or `--extra all`:
-> ```bash
-> resolved=$(uv pip compile --torch-backend auto --extra doc pyproject.toml) && \
->     uv pip sync --torch-backend auto - <<< "$resolved"
-> ```
-> Leave out `--no-build` here: `bibtexparser`, which the `style` extra needs, only ships source code (pure Python, no compiler needed), and `--no-build` makes `uv` resolve different versions to avoid it. `bibtexparser` should be the only package `uv` builds (`Building bibtexparser`).
-
-You can now activate the FastSurfer environment with
-```bash
-source .venv/bin/activate
-```
-
-Next, add the fastsurfer directory to the python path:
-```bash
-# make sure you are in the FastSurfer directory!
-export PYTHONPATH="${PYTHONPATH}:$PWD"
-```
-
-This will need to be done every time you want to run FastSurfer, or you need to add this line to your `~/.bashrc` if you are using bash, for example:
-```bash
-# make sure you are in the FastSurfer directory!
-echo "export PYTHONPATH=\"\${PYTHONPATH}:$(pwd)\"" >> ~/.bashrc
-```
-
-You can also download all network checkpoint files (this should be done if you are installing for multiple users):
-```bash
-export FASTSURFER_HOME=${FASTSURFER_HOME:-/path/to/FastSurfer}
-python3 $FASTSURFER_HOME/FastSurferCNN/download_checkpoints.py --all
-```
-
-Once all dependencies are installed, you are ready to run the FastSurfer segmentation-only (!!) pipeline by calling ```run_fastsurfer.sh --seg_only ...``` , see [Example 3](EXAMPLES.md#example-3-native-fastsurfer-on-subjectx-with-parallel-processing-of-hemis) for command line flags.
-
-#### 5. FreeSurfer
-To run the full pipeline, you will need to install FreeSurfer (we recommend and support version {{ FREESURFER_VERSION }}) according to their [Instructions](https://surfer.nmr.mgh.harvard.edu/fswiki/DownloadAndInstall). The packages for each version and operating system are in the [release directory](https://surfer.nmr.mgh.harvard.edu/pub/dist/freesurfer/). There is a freesurfer email list, if you run into problems during this step.
-
-FastSurfer runs FreeSurfer's talairach registration (`talairach_avi` and the tools it calls), which some FreeSurfer packages leave out, among them FreeSurfer 8's packages for Ubuntu. Use a package that includes these tools, for example the one for Rocky Linux, or run the full pipeline with the FastSurfer Docker or Singularity image. FastSurfer checks for `talairach_avi` before it starts and stops with an error if it is missing.
-
-Make sure, the `${FREESURFER_HOME}` environment variable is set, so FastSurfer finds the FreeSurfer binaries.
-
-### AMD GPUs (experimental)
-We have successfully run the segmentation on an AMD GPU (Radeon Pro W6600) using ROCm. For this to work you need to make sure you are using a supported (or semi-supported) GPU and the correct kernel version. AMD kernel modules need to be installed on the host system according to ROCm installation instructions and additional groups need to be setup and your user added to them, see https://rocm.docs.amd.com/projects/install-on-linux/en/latest/ .
-
-Build the Docker container with ROCm support.
-
-```bash
-export FASTSURFER_HOME=${FASTSURFER_HOME:-/path/to/FastSurfer}
-python3 $FASTSURFER_HOME/tools/Docker/build.py --device rocm \
-    --tag my_fastsurfer:rocm
-```
-
-You will need to add a couple of flags to your docker run command for AMD, see [Example 2](EXAMPLES.md#example-2-fastsurfer-docker) for `<docker_flags>` or `<fastsurfer_flags>`:
-```text
-docker run --cap-add=SYS_PTRACE --security-opt seccomp=unconfined \
-        --device=/dev/kfd --device=/dev/dri --group-add video \
-        --ipc=host --shm-size 8G \
-        <docker_flags> my_fastsurfer:rocm \
-                <fastsurfer_flags>
-```
-Note, that this docker image is experimental, uses a different Python version and python packages, so results can differ from our validation results. Please do visual QC.
-
-macOS
------
-Processing on Mac CPUs is possible. On Apple Silicon, you can even use the GPU by passing ```--device mps```.
-
-Recommended System Spec: Mac with Apple Silicon M-Chip and 16 GB system memory.
-
-For older Intel CPUs, we only support cpu-only, which will be 2-4 times slower.
-
-### Docker (currently only supported for Intel CPUs)
-Docker can be used on Intel Macs as it should be similarly fast as a native install there. It would allow you to run the full pipeline.
-
-First, install [Docker Desktop for Mac](https://docs.docker.com/get-docker/).
-Start it and set Memory to 15 GB under Preferences -> Resources (or the largest you have, if you are below 15GB, it may fail).
-
-Second, pull one of our Docker containers. Open a terminal window and run:
-
-```bash
-docker pull deepmi/fastsurfer:{{ CUDA_STRING }}-v{{ FASTSURFER_VERSION }}
-```
-
-Continue with the example in [Example 2](EXAMPLES.md#example-2-fastsurfer-docker).
-
-### Package
-
-#### 1. Requirements
-An Apple silicon Mac (M1/M2/M3/...). **Intel Macs cannot use the package**: PyTorch has published no
-macOS x86_64 wheels since 2.2, so the environment the package bundles cannot be built for them. On an
-Intel Mac, use [Docker](#docker-currently-only-supported-for-intel-cpus) above instead, which runs
-natively there and supports the full pipeline.
-
-**macOS 14** (Sonoma) or newer: the bundled binaries are compiled for it and cannot load on anything
-older. We do not test specific versions, so treat this as a lower bound rather than a support
-statement.
-
-Only the shells macOS already ships: `/bin/bash` (at least 3.2) for FastSurfer's own scripts and
-`/bin/tcsh` for the FreeSurfer ones. Your own Terminal shell does not matter -- the applet starts a
-bash session itself -- though setting the environment up by hand (see below) needs bash or zsh. No
-Python installation and no Homebrew are needed: the package bundles its own Python, all Python
-dependencies, the network checkpoints and a reduced FreeSurfer, so installing it requires no
-internet connection and downloads nothing.
-
-In exchange the installer is large: expect a download of under a gigabyte and a couple of gigabytes
-of disk space once installed.
-
-#### 2. FastSurfer package
-Download **[FastSurfer-macos-darwin_arm64.pkg](https://github.com/Deep-MI/FastSurfer/releases/latest/download/FastSurfer-macos-darwin_arm64.pkg)**,
-which always points at the newest release. Its version is shown in the installer window, and after
-installing by `run_fastsurfer.sh --version`. Earlier versions are on the
-[releases page](https://github.com/Deep-MI/FastSurfer/releases/).
-
-To install, double-click the downloaded `.pkg` installer and follow the installer instructions.
-
-> **Note:** FastSurfer's `.pkg` is currently not signed/notarized by Apple, so macOS Gatekeeper will
-> block it. Depending on your macOS version, double-clicking the installer may not show an "Open"
-> option at all, just "Done" or "Move to Trash", in which case nothing happens if you click "Done".
-> To allow it: click **Done** on that warning, then go to **System Settings > Privacy & Security**,
-> scroll down to the **Security** section, and click **Open Anyway** next to the message about the
-> blocked installer. Confirm once more (you may be asked for your password or Touch ID), then
-> double-click the `.pkg` again to start the installation.
-
-After installation, you can find the FastSurfer applet, its source code, and selected FreeSurfer executables in the `/Applications` folder.
-
-#### 3. Launching FastSurfer
-
-To launch a configured FastSurfer terminal session, start the FastSurfer applet from Applications. This opens a regular Terminal window running a FastSurfer console: a bash session with everything already set up to run FastSurfer, recognizable by the `(FastSurfer<version>)` prompt prefix. It:
-- puts the Python distribution bundled with FastSurfer (`FASTSURFER_HOME/python`) first on `PATH`,
-- sets `FASTSURFER_HOME` and `PYTHONPATH`,
-- sets `FREESURFER_HOME` to the pruned FreeSurfer installation bundled with FastSurfer and sources `SetUpFreeSurfer.sh`,
-- adds the FastSurfer directory (and GNU `grep`, if you happen to have it via Homebrew) to your `PATH`, for this session only -- no shell profile is modified,
-- reads your `~/.bashrc` first, if you have one, so your own aliases and settings are still there, and
-- reminds you to set `FS_LICENSE` if it is not already set (see "FreeSurfer license" below).
-
-The first time you start the applet, macOS asks whether FastSurfer may control Terminal, since that
-is how it opens the console window. Allow it. If you declined, the applet cannot open the console
-until you allow it under **System Settings > Privacy & Security > Automation**, by switching on
-**Terminal** below **FastSurfer**.
-
-In this console, you can run the full FastSurfer pipeline by typing and executing `run_fastsurfer.sh <fastsurfer_flags>`, where you replace `<fastsurfer_flags>` with the appropriate [commandline flags of FastSurfer](../../README.md#usage), for example:
-
-```bash
-run_fastsurfer.sh --seg_only --sd $HOME/my_fastsurfer_analysis --sid subjectX \
-    --t1 $HOME/my_mri_data/subjectX/t1_weighted.nii.gz
-```
-or, for the full pipeline:
-```bash
-freesurfer_license=${freesurfer_license:-/path/to/your/freesurfer/license_file}
-run_fastsurfer.sh --sd $HOME/my_fastsurfer_analysis --sid subjectX \
-    --t1 $HOME/my_mri_data/subjectX/t1_weighted.nii.gz \
-    --fs_license $freesurfer_license
-```
-No `--device` flag is needed: the default already picks the Apple GPU (`mps`) where it is available
-and the CPU otherwise. Passing `--device mps` explicitly is an error on a Mac without an
-MPS-capable GPU, rather than falling back.
-
-You do not need to use the applet: in a bash or zsh Terminal window, you can set up exactly the same environment by sourcing the same script:
-```bash
-source /Applications/FastSurfer{{ FASTSURFER_VERSION }}/macos_setup_fastsurfer.sh
-```
-
-The script is bash syntax, so from a shell that does not understand it, such as tcsh or fish, start a `bash` (or `zsh`) session first and source it in there.
-
-Adding only the FastSurfer directory to your `PATH` instead is not enough and is best avoided: `run_fastsurfer.sh` would be found, but `python3` would still be Apple's system Python -- too old for FastSurfer -- and `FREESURFER_HOME` would be unset, so it fails with a confusing error. Sourcing the script sets all of it.
-
-#### 4. FreeSurfer license (for surfaces / eTIV)
-A FreeSurfer license is only needed if you run the surface module (recon-surf) or, in segmentation-only mode, activate the Talairach registration via `--tal_reg` (used to estimate total intracranial volume, eTIV, in the stats files). Plain segmentation without `--tal_reg` does not need one.
-
-To get a license, [register at the FreeSurfer website](https://surfer.nmr.mgh.harvard.edu/registration.html) to acquire a FreeSurfer license (for free).
-
-Unlike a native Linux/source install, do not rely on FastSurfer auto-detecting the license inside `$FREESURFER_HOME`: on macOS, `$FREESURFER_HOME` points at the pruned FreeSurfer bundled with the package (`$FASTSURFER_HOME/fs-pruned`), which is installed by the `.pkg` as `root` and is not writable by your user account. Instead, save the license file somewhere in your home directory and either pass it explicitly:
-
-```text
-run_fastsurfer.sh ... --fs_license <freesurfer_license_path>
-```
-or export it once per console session (FastSurfer auto-detects from this environment variable):
-```bash
-export FS_LICENSE=/path/to/your/freesurfer/license_file
-```
-or, to have it set in every shell, add that line to your shell profile yourself (`~/.zprofile` for zsh, the macOS default; `~/.bash_profile` for bash). FastSurfer does not modify these files.
-
-#### 5. Apple AI Accelerator support
-On modern M-Chips you can try the Apple Silicon AI Accelerator by passing `--device mps` for the segmentation module to make use of the fast GPU (when using `run_fastsurfer.sh`, FastSurfer sets `PYTORCH_ENABLE_MPS_FALLBACK=1` automatically on macOS unless you already set it):
-
-```text
-run_fastsurfer.sh --seg_only --device mps ...
-```
-
-This will be at least twice as fast as `--device cpu`. The fallback lets an operation without an MPS implementation run on the CPU instead of failing; PyTorch then prints a warning naming the operation, which is harmless.
-
-#### 6. Uninstalling
-Drag both items from your Applications folder to the Trash:
-- `FastSurfer<version>` (the installation)
-- `FastSurfer<version>.app` (the applet)
-
-macOS will ask for your password, because the installer places them as `root`. Everything FastSurfer
-installed lives in that one directory: no shell profile is modified and nothing is written elsewhere,
-so there is nothing else to clean up. Installations of other versions are independent and are not
-affected.
-
-Optionally, to also drop the installer's receipt (bookkeeping only, it does not affect anything you
-run):
-```text
-sudo pkgutil --forget org.deep-mi.FastSurfer.<version_without_dots>_<arch>
-```
-`pkgutil --pkgs | grep -i fastsurfer` lists the exact identifiers.
-
-Windows
--------
-
-### Docker (CPU version)
-In order to run FastSurfer on your Windows system using docker make sure that you have:
-* [WSL2](https://learn.microsoft.com/en-us/windows/wsl/install)
-* [Docker Desktop](https://docs.docker.com/desktop/install/windows-install/)
-
-installed and running.
-
-After everything is installed, start Windows PowerShell and run the following command to pull the CPU Docker image (check on [dockerhub](https://hub.docker.com/r/deepmi/fastsurfer/tags) what version tag is most recent for cpu):
-
-```bash
-docker pull deepmi/fastsurfer:cpu-v{{ FASTSURFER_VERSION }}
-```
-
-Now you can run Fastsurfer the same way as described in [Example 2](EXAMPLES.md#example-2-fastsurfer-docker) for the CPU build, for example:
-```bash
-docker run -v C:/Users/user/my_mri_data:/home/user/my_mri_data \
-    -v C:/Users/user/my_fastsurfer_analysis:/home/user/my_fastsurfer_analysis \
-    -v C:/path/to/your/freesurfer/license_file:/home/user/freesurfer_license \
-    --rm --user $(id -u):$(id -g) deepmi/fastsurfer:cpu-v{{ FASTSURFER_VERSION }} \
-    --fs_license /home/user/freesurfer_license \
-    --t1 /home/user/my_mri_data/subjectX/t1_weighted.nii.gz \
-    --device cpu \
-    --sid subjectX --sd /home/user/my_fastsurfer_analysis
-```
-Note, the [system requirements](https://github.com/Deep-MI/FastSurfer#system-requirements) of at least 8GB of RAM for the CPU version. If the process fails, check if your [WSL2 distribution has enough memory reserved](https://www.aleksandrhovhannisyan.com/blog/limiting-memory-usage-in-wsl-2/).
-
-### Docker (GPU version)
-In addition to the requirements from the CPU version, you also need to make sure that you have:
-* Windows 11 or Windows 10 21H2 or greater,
-* the latest WSL Kernel or at least 4.19.121+ (5.10.16.3 or later for better performance and functional fixes),
-* an NVIDIA GPU and the latest [NVIDIA CUDA driver](https://developer.nvidia.com/cuda/wsl)
-* CUDA toolkit installed on WSL, see: _[CUDA Support for WSL 2](https://docs.nvidia.com/cuda/wsl-user-guide/index.html#cuda-support-for-wsl-2)_
-
-Follow [Enable NVIDIA CUDA on WSL](https://learn.microsoft.com/en-us/windows/ai/directml/gpu-cuda-in-wsl) to install the correct drivers and software.
-
-After everything is installed, start Windows PowerShell and run the following command to pull the GPU Docker image:
-
-```bash
-docker pull deepmi/fastsurfer:{{ CUDA_STRING }}-v{{ FASTSURFER_VERSION }}
-```
-
-Now you can run Fastsurfer the same way as described in [Example 2](EXAMPLES.md#example-2-fastsurfer-docker), for example:
-```bash
-docker run --gpus all \
-    -v C:/Users/user/my_mri_data:/home/user/my_mri_data \
-    -v C:/Users/user/my_fastsurfer_analysis:/home/user/my_fastsurfer_analysis \
-    -v C:/path/to/your/freesurfer/license_file:/home/user/freesurfer_license \
-    --rm --user $(id -u):$(id -g) deepmi/fastsurfer:{{ CUDA_STRING }}-v{{ FASTSURFER_VERSION }} \
-    --fs_license /home/user/freesurfer_license \
-    --t1 /home/user/my_mri_data/subjectX/t1_weighted.nii.gz \
-    --sid subjectX --sd /home/user/my_fastsurfer_analysis
-```
-
-Note the [system requirements](https://github.com/Deep-MI/FastSurfer#system-requirements) of at least 8 GB system memory and 2 GB graphics memory for the GPU version. If the process fails, check if your [WSL2 distribution has enough memory reserved](https://www.aleksandrhovhannisyan.com/blog/limiting-memory-usage-in-wsl-2/).

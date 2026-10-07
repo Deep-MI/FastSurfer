@@ -12,7 +12,7 @@ permissions:
 jobs:
   deploy-mac:
     # arm only: PyTorch ships no macOS x86_64 wheels after 2.2, so the bundled environment cannot be
-    # resolved for Intel at all (see doc/overview/INSTALL.md, which points Intel users at Docker).
+    # resolved for Intel at all (see doc/overview/install/MACOS.md, which points Intel users at Docker).
     # uv resolves the python and wheels for the host, so re-adding intel needs an intel runner too;
     # build_release_package.sh fails the build on a mismatch.
     runs-on: macos-15

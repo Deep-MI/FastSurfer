@@ -61,13 +61,15 @@ Getting started
 ---------------
 
 ### Installation 
-There are three ways to run FastSurfer (links are to installation instructions):
+Choose the installation for your system (the links lead to the instructions):
 
-1. For Linux, macOS (Intel only), and Windows users, we recommend running FastSurfer in a container [Singularity/Apptainer](doc/overview/INSTALL.md#singularity-or-apptainer) or [Docker](doc/overview/INSTALL.md#docker): (OS: [Linux](doc/overview/INSTALL.md#linux), [Windows](doc/overview/INSTALL.md#windows), [macOS on Intel](doc/overview/INSTALL.md#docker-currently-only-supported-for-intel-cpus)),
-2. for macOS on Apple silicon (ARM), we recommend [installing the FastSurfer package](doc/overview/INSTALL.md#package), and
-3. for developers, the native install gives full control (only documented for [Linux](doc/overview/INSTALL.md#native-ubuntu)).
+- **macOS with Apple silicon:** the [installer package](doc/overview/install/MACOS.md), with everything included.
+- **macOS with an Intel CPU:** [Docker](doc/overview/install/MACOS.md#docker-intel-macs).
+- **Linux:** our [Docker or Singularity/Apptainer images](doc/overview/install/LINUX.md), for NVIDIA GPUs, AMD GPUs (experimental) or CPU only.
+- **Windows:** [Docker in WSL2](doc/overview/install/WINDOWS.md).
+- **Developers:** the [installation from source](doc/overview/install/NATIVE.md) gives full control (documented for Ubuntu).
 
-The images we provide on [DockerHub](https://hub.docker.com/r/deepmi/fastsurfer) conveniently include everything needed for FastSurfer. You will also need a [FreeSurfer license](https://surfer.nmr.mgh.harvard.edu/fswiki/License) file for the [Surface pipeline](#surface-reconstruction). We have detailed per-OS Installation instructions in the [INSTALL.md](doc/overview/INSTALL.md) file.
+The images we provide on [Docker Hub](https://hub.docker.com/r/deepmi/fastsurfer) and the macOS package include everything FastSurfer needs. The [surface pipeline](#surface-reconstruction) also needs a [FreeSurfer license](https://surfer.nmr.mgh.harvard.edu/registration.html) file (free). The [installation overview](doc/overview/INSTALL.md) helps to choose and explains the license.
 
 ### Usage
 All installation methods use the `run_fastsurfer.sh` call interface (replace the placeholder `<fastsurfer_flags>` with [FastSurfer flags](doc/scripts/RUN_FASTSURFER.md#required-arguments)), which is the general starting point for FastSurfer. However, there are different ways to call this script depending on the installation, which we explain here:
@@ -120,7 +122,7 @@ All installation methods use the `run_fastsurfer.sh` call interface (replace the
 
 2. For a __macOS package install__, start FastSurfer from Applications and call the `run_fastsurfer.sh` FastSurfer script with [FastSurfer flags](doc/scripts/RUN_FASTSURFER.md#required-arguments) from the terminal that is opened for you.
 
-3. For a __native install__, call the `run_fastsurfer.sh` FastSurfer script directly. Your FastSurfer python environment needs to be [set up](doc/overview/INSTALL.md#native-ubuntu) and activated.
+3. For a __native install__, call the `run_fastsurfer.sh` FastSurfer script directly. Your FastSurfer python environment needs to be [set up](doc/overview/install/NATIVE.md) and activated.
 
    ```text
    # activate fastsurfer environment
