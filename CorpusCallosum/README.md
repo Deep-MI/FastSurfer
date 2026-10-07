@@ -53,7 +53,7 @@ docker run --gpus all --rm \
 ```
 
 
-### Singularity or Apptainer
+### Apptainer or Singularity
 
 Build or download an image as described in the [Singularity documentation](../doc/overview/SINGULARITY.md), then bind
 the subject directory and invoke the expert script directly:
@@ -88,5 +88,5 @@ containing any fornix label-250 voxels is self-contained and authoritative for t
 250, the automatic upright and original-space CC segmentations from a previous run are required and supply the
 fornix. Choose supplied AC/PC coordinates before creating the edit and reuse the exact same coordinates and midplane
 method for every edit rerun; otherwise regenerate the upright reference and recreate or rebase the correction. See the
-[advanced documentation](../doc/scripts/fastsurfer_cc.rst) for complete native, Docker, and Singularity/Apptainer
+[advanced documentation](../doc/scripts/fastsurfer_cc.rst) for complete native, Docker, and Apptainer/Singularity
 commands.

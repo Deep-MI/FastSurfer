@@ -1,7 +1,9 @@
 Windows
 =======
 On Windows, run FastSurfer in our Docker image, with Docker Desktop on WSL2. The image contains the full pipeline
-(segmentation and surface reconstruction) and everything it needs.
+(segmentation and surface reconstruction) and all software it needs. The surface reconstruction also needs a
+[FreeSurfer license](../INSTALL.md#freesurfer-license), which is free but not included: get it from FreeSurfer
+before your first full run.
 
 Make sure that these are installed and running:
 * [WSL2](https://learn.microsoft.com/en-us/windows/wsl/install)

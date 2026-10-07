@@ -62,13 +62,13 @@ Getting started
 ### Installation 
 Choose the installation for your system (the links lead to the instructions):
 
-- **macOS with Apple silicon:** the [installer package](doc/overview/install/MACOS.md), with everything included.
+- **macOS with Apple silicon:** the [installer package](doc/overview/install/MACOS.md), with all software included.
 - **macOS with an Intel CPU:** [Docker](doc/overview/install/MACOS.md#docker-intel-macs).
-- **Linux:** our [Docker or Singularity/Apptainer images](doc/overview/install/LINUX.md), for NVIDIA GPUs, AMD GPUs (experimental) or CPU only.
+- **Linux:** our [Apptainer/Singularity or Docker images](doc/overview/install/LINUX.md), for NVIDIA GPUs, AMD GPUs (experimental) or CPU only.
 - **Windows:** [Docker in WSL2](doc/overview/install/WINDOWS.md).
 - **Developers:** the [installation from source](doc/overview/install/NATIVE.md) gives full control (documented for Ubuntu).
 
-The images we provide on [Docker Hub](https://hub.docker.com/r/deepmi/fastsurfer) and the macOS package include everything FastSurfer needs. The [surface pipeline](#surface-reconstruction) also needs a [FreeSurfer license](https://surfer.nmr.mgh.harvard.edu/registration.html) file (free). The [installation overview](doc/overview/INSTALL.md) helps to choose and explains the license.
+The images we provide on [Docker Hub](https://hub.docker.com/r/deepmi/fastsurfer) and the macOS package include all software FastSurfer needs. The [surface pipeline](#surface-reconstruction) also needs a [FreeSurfer license](https://surfer.nmr.mgh.harvard.edu/registration.html) file, which is free but not included. The [installation overview](doc/overview/INSTALL.md) helps to choose and explains the license.
 
 ### Usage
 All installation methods use the `run_fastsurfer.sh` call interface (replace the placeholder `<fastsurfer_flags>` with [FastSurfer flags](doc/scripts/RUN_FASTSURFER.md#required-arguments)), which is the general starting point for FastSurfer. However, there are different ways to call this script depending on the installation, which we explain here:
@@ -106,7 +106,7 @@ All installation methods use the `run_fastsurfer.sh` call interface (replace the
                       --fs_license $freesurfer_license
       ```
 
-      See also __[Example 1](doc/overview/EXAMPLES.md#example-1-fastsurfer-singularity-or-apptainer)__ for a full singularity FastSurfer run command and [the Singularity documentation](doc/overview/SINGULARITY.md#using-singularity-or-apptainer) for details on more singularity flags and how to create the `<sif_path>`.
+      See also __[Example 1](doc/overview/EXAMPLES.md#example-1-fastsurfer-apptainer-or-singularity)__ for a full singularity FastSurfer run command and [the Singularity documentation](doc/overview/SINGULARITY.md#using-apptainer-or-singularity) for details on more singularity flags and how to create the `<sif_path>`.
 
    2. For __docker__, the syntax is
       ```text
@@ -147,7 +147,7 @@ See the [BIDS documentation](doc/scripts/BIDS.md) for details.
 Examples
 --------
 The documentation includes [detailed Examples](doc/overview/EXAMPLES.md) on how to use FastSurfer.
-- [Example 1: FastSurfer Singularity](doc/overview/EXAMPLES.md#example-1-fastsurfer-singularity-or-apptainer)
+- [Example 1: FastSurfer Singularity](doc/overview/EXAMPLES.md#example-1-fastsurfer-apptainer-or-singularity)
 - [Example 2: FastSurfer Docker](doc/overview/EXAMPLES.md#example-2-fastsurfer-docker)
 - [Example 3: Native FastSurfer on subjectX with parallel processing of hemis](doc/overview/EXAMPLES.md#example-3-native-fastsurfer-on-subjectx-with-parallel-processing-of-hemis)
 - [Example 4: FastSurfer on multiple subjects](doc/overview/EXAMPLES.md#example-4-fastsurfer-on-multiple-subjects)

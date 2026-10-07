@@ -60,7 +60,7 @@ For example:
         --pc_coords 127.9 103.6 128.7 \
         --upright_volume mri/upright_volume.mgz
 
-For Docker or Singularity/Apptainer, append the same two options to the corresponding expert command. Coordinates are
+For Docker or Apptainer/Singularity, append the same two options to the corresponding expert command. Coordinates are
 interpreted in the voxel space of the subject's input ``mri/orig.mgz``, not scanner RAS coordinates. Both points are
 required, must be finite and distinct, and must lie inside the image. A left-right AC-PC line is rejected because it
 does not define a stable sagittal plane. These options are available through the expert interface and are not exposed

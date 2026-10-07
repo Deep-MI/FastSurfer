@@ -227,7 +227,7 @@ ignoring the correction.
 If the upright segmentation was created with supplied AC/PC coordinates through `fastsurfer_cc.py`, pass exactly the
 same coordinates on the edit rerun so the edited slab geometry remains valid.
 
-For direct expert usage, including Docker and Singularity/Apptainer commands, see the
+For direct expert usage, including Docker and Apptainer/Singularity commands, see the
 [FastSurfer-CC expert documentation](../scripts/fastsurfer_cc.rst).
 
 Talairach registration

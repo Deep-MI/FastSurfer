@@ -1,6 +1,6 @@
 Examples
 ========
-Example 1: FastSurfer Singularity (or Apptainer)
+Example 1: FastSurfer Apptainer (or Singularity)
 ------------------------------------------------
 Singularity and Apptainer are alternative containerization solutions. Both have open-source distributions and are often
 available in HPC settings. See our [Singularity docs](SINGULARITY.md) for more details.

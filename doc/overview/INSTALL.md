@@ -10,7 +10,7 @@ install it depends on your system. Pick yours:
 :link: install/MACOS
 :link-type: doc
 
-**Apple silicon:** the installer package, with everything included.
+**Apple silicon:** the installer package, with all software included.
 
 **Intel Macs:** Docker.
 ```
@@ -19,7 +19,7 @@ install it depends on your system. Pick yours:
 :link: install/LINUX
 :link-type: doc
 
-**Docker** or **Singularity/Apptainer** images, for NVIDIA GPUs, AMD GPUs (experimental) or CPU only.
+**Apptainer/Singularity** or **Docker** images, for NVIDIA GPUs, AMD GPUs (experimental) or CPU only.
 ```
 
 ```{grid-item-card} Windows
@@ -40,26 +40,28 @@ A native installation on Ubuntu, for developers and systems without containers.
 Which method should I use?
 --------------------------
 
-| Your system                          | Recommended                             | Alternatives                                                |
-|--------------------------------------|-----------------------------------------|-------------------------------------------------------------|
-| Mac with Apple silicon (M1 or newer) | [macOS package][macos]                  |                                                             |
-| Mac with an Intel CPU                | [Docker][macos-docker]                  |                                                             |
-| Linux workstation with NVIDIA GPU    | [Docker][docker]                        | [Singularity/Apptainer][singularity], [from source][native] |
-| Compute cluster (HPC)                | [Singularity/Apptainer][singularity]    |                                                             |
-| Linux with AMD GPU                   | [Docker, ROCm build][amd]               |                                                             |
-| Linux without GPU                    | [Docker or Singularity, CPU image][cpu] |                                                             |
-| Windows                              | [Docker in WSL2][windows]               |                                                             |
+| Your system                          | Recommended                           | Alternatives                                              |
+|--------------------------------------|---------------------------------------|-----------------------------------------------------------|
+| Mac with Apple silicon (M1 or newer) | [macOS package][macos]                |                                                           |
+| Mac with an Intel CPU                | [Docker][macos-docker]                |                                                           |
+| Compute cluster (HPC)                | [Apptainer/Singularity][apptainer]    |                                                           |
+| Linux workstation with NVIDIA GPU    | [Docker][docker]                      | [Apptainer/Singularity][apptainer], [from source][native] |
+| Linux with AMD GPU                   | [Docker, ROCm build][amd]             |                                                           |
+| Linux without GPU                    | [Apptainer or Docker, CPU image][cpu] |                                                           |
+| Windows                              | [Docker in WSL2][windows]             |                                                           |
 
 [macos]: install/MACOS.md
 [macos-docker]: install/MACOS.md#docker-intel-macs
+[apptainer]: install/LINUX.md#apptainer-or-singularity
 [docker]: install/LINUX.md#docker
-[singularity]: install/LINUX.md#singularity-or-apptainer
 [amd]: install/LINUX.md#amd-gpus-experimental
 [cpu]: install/LINUX.md#cpu-only
 [windows]: install/WINDOWS.md
 [native]: install/NATIVE.md
 
-The containers include everything FastSurfer needs, and they are what we test and validate FastSurfer with (Ubuntu
+The containers and the macOS package include all software FastSurfer needs (only the
+[FreeSurfer license](#freesurfer-license) for the surface reconstruction has to be obtained separately), and the
+containers are what we test and validate FastSurfer with (Ubuntu
 {{ UBUNTU_VERSION }}). A native installation depends on the software on your system, so its results can differ from
 ours, and we may not be able to help if it does not work.
 

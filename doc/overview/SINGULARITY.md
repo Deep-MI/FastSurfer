@@ -8,7 +8,7 @@ Most importantly, they allow for exactly same setup across different machines an
 Additionally, errors and unexpected behavior is easier to track down, since the setup is significantly easier to reproduce for developers.
 Finally, containers provide a security advantage, because the access to data is restricted to explicitly shared data reducing both the risk of data theft and data encryption attacks. This is strategy also called [sandboxing](https://en.wikipedia.org/wiki/Sandbox_(computer_security)).
 
-Using Singularity (or Apptainer)
+Using Apptainer (or Singularity)
 --------------------------------
 In the following, we write "Singularity", but all steps work the same with the [open source Apptainer](https://apptainer.org).
 

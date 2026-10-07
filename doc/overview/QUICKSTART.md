@@ -1,7 +1,7 @@
 Quick Start
 ===========
 This example segments one brain MRI in a few minutes. Choose how you run FastSurfer: in a container on Linux
-(Singularity or Docker), with the [macOS package](install/MACOS.md), or without installing anything in
+(Apptainer, Singularity or Docker), with the [macOS package](install/MACOS.md), or without installing anything in
 [Google Colab](#google-colab). Other systems are covered in the [installation guide](INSTALL.md).
 
 Segment an example image
@@ -12,7 +12,7 @@ a few minutes longer. You can use your own T1-weighted full head MRI (0.7 to 1 m
 
 `````{tab-set}
 
-````{tab-item} Singularity
+````{tab-item} Apptainer / Singularity
 ```bash
 # 0. Create a directory for this test
 mkdir fastsurfer_test

@@ -1,12 +1,34 @@
 Linux
 =====
 On Linux, run FastSurfer in one of our container images: they contain the full pipeline (segmentation and surface
-reconstruction) and everything it needs. We provide images for NVIDIA GPUs (CUDA), for AMD GPUs (ROCm, experimental)
-and for the CPU only, on [Docker Hub](https://hub.docker.com/r/deepmi/fastsurfer). Use Docker on your own
-workstation and Singularity (or Apptainer) on a compute cluster, where Docker is usually not available.
+reconstruction) and all software it needs. The surface reconstruction also needs a
+[FreeSurfer license](../INSTALL.md#freesurfer-license), which is free but not included: get it from FreeSurfer
+before your first full run. We provide images for NVIDIA GPUs (CUDA), for AMD GPUs (ROCm, experimental)
+and for the CPU only, on [Docker Hub](https://hub.docker.com/r/deepmi/fastsurfer). Use Apptainer (or Singularity)
+on a compute cluster, where it is usually installed and Docker is not, and Docker on your own workstation.
 
 A GPU with enough memory makes the segmentation much faster, see the
 [system requirements](../intro.rst#system-requirements). Without a GPU, use the [CPU image](#cpu-only).
+
+Apptainer or Singularity
+------------------------
+[Apptainer](https://apptainer.org) is the open-source continuation of Singularity, and both run the same images.
+Apptainer also installs the `singularity` command, so the commands below work with either; with Apptainer, you can
+also write `apptainer` instead of `singularity`.
+
+With Apptainer (or Singularity) installed, usually by a system admin, build an image from our Docker image, for
+example in `$HOME/my_singularity_images`:
+
+```bash
+mkdir -p $HOME/my_singularity_images
+singularity build \
+    $HOME/my_singularity_images/fastsurfer-{{ FASTSURFER_VERSION }}.sif \
+    docker://deepmi/fastsurfer:{{ CUDA_STRING }}-v{{ FASTSURFER_VERSION }}
+```
+
+[Example 1](../EXAMPLES.md#example-1-fastsurfer-apptainer-or-singularity) shows how to run FastSurfer with it (the
+full pipeline also needs a [FreeSurfer license](../INSTALL.md#freesurfer-license)), and the
+[Singularity page](../SINGULARITY.md) explains the flags and how to build your own image.
 
 Docker
 ------
@@ -27,31 +49,10 @@ In Docker's **rootless mode**, also follow its
 otherwise Docker stops with
 `docker: Error response from daemon: could not select device driver "" with capabilities: [[gpu]]`.
 
-Singularity or Apptainer
-------------------------
-With Singularity (or [Apptainer](https://apptainer.org)) installed, usually by a system admin, build a Singularity
-image from our Docker image, for example in `$HOME/my_singularity_images`:
-
-```bash
-mkdir -p $HOME/my_singularity_images
-singularity build \
-    $HOME/my_singularity_images/fastsurfer-{{ FASTSURFER_VERSION }}.sif \
-    docker://deepmi/fastsurfer:{{ CUDA_STRING }}-v{{ FASTSURFER_VERSION }}
-```
-
-[Example 1](../EXAMPLES.md#example-1-fastsurfer-singularity-or-apptainer) shows how to run FastSurfer with it (the
-full pipeline also needs a [FreeSurfer license](../INSTALL.md#freesurfer-license)), and the
-[Singularity page](../SINGULARITY.md) explains the Singularity flags and how to build your own image.
-
 CPU only
 --------
 Without a GPU, use the CPU image, which is smaller. It runs the same pipeline, only the segmentation takes longer.
-
-```bash
-docker pull deepmi/fastsurfer:cpu-v{{ FASTSURFER_VERSION }}
-```
-
-or, for Singularity:
+For Apptainer (or Singularity):
 
 ```bash
 mkdir -p $HOME/my_singularity_images
@@ -60,7 +61,13 @@ singularity build \
     docker://deepmi/fastsurfer:cpu-v{{ FASTSURFER_VERSION }}
 ```
 
-Run it as in the examples, without `--gpus all` (Docker) or `--nv` (Singularity).
+or, for Docker:
+
+```bash
+docker pull deepmi/fastsurfer:cpu-v{{ FASTSURFER_VERSION }}
+```
+
+Run it as in the examples, without `--nv` (Apptainer or Singularity) or `--gpus all` (Docker).
 
 AMD GPUs (experimental)
 -----------------------

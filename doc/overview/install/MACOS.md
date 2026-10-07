@@ -1,7 +1,8 @@
 macOS
 =====
-On a Mac with Apple silicon (M1 or newer), install the FastSurfer package: it contains everything FastSurfer needs,
-and it uses the Apple GPU automatically. On a Mac with an Intel CPU, use [Docker](#docker-intel-macs) instead.
+On a Mac with Apple silicon (M1 or newer), install the FastSurfer package: it contains all software FastSurfer needs,
+and it uses the Apple GPU automatically. The surface reconstruction also needs a [FreeSurfer license](#freesurfer-license),
+which is free but not included. On a Mac with an Intel CPU, use [Docker](#docker-intel-macs) instead.
 
 ````{card}
 :class-card: sd-border-primary sd-shadow-sm
@@ -12,7 +13,7 @@ and it uses the Apple GPU automatically. On a Mac with an Intel CPU, use [Docker
 Apple silicon (M1 or newer) · macOS 14 (Sonoma) or newer · about 1 GB download
 
 Includes its own Python, all Python packages, the network checkpoints and the FreeSurfer tools FastSurfer uses:
-nothing else to install, and no internet connection needed after the download.
+no other software to install, and no internet connection needed after the download.
 
 ```{button-link} https://github.com/Deep-MI/FastSurfer/releases/latest/download/FastSurfer-macos-darwin_arm64.pkg
 :color: primary
