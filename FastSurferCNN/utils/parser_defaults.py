@@ -253,7 +253,8 @@ ALL_FLAGS = {
     "device": __arg(
         "--device",
         default="auto",
-        help="Select device to run inference on: cpu, or cuda (= Nvidia gpu) or specify a certain gpu (e.g. cuda:1)"
+        help="Device to run inference on: auto (default), cpu, cuda (NVIDIA, or AMD with ROCm), a specific gpu "
+             "(e.g. cuda:1), or mps (Apple silicon gpu). auto uses cuda if available, else mps, else cpu.",
     ),
     "viewagg_device": __arg(
         "--viewagg_device",
