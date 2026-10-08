@@ -171,7 +171,7 @@ System Requirements
 ### Recommendation
 - Intel or AMD CPU (6 or more cores)
 - 16 GB system memory
-- NVIDIA graphics card (Turing, 2018, or newer; older ones need a [different image](doc/overview/install/LINUX.md#nvidia-gpus))
+- NVIDIA graphics card (2016 or newer; see [which image fits your GPU](doc/overview/install/LINUX.md#nvidia-gpus))
 - 12 GB graphics memory
 
 On a Mac, we recommend Apple silicon (M1 or newer) with 16 GB memory; FastSurfer uses its GPU automatically.
