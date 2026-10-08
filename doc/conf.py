@@ -22,6 +22,7 @@ sys.path.append(str(Path(__file__).parents[1] / "recon_surf"))
 sys.path.append(str(Path(__file__).parent / "sphinx_ext"))
 
 from resolve_links import LinkCodeResolver
+from FastSurferCNN.gpu_support import LEGACY_BUILD, MIN_DRIVER
 from FastSurferCNN.version import main as _version_info, parse_build_file
 
 project = "FastSurfer"
@@ -113,16 +114,23 @@ def _tool_values_gitref(ref: str | None, *keys: str) -> tuple[str, ...]:
 # the tree the images named by image_version were built from, which is also what the native installation clones
 # (--branch stable), so the versions of the software in both come from there as well
 _image_ref = None if documents_a_release else f"v{image_version}"
-# the CUDA version and the base image of the images named by image_version, the CUDA version is the one of the
-# `latest` image
-version_python, version_freesurfer, version_cuda, _runtime_base_image = _tool_values_gitref(
-    _image_ref, "python.version", "freesurfer.version", "cuda.version", "docker.runtime_base",
+# the CUDA and ROCm versions and the base image of the images named by image_version, the CUDA version is the one of
+# the `latest` image
+version_python, version_freesurfer, version_cuda, version_rocm, _runtime_base_image = _tool_values_gitref(
+    _image_ref, "python.version", "freesurfer.version", "cuda.version", "rocm.version", "docker.runtime_base",
 )
 if not _runtime_base_image.startswith("ubuntu:"):
     raise RuntimeError(f"UBUNTU_VERSION needs an ubuntu image, tool.docker.runtime_base is {_runtime_base_image}.")
 version_ubuntu = _runtime_base_image.removeprefix("ubuntu:")
 # the PyTorch backend and device name of that CUDA version (13.2 -> cu132)
 image_cuda = "cu" + version_cuda.replace(".", "")
+image_rocm = "rocm" + version_rocm
+# the image for GPUs the default CUDA version dropped, and the oldest drivers, as FastSurfer names them when it cannot
+# use a GPU; from this tree, so a development build documents what it would tell the user
+(_legacy_major, _legacy_minor), image_cuda_legacy = LEGACY_BUILD
+version_cuda_legacy = f"{_legacy_major}.{_legacy_minor}"
+driver_cuda = MIN_DRIVER[int(version_cuda.split(".")[0])]
+driver_cuda_legacy = MIN_DRIVER[_legacy_major]
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
@@ -182,6 +190,12 @@ myst_substitutions = {
     "FASTSURFER_VERSION": image_version,
     "CUDA_STRING": image_cuda,
     "CUDA_VERSION": version_cuda,
+    "CUDA_DRIVER": str(driver_cuda),
+    "CUDA_LEGACY_STRING": image_cuda_legacy,
+    "CUDA_LEGACY_VERSION": version_cuda_legacy,
+    "CUDA_LEGACY_DRIVER": str(driver_cuda_legacy),
+    "ROCM_STRING": image_rocm,
+    "ROCM_VERSION": version_rocm,
     "PYTHON_VERSION": version_python,
     "UBUNTU_VERSION": version_ubuntu,
     "FREESURFER_VERSION": version_freesurfer,
