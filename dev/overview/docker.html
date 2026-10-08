@@ -490,7 +490,7 @@
 If you want to pull a specific version of FastSurfer or CUDA, you can specify the tag, for example:</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>This documents the development version 2.6.0-dev0. Official Docker images only exist for releases, so the commands below use the latest release, 2.5.4, for its default CUDA version, 12.8. Images of 2.5.4 for other CUDA versions, ROCm and CPU are available on <a class="reference external" href="https://hub.docker.com/r/deepmi/fastsurfer/tags?name=v2.5.4">Docker Hub</a>. To run the development version, <a class="reference internal" href="#"><span class="doc">build your own image</span></a>.</p>
+<p>This documents the development version 2.6.0. Official Docker images only exist for releases, so the commands below use the latest release, 2.5.4, for its default CUDA version, 12.8. Images of 2.5.4 for other CUDA versions, ROCm and CPU are available on <a class="reference external" href="https://hub.docker.com/r/deepmi/fastsurfer/tags?name=v2.5.4">Docker Hub</a>. To run the development version, <a class="reference internal" href="#"><span class="doc">build your own image</span></a>.</p>
 </div>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>docker<span class="w"> </span>pull<span class="w"> </span>deepmi/fastsurfer:cu128-v2.5.4
 </pre></div>
@@ -499,7 +499,7 @@ If you want to pull a specific version of FastSurfer or CUDA, you can specify th
 Similarly, <code class="docutils literal notranslate"><span class="pre">v&lt;version&gt;</span></code> is the version string, for example <code class="docutils literal notranslate"><span class="pre">v2.5.4</span></code>. <code class="docutils literal notranslate"><span class="pre">latest</span></code> points to the newest NVIDIA image (with the default CUDA version of that release), <code class="docutils literal notranslate"><span class="pre">cpu-latest</span></code> to the newest <code class="docutils literal notranslate"><span class="pre">cpu</span></code> image, for example:</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>This documents the development version 2.6.0-dev0. Official Docker images only exist for releases, so the commands below use the latest release, 2.5.4. To run the development version, <a class="reference internal" href="#"><span class="doc">build your own image</span></a>.</p>
+<p>This documents the development version 2.6.0. Official Docker images only exist for releases, so the commands below use the latest release, 2.5.4. To run the development version, <a class="reference internal" href="#"><span class="doc">build your own image</span></a>.</p>
 </div>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>docker<span class="w"> </span>pull<span class="w"> </span>deepmi/fastsurfer:cpu-v2.5.4
 </pre></div>
@@ -511,7 +511,7 @@ Similarly, <code class="docutils literal notranslate"><span class="pre">v&lt;ver
 surface reconstruction) with the following command:</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>This documents the development version 2.6.0-dev0. Official Docker images only exist for releases, so the commands below use the latest release, 2.5.4, for its default CUDA version, 12.8. Images of 2.5.4 for other CUDA versions, ROCm and CPU are available on <a class="reference external" href="https://hub.docker.com/r/deepmi/fastsurfer/tags?name=v2.5.4">Docker Hub</a>. To run the development version, <a class="reference internal" href="#"><span class="doc">build your own image</span></a>.</p>
+<p>This documents the development version 2.6.0. Official Docker images only exist for releases, so the commands below use the latest release, 2.5.4, for its default CUDA version, 12.8. Images of 2.5.4 for other CUDA versions, ROCm and CPU are available on <a class="reference external" href="https://hub.docker.com/r/deepmi/fastsurfer/tags?name=v2.5.4">Docker Hub</a>. To run the development version, <a class="reference internal" href="#"><span class="doc">build your own image</span></a>.</p>
 </div>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">freesurfer_license</span><span class="o">=</span><span class="si">${</span><span class="nv">freesurfer_license</span><span class="k">:-</span><span class="p">/path/to/your/freesurfer/license_file</span><span class="si">}</span>
 docker<span class="w"> </span>run<span class="w"> </span>--gpus<span class="w"> </span>all<span class="w"> </span>-v<span class="w"> </span><span class="nv">$HOME</span>/my_mri_data:<span class="nv">$HOME</span>/my_mri_data<span class="w"> </span><span class="se">\</span>
@@ -723,7 +723,7 @@ Add <code class="docutils literal notranslate"><span class="pre">--action</span>
 <p>Make sure, you are building on a machine that has <a class="reference internal" href="#"><span class="doc std std-ref">containerd-storage and Buildkit</span></a>.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>This documents the development version 2.6.0-dev0. Official Docker images only exist for releases, so the commands below use the latest release, 2.5.4, for its default CUDA version, 12.8. Images of 2.5.4 for other CUDA versions, ROCm and CPU are available on <a class="reference external" href="https://hub.docker.com/r/deepmi/fastsurfer/tags?name=v2.5.4">Docker Hub</a>. To run the development version, <a class="reference internal" href="#"><span class="doc">build your own image</span></a>.</p>
+<p>This documents the development version 2.6.0. Official Docker images only exist for releases, so the commands below use the latest release, 2.5.4, for its default CUDA version, 12.8. Images of 2.5.4 for other CUDA versions, ROCm and CPU are available on <a class="reference external" href="https://hub.docker.com/r/deepmi/fastsurfer/tags?name=v2.5.4">Docker Hub</a>. To run the development version, <a class="reference internal" href="#"><span class="doc">build your own image</span></a>.</p>
 </div>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># configuration</span>
 <span class="nv">build_dir</span><span class="o">=</span><span class="nv">$HOME</span>/FastSurfer-build

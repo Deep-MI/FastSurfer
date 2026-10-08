@@ -508,7 +508,7 @@ Finally, containers provide a security advantage, because the access to data is 
 <p>For example:</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>This documents the development version 2.6.0-dev0. Official Docker images only exist for releases, so the commands below use the latest release, 2.5.4, for its default CUDA version, 12.8. Images of 2.5.4 for other CUDA versions, ROCm and CPU are available on <a class="reference external" href="https://hub.docker.com/r/deepmi/fastsurfer/tags?name=v2.5.4">Docker Hub</a>. To run the development version, <a class="reference internal" href="docker.html"><span class="doc">build your own image</span></a>.</p>
+<p>This documents the development version 2.6.0. Official Docker images only exist for releases, so the commands below use the latest release, 2.5.4, for its default CUDA version, 12.8. Images of 2.5.4 for other CUDA versions, ROCm and CPU are available on <a class="reference external" href="https://hub.docker.com/r/deepmi/fastsurfer/tags?name=v2.5.4">Docker Hub</a>. To run the development version, <a class="reference internal" href="docker.html"><span class="doc">build your own image</span></a>.</p>
 </div>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>singularity<span class="w"> </span>build<span class="w"> </span><span class="nv">$HOME</span>/my_singularity_images/fastsurfer-cu128-v2.5.4.sif<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>docker://deepmi/fastsurfer:cu128-v2.5.4
@@ -540,7 +540,7 @@ This should specifically include the “Subject Directory”. If two paths are g
 </ul>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>This documents the development version 2.6.0-dev0. Official Docker images only exist for releases, so the commands below use the latest release, 2.5.4, for its default CUDA version, 12.8. Images of 2.5.4 for other CUDA versions, ROCm and CPU are available on <a class="reference external" href="https://hub.docker.com/r/deepmi/fastsurfer/tags?name=v2.5.4">Docker Hub</a>. To run the development version, <a class="reference internal" href="docker.html"><span class="doc">build your own image</span></a>.</p>
+<p>This documents the development version 2.6.0. Official Docker images only exist for releases, so the commands below use the latest release, 2.5.4, for its default CUDA version, 12.8. Images of 2.5.4 for other CUDA versions, ROCm and CPU are available on <a class="reference external" href="https://hub.docker.com/r/deepmi/fastsurfer/tags?name=v2.5.4">Docker Hub</a>. To run the development version, <a class="reference internal" href="docker.html"><span class="doc">build your own image</span></a>.</p>
 </div>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">freesurfer_license</span><span class="o">=</span><span class="si">${</span><span class="nv">freesurfer_license</span><span class="k">:-</span><span class="p">/path/to/your/freesurfer/license_file</span><span class="si">}</span>
 singularity<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>--nv<span class="w"> </span><span class="se">\</span>
@@ -581,7 +581,7 @@ singularity<span class="w"> </span><span class="nb">exec</span><span class="w"> 
 <p>You can run the Singularity equivalent of CPU-Docker by building a Singularity image from the CPU-Docker image (replace <code class="docutils literal notranslate"><span class="pre">2.5.4</span></code> with the version you want to use) and excluding the <code class="docutils literal notranslate"><span class="pre">--nv</span></code> argument in your Singularity exec command as following:</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>This documents the development version 2.6.0-dev0. Official Docker images only exist for releases, so the commands below use the latest release, 2.5.4. To run the development version, <a class="reference internal" href="docker.html"><span class="doc">build your own image</span></a>.</p>
+<p>This documents the development version 2.6.0. Official Docker images only exist for releases, so the commands below use the latest release, 2.5.4. To run the development version, <a class="reference internal" href="docker.html"><span class="doc">build your own image</span></a>.</p>
 </div>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">freesurfer_license</span><span class="o">=</span><span class="si">${</span><span class="nv">freesurfer_license</span><span class="k">:-</span><span class="p">/path/to/your/freesurfer/license_file</span><span class="si">}</span>
 <span class="nb">cd</span><span class="w"> </span><span class="nv">$HOME</span>/my_singularity_images

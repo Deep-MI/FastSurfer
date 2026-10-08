@@ -619,7 +619,7 @@ Given you already ran the segmentation pipeline, and want to just run the surfac
 (i.e. on a different cluster), the following command can be used:</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>This documents the development version 2.6.0-dev0. Official Docker images only exist for releases, so the commands below use the latest release, 2.5.4. To run the development version, <a class="reference internal" href="../overview/docker.html"><span class="doc">build your own image</span></a>.</p>
+<p>This documents the development version 2.6.0. Official Docker images only exist for releases, so the commands below use the latest release, 2.5.4. To run the development version, <a class="reference internal" href="../overview/docker.html"><span class="doc">build your own image</span></a>.</p>
 </div>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">freesurfer_license</span><span class="o">=</span><span class="si">${</span><span class="nv">freesurfer_license</span><span class="k">:-</span><span class="p">/path/to/your/freesurfer/license_file</span><span class="si">}</span>
 <span class="c1"># Run command</span>
@@ -652,7 +652,7 @@ Given you already ran the segmentation pipeline, and want to just run
 the surface pipeline on top of it (i.e. on a different cluster), the following command can be used:</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>This documents the development version 2.6.0-dev0. Official Docker images only exist for releases, so the commands below use the latest release, 2.5.4. To run the development version, <a class="reference internal" href="../overview/docker.html"><span class="doc">build your own image</span></a>.</p>
+<p>This documents the development version 2.6.0. Official Docker images only exist for releases, so the commands below use the latest release, 2.5.4. To run the development version, <a class="reference internal" href="../overview/docker.html"><span class="doc">build your own image</span></a>.</p>
 </div>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">freesurfer_license</span><span class="o">=</span><span class="si">${</span><span class="nv">freesurfer_license</span><span class="k">:-</span><span class="p">/path/to/your/freesurfer/license_file</span><span class="si">}</span>
 <span class="c1"># 1. Build the singularity image (only if it does not exist)</span>
@@ -722,7 +722,7 @@ The script will generate a bias-field corrected image at <code class="docutils l
 <p>Invoke the following command (make sure you have enough resources to run the given number of subjects in parallel or drop the <code class="docutils literal notranslate"><span class="pre">--parallel_surf</span> <span class="pre">max</span></code> flag to run them in series!):</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>This documents the development version 2.6.0-dev0. Official Docker images only exist for releases, so the commands below use the latest release, 2.5.4. To run the development version, <a class="reference internal" href="../overview/docker.html"><span class="doc">build your own image</span></a>.</p>
+<p>This documents the development version 2.6.0. Official Docker images only exist for releases, so the commands below use the latest release, 2.5.4. To run the development version, <a class="reference internal" href="../overview/docker.html"><span class="doc">build your own image</span></a>.</p>
 </div>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">freesurfer_license</span><span class="o">=</span><span class="si">${</span><span class="nv">freesurfer_license</span><span class="k">:-</span><span class="p">/path/to/your/freesurfer/license_file</span><span class="si">}</span>
 singularity<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>--no-mount<span class="w"> </span>home,cwd<span class="w"> </span>-e<span class="w"> </span><span class="se">\</span>
