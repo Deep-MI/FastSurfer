@@ -1,5 +1,5 @@
-Docker Support
---------------
+Docker
+------
 
 .. include:: ../../tools/Docker/README.md
     :parser: fix_links.parser

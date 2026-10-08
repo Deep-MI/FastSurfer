@@ -89,7 +89,7 @@ needs access to the file, see the examples on the page of your system.
 install/MACOS.md
 install/LINUX.md
 install/WINDOWS.md
-install/NATIVE.md
-docker
 SINGULARITY.md
+docker
+install/NATIVE.md
 ```

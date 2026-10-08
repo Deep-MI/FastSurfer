@@ -1,10 +1,10 @@
-From source (native installation)
-=================================
+Installing from source
+======================
 A native installation runs FastSurfer directly on your system, without a container. It is the setup for developers
 and for systems where containers are not available. You install all dependencies yourself (system packages, Python
 packages and FreeSurfer in the supported version), so the results can differ from our testing environment, and we
-may not be able to help if something does not work. We test FastSurfer {{ FASTSURFER_VERSION }} with Ubuntu
-{{ UBUNTU_VERSION }}, the base of our Docker images, and the steps below are for Ubuntu.
+may not be able to help if something does not work. We test FastSurfer with Ubuntu {{ UBUNTU_VERSION }}, the base of
+our Docker images, and the steps below are for Ubuntu.
 
 1. System packages
 ------------------
@@ -31,6 +31,8 @@ makes managing different environments easy. See
 ```bash
 wget -qO- https://astral.sh/uv/install.sh | sh
 ```
+
+Then open a new terminal (or follow the installer's instructions), so `uv` is on your `PATH`.
 
 3. FastSurfer
 -------------
@@ -61,8 +63,8 @@ resolved=$(uv pip compile --no-build --torch-backend auto requirements.txt) && \
     uv pip sync --no-build --torch-backend auto - <<< "$resolved"
 ```
 
-To select the PyTorch backend yourself, for example for testing, replace `auto` in both commands, for example with
-`cpu` or `{{ CUDA_STRING }}`:
+To select the PyTorch backend yourself, for example for testing, replace `auto` in both commands, e.g. with `cpu` or
+`{{ CUDA_STRING }}`:
 
 ```bash
 # make sure you are in the FastSurfer directory!
@@ -76,9 +78,9 @@ resolved=$(uv pip compile --no-build --torch-backend cpu requirements.txt) && \
 > resolved=$(uv pip compile --torch-backend auto --extra doc pyproject.toml) && \
 >     uv pip sync --torch-backend auto - <<< "$resolved"
 > ```
-> Leave out `--no-build` here: `bibtexparser`, which the `style` extra needs, only ships source code (pure Python,
-> no compiler needed), and `--no-build` makes `uv` resolve different versions to avoid it. `bibtexparser` should be
-> the only package `uv` builds (`Building bibtexparser`).
+> Leave out `--no-build` here: with the `style` or `all` extra, `bibtexparser` (which `bibclean` needs) only ships
+> source code (pure Python, no compiler needed), and `--no-build` makes `uv` resolve different versions to avoid it.
+> `bibtexparser` should be the only package `uv` builds (`Building bibtexparser`).
 
 Activate the FastSurfer environment with:
 
@@ -93,7 +95,8 @@ and add the FastSurfer directory to the Python path:
 export PYTHONPATH="${PYTHONPATH}:$PWD"
 ```
 
-You need to do this every time you run FastSurfer, or add the line to your `~/.bashrc` if you use bash, for example:
+You need to activate the environment and set the Python path in every new terminal before you run FastSurfer. To set
+the Python path automatically, add it to your `~/.bashrc` if you use bash, for example:
 
 ```bash
 # make sure you are in the FastSurfer directory!
