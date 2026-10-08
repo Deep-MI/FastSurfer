@@ -633,10 +633,13 @@ See also https://github.com/docker/buildx#manual-download.</p>
 <h3>Example 1: Build GPU FastSurfer Image<a class="headerlink" href="#example-1-build-gpu-fastsurfer-image" title="Link to this heading">¶</a></h3>
 <p>To build your own Docker image for FastSurfer (segmentation and surface reconstruction, for NVIDIA GPUs, including
 FreeSurfer), run the following command in the FastSurfer directory:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>tools/Docker/build.py<span class="w"> </span>--device<span class="w"> </span>cuda<span class="w"> </span>--tag<span class="w"> </span>my_fastsurfer:cuda
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>tools/Docker/build.py<span class="w"> </span>--device<span class="w"> </span>cu132<span class="w"> </span>--tag<span class="w"> </span>my_fastsurfer:cu132
 </pre></div>
 </div>
-<p>To build for another CUDA version, pass it to <code class="docutils literal notranslate"><span class="pre">--device</span></code>, for example <code class="docutils literal notranslate"><span class="pre">--device</span> <span class="pre">cu126</span></code>;
+<p><code class="docutils literal notranslate"><span class="pre">--device</span> <span class="pre">cu132</span></code> builds for CUDA 13.2, the default, which <code class="docutils literal notranslate"><span class="pre">--device</span> <span class="pre">cuda</span></code>
+also selects. To build for another CUDA version, pass it to <code class="docutils literal notranslate"><span class="pre">--device</span></code>, for example
+<code class="docutils literal notranslate"><span class="pre">--device</span> <span class="pre">cu126</span></code> for older GPUs and drivers, see
+<a class="reference internal" href="install/LINUX.html#nvidia-gpus"><span class="std std-ref">which image fits your GPU</span></a>;
 <code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">tools/Docker/build.py</span> <span class="pre">--print_supported</span> <span class="pre">cuda</span></code> lists the supported versions. Add <code class="docutils literal notranslate"><span class="pre">--pinned_requirements</span></code> to
 use the pinned dependency versions of <code class="docutils literal notranslate"><span class="pre">requirements.txt</span></code> (see <code class="docutils literal notranslate"><span class="pre">build.py</span> <span class="pre">--help</span></code> for all options).</p>
 <p>To run the analysis, use the same command as for the official image above, with your image:</p>
@@ -645,7 +648,7 @@ docker<span class="w"> </span>run<span class="w"> </span>--gpus<span class="w"> 
 <span class="w">           </span>-v<span class="w"> </span><span class="nv">$HOME</span>/my_mri_data:<span class="nv">$HOME</span>/my_mri_data<span class="w"> </span><span class="se">\</span>
 <span class="w">           </span>-v<span class="w"> </span><span class="nv">$HOME</span>/my_fastsurfer_analysis:<span class="nv">$HOME</span>/my_fastsurfer_analysis<span class="w"> </span><span class="se">\</span>
 <span class="w">           </span>-v<span class="w"> </span><span class="nv">$freesurfer_license</span>:<span class="nv">$freesurfer_license</span><span class="w"> </span><span class="se">\</span>
-<span class="w">           </span>--rm<span class="w"> </span>--user<span class="w"> </span><span class="k">$(</span>id<span class="w"> </span>-u<span class="k">)</span>:<span class="k">$(</span>id<span class="w"> </span>-g<span class="k">)</span><span class="w"> </span>my_fastsurfer:cuda<span class="w"> </span><span class="se">\</span>
+<span class="w">           </span>--rm<span class="w"> </span>--user<span class="w"> </span><span class="k">$(</span>id<span class="w"> </span>-u<span class="k">)</span>:<span class="k">$(</span>id<span class="w"> </span>-g<span class="k">)</span><span class="w"> </span>my_fastsurfer:cu132<span class="w"> </span><span class="se">\</span>
 <span class="w">               </span>--fs_license<span class="w"> </span><span class="nv">$freesurfer_license</span><span class="w"> </span><span class="se">\</span>
 <span class="w">               </span>--t1<span class="w"> </span><span class="nv">$HOME</span>/my_mri_data/subjectX/t1_weighted.nii.gz<span class="w"> </span><span class="se">\</span>
 <span class="w">               </span>--sid<span class="w"> </span>subjectX<span class="w"> </span>--sd<span class="w"> </span><span class="nv">$HOME</span>/my_fastsurfer_analysis<span class="w"> </span><span class="se">\</span>
@@ -659,7 +662,7 @@ docker<span class="w"> </span>run<span class="w"> </span>--gpus<span class="w"> 
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>tools/Docker/build.py<span class="w"> </span>--device<span class="w"> </span>cpu<span class="w"> </span>--tag<span class="w"> </span>my_fastsurfer:cpu
 </pre></div>
 </div>
-<p>Only <code class="docutils literal notranslate"><span class="pre">--device</span></code> changes, from <code class="docutils literal notranslate"><span class="pre">cuda</span></code> to <code class="docutils literal notranslate"><span class="pre">cpu</span></code>.</p>
+<p>Only <code class="docutils literal notranslate"><span class="pre">--device</span></code> changes, to <code class="docutils literal notranslate"><span class="pre">cpu</span></code>.</p>
 <p>To run the analysis, use the same command as above, but without the <code class="docutils literal notranslate"><span class="pre">--gpus</span> <span class="pre">all</span></code> option:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">freesurfer_license</span><span class="o">=</span><span class="si">${</span><span class="nv">freesurfer_license</span><span class="k">:-</span><span class="p">/path/to/your/freesurfer/license_file</span><span class="si">}</span>
 docker<span class="w"> </span>run<span class="w"> </span>-v<span class="w"> </span><span class="nv">$HOME</span>/my_mri_data:<span class="nv">$HOME</span>/my_mri_data<span class="w"> </span><span class="se">\</span>
@@ -683,16 +686,18 @@ your own, note that ROCm needs a supported OS, kernel version and GPU. Install t
 https://rocm.docs.amd.com/projects/install-on-linux/en/latest/install/quick-start.html#rocm-install-quick,
 https://rocm.docs.amd.com/projects/install-on-linux/en/latest/install/amdgpu-install.html#amdgpu-install-dkms and
 https://rocm.docs.amd.com/projects/install-on-linux/en/latest/how-to/docker.html.</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>tools/Docker/build.py<span class="w"> </span>--device<span class="w"> </span>rocm<span class="w"> </span>--tag<span class="w"> </span>my_fastsurfer:rocm
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>tools/Docker/build.py<span class="w"> </span>--device<span class="w"> </span>rocm7.2<span class="w"> </span>--tag<span class="w"> </span>my_fastsurfer:rocm7.2
 </pre></div>
 </div>
-<p>and run the segmentation only (FastSurfer addresses AMD GPUs as <code class="docutils literal notranslate"><span class="pre">cuda</span></code> devices, so <code class="docutils literal notranslate"><span class="pre">--device</span> <span class="pre">cuda</span></code> or <code class="docutils literal notranslate"><span class="pre">--device</span> <span class="pre">cuda:0</span></code>
+<p><code class="docutils literal notranslate"><span class="pre">--device</span> <span class="pre">rocm7.2</span></code> builds for ROCm 7.2, the default, which <code class="docutils literal notranslate"><span class="pre">--device</span> <span class="pre">rocm</span></code>
+also selects; <code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">tools/Docker/build.py</span> <span class="pre">--print_supported</span> <span class="pre">rocm</span></code> lists the supported versions.</p>
+<p>Run the segmentation only (FastSurfer addresses AMD GPUs as <code class="docutils literal notranslate"><span class="pre">cuda</span></code> devices, so <code class="docutils literal notranslate"><span class="pre">--device</span> <span class="pre">cuda</span></code> or <code class="docutils literal notranslate"><span class="pre">--device</span> <span class="pre">cuda:0</span></code>
 selects a specific GPU):</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>docker<span class="w"> </span>run<span class="w"> </span>--rm<span class="w"> </span>--security-opt<span class="w"> </span><span class="nv">seccomp</span><span class="o">=</span>unconfined<span class="w"> </span><span class="se">\</span>
 <span class="w">           </span>--device<span class="o">=</span>/dev/kfd<span class="w"> </span>--device<span class="o">=</span>/dev/dri<span class="w"> </span>--group-add<span class="w"> </span>video<span class="w"> </span><span class="se">\</span>
 <span class="w">           </span>-v<span class="w"> </span><span class="nv">$HOME</span>/my_mri_data:<span class="nv">$HOME</span>/my_mri_data<span class="w"> </span><span class="se">\</span>
 <span class="w">           </span>-v<span class="w"> </span><span class="nv">$HOME</span>/my_fastsurfer_analysis:<span class="nv">$HOME</span>/my_fastsurfer_analysis<span class="w"> </span><span class="se">\</span>
-<span class="w">           </span>--user<span class="w"> </span><span class="k">$(</span>id<span class="w"> </span>-u<span class="k">)</span>:<span class="k">$(</span>id<span class="w"> </span>-g<span class="k">)</span><span class="w"> </span>my_fastsurfer:rocm<span class="w"> </span><span class="se">\</span>
+<span class="w">           </span>--user<span class="w"> </span><span class="k">$(</span>id<span class="w"> </span>-u<span class="k">)</span>:<span class="k">$(</span>id<span class="w"> </span>-g<span class="k">)</span><span class="w"> </span>my_fastsurfer:rocm7.2<span class="w"> </span><span class="se">\</span>
 <span class="w">               </span>--t1<span class="w"> </span><span class="nv">$HOME</span>/my_mri_data/subjectX/t1_weighted.nii.gz<span class="w"> </span><span class="se">\</span>
 <span class="w">               </span>--sid<span class="w"> </span>subjectX<span class="w"> </span>--sd<span class="w"> </span><span class="nv">$HOME</span>/my_fastsurfer_analysis<span class="w"> </span><span class="se">\</span>
 <span class="w">               </span>--seg_only
@@ -710,7 +715,7 @@ but setting <code class="docutils literal notranslate"><span class="pre">HSA_OVE
 <span class="w">           </span>-v<span class="w"> </span><span class="nv">$HOME</span>/my_mri_data:<span class="nv">$HOME</span>/my_mri_data<span class="w"> </span><span class="se">\</span>
 <span class="w">           </span>-v<span class="w"> </span><span class="nv">$HOME</span>/my_fastsurfer_analysis:<span class="nv">$HOME</span>/my_fastsurfer_analysis<span class="w"> </span><span class="se">\</span>
 <span class="w">           </span>-e<span class="w"> </span><span class="nv">HSA_OVERRIDE_GFX_VERSION</span><span class="o">=</span><span class="m">10</span>.3.0<span class="w"> </span><span class="se">\</span>
-<span class="w">           </span>--user<span class="w"> </span><span class="k">$(</span>id<span class="w"> </span>-u<span class="k">)</span>:<span class="k">$(</span>id<span class="w"> </span>-g<span class="k">)</span><span class="w"> </span>my_fastsurfer:rocm<span class="w"> </span><span class="se">\</span>
+<span class="w">           </span>--user<span class="w"> </span><span class="k">$(</span>id<span class="w"> </span>-u<span class="k">)</span>:<span class="k">$(</span>id<span class="w"> </span>-g<span class="k">)</span><span class="w"> </span>my_fastsurfer:rocm7.2<span class="w"> </span><span class="se">\</span>
 <span class="w">               </span>--t1<span class="w"> </span><span class="nv">$HOME</span>/my_mri_data/subjectX/t1_weighted.nii.gz<span class="w"> </span><span class="se">\</span>
 <span class="w">               </span>--sid<span class="w"> </span>subjectX<span class="w"> </span>--sd<span class="w"> </span><span class="nv">$HOME</span>/my_fastsurfer_analysis<span class="w"> </span><span class="se">\</span>
 <span class="w">               </span>--seg_only
