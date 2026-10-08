@@ -19,8 +19,7 @@ We build the images for two CUDA versions, because newer CUDA versions drop old 
 | `{{ CUDA_LEGACY_STRING }}-v{{ FASTSURFER_VERSION }}` | {{ CUDA_LEGACY_VERSION }} | Maxwell (GTX 900) to Hopper (H100), including Pascal (GTX 10, P100) and Volta (V100), but not Blackwell | {{ CUDA_LEGACY_DRIVER }} or newer |
 
 Use the default image unless your GPU is older than Turing or your driver is older than {{ CUDA_DRIVER }}; then use the
-{{ CUDA_LEGACY_VERSION }} image. `nvidia-smi` shows the name of your GPU and the driver version. Both images also run
-on the CPU when no GPU is available.
+{{ CUDA_LEGACY_VERSION }} image. `nvidia-smi` shows the name of your GPU and the driver version.
 
 If FastSurfer cannot use your GPU, because the image has no support for it, the driver is too old, or the container was
 started without access to the GPU, it says so, names the image or flag to use instead, and runs on the CPU, which takes
