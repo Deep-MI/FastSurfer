@@ -9,6 +9,22 @@ and for the CPU only, on [Docker Hub](https://hub.docker.com/r/deepmi/fastsurfer
 A GPU with enough memory makes the segmentation much faster, see the
 [system requirements](../intro.rst#system-requirements). Without a GPU, use the [CPU image](#cpu-only).
 
+NVIDIA GPUs
+-----------
+We build the images for two CUDA versions, because newer CUDA versions drop old GPUs and older ones lack the newest:
+
+| Image | CUDA | GPUs | NVIDIA driver |
+|-------|------|------|---------------|
+| `{{ CUDA_STRING }}-v{{ FASTSURFER_VERSION }}` (default, also `latest`) | {{ CUDA_VERSION }} | Turing (RTX 20, T4) to Blackwell (RTX 50, B200) | {{ CUDA_DRIVER }} or newer |
+| `{{ CUDA_LEGACY_STRING }}-v{{ FASTSURFER_VERSION }}` | {{ CUDA_LEGACY_VERSION }} | Maxwell (GTX 900) to Hopper (H100), including Pascal (GTX 10, P100) and Volta (V100), but not Blackwell | {{ CUDA_LEGACY_DRIVER }} or newer |
+
+Use the default image unless your GPU is older than Turing or your driver is older than {{ CUDA_DRIVER }}; then use the
+{{ CUDA_LEGACY_VERSION }} image. `nvidia-smi` shows the name of your GPU and the driver version.
+
+If FastSurfer cannot use your GPU, because the image has no support for it, the driver is too old, or the container was
+started without access to the GPU, it says so, names the image or flag to use instead, and runs on the CPU, which takes
+much longer.
+
 Apptainer or Singularity
 ------------------------
 [Apptainer](https://apptainer.org) is the open-source continuation of Singularity, and both run the same images.
@@ -73,12 +89,10 @@ semi-supported) GPU and the right kernel version. Install the AMD kernel modules
 [ROCm installation instructions](https://rocm.docs.amd.com/projects/install-on-linux/en/latest/), and add your user
 to the groups they name.
 
-Build the Docker image with ROCm support, for example:
+Then download our image for ROCm {{ ROCM_VERSION }}:
 
 ```bash
-export FASTSURFER_HOME=${FASTSURFER_HOME:-/path/to/FastSurfer}
-python3 $FASTSURFER_HOME/tools/Docker/build.py --device rocm \
-    --tag my_fastsurfer:rocm
+docker pull deepmi/fastsurfer:{{ ROCM_STRING }}-v{{ FASTSURFER_VERSION }}
 ```
 
 AMD needs a few more flags in the `docker run` command, see
@@ -90,7 +104,7 @@ Usage:
 docker run --cap-add=SYS_PTRACE --security-opt seccomp=unconfined \
         --device=/dev/kfd --device=/dev/dri --group-add video \
         --ipc=host --shm-size 8G \
-        <docker_flags> my_fastsurfer:rocm \
+        <docker_flags> deepmi/fastsurfer:{{ ROCM_STRING }}-v{{ FASTSURFER_VERSION }} \
                 <fastsurfer_flags>
 ```
 

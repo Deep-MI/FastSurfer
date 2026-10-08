@@ -22,7 +22,9 @@ The GPU image also needs:
   [CUDA Support for WSL 2](https://docs.nvidia.com/cuda/wsl-user-guide/index.html#cuda-support-for-wsl-2).
 
 [Enable NVIDIA CUDA on WSL](https://learn.microsoft.com/en-us/windows/ai/directml/gpu-cuda-in-wsl) explains how to
-install them. Then download the image:
+install them. The default image runs on Turing (RTX 20) and newer GPUs with driver {{ CUDA_DRIVER }} or newer; for
+older GPUs or drivers, use the `{{ CUDA_LEGACY_STRING }}` image instead, see [NVIDIA GPUs](LINUX.md#nvidia-gpus).
+Then download the image:
 
 ```bash
 docker pull deepmi/fastsurfer:{{ CUDA_STRING }}-v{{ FASTSURFER_VERSION }}

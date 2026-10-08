@@ -487,6 +487,38 @@ before your first full run. We provide images for NVIDIA GPUs (CUDA), for AMD GP
 and for the CPU only, on <a class="reference external" href="https://hub.docker.com/r/deepmi/fastsurfer">Docker Hub</a>.</p>
 <p>A GPU with enough memory makes the segmentation much faster, see the
 <a class="reference internal" href="../intro.html#system-requirements"><span class="std std-ref">system requirements</span></a>. Without a GPU, use the <a class="reference internal" href="#cpu-only"><span class="std std-ref">CPU image</span></a>.</p>
+<section id="nvidia-gpus">
+<h2>NVIDIA GPUs<a class="headerlink" href="#nvidia-gpus" title="Link to this heading">¶</a></h2>
+<p>We build the images for two CUDA versions, because newer CUDA versions drop old GPUs and older ones lack the newest:</p>
+<div class="table-wrapper colwidths-auto docutils container">
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Image</p></th>
+<th class="head"><p>CUDA</p></th>
+<th class="head"><p>GPUs</p></th>
+<th class="head"><p>NVIDIA driver</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">cu128-v2.5.4</span></code> (default, also <code class="docutils literal notranslate"><span class="pre">latest</span></code>)</p></td>
+<td><p>12.8</p></td>
+<td><p>Turing (RTX 20, T4) to Blackwell (RTX 50, B200)</p></td>
+<td><p>525 or newer</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">cu126-v2.5.4</span></code></p></td>
+<td><p>12.6</p></td>
+<td><p>Maxwell (GTX 900) to Hopper (H100), including Pascal (GTX 10, P100) and Volta (V100), but not Blackwell</p></td>
+<td><p>525 or newer</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>Use the default image unless your GPU is older than Turing or your driver is older than 525; then use the
+12.6 image. <code class="docutils literal notranslate"><span class="pre">nvidia-smi</span></code> shows the name of your GPU and the driver version.</p>
+<p>If FastSurfer cannot use your GPU, because the image has no support for it, the driver is too old, or the container was
+started without access to the GPU, it says so, names the image or flag to use instead, and runs on the CPU, which takes
+much longer.</p>
+</section>
 <section id="apptainer-or-singularity">
 <h2>Apptainer or Singularity<a class="headerlink" href="#apptainer-or-singularity" title="Link to this heading">¶</a></h2>
 <p><a class="reference external" href="https://apptainer.org">Apptainer</a> is the open-source continuation of Singularity, and both run the same images.
@@ -556,19 +588,25 @@ singularity<span class="w"> </span>build<span class="w"> </span><span class="se"
 semi-supported) GPU and the right kernel version. Install the AMD kernel modules on the host as described in the
 <a class="reference external" href="https://rocm.docs.amd.com/projects/install-on-linux/en/latest/">ROCm installation instructions</a>, and add your user
 to the groups they name.</p>
-<p>Build the Docker image with ROCm support, for example:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span><span class="w"> </span><span class="nv">FASTSURFER_HOME</span><span class="o">=</span><span class="si">${</span><span class="nv">FASTSURFER_HOME</span><span class="k">:-</span><span class="p">/path/to/FastSurfer</span><span class="si">}</span>
-python3<span class="w"> </span><span class="nv">$FASTSURFER_HOME</span>/tools/Docker/build.py<span class="w"> </span>--device<span class="w"> </span>rocm<span class="w"> </span><span class="se">\</span>
-<span class="w">    </span>--tag<span class="w"> </span>my_fastsurfer:rocm
+<p>Then download our image for ROCm 6.3:</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This documents the development version 2.6.0. Official Docker images only exist for releases, so the commands below use the latest release, 2.5.4. To run the development version, <a class="reference internal" href="../docker.html"><span class="doc">build your own image</span></a>.</p>
+</div>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>docker<span class="w"> </span>pull<span class="w"> </span>deepmi/fastsurfer:rocm6.3-v2.5.4
 </pre></div>
 </div>
 <p>AMD needs a few more flags in the <code class="docutils literal notranslate"><span class="pre">docker</span> <span class="pre">run</span></code> command, see
 <a class="reference internal" href="../EXAMPLES.html#example-2-fastsurfer-docker"><span class="std std-ref">Example 2</span></a> for <code class="docutils literal notranslate"><span class="pre">&lt;docker_flags&gt;</span></code> and <code class="docutils literal notranslate"><span class="pre">&lt;fastsurfer_flags&gt;</span></code>.</p>
 <p>Usage:</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This documents the development version 2.6.0. Official Docker images only exist for releases, so the commands below use the latest release, 2.5.4. To run the development version, <a class="reference internal" href="../docker.html"><span class="doc">build your own image</span></a>.</p>
+</div>
 <div class="highlight-text notranslate"><div class="highlight"><pre><span></span>docker run --cap-add=SYS_PTRACE --security-opt seccomp=unconfined \
         --device=/dev/kfd --device=/dev/dri --group-add video \
         --ipc=host --shm-size 8G \
-        &lt;docker_flags&gt; my_fastsurfer:rocm \
+        &lt;docker_flags&gt; deepmi/fastsurfer:rocm6.3-v2.5.4 \
                 &lt;fastsurfer_flags&gt;
 </pre></div>
 </div>
@@ -643,6 +681,7 @@ results. Check them visually.</p>
           <div class="toc-tree">
             <ul>
 <li><a class="reference internal" href="#">Linux</a><ul>
+<li><a class="reference internal" href="#nvidia-gpus">NVIDIA GPUs</a></li>
 <li><a class="reference internal" href="#apptainer-or-singularity">Apptainer or Singularity</a></li>
 <li><a class="reference internal" href="#docker">Docker</a></li>
 <li><a class="reference internal" href="#cpu-only">CPU only</a></li>
