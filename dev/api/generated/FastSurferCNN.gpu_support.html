@@ -204,9 +204,9 @@
 <li class="toctree-l3"><a class="reference internal" href="../../overview/install/MACOS.html">macOS</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../overview/install/LINUX.html">Linux</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../overview/install/WINDOWS.html">Windows</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../overview/install/NATIVE.html">From source (native installation)</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../overview/docker.html">Docker Support</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../overview/SINGULARITY.html">Singularity Support</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../overview/SINGULARITY.html">Apptainer and Singularity</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../overview/docker.html">Docker</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../overview/install/NATIVE.html">Installing from source</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../overview/EXAMPLES.html">Examples</a></li>
@@ -497,7 +497,7 @@ on the cpu. None of them is 1 or 2, which a crash or an argument error returns.<
 <p>Imports torch only inside the functions that need it, so the rest can be tested without it.</p>
 <dl class="py function">
 <dt class="sig sig-object py" id="FastSurferCNN.gpu_support.cuda_problem">
-<span class="sig-prename descclassname"><span class="pre">FastSurferCNN.gpu_support.</span></span><span class="sig-name descname"><span class="pre">cuda_problem</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">device_index</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/4dfee35/FastSurferCNN/gpu_support.py#L179-L248"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.gpu_support.cuda_problem" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">FastSurferCNN.gpu_support.</span></span><span class="sig-name descname"><span class="pre">cuda_problem</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">device_index</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/0618e2c/FastSurferCNN/gpu_support.py#L179-L248"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.gpu_support.cuda_problem" title="Link to this definition">¶</a></dt>
 <dd><p>Find out why cuda cannot be used on this machine, if it cannot.</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -519,7 +519,7 @@ but unusable, “note” when a container may just have been started without the
 
 <dl class="py function">
 <dt class="sig sig-object py" id="FastSurferCNN.gpu_support.supports_capability">
-<span class="sig-prename descclassname"><span class="pre">FastSurferCNN.gpu_support.</span></span><span class="sig-name descname"><span class="pre">supports_capability</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">capability</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">arch_list</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/4dfee35/FastSurferCNN/gpu_support.py#L64-L98"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.gpu_support.supports_capability" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">FastSurferCNN.gpu_support.</span></span><span class="sig-name descname"><span class="pre">supports_capability</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">capability</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">arch_list</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/0618e2c/FastSurferCNN/gpu_support.py#L64-L98"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.gpu_support.supports_capability" title="Link to this definition">¶</a></dt>
 <dd><p>Whether a PyTorch build compiled for these architectures runs on a GPU of this capability.</p>
 <p>A cubin (<code class="xref py py-obj docutils literal notranslate"><span class="pre">sm_XY</span></code>) runs on the same major architecture at an equal or higher minor version, so
 sm_120 also covers sm_121. PTX (<code class="xref py py-obj docutils literal notranslate"><span class="pre">compute_XY</span></code>) is compiled by the driver for any GPU at or above

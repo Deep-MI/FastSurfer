@@ -3,10 +3,10 @@
   <head><meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
-<link rel="index" title="Index" href="../../genindex.html"><link rel="search" title="Search" href="../../search.html"><link rel="next" title="Docker Support" href="../docker.html"><link rel="prev" title="Windows" href="WINDOWS.html">
+<link rel="index" title="Index" href="../../genindex.html"><link rel="search" title="Search" href="../../search.html"><link rel="next" title="Examples" href="../EXAMPLES.html"><link rel="prev" title="Docker" href="../docker.html">
 
     <!-- Generated with Sphinx 7.4.7 and Furo 2025.12.19 -->
-        <title>From source (native installation) - FastSurfer</title>
+        <title>Installing from source - FastSurfer</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
@@ -204,9 +204,9 @@
 <li class="toctree-l3"><a class="reference internal" href="MACOS.html">macOS</a></li>
 <li class="toctree-l3"><a class="reference internal" href="LINUX.html">Linux</a></li>
 <li class="toctree-l3"><a class="reference internal" href="WINDOWS.html">Windows</a></li>
-<li class="toctree-l3 current current-page"><a class="current reference internal" href="#">From source (native installation)</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../docker.html">Docker Support</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../SINGULARITY.html">Singularity Support</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../SINGULARITY.html">Apptainer and Singularity</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../docker.html">Docker</a></li>
+<li class="toctree-l3 current current-page"><a class="current reference internal" href="#">Installing from source</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../EXAMPLES.html">Examples</a></li>
@@ -478,13 +478,13 @@
           </label>
         </div>
         <article role="main" id="furo-main-content">
-          <section id="from-source-native-installation">
-<h1>From source (native installation)<a class="headerlink" href="#from-source-native-installation" title="Link to this heading">¶</a></h1>
+          <section id="installing-from-source">
+<h1>Installing from source<a class="headerlink" href="#installing-from-source" title="Link to this heading">¶</a></h1>
 <p>A native installation runs FastSurfer directly on your system, without a container. It is the setup for developers
 and for systems where containers are not available. You install all dependencies yourself (system packages, Python
 packages and FreeSurfer in the supported version), so the results can differ from our testing environment, and we
-may not be able to help if something does not work. We test FastSurfer 2.5.4 with Ubuntu
-24.04, the base of our Docker images, and the steps below are for Ubuntu.</p>
+may not be able to help if something does not work. We test FastSurfer with Ubuntu 24.04, the base of
+our Docker images, and the steps below are for Ubuntu.</p>
 <ol class="arabic simple">
 <li><p>System packages</p></li>
 </ol>
@@ -510,6 +510,7 @@ makes managing different environments easy. See
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>wget<span class="w"> </span>-qO-<span class="w"> </span>https://astral.sh/uv/install.sh<span class="w"> </span><span class="p">|</span><span class="w"> </span>sh
 </pre></div>
 </div>
+<p>Then open a new terminal (or follow the installer’s instructions), so <code class="docutils literal notranslate"><span class="pre">uv</span></code> is on your <code class="docutils literal notranslate"><span class="pre">PATH</span></code>.</p>
 <ol class="arabic simple" start="3">
 <li><p>FastSurfer</p></li>
 </ol>
@@ -539,8 +540,8 @@ uv<span class="w"> </span>venv<span class="w"> </span>--python<span class="w"> <
 <span class="w">    </span>uv<span class="w"> </span>pip<span class="w"> </span>sync<span class="w"> </span>--no-build<span class="w"> </span>--torch-backend<span class="w"> </span>auto<span class="w"> </span>-<span class="w"> </span><span class="o">&lt;&lt;&lt;</span><span class="w"> </span><span class="s2">"</span><span class="nv">$resolved</span><span class="s2">"</span>
 </pre></div>
 </div>
-<p>To select the PyTorch backend yourself, for example for testing, replace <code class="docutils literal notranslate"><span class="pre">auto</span></code> in both commands, for example with
-<code class="docutils literal notranslate"><span class="pre">cpu</span></code> or <code class="docutils literal notranslate"><span class="pre">cu128</span></code>:</p>
+<p>To select the PyTorch backend yourself, for example for testing, replace <code class="docutils literal notranslate"><span class="pre">auto</span></code> in both commands, e.g. with <code class="docutils literal notranslate"><span class="pre">cpu</span></code> or
+<code class="docutils literal notranslate"><span class="pre">cu128</span></code>:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># make sure you are in the FastSurfer directory!</span>
 <span class="nv">resolved</span><span class="o">=</span><span class="k">$(</span>uv<span class="w"> </span>pip<span class="w"> </span>compile<span class="w"> </span>--no-build<span class="w"> </span>--torch-backend<span class="w"> </span>cpu<span class="w"> </span>requirements.txt<span class="k">)</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>uv<span class="w"> </span>pip<span class="w"> </span>sync<span class="w"> </span>--no-build<span class="w"> </span>--torch-backend<span class="w"> </span>cpu<span class="w"> </span>-<span class="w"> </span><span class="o">&lt;&lt;&lt;</span><span class="w"> </span><span class="s2">"</span><span class="nv">$resolved</span><span class="s2">"</span>
@@ -553,9 +554,9 @@ from <code class="docutils literal notranslate"><span class="pre">pyproject.toml
 <span class="w">    </span>uv<span class="w"> </span>pip<span class="w"> </span>sync<span class="w"> </span>--torch-backend<span class="w"> </span>auto<span class="w"> </span>-<span class="w"> </span><span class="o">&lt;&lt;&lt;</span><span class="w"> </span><span class="s2">"</span><span class="nv">$resolved</span><span class="s2">"</span>
 </pre></div>
 </div>
-<p>Leave out <code class="docutils literal notranslate"><span class="pre">--no-build</span></code> here: <code class="docutils literal notranslate"><span class="pre">bibtexparser</span></code>, which the <code class="docutils literal notranslate"><span class="pre">style</span></code> extra needs, only ships source code (pure Python,
-no compiler needed), and <code class="docutils literal notranslate"><span class="pre">--no-build</span></code> makes <code class="docutils literal notranslate"><span class="pre">uv</span></code> resolve different versions to avoid it. <code class="docutils literal notranslate"><span class="pre">bibtexparser</span></code> should be
-the only package <code class="docutils literal notranslate"><span class="pre">uv</span></code> builds (<code class="docutils literal notranslate"><span class="pre">Building</span> <span class="pre">bibtexparser</span></code>).</p>
+<p>Leave out <code class="docutils literal notranslate"><span class="pre">--no-build</span></code> here: with the <code class="docutils literal notranslate"><span class="pre">style</span></code> or <code class="docutils literal notranslate"><span class="pre">all</span></code> extra, <code class="docutils literal notranslate"><span class="pre">bibtexparser</span></code> (which <code class="docutils literal notranslate"><span class="pre">bibclean</span></code> needs) only ships
+source code (pure Python, no compiler needed), and <code class="docutils literal notranslate"><span class="pre">--no-build</span></code> makes <code class="docutils literal notranslate"><span class="pre">uv</span></code> resolve different versions to avoid it.
+<code class="docutils literal notranslate"><span class="pre">bibtexparser</span></code> should be the only package <code class="docutils literal notranslate"><span class="pre">uv</span></code> builds (<code class="docutils literal notranslate"><span class="pre">Building</span> <span class="pre">bibtexparser</span></code>).</p>
 </div></blockquote>
 <p>Activate the FastSurfer environment with:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">source</span><span class="w"> </span>.venv/bin/activate
@@ -566,7 +567,8 @@ the only package <code class="docutils literal notranslate"><span class="pre">uv
 <span class="nb">export</span><span class="w"> </span><span class="nv">PYTHONPATH</span><span class="o">=</span><span class="s2">"</span><span class="si">${</span><span class="nv">PYTHONPATH</span><span class="si">}</span><span class="s2">:</span><span class="nv">$PWD</span><span class="s2">"</span>
 </pre></div>
 </div>
-<p>You need to do this every time you run FastSurfer, or add the line to your <code class="docutils literal notranslate"><span class="pre">~/.bashrc</span></code> if you use bash, for example:</p>
+<p>You need to activate the environment and set the Python path in every new terminal before you run FastSurfer. To set
+the Python path automatically, add it to your <code class="docutils literal notranslate"><span class="pre">~/.bashrc</span></code> if you use bash, for example:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># make sure you are in the FastSurfer directory!</span>
 <span class="nb">echo</span><span class="w"> </span><span class="s2">"export PYTHONPATH=\"\${PYTHONPATH}:</span><span class="k">$(</span><span class="nb">pwd</span><span class="k">)</span><span class="s2">\""</span><span class="w"> </span>&gt;&gt;<span class="w"> </span>~/.bashrc
 </pre></div>
@@ -601,23 +603,23 @@ example the one for Rocky Linux, or run the full pipeline with our Docker or Sin
       <footer>
         
         <div class="related-pages">
-          <a class="next-page" href="../docker.html">
+          <a class="next-page" href="../EXAMPLES.html">
               <div class="page-info">
                 <div class="context">
                   <span>Next</span>
                 </div>
-                <div class="title">Docker Support</div>
+                <div class="title">Examples</div>
               </div>
               <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
             </a>
-          <a class="prev-page" href="WINDOWS.html">
+          <a class="prev-page" href="../docker.html">
               <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
               <div class="page-info">
                 <div class="context">
                   <span>Previous</span>
                 </div>
                 
-                <div class="title">Windows</div>
+                <div class="title">Docker</div>
                 
               </div>
             </a>

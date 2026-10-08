@@ -3,10 +3,10 @@
   <head><meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
-<link rel="index" title="Index" href="../genindex.html"><link rel="search" title="Search" href="../search.html"><link rel="next" title="Examples" href="EXAMPLES.html"><link rel="prev" title="Docker Support" href="docker.html">
+<link rel="index" title="Index" href="../genindex.html"><link rel="search" title="Search" href="../search.html"><link rel="next" title="Docker" href="docker.html"><link rel="prev" title="Windows" href="install/WINDOWS.html">
 
     <!-- Generated with Sphinx 7.4.7 and Furo 2025.12.19 -->
-        <title>Singularity Support - FastSurfer</title>
+        <title>Apptainer and Singularity - FastSurfer</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
@@ -204,9 +204,9 @@
 <li class="toctree-l3"><a class="reference internal" href="install/MACOS.html">macOS</a></li>
 <li class="toctree-l3"><a class="reference internal" href="install/LINUX.html">Linux</a></li>
 <li class="toctree-l3"><a class="reference internal" href="install/WINDOWS.html">Windows</a></li>
-<li class="toctree-l3"><a class="reference internal" href="install/NATIVE.html">From source (native installation)</a></li>
-<li class="toctree-l3"><a class="reference internal" href="docker.html">Docker Support</a></li>
-<li class="toctree-l3 current current-page"><a class="current reference internal" href="#">Singularity Support</a></li>
+<li class="toctree-l3 current current-page"><a class="current reference internal" href="#">Apptainer and Singularity</a></li>
+<li class="toctree-l3"><a class="reference internal" href="docker.html">Docker</a></li>
+<li class="toctree-l3"><a class="reference internal" href="install/NATIVE.html">Installing from source</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="EXAMPLES.html">Examples</a></li>
@@ -478,8 +478,8 @@
           </label>
         </div>
         <article role="main" id="furo-main-content">
-          <section id="singularity-support">
-<h1>Singularity Support<a class="headerlink" href="#singularity-support" title="Link to this heading">¶</a></h1>
+          <section id="apptainer-and-singularity">
+<h1>Apptainer and Singularity<a class="headerlink" href="#apptainer-and-singularity" title="Link to this heading">¶</a></h1>
 <section id="containerization">
 <h2>Containerization<a class="headerlink" href="#containerization" title="Link to this heading">¶</a></h2>
 <p>Containerization tools like Apptainer (Singularity) or Docker provide several advantages.
@@ -493,12 +493,13 @@ which reduces the risk of both data theft and data encryption attacks. This stra
 </section>
 <section id="using-apptainer-or-singularity">
 <h2>Using Apptainer (or Singularity)<a class="headerlink" href="#using-apptainer-or-singularity" title="Link to this heading">¶</a></h2>
-<p>In the following, we write “Singularity”, but all steps work the same with the <a class="reference external" href="https://apptainer.org">open source Apptainer</a>.</p>
-<p>To run FastSurfer in a Singularity container, you have to:</p>
+<p><a class="reference external" href="https://apptainer.org">Apptainer</a> is the open-source continuation of Singularity, and both run the same images.
+Apptainer also installs the <code class="docutils literal notranslate"><span class="pre">singularity</span></code> command, so the commands below use <code class="docutils literal notranslate"><span class="pre">singularity</span></code> and work with either.</p>
+<p>To run FastSurfer in an Apptainer container, you have to:</p>
 <ol class="arabic">
-<li><p><a class="reference internal" href="#downloading-the-official-fastsurfer-image-for-singularity"><span class="std std-ref">download</span></a> or
-<a class="reference internal" href="#creating-your-own-fastsurfer-singularity-image"><span class="std std-ref">create</span></a> a Singularity image of FastSurfer.</p></li>
-<li><p><a class="reference internal" href="#starting-fastsurfer-from-a-singularity-image"><span class="std std-ref">Start the Singularity container from the image</span></a> with options for
+<li><p><a class="reference internal" href="#downloading-the-official-fastsurfer-image-for-apptainer"><span class="std std-ref">download</span></a> or
+<a class="reference internal" href="#creating-your-own-fastsurfer-apptainer-image"><span class="std std-ref">create</span></a> an Apptainer image of FastSurfer.</p></li>
+<li><p><a class="reference internal" href="#starting-fastsurfer-from-an-apptainer-image"><span class="std std-ref">Start the Apptainer container from the image</span></a> with options for
 the container. It is useful to think of the image as a “hard drive” and the container as a “simulated computer
 inside the computer”.</p>
 <p>We refer to these “options for the container” as <code class="docutils literal notranslate"><span class="pre">&lt;singularity_flags&gt;</span></code>. They are not options to FastSurfer (referred
@@ -507,11 +508,11 @@ cards), etc.</p>
 </li>
 </ol>
 </section>
-<section id="downloading-the-official-fastsurfer-image-for-singularity">
-<h2>Downloading the official FastSurfer image for Singularity<a class="headerlink" href="#downloading-the-official-fastsurfer-image-for-singularity" title="Link to this heading">¶</a></h2>
-<p>Singularity uses its own image format, so it downloads the official Docker images from
+<section id="downloading-the-official-fastsurfer-image-for-apptainer">
+<h2>Downloading the official FastSurfer image for Apptainer<a class="headerlink" href="#downloading-the-official-fastsurfer-image-for-apptainer" title="Link to this heading">¶</a></h2>
+<p>Apptainer uses its own image format, so it downloads the official Docker images from
 <a class="reference external" href="https://hub.docker.com/r/deepmi/fastsurfer/tags">Docker Hub</a> and converts them.</p>
-<p>To create an official FastSurfer Singularity image, run <code class="docutils literal notranslate"><span class="pre">singularity</span> <span class="pre">build</span></code>. Usage:</p>
+<p>To create an official FastSurfer Apptainer image, run <code class="docutils literal notranslate"><span class="pre">singularity</span> <span class="pre">build</span></code>. Usage:</p>
 <div class="highlight-text notranslate"><div class="highlight"><pre><span></span>singularity build &lt;sif_path&gt; &lt;source&gt;
 </pre></div>
 </div>
@@ -524,17 +525,17 @@ cards), etc.</p>
 <span class="w">    </span>docker://deepmi/fastsurfer:cu128-v2.5.4
 </pre></div>
 </div>
-<p>Singularity images are files with the extension <code class="docutils literal notranslate"><span class="pre">.sif</span></code>. Here, we save the image in <code class="docutils literal notranslate"><span class="pre">$HOME/my_singularity_images</span></code>.
+<p>Apptainer images are files with the extension <code class="docutils literal notranslate"><span class="pre">.sif</span></code>. Here, we save the image in <code class="docutils literal notranslate"><span class="pre">$HOME/my_singularity_images</span></code>.
 To use another image, change the tag <code class="docutils literal notranslate"><span class="pre">cu128-v2.5.4</span></code> in <code class="docutils literal notranslate"><span class="pre">&lt;source&gt;</span></code>, for example to the
 <a class="reference external" href="https://hub.docker.com/r/deepmi/fastsurfer/tags?name=cpu">CPU image</a> (<code class="docutils literal notranslate"><span class="pre">cpu-v2.5.4</span></code>), to another
 FastSurfer version, or to the image for another CUDA version, see
 <a class="reference internal" href="install/LINUX.html#nvidia-gpus"><span class="std std-ref">which image fits your GPU</span></a>.</p>
 </section>
-<section id="creating-your-own-fastsurfer-singularity-image">
-<h2>Creating your own FastSurfer Singularity image<a class="headerlink" href="#creating-your-own-fastsurfer-singularity-image" title="Link to this heading">¶</a></h2>
-<p>To build a custom FastSurfer Singularity image, the <code class="docutils literal notranslate"><span class="pre">tools/Docker/build.py</span></code> script supports a flag for direct conversion.
+<section id="creating-your-own-fastsurfer-apptainer-image">
+<h2>Creating your own FastSurfer Apptainer image<a class="headerlink" href="#creating-your-own-fastsurfer-apptainer-image" title="Link to this heading">¶</a></h2>
+<p>To build a custom FastSurfer Apptainer image, the <code class="docutils literal notranslate"><span class="pre">tools/Docker/build.py</span></code> script supports a flag for direct conversion.
 Simply add <code class="docutils literal notranslate"><span class="pre">--singularity</span> <span class="pre">$HOME/my_singularity_images/fastsurfer-myimage.sif</span></code> to the call, which first builds the image
-with Docker and then converts it to Singularity.</p>
+with Docker and then converts it to an Apptainer image.</p>
 <p>If you want to manually convert the local Docker image <code class="docutils literal notranslate"><span class="pre">fastsurfer:myimage</span></code>, run:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>singularity<span class="w"> </span>build<span class="w"> </span><span class="nv">$HOME</span>/my_singularity_images/fastsurfer-myimage.sif<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>docker-daemon://fastsurfer:myimage
@@ -542,12 +543,12 @@ with Docker and then converts it to Singularity.</p>
 </div>
 <p>For more information on how to create your own Docker images, see our <a class="reference internal" href="docker.html"><span class="doc std std-ref">Docker guide</span></a>.</p>
 </section>
-<section id="starting-fastsurfer-from-a-singularity-image">
-<h2>Starting FastSurfer from a Singularity image<a class="headerlink" href="#starting-fastsurfer-from-a-singularity-image" title="Link to this heading">¶</a></h2>
+<section id="starting-fastsurfer-from-an-apptainer-image">
+<h2>Starting FastSurfer from an Apptainer image<a class="headerlink" href="#starting-fastsurfer-from-an-apptainer-image" title="Link to this heading">¶</a></h2>
 <p>The surface reconstruction needs a FreeSurfer license, as with Docker:
 <a class="reference external" href="https://surfer.nmr.mgh.harvard.edu/registration.html">register at the FreeSurfer website</a> to get one for free, and pass
 it to FastSurfer with the <code class="docutils literal notranslate"><span class="pre">--fs_license</span></code> flag. The segmentation alone does not need a license.</p>
-<p>To run FastSurfer on a subject with the Singularity image and GPU access, execute:</p>
+<p>To run FastSurfer on a subject with the Apptainer image and GPU access, execute:</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>This documents the development version 2.6.0. Official Docker images only exist for releases, so the commands below use the latest release, 2.5.4, for its default CUDA version, 12.8. Images of 2.5.4 for other CUDA versions, ROCm and CPU are available on <a class="reference external" href="https://hub.docker.com/r/deepmi/fastsurfer/tags?name=v2.5.4">Docker Hub</a>. To run the development version, <a class="reference internal" href="docker.html"><span class="doc">build your own image</span></a>.</p>
@@ -566,11 +567,11 @@ singularity<span class="w"> </span><span class="nb">exec</span><span class="w"> 
 <span class="w">                 </span>--3T<span class="w"> </span>--threads<span class="w"> </span><span class="m">4</span>
 </pre></div>
 </div>
-<section id="singularity-flags">
-<h3>Singularity Flags<a class="headerlink" href="#singularity-flags" title="Link to this heading">¶</a></h3>
+<section id="apptainer-flags">
+<h3>Apptainer Flags<a class="headerlink" href="#apptainer-flags" title="Link to this heading">¶</a></h3>
 <ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">--nv</span></code>: gives the container access to NVIDIA GPUs. Leave it out to run FastSurfer on the CPU.</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">--no-mount</span> <span class="pre">home,cwd</span></code>: tells Singularity not to mount the home directory or the current working directory inside the
+<li><p><code class="docutils literal notranslate"><span class="pre">--no-mount</span> <span class="pre">home,cwd</span></code>: tells Apptainer not to mount the home directory or the current working directory inside the
 container (see <a class="reference internal" href="#best-practices"><span class="std std-ref">Best Practices</span></a>).</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">-e</span></code>: does not pass the environment variables of the host into the container.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">-B</span> <span class="pre">&lt;host_dir&gt;</span></code>: shares a directory or file of the host with the container. Only paths listed here are available to
@@ -592,9 +593,9 @@ is visible inside the container as <code class="docutils literal notranslate"><s
 example, the output will be written to <code class="docutils literal notranslate"><span class="pre">$HOME/my_fastsurfer_analysis/subjectX/</span></code>. FastSurfer may overwrite files in
 <code class="docutils literal notranslate"><span class="pre">$HOME/my_fastsurfer_analysis/subjectX/</span></code>.</p>
 </section>
-<section id="singularity-without-a-gpu">
-<h3>Singularity without a GPU<a class="headerlink" href="#singularity-without-a-gpu" title="Link to this heading">¶</a></h3>
-<p>Without a GPU, build a Singularity image from the CPU image and leave out <code class="docutils literal notranslate"><span class="pre">--nv</span></code> in the <code class="docutils literal notranslate"><span class="pre">singularity</span> <span class="pre">exec</span></code> command:</p>
+<section id="apptainer-without-a-gpu">
+<h3>Apptainer without a GPU<a class="headerlink" href="#apptainer-without-a-gpu" title="Link to this heading">¶</a></h3>
+<p>Without a GPU, build an Apptainer image from the CPU image and leave out <code class="docutils literal notranslate"><span class="pre">--nv</span></code> in the <code class="docutils literal notranslate"><span class="pre">singularity</span> <span class="pre">exec</span></code> command:</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>This documents the development version 2.6.0. Official Docker images only exist for releases, so the commands below use the latest release, 2.5.4. To run the development version, <a class="reference internal" href="docker.html"><span class="doc">build your own image</span></a>.</p>
@@ -626,7 +627,7 @@ without <code class="docutils literal notranslate"><span class="pre">--nv</span>
 image for an older CUDA version, see <a class="reference internal" href="install/LINUX.html#nvidia-gpus"><span class="std std-ref">which image fits your GPU</span></a>. If you built the
 underlying Docker image yourself, choose a different <code class="docutils literal notranslate"><span class="pre">--device</span></code> option.</p>
 </li>
-<li><p>Building a Singularity image from a local Docker image with
+<li><p>Building an Apptainer image from a local Docker image with
 <code class="docutils literal notranslate"><span class="pre">singularity</span> <span class="pre">build</span> <span class="pre">&lt;sif_path&gt;</span> <span class="pre">docker-daemon://fastsurfer:myimage</span></code> fails with an error message like this:</p>
 <div class="highlight-text notranslate"><div class="highlight"><pre><span></span>INFO:    Starting build...
 FATAL:   While performing build: conveyor failed to get: loading image from
@@ -636,14 +637,14 @@ FATAL:   While performing build: conveyor failed to get: loading image from
 </pre></div>
 </div>
 <p>To solve this issue, export the image from Docker with <code class="docutils literal notranslate"><span class="pre">docker</span> <span class="pre">save</span> <span class="pre">-o</span> <span class="pre">&lt;docker_archive_path&gt;</span> <span class="pre">&lt;image_tag&gt;</span></code>, and build
-the Singularity image from that archive with <code class="docutils literal notranslate"><span class="pre">singularity</span> <span class="pre">build</span> <span class="pre">&lt;sif_path&gt;</span> <span class="pre">docker-archive:&lt;docker_archive_path&gt;</span></code>.</p>
+the Apptainer image from that archive with <code class="docutils literal notranslate"><span class="pre">singularity</span> <span class="pre">build</span> <span class="pre">&lt;sif_path&gt;</span> <span class="pre">docker-archive:&lt;docker_archive_path&gt;</span></code>.</p>
 </li>
 <li><p>I get the following warning:</p>
 <div class="highlight-text notranslate"><div class="highlight"><pre><span></span>WARNING: Error changing the container working directory. Using '/' instead:
   chdir /home/***: no such file or directory
 </pre></div>
 </div>
-<p>This is because the home directory is not mounted inside the Singularity container (see
+<p>This is because the home directory is not mounted inside the Apptainer container (see
 <a class="reference internal" href="#best-practices"><span class="std std-ref">Best Practices</span></a>). You can ignore this warning, since <code class="docutils literal notranslate"><span class="pre">/</span></code> as the working directory does not cause any
 issues, or specify a different working directory with <code class="docutils literal notranslate"><span class="pre">--cwd</span> <span class="pre">&lt;directory&gt;</span></code>, for example <code class="docutils literal notranslate"><span class="pre">--cwd</span> <span class="pre">/fastsurfer</span></code>.</p>
 </li>
@@ -653,10 +654,10 @@ issues, or specify a different working directory with <code class="docutils lite
 <h2>Best Practices<a class="headerlink" href="#best-practices" title="Link to this heading">¶</a></h2>
 <section id="mounting-home-and-current-working-directory">
 <h3>Mounting Home and Current Working Directory<a class="headerlink" href="#mounting-home-and-current-working-directory" title="Link to this heading">¶</a></h3>
-<p>Do not mount the user home directory into the Singularity container as the home directory.</p>
-<p>Why? If the user inside the Singularity container has access to a user directory, settings from that directory might
+<p>Do not mount the user home directory into the Apptainer container as the home directory.</p>
+<p>Why? If the user inside the Apptainer container has access to a user directory, settings from that directory might
 bleed into the FastSurfer pipeline.</p>
-<p>How? Singularity mounts the home directory by default. To avoid this, specify <code class="docutils literal notranslate"><span class="pre">--no-mount</span> <span class="pre">home,cwd</span></code>. Additionally,
+<p>How? Apptainer mounts the home directory by default. To avoid this, specify <code class="docutils literal notranslate"><span class="pre">--no-mount</span> <span class="pre">home,cwd</span></code>. Additionally,
 the <code class="docutils literal notranslate"><span class="pre">-e</span></code> flag ensures that no environment variables are passed from the host system into the container.</p>
 </section>
 </section>
@@ -667,23 +668,23 @@ the <code class="docutils literal notranslate"><span class="pre">-e</span></code
       <footer>
         
         <div class="related-pages">
-          <a class="next-page" href="EXAMPLES.html">
+          <a class="next-page" href="docker.html">
               <div class="page-info">
                 <div class="context">
                   <span>Next</span>
                 </div>
-                <div class="title">Examples</div>
+                <div class="title">Docker</div>
               </div>
               <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
             </a>
-          <a class="prev-page" href="docker.html">
+          <a class="prev-page" href="install/WINDOWS.html">
               <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
               <div class="page-info">
                 <div class="context">
                   <span>Previous</span>
                 </div>
                 
-                <div class="title">Docker Support</div>
+                <div class="title">Windows</div>
                 
               </div>
             </a>
@@ -723,15 +724,15 @@ the <code class="docutils literal notranslate"><span class="pre">-e</span></code
         <div class="toc-tree-container">
           <div class="toc-tree">
             <ul>
-<li><a class="reference internal" href="#">Singularity Support</a><ul>
+<li><a class="reference internal" href="#">Apptainer and Singularity</a><ul>
 <li><a class="reference internal" href="#containerization">Containerization</a></li>
 <li><a class="reference internal" href="#using-apptainer-or-singularity">Using Apptainer (or Singularity)</a></li>
-<li><a class="reference internal" href="#downloading-the-official-fastsurfer-image-for-singularity">Downloading the official FastSurfer image for Singularity</a></li>
-<li><a class="reference internal" href="#creating-your-own-fastsurfer-singularity-image">Creating your own FastSurfer Singularity image</a></li>
-<li><a class="reference internal" href="#starting-fastsurfer-from-a-singularity-image">Starting FastSurfer from a Singularity image</a><ul>
-<li><a class="reference internal" href="#singularity-flags">Singularity Flags</a></li>
+<li><a class="reference internal" href="#downloading-the-official-fastsurfer-image-for-apptainer">Downloading the official FastSurfer image for Apptainer</a></li>
+<li><a class="reference internal" href="#creating-your-own-fastsurfer-apptainer-image">Creating your own FastSurfer Apptainer image</a></li>
+<li><a class="reference internal" href="#starting-fastsurfer-from-an-apptainer-image">Starting FastSurfer from an Apptainer image</a><ul>
+<li><a class="reference internal" href="#apptainer-flags">Apptainer Flags</a></li>
 <li><a class="reference internal" href="#fastsurfer-flags">FastSurfer Flags</a></li>
-<li><a class="reference internal" href="#singularity-without-a-gpu">Singularity without a GPU</a></li>
+<li><a class="reference internal" href="#apptainer-without-a-gpu">Apptainer without a GPU</a></li>
 </ul>
 </li>
 <li><a class="reference internal" href="#common-problems">Common problems</a></li>

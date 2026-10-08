@@ -204,9 +204,9 @@
 <li class="toctree-l3"><a class="reference internal" href="../../overview/install/MACOS.html">macOS</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../overview/install/LINUX.html">Linux</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../overview/install/WINDOWS.html">Windows</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../overview/install/NATIVE.html">From source (native installation)</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../overview/docker.html">Docker Support</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../overview/SINGULARITY.html">Singularity Support</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../overview/SINGULARITY.html">Apptainer and Singularity</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../overview/docker.html">Docker</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../overview/install/NATIVE.html">Installing from source</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../overview/EXAMPLES.html">Examples</a></li>
@@ -482,7 +482,7 @@
 <span id="corpuscallosum-transforms-segmentation"></span><h1>CorpusCallosum.transforms.segmentation<a class="headerlink" href="#module-CorpusCallosum.transforms.segmentation" title="Link to this heading">¶</a></h1>
 <dl class="py class">
 <dt class="sig sig-object py" id="CorpusCallosum.transforms.segmentation.CropAroundACPC">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">CorpusCallosum.transforms.segmentation.</span></span><span class="sig-name descname"><span class="pre">CropAroundACPC</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/4dfee35/CorpusCallosum/transforms/segmentation.py#L21-L114"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CorpusCallosum.transforms.segmentation.CropAroundACPC" title="Link to this definition">¶</a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">CorpusCallosum.transforms.segmentation.</span></span><span class="sig-name descname"><span class="pre">CropAroundACPC</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/0618e2c/CorpusCallosum/transforms/segmentation.py#L21-L114"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CorpusCallosum.transforms.segmentation.CropAroundACPC" title="Link to this definition">¶</a></dt>
 <dd><p>Crop image around anterior and posterior commissure points.</p>
 <p>A transform that crops the input image around the AC and PC points with
 optional padding and random translation.</p>
@@ -548,7 +548,7 @@ optional padding and random translation.</p>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="CorpusCallosum.transforms.segmentation.CropAroundACPCtrack">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">CorpusCallosum.transforms.segmentation.</span></span><span class="sig-name descname"><span class="pre">CropAroundACPCtrack</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/4dfee35/CorpusCallosum/transforms/segmentation.py#L117-L179"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CorpusCallosum.transforms.segmentation.CropAroundACPCtrack" title="Link to this definition">¶</a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">CorpusCallosum.transforms.segmentation.</span></span><span class="sig-name descname"><span class="pre">CropAroundACPCtrack</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/0618e2c/CorpusCallosum/transforms/segmentation.py#L117-L179"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CorpusCallosum.transforms.segmentation.CropAroundACPCtrack" title="Link to this definition">¶</a></dt>
 <dd><p>Crop image around AC-PC points and update their coordinates.</p>
 <p>Extends CropAroundACPC to also adjust the AC and PC center coordinates
 after cropping to maintain their correct positions in the cropped image.</p>

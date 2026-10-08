@@ -1,5 +1,5 @@
-Singularity Support
-===================
+Apptainer and Singularity
+=========================
 
 Containerization
 ----------------
@@ -14,12 +14,13 @@ which reduces the risk of both data theft and data encryption attacks. This stra
 
 Using Apptainer (or Singularity)
 --------------------------------
-In the following, we write "Singularity", but all steps work the same with the [open source Apptainer](https://apptainer.org).
+[Apptainer](https://apptainer.org) is the open-source continuation of Singularity, and both run the same images.
+Apptainer also installs the `singularity` command, so the commands below use `singularity` and work with either.
 
-To run FastSurfer in a Singularity container, you have to:
-1. [download](#downloading-the-official-fastsurfer-image-for-singularity) or
-   [create](#creating-your-own-fastsurfer-singularity-image) a Singularity image of FastSurfer.
-2. [Start the Singularity container from the image](#starting-fastsurfer-from-a-singularity-image) with options for
+To run FastSurfer in an Apptainer container, you have to:
+1. [download](#downloading-the-official-fastsurfer-image-for-apptainer) or
+   [create](#creating-your-own-fastsurfer-apptainer-image) an Apptainer image of FastSurfer.
+2. [Start the Apptainer container from the image](#starting-fastsurfer-from-an-apptainer-image) with options for
    the container. It is useful to think of the image as a "hard drive" and the container as a "simulated computer
    inside the computer".
 
@@ -27,12 +28,12 @@ To run FastSurfer in a Singularity container, you have to:
    to as `<fastsurfer_flags>`), but to the "simulated computer", and define access to data, hardware (e.g. graphics
    cards), etc.
 
-Downloading the official FastSurfer image for Singularity
+Downloading the official FastSurfer image for Apptainer
 ---------------------------------------------------------
-Singularity uses its own image format, so it downloads the official Docker images from
+Apptainer uses its own image format, so it downloads the official Docker images from
 [Docker Hub](https://hub.docker.com/r/deepmi/fastsurfer/tags) and converts them.
 
-To create an official FastSurfer Singularity image, run `singularity build`. Usage:
+To create an official FastSurfer Apptainer image, run `singularity build`. Usage:
 ```text
 singularity build <sif_path> <source>
 ```
@@ -41,17 +42,17 @@ For example:
 singularity build $HOME/my_singularity_images/fastsurfer-{{ CUDA_STRING }}-v{{ FASTSURFER_VERSION }}.sif \
     docker://deepmi/fastsurfer:{{ CUDA_STRING }}-v{{ FASTSURFER_VERSION }}
 ```
-Singularity images are files with the extension `.sif`. Here, we save the image in `$HOME/my_singularity_images`.
+Apptainer images are files with the extension `.sif`. Here, we save the image in `$HOME/my_singularity_images`.
 To use another image, change the tag `{{ CUDA_STRING }}-v{{ FASTSURFER_VERSION }}` in `<source>`, for example to the
 [CPU image](https://hub.docker.com/r/deepmi/fastsurfer/tags?name=cpu) (`cpu-v{{ FASTSURFER_VERSION }}`), to another
 FastSurfer version, or to the image for another CUDA version, see
 [which image fits your GPU](install/LINUX.md#nvidia-gpus).
 
-Creating your own FastSurfer Singularity image
+Creating your own FastSurfer Apptainer image
 ----------------------------------------------
-To build a custom FastSurfer Singularity image, the `tools/Docker/build.py` script supports a flag for direct conversion.
+To build a custom FastSurfer Apptainer image, the `tools/Docker/build.py` script supports a flag for direct conversion.
 Simply add `--singularity $HOME/my_singularity_images/fastsurfer-myimage.sif` to the call, which first builds the image
-with Docker and then converts it to Singularity.
+with Docker and then converts it to an Apptainer image.
 
 If you want to manually convert the local Docker image `fastsurfer:myimage`, run:
 
@@ -62,13 +63,13 @@ singularity build $HOME/my_singularity_images/fastsurfer-myimage.sif \
 
 For more information on how to create your own Docker images, see our [Docker guide](../../tools/Docker/README.md).
 
-Starting FastSurfer from a Singularity image
--------------------------------------------
+Starting FastSurfer from an Apptainer image
+--------------------------------------------
 The surface reconstruction needs a FreeSurfer license, as with Docker:
 [register at the FreeSurfer website](https://surfer.nmr.mgh.harvard.edu/registration.html) to get one for free, and pass
 it to FastSurfer with the `--fs_license` flag. The segmentation alone does not need a license.
 
-To run FastSurfer on a subject with the Singularity image and GPU access, execute:
+To run FastSurfer on a subject with the Apptainer image and GPU access, execute:
 
 ```bash
 freesurfer_license=${freesurfer_license:-/path/to/your/freesurfer/license_file}
@@ -84,9 +85,9 @@ singularity exec --nv \
                  --sid subjectX --sd $HOME/my_fastsurfer_analysis \
                  --3T --threads 4
 ```
-### Singularity Flags
+### Apptainer Flags
 * `--nv`: gives the container access to NVIDIA GPUs. Leave it out to run FastSurfer on the CPU.
-* `--no-mount home,cwd`: tells Singularity not to mount the home directory or the current working directory inside the
+* `--no-mount home,cwd`: tells Apptainer not to mount the home directory or the current working directory inside the
   container (see [Best Practices](#best-practices)).
 * `-e`: does not pass the environment variables of the host into the container.
 * `-B <host_dir>`: shares a directory or file of the host with the container. Only paths listed here are available to
@@ -105,8 +106,8 @@ A directory with the name specified in `--sid` (here subjectX) will be created i
 example, the output will be written to `$HOME/my_fastsurfer_analysis/subjectX/`. FastSurfer may overwrite files in
 `$HOME/my_fastsurfer_analysis/subjectX/`.
 
-### Singularity without a GPU
-Without a GPU, build a Singularity image from the CPU image and leave out `--nv` in the `singularity exec` command:
+### Apptainer without a GPU
+Without a GPU, build an Apptainer image from the CPU image and leave out `--nv` in the `singularity exec` command:
 
 ```bash
 freesurfer_license=${freesurfer_license:-/path/to/your/freesurfer/license_file}
@@ -134,7 +135,7 @@ Common problems
    image for an older CUDA version, see [which image fits your GPU](install/LINUX.md#nvidia-gpus). If you built the
    underlying Docker image yourself, choose a different `--device` option.
 
-2. Building a Singularity image from a local Docker image with
+2. Building an Apptainer image from a local Docker image with
    `singularity build <sif_path> docker-daemon://fastsurfer:myimage` fails with an error message like this:
    ```text
    INFO:    Starting build...
@@ -144,14 +145,14 @@ Common problems
      client to a newer version"}
    ```
    To solve this issue, export the image from Docker with `docker save -o <docker_archive_path> <image_tag>`, and build
-   the Singularity image from that archive with `singularity build <sif_path> docker-archive:<docker_archive_path>`.
+   the Apptainer image from that archive with `singularity build <sif_path> docker-archive:<docker_archive_path>`.
 
 3. I get the following warning:
    ```text
    WARNING: Error changing the container working directory. Using '/' instead:
      chdir /home/***: no such file or directory
    ```
-   This is because the home directory is not mounted inside the Singularity container (see
+   This is because the home directory is not mounted inside the Apptainer container (see
    [Best Practices](#best-practices)). You can ignore this warning, since `/` as the working directory does not cause any
    issues, or specify a different working directory with `--cwd <directory>`, for example `--cwd /fastsurfer`.
 
@@ -159,10 +160,10 @@ Best Practices
 --------------
 
 ### Mounting Home and Current Working Directory
-Do not mount the user home directory into the Singularity container as the home directory.
+Do not mount the user home directory into the Apptainer container as the home directory.
 
-Why? If the user inside the Singularity container has access to a user directory, settings from that directory might
+Why? If the user inside the Apptainer container has access to a user directory, settings from that directory might
 bleed into the FastSurfer pipeline.
 
-How? Singularity mounts the home directory by default. To avoid this, specify `--no-mount home,cwd`. Additionally,
+How? Apptainer mounts the home directory by default. To avoid this, specify `--no-mount home,cwd`. Additionally,
 the `-e` flag ensures that no environment variables are passed from the host system into the container.
