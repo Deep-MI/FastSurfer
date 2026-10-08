@@ -1,7 +1,7 @@
-BIDS: run_fastsurfer_bids.py
-=============================
+BIDS: bids_fastsurfer.py
+========================
 
-`run_fastsurfer_bids.py` is a [BIDS-App](https://bids-apps.neuroimaging.io/about/)-style entrypoint for FastSurfer.
+`bids_fastsurfer.py` is a [BIDS-App](https://bids-apps.neuroimaging.io/about/)-style entrypoint for FastSurfer. It is currently **experimental**. If you encounter errors or unexpected behavior, please report this to the [issue tracker on GitHub](https://github.com/Deep-MI/FastSurfer/issues/new?template=questions-help-support.md).
 It discovers subjects and sessions in a BIDS dataset and hands them to the existing entrypoints: it writes a subject
 list and calls [`brun_fastsurfer.sh`](BATCH.md), or [`srun_fastsurfer.sh`](SLURM.md) with `--slurm`. No part of the
 pipeline is reimplemented here, and every option it does not define itself is passed through unchanged.
@@ -11,7 +11,7 @@ BIDS directory layout itself, so discovery is a glob over `sub-<label>/[ses-<lab
 
 Usage
 -----
-```{command-output} ./run_fastsurfer_bids.py --help
+```{command-output} ./bids_fastsurfer.py --help
 :cwd: /../
 ```
 
@@ -20,7 +20,7 @@ Basic example
 ```bash
 export FASTSURFER_HOME=${FASTSURFER_HOME:-/path/to/FastSurfer}
 freesurfer_license=${freesurfer_license:-/path/to/your/freesurfer/license_file}
-$FASTSURFER_HOME/run_fastsurfer_bids.py $HOME/my_bids_dataset \
+$FASTSURFER_HOME/bids_fastsurfer.py $HOME/my_bids_dataset \
     $HOME/my_fastsurfer_analysis participant \
     --participant_label 01 02 --fs_license $freesurfer_license \
     -- --threads 4
@@ -43,7 +43,7 @@ docker run --gpus all -v $HOME/my_bids_dataset:$HOME/my_bids_dataset:ro \
            -v $freesurfer_license:$freesurfer_license \
            --entrypoint "/fastsurfer/tools/Docker/entrypoint.sh" \
            --rm --user $(id -u):$(id -g) deepmi/fastsurfer:{{ CUDA_STRING }}-v{{ FASTSURFER_VERSION }} \
-           /fastsurfer/run_fastsurfer_bids.py \
+           /fastsurfer/bids_fastsurfer.py \
            $HOME/my_bids_dataset $HOME/my_fastsurfer_analysis participant \
            --fs_license $freesurfer_license \
            -- --3T --threads 4
@@ -55,7 +55,7 @@ On a cluster, `--slurm` submits the same cases through `srun_fastsurfer.sh` inst
 ```bash
 export FASTSURFER_HOME=${FASTSURFER_HOME:-/path/to/FastSurfer}
 freesurfer_license=${freesurfer_license:-/path/to/your/freesurfer/license_file}
-$FASTSURFER_HOME/run_fastsurfer_bids.py $HOME/my_bids_dataset \
+$FASTSURFER_HOME/bids_fastsurfer.py $HOME/my_bids_dataset \
     $HOME/my_fastsurfer_analysis participant --slurm \
     --fs_license $freesurfer_license \
     -- --partition gpu --work $HOME/my_fastsurfer_work

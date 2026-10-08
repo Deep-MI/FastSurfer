@@ -57,7 +57,7 @@ name.
 | `<template_id>`, `<tpid_1>`, `<t1_path_1>`, `<t2_path_1>` | longitudinal template, time points and their images, passed to `--tid`, `--tpids`, `--t1s`, `--t2s` |
 
 Scripts whose output does not follow the `<subjects_dir>/<subject_id>` layout keep the placeholders of their
-`--help`. For example, `run_fastsurfer_bids.py` writes to `<output_dir>`, whose subject folders are named after
+`--help`. For example, `bids_fastsurfer.py` writes to `<output_dir>`, whose subject folders are named after
 BIDS entities (`sub-<label>_ses-<label>`) instead of `--sid`, so `<subjects_dir>` would suggest the wrong
 structure. Its positional arguments keep the names of the BIDS-App specification (`bids_dir output_dir`), and their
 placeholders `<bids_dir>` and `<output_dir>` follow the rules above.

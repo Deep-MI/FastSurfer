@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-# Run run_fastsurfer_bids.py end to end against real data from OpenNeuro.
+# Run bids_fastsurfer.py end to end against real data from OpenNeuro.
 #
 # Not a CI test and not wired into any workflow: it downloads over the network and a full run
 # takes hours per session. It is the check to do by hand before trusting the entry point on a
@@ -41,7 +41,7 @@
 #       -- --partition <gpu> --work <scratch> --singularity_image <fastsurfer.sif>
 #   test/integration/openneuro_check.sh <work_dir> --all --depth seg --check_only
 #
-# Anything after -- is passed to run_fastsurfer_bids.py, and so on to run_fastsurfer.sh.
+# Anything after -- is passed to bids_fastsurfer.py, and so on to run_fastsurfer.sh.
 #
 # Env: SUBJECT and SESSIONS pin the drawn subject of the 'sessions' case, OPENNEURO_ACCESSION
 # picks another dataset for it, WANT_SESSIONS how many of its sessions to take.
@@ -108,7 +108,7 @@ while [[ $# -gt 0 ]] ; do
     --all) selected="$CASES" ; shift ;;
     --depth) depth="$2" ; shift 2 ;;
     --dry|--dry_run) depth="dry" ; shift ;;
-    --help|-h) sed -n '/^# Run run_fastsurfer_bids.py end to end/,/^$/p' "${BASH_SOURCE[0]}" ; exit 0 ;;
+    --help|-h) sed -n '/^# Run bids_fastsurfer.py end to end/,/^$/p' "${BASH_SOURCE[0]}" ; exit 0 ;;
     --) shift ; passthrough=("$@") ; break ;;
     -*) echo "ERROR: unknown option $1" >&2 ; exit 1 ;;
     *) work_dir="$1" ; shift ;;
@@ -289,7 +289,7 @@ run_case() { # $1: case, $2: bids_dir, $3: out_dir
   if [[ "$depth" == "dry" ]] ; then args+=(--dry) ; fi
   if [[ -n "$fs_license" ]] ; then args+=(--fs_license "$fs_license") ; fi
   if [[ "${#passthrough[@]}" -gt 0 ]] ; then args+=(-- "${passthrough[@]}") ; fi
-  "$FASTSURFER_HOME/run_fastsurfer_bids.py" "${args[@]}"
+  "$FASTSURFER_HOME/bids_fastsurfer.py" "${args[@]}"
 }
 
 # ----------------------------------------------------------------------------------------------

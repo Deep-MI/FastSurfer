@@ -15,7 +15,7 @@
 """
 Discovery of subjects, sessions and anatomical images in a BIDS dataset.
 
-Deliberately the standard library and nothing else. What run_fastsurfer_bids.py needs from a
+Deliberately the standard library and nothing else. What bids_fastsurfer.py needs from a
 BIDS dataset is the subject label, the session label and the T1w/T2w files, which the BIDS
 directory layout spells out in the paths themselves: ``sub-<label>/[ses-<label>/]anat/*_T1w.nii.gz``.
 That is a glob and a filename suffix, so pulling pybids (and its pandas, sqlalchemy, formulaic and
