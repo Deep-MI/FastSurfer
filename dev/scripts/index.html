@@ -204,11 +204,10 @@
 <li class="toctree-l3"><a class="reference internal" href="../overview/install/MACOS.html">macOS</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../overview/install/LINUX.html">Linux</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../overview/install/WINDOWS.html">Windows</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../overview/SINGULARITY.html">Apptainer and Singularity</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../overview/docker.html">Docker</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../overview/install/NATIVE.html">Installing from source</a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="../overview/CONTAINERS.html">Running FastSurfer in a container</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../overview/EXAMPLES.html">Examples</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../overview/OUTPUT_FILES.html">Output files</a></li>
 <li class="toctree-l2 has-children"><a class="reference internal" href="../overview/modules/index.html">Modules</a><input aria-label="Toggle navigation of Modules" class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
@@ -229,10 +228,10 @@
 </li>
 <li class="toctree-l1 current has-children current-page"><a class="current reference internal" href="#">Command Reference</a><input aria-label="Toggle navigation of Command Reference" checked="" class="toctree-checkbox" id="toctree-checkbox-4" name="toctree-checkbox-4" role="switch" type="checkbox"/><label for="toctree-checkbox-4"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l2"><a class="reference internal" href="RUN_FASTSURFER.html">run_fastsurfer.sh</a></li>
-<li class="toctree-l2"><a class="reference internal" href="long_fastsurfer.html">LONG: long_fastsurfer.sh</a></li>
-<li class="toctree-l2"><a class="reference internal" href="BATCH.html">BATCH: brun_fastsurfer.sh</a></li>
-<li class="toctree-l2"><a class="reference internal" href="BIDS.html">BIDS: bids_fastsurfer.py</a></li>
-<li class="toctree-l2"><a class="reference internal" href="SLURM.html">SLURM: srun_fastsurfer.sh</a></li>
+<li class="toctree-l2"><a class="reference internal" href="long_fastsurfer.html">long_fastsurfer.sh</a></li>
+<li class="toctree-l2"><a class="reference internal" href="BATCH.html">brun_fastsurfer.sh</a></li>
+<li class="toctree-l2"><a class="reference internal" href="SLURM.html">srun_fastsurfer.sh</a></li>
+<li class="toctree-l2"><a class="reference internal" href="BIDS.html">bids_fastsurfer.py</a></li>
 <li class="toctree-l2 has-children"><a class="reference internal" href="advanced.html">Running modules directly</a><input aria-label="Toggle navigation of Running modules directly" class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l3"><a class="reference internal" href="fastsurfercnn.html">FastSurferCNN: run_prediction.py</a></li>
 <li class="toctree-l3"><a class="reference internal" href="cerebnet.html">CerebNet: run_prediction.py</a></li>
@@ -258,10 +257,11 @@
 </li>
 </ul>
 </li>
-<li class="toctree-l1 has-children"><a class="reference internal" href="../developer/index.html">Contributor Guide</a><input aria-label="Toggle navigation of Contributor Guide" class="toctree-checkbox" id="toctree-checkbox-8" name="toctree-checkbox-8" role="switch" type="checkbox"/><label for="toctree-checkbox-8"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
-<li class="toctree-l2"><a class="reference internal" href="../developer/GIT-HOOKS.html">git hook setup / CD</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../developer/code_of_conduct.html">Code of Conduct</a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../developer/index.html">Developer Guide</a><input aria-label="Toggle navigation of Developer Guide" class="toctree-checkbox" id="toctree-checkbox-8" name="toctree-checkbox-8" role="switch" type="checkbox"/><label for="toctree-checkbox-8"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l2"><a class="reference internal" href="../developer/contributing.html">Contribution Guide</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../developer/GIT-HOOKS.html">Git hooks</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../developer/docker.html">Building Docker images</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../developer/code_of_conduct.html">Code of Conduct</a></li>
 </ul>
 </li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../api/index.html">FastSurfer API</a><input aria-label="Toggle navigation of FastSurfer API" class="toctree-checkbox" id="toctree-checkbox-9" name="toctree-checkbox-9" role="switch" type="checkbox"/><label for="toctree-checkbox-9"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
@@ -480,7 +480,7 @@
         <article role="main" id="furo-main-content">
           <section id="command-reference">
 <h1>Command Reference<a class="headerlink" href="#command-reference" title="Link to this heading">¶</a></h1>
-<p>All options of FastSurfer’s commands: <code class="docutils literal notranslate"><span class="pre">run_fastsurfer.sh</span></code> and its wrappers for longitudinal, batch, BIDS and SLURM
+<p>All options of FastSurfer’s commands: <code class="docutils literal notranslate"><span class="pre">run_fastsurfer.sh</span></code> and its wrappers for longitudinal, batch, SLURM and BIDS
 processing, the scripts that run a single module directly, utilities, and the scripts for training the networks. To get
 started, see the <a class="reference internal" href="../overview/index.html"><span class="doc">User Guide</span></a>.</p>
 <div class="toctree-wrapper compound">
@@ -493,18 +493,23 @@ started, see the <a class="reference internal" href="../overview/index.html"><sp
 <li class="toctree-l2"><a class="reference internal" href="RUN_FASTSURFER.html#full-list-of-flags">Full list of flags</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="long_fastsurfer.html">LONG: long_fastsurfer.sh</a><ul>
+<li class="toctree-l1"><a class="reference internal" href="long_fastsurfer.html">long_fastsurfer.sh</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="long_fastsurfer.html#usage-help-text">Usage help text</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="BATCH.html">BATCH: brun_fastsurfer.sh</a><ul>
+<li class="toctree-l1"><a class="reference internal" href="BATCH.html">brun_fastsurfer.sh</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="BATCH.html#usage">Usage</a></li>
 <li class="toctree-l2"><a class="reference internal" href="BATCH.html#subjects-lists">Subjects Lists</a></li>
 <li class="toctree-l2"><a class="reference internal" href="BATCH.html#parallelization-with-brun-fastsurfer-sh">Parallelization with <code class="docutils literal notranslate"><span class="pre">brun_fastsurfer.sh</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="BATCH.html#questions">Questions</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="BIDS.html">BIDS: bids_fastsurfer.py</a><ul>
+<li class="toctree-l1"><a class="reference internal" href="SLURM.html">srun_fastsurfer.sh</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="SLURM.html#usage">Usage</a></li>
+<li class="toctree-l2"><a class="reference internal" href="SLURM.html#debugging-slurm-runs">Debugging SLURM runs</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="BIDS.html">bids_fastsurfer.py</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="BIDS.html#usage">Usage</a></li>
 <li class="toctree-l2"><a class="reference internal" href="BIDS.html#basic-example">Basic example</a></li>
 <li class="toctree-l2"><a class="reference internal" href="BIDS.html#in-docker">In Docker</a></li>
@@ -513,11 +518,6 @@ started, see the <a class="reference internal" href="../overview/index.html"><sp
 <li class="toctree-l2"><a class="reference internal" href="BIDS.html#t1w-and-t2w-input">T1w and T2w input</a></li>
 <li class="toctree-l2"><a class="reference internal" href="BIDS.html#validation">Validation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="BIDS.html#dry-run">Dry run</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="SLURM.html">SLURM: srun_fastsurfer.sh</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="SLURM.html#usage">Usage</a></li>
-<li class="toctree-l2"><a class="reference internal" href="SLURM.html#debugging-slurm-runs">Debugging SLURM runs</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="advanced.html">Running modules directly</a><ul>

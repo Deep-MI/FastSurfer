@@ -1,5 +1,5 @@
-git hook setup / CD
-===================
+Git hooks
+=========
 
 The FastSurfer team has developed a pre-commit hook script to help implement
 [Continuous Development and Testing](https://en.wikipedia.org/wiki/Continuous_testing).

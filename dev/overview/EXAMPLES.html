@@ -3,7 +3,7 @@
   <head><meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
-<link rel="index" title="Index" href="../genindex.html"><link rel="search" title="Search" href="../search.html"><link rel="next" title="Output files" href="OUTPUT_FILES.html"><link rel="prev" title="Installing from source" href="install/NATIVE.html">
+<link rel="index" title="Index" href="../genindex.html"><link rel="search" title="Search" href="../search.html"><link rel="next" title="Output files" href="OUTPUT_FILES.html"><link rel="prev" title="Running FastSurfer in a container" href="CONTAINERS.html">
 
     <!-- Generated with Sphinx 7.4.7 and Furo 2025.12.19 -->
         <title>Examples - FastSurfer</title>
@@ -204,11 +204,10 @@
 <li class="toctree-l3"><a class="reference internal" href="install/MACOS.html">macOS</a></li>
 <li class="toctree-l3"><a class="reference internal" href="install/LINUX.html">Linux</a></li>
 <li class="toctree-l3"><a class="reference internal" href="install/WINDOWS.html">Windows</a></li>
-<li class="toctree-l3"><a class="reference internal" href="SINGULARITY.html">Apptainer and Singularity</a></li>
-<li class="toctree-l3"><a class="reference internal" href="docker.html">Docker</a></li>
 <li class="toctree-l3"><a class="reference internal" href="install/NATIVE.html">Installing from source</a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="CONTAINERS.html">Running FastSurfer in a container</a></li>
 <li class="toctree-l2 current current-page"><a class="current reference internal" href="#">Examples</a></li>
 <li class="toctree-l2"><a class="reference internal" href="OUTPUT_FILES.html">Output files</a></li>
 <li class="toctree-l2 has-children"><a class="reference internal" href="modules/index.html">Modules</a><input aria-label="Toggle navigation of Modules" class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
@@ -229,10 +228,10 @@
 </li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../scripts/index.html">Command Reference</a><input aria-label="Toggle navigation of Command Reference" class="toctree-checkbox" id="toctree-checkbox-4" name="toctree-checkbox-4" role="switch" type="checkbox"/><label for="toctree-checkbox-4"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l2"><a class="reference internal" href="../scripts/RUN_FASTSURFER.html">run_fastsurfer.sh</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../scripts/long_fastsurfer.html">LONG: long_fastsurfer.sh</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../scripts/BATCH.html">BATCH: brun_fastsurfer.sh</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../scripts/BIDS.html">BIDS: bids_fastsurfer.py</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../scripts/SLURM.html">SLURM: srun_fastsurfer.sh</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../scripts/long_fastsurfer.html">long_fastsurfer.sh</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../scripts/BATCH.html">brun_fastsurfer.sh</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../scripts/SLURM.html">srun_fastsurfer.sh</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../scripts/BIDS.html">bids_fastsurfer.py</a></li>
 <li class="toctree-l2 has-children"><a class="reference internal" href="../scripts/advanced.html">Running modules directly</a><input aria-label="Toggle navigation of Running modules directly" class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l3"><a class="reference internal" href="../scripts/fastsurfercnn.html">FastSurferCNN: run_prediction.py</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../scripts/cerebnet.html">CerebNet: run_prediction.py</a></li>
@@ -258,10 +257,11 @@
 </li>
 </ul>
 </li>
-<li class="toctree-l1 has-children"><a class="reference internal" href="../developer/index.html">Contributor Guide</a><input aria-label="Toggle navigation of Contributor Guide" class="toctree-checkbox" id="toctree-checkbox-8" name="toctree-checkbox-8" role="switch" type="checkbox"/><label for="toctree-checkbox-8"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
-<li class="toctree-l2"><a class="reference internal" href="../developer/GIT-HOOKS.html">git hook setup / CD</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../developer/code_of_conduct.html">Code of Conduct</a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../developer/index.html">Developer Guide</a><input aria-label="Toggle navigation of Developer Guide" class="toctree-checkbox" id="toctree-checkbox-8" name="toctree-checkbox-8" role="switch" type="checkbox"/><label for="toctree-checkbox-8"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l2"><a class="reference internal" href="../developer/contributing.html">Contribution Guide</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../developer/GIT-HOOKS.html">Git hooks</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../developer/docker.html">Building Docker images</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../developer/code_of_conduct.html">Code of Conduct</a></li>
 </ul>
 </li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../api/index.html">FastSurfer API</a><input aria-label="Toggle navigation of FastSurfer API" class="toctree-checkbox" id="toctree-checkbox-9" name="toctree-checkbox-9" role="switch" type="checkbox"/><label for="toctree-checkbox-9"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
@@ -482,32 +482,13 @@
 <h1>Examples<a class="headerlink" href="#examples" title="Link to this heading">¶</a></h1>
 <section id="example-1-fastsurfer-apptainer-or-singularity">
 <h2>Example 1: FastSurfer Apptainer (or Singularity)<a class="headerlink" href="#example-1-fastsurfer-apptainer-or-singularity" title="Link to this heading">¶</a></h2>
-<p>Singularity and Apptainer are alternative containerization solutions. Both have open-source distributions and are often
-available in HPC settings. See our <a class="reference internal" href="SINGULARITY.html"><span class="std std-doc">Singularity docs</span></a> for more details.</p>
-<section id="preparation">
-<h3>Preparation<a class="headerlink" href="#preparation" title="Link to this heading">¶</a></h3>
-<p>Build the Singularity image (see below or <a class="reference internal" href="SINGULARITY.html"><span class="std std-doc">these instructions</span></a>). If you intend to generate surfaces,
-you need to <a class="reference external" href="https://surfer.nmr.mgh.harvard.edu/registration.html">register at the FreeSurfer website</a> to acquire a
-FreeSurfer license (for free). This license needs to be passed to FastSurfer via the <code class="docutils literal notranslate"><span class="pre">--fs_license</span></code> flag. If you do not
-intend to generate surfaces, it is often not necessary to obtain a FreeSurfer license.</p>
+<p>Apptainer (the open-source continuation of Singularity) is often available in HPC settings. Build the image as
+described for <a class="reference internal" href="install/LINUX.html#apptainer-or-singularity"><span class="std std-ref">Linux</span></a>. For the surface reconstruction, you need a
+<a class="reference internal" href="INSTALL.html#freesurfer-license"><span class="std std-ref">FreeSurfer license</span></a>.</p>
+<p>To run FastSurfer on a subject with GPU access, execute:</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>This documents the development version 2.6.0. Official Docker images only exist for releases, so the commands below use the latest release, 2.5.4, for its default CUDA version, 12.8. Images of 2.5.4 for other CUDA versions, ROCm and CPU are available on <a class="reference external" href="https://hub.docker.com/r/deepmi/fastsurfer/tags?name=v2.5.4">Docker Hub</a>. To run the development version, <a class="reference internal" href="docker.html"><span class="doc">build your own image</span></a>.</p>
-</div>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Build the singularity image (if it does not exist)</span>
-singularity<span class="w"> </span>build<span class="w"> </span><span class="se">\</span>
-<span class="w">    </span><span class="nv">$HOME</span>/my_singularity_images/fastsurfer-cu128-v2.5.4.sif<span class="w"> </span><span class="se">\</span>
-<span class="w">    </span>docker://deepmi/fastsurfer:cu128-v2.5.4
-</pre></div>
-</div>
-</section>
-<section id="running-fastsurfer">
-<h3>Running FastSurfer<a class="headerlink" href="#running-fastsurfer" title="Link to this heading">¶</a></h3>
-<p>To run FastSurfer on a given subject using the Singularity image with GPU access, execute the following command. This
-will execute the singularity image created above:</p>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>This documents the development version 2.6.0. Official Docker images only exist for releases, so the commands below use the latest release, 2.5.4, for its default CUDA version, 12.8. Images of 2.5.4 for other CUDA versions, ROCm and CPU are available on <a class="reference external" href="https://hub.docker.com/r/deepmi/fastsurfer/tags?name=v2.5.4">Docker Hub</a>. To run the development version, <a class="reference internal" href="docker.html"><span class="doc">build your own image</span></a>.</p>
+<p>This documents the development version 2.6.0. Official Docker images only exist for releases, so the commands below use the latest release, 2.5.4, for its default CUDA version, 12.8. Images of 2.5.4 for other CUDA versions, ROCm and CPU are available on <a class="reference external" href="https://hub.docker.com/r/deepmi/fastsurfer/tags?name=v2.5.4">Docker Hub</a>. To run the development version, <a class="reference internal" href="../developer/docker.html"><span class="doc">build your own image</span></a>.</p>
 </div>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">freesurfer_license</span><span class="o">=</span><span class="si">${</span><span class="nv">freesurfer_license</span><span class="k">:-</span><span class="p">/path/to/your/freesurfer/license_file</span><span class="si">}</span>
 singularity<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>--nv<span class="w"> </span><span class="se">\</span>
@@ -516,45 +497,28 @@ singularity<span class="w"> </span><span class="nb">exec</span><span class="w"> 
 <span class="w">                 </span>-B<span class="w"> </span><span class="nv">$HOME</span>/my_fastsurfer_analysis<span class="w"> </span><span class="se">\</span>
 <span class="w">                 </span>-B<span class="w"> </span><span class="nv">$freesurfer_license</span><span class="w"> </span><span class="se">\</span>
 <span class="w">                 </span><span class="nv">$HOME</span>/my_singularity_images/fastsurfer-cu128-v2.5.4.sif<span class="w"> </span><span class="se">\</span>
-<span class="w">                   </span>/fastsurfer/run_fastsurfer.sh<span class="w"> </span><span class="se">\</span>
-<span class="w">                     </span>--fs_license<span class="w"> </span><span class="nv">$freesurfer_license</span><span class="w"> </span><span class="se">\</span>
-<span class="w">                     </span>--t1<span class="w"> </span><span class="nv">$HOME</span>/my_mri_data/subjectX/t1_weighted.nii.gz<span class="w"> </span><span class="se">\</span>
-<span class="w">                     </span>--sid<span class="w"> </span>subjectX<span class="w"> </span>--sd<span class="w"> </span><span class="nv">$HOME</span>/my_fastsurfer_analysis<span class="w"> </span><span class="se">\</span>
-<span class="w">                     </span>--3T<span class="w"> </span><span class="se">\</span>
-<span class="w">                     </span>--threads<span class="w"> </span><span class="m">4</span>
+<span class="w">                 </span>/fastsurfer/run_fastsurfer.sh<span class="w"> </span><span class="se">\</span>
+<span class="w">                 </span>--fs_license<span class="w"> </span><span class="nv">$freesurfer_license</span><span class="w"> </span><span class="se">\</span>
+<span class="w">                 </span>--t1<span class="w"> </span><span class="nv">$HOME</span>/my_mri_data/subjectX/t1_weighted.nii.gz<span class="w"> </span><span class="se">\</span>
+<span class="w">                 </span>--sid<span class="w"> </span>subjectX<span class="w"> </span>--sd<span class="w"> </span><span class="nv">$HOME</span>/my_fastsurfer_analysis<span class="w"> </span><span class="se">\</span>
+<span class="w">                 </span>--3T<span class="w"> </span>--threads<span class="w"> </span><span class="m">4</span>
 </pre></div>
 </div>
-</section>
-<section id="singularity-flags">
-<h3>Singularity Flags<a class="headerlink" href="#singularity-flags" title="Link to this heading">¶</a></h3>
-<ul class="simple">
-<li><p>The <code class="docutils literal notranslate"><span class="pre">--nv</span></code> flag is used to access GPU resources.</p></li>
-<li><p>The <code class="docutils literal notranslate"><span class="pre">--no-mount</span> <span class="pre">home,cwd</span></code> flag stops mounting your home directory and the current working directory into singularity.</p></li>
-<li><p>The <code class="docutils literal notranslate"><span class="pre">-B</span></code> commands mount your data, output, and the FreeSurfer license file into the Singularity container. Inside the container these are visible under the same paths as on your system.</p></li>
-</ul>
-</section>
-<section id="fastsurfer-flags">
-<h3>FastSurfer Flags<a class="headerlink" href="#fastsurfer-flags" title="Link to this heading">¶</a></h3>
-<ul class="simple">
-<li><p>The <code class="docutils literal notranslate"><span class="pre">--fs_license</span></code> points to your FreeSurfer license which needs to be available on your computer at the path that was mapped above.</p></li>
-<li><p>The <code class="docutils literal notranslate"><span class="pre">--t1</span></code> points to the t1-weighted MRI image to analyse (full path, must be mounted via <code class="docutils literal notranslate"><span class="pre">-B</span></code>)</p></li>
-<li><p>The <code class="docutils literal notranslate"><span class="pre">--sid</span></code> is the subject ID name (output folder name)</p></li>
-<li><p>The <code class="docutils literal notranslate"><span class="pre">--sd</span></code> points to the output directory (must be mounted via <code class="docutils literal notranslate"><span class="pre">-B</span></code>)</p></li>
-<li><p>The <code class="docutils literal notranslate"><span class="pre">--3T</span></code> changes the atlas for registration to the 3T atlas for better Talairach transforms and ICV estimates (eTIV)</p></li>
-<li><p>The <code class="docutils literal notranslate"><span class="pre">--threads</span></code> tells FastSurfer to use that many threads in segmentation and surface reconstruction. <code class="docutils literal notranslate"><span class="pre">max</span></code> will auto-detect the number of threads available, i.e. <code class="docutils literal notranslate"><span class="pre">16</span></code> on an 8-core system with hyperthreading. If the number of threads is greater than 1, FastSurfer will process the left and right hemispheres in parallel.</p></li>
-</ul>
-<p>Note, that the paths following <code class="docutils literal notranslate"><span class="pre">--fs_license</span></code>, <code class="docutils literal notranslate"><span class="pre">--t1</span></code>, and <code class="docutils literal notranslate"><span class="pre">--sd</span></code> are <strong>inside</strong> the container, not global paths on your system, so they should point to the places where you mapped these paths above with the <code class="docutils literal notranslate"><span class="pre">-B</span></code> arguments (here, the same paths as on your system).</p>
-<p>A directory with the name as specified in <code class="docutils literal notranslate"><span class="pre">--sid</span></code> (here subjectX) will be created in the output directory. So in this example output will be written to <code class="docutils literal notranslate"><span class="pre">$HOME/my_fastsurfer_analysis/subjectX/</span></code> . Make sure the output directory is empty, to avoid overwriting existing files.</p>
-<p>If you have no supported GPU, most Singularity images should automatically work (default to the CPU, just drop the <code class="docutils literal notranslate"><span class="pre">--nv</span></code> flag). Since execution on the CPU requires less driver installation, a custom, smaller CPU image is available <code class="docutils literal notranslate"><span class="pre">singularity</span> <span class="pre">build</span> <span class="pre">$HOME/my_singularity_images/fastsurfer-cpu-v2.5.4.sif</span> <span class="pre">docker://deepmi/fastsurfer:cpu-v2.5.4</span></code>.</p>
-</section>
+<p>The output will be written to <code class="docutils literal notranslate"><span class="pre">$HOME/my_fastsurfer_analysis/subjectX/</span></code>.
+<a class="reference internal" href="CONTAINERS.html#using-apptainer-or-singularity"><span class="std std-ref">Running FastSurfer in a container</span></a> explains the
+<a class="reference internal" href="CONTAINERS.html#apptainer-flags"><span class="std std-ref">Apptainer flags</span></a> and the
+<a class="reference internal" href="CONTAINERS.html#fastsurfer-flags-in-a-container"><span class="std std-ref">FastSurfer flags</span></a>. Without a GPU, use the
+<a class="reference internal" href="install/LINUX.html#cpu-only"><span class="std std-ref">CPU image</span></a> and leave out <code class="docutils literal notranslate"><span class="pre">--nv</span></code>.</p>
 </section>
 <section id="example-2-fastsurfer-docker">
 <h2>Example 2: FastSurfer Docker<a class="headerlink" href="#example-2-fastsurfer-docker" title="Link to this heading">¶</a></h2>
-<p>After pulling one of our images from Dockerhub, you do not need to have a separate installation of FreeSurfer on your computer (it is already included in the Docker image). However, if you want to run <em><strong>more than just the segmentation CNN</strong></em>, you need to <a class="reference external" href="https://surfer.nmr.mgh.harvard.edu/registration.html">register at the FreeSurfer website</a> to acquire a valid license for free. The license file needs to be mounted and passed to the script via the <code class="docutils literal notranslate"><span class="pre">--fs_license</span></code> flag. Basically for Docker (as for Singularity above) you are starting a container image (with the run command) and pass several parameters for that, e.g. if GPUs will be used and mounting (linking) the input and output directories to the inside of the container image. In the second half of that call you pass parameters to our <code class="docutils literal notranslate"><span class="pre">run_fastsurfer.sh</span></code> script that runs inside the container (e.g. where to find the FreeSurfer license file, and the input data and other flags).</p>
-<p>To run FastSurfer on a given subject using the provided GPU-Docker, execute the following command:</p>
+<p>Download the image as described for <a class="reference internal" href="install/LINUX.html#docker"><span class="std std-ref">Linux</span></a> or <a class="reference internal" href="install/WINDOWS.html"><span class="std std-doc">Windows</span></a>; it includes
+FreeSurfer, so you do not need to install it. For the surface reconstruction, you need a
+<a class="reference internal" href="INSTALL.html#freesurfer-license"><span class="std std-ref">FreeSurfer license</span></a>.</p>
+<p>To run FastSurfer on a subject with GPU access, execute:</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>This documents the development version 2.6.0. Official Docker images only exist for releases, so the commands below use the latest release, 2.5.4, for its default CUDA version, 12.8. Images of 2.5.4 for other CUDA versions, ROCm and CPU are available on <a class="reference external" href="https://hub.docker.com/r/deepmi/fastsurfer/tags?name=v2.5.4">Docker Hub</a>. To run the development version, <a class="reference internal" href="docker.html"><span class="doc">build your own image</span></a>.</p>
+<p>This documents the development version 2.6.0. Official Docker images only exist for releases, so the commands below use the latest release, 2.5.4, for its default CUDA version, 12.8. Images of 2.5.4 for other CUDA versions, ROCm and CPU are available on <a class="reference external" href="https://hub.docker.com/r/deepmi/fastsurfer/tags?name=v2.5.4">Docker Hub</a>. To run the development version, <a class="reference internal" href="../developer/docker.html"><span class="doc">build your own image</span></a>.</p>
 </div>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">freesurfer_license</span><span class="o">=</span><span class="si">${</span><span class="nv">freesurfer_license</span><span class="k">:-</span><span class="p">/path/to/your/freesurfer/license_file</span><span class="si">}</span>
 docker<span class="w"> </span>run<span class="w"> </span>--gpus<span class="w"> </span>all<span class="w"> </span>-v<span class="w"> </span><span class="nv">$HOME</span>/my_mri_data:<span class="nv">$HOME</span>/my_mri_data<span class="w"> </span><span class="se">\</span>
@@ -565,38 +529,13 @@ docker<span class="w"> </span>run<span class="w"> </span>--gpus<span class="w"> 
 <span class="w">    </span>--fs_license<span class="w"> </span><span class="nv">$freesurfer_license</span><span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--t1<span class="w"> </span><span class="nv">$HOME</span>/my_mri_data/subjectX/t1_weighted.nii.gz<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--sid<span class="w"> </span>subjectX<span class="w"> </span>--sd<span class="w"> </span><span class="nv">$HOME</span>/my_fastsurfer_analysis<span class="w"> </span><span class="se">\</span>
-<span class="w">    </span>--3T<span class="w"> </span><span class="se">\</span>
-<span class="w">    </span>--threads<span class="w"> </span><span class="m">4</span>
+<span class="w">    </span>--3T<span class="w"> </span>--threads<span class="w"> </span><span class="m">4</span>
 </pre></div>
 </div>
-<section id="docker-flags">
-<h3>Docker Flags<a class="headerlink" href="#docker-flags" title="Link to this heading">¶</a></h3>
-<ul class="simple">
-<li><p>The <code class="docutils literal notranslate"><span class="pre">--gpus</span></code> flag is used to allow Docker to access GPU resources. With it, you can also specify how many GPUs to use. In the example above, <em>all</em> will use all available GPUS. To use a single one (e.g. GPU 0), set <code class="docutils literal notranslate"><span class="pre">--gpus</span> <span class="pre">device=0</span></code>. To use multiple specific ones (e.g. GPU 0, 1 and 3), set <code class="docutils literal notranslate"><span class="pre">--gpus</span> <span class="pre">'device=0,1,3'</span></code>. If you do not have a supported GPU, just drop this flag to use the CPU.</p></li>
-<li><p>The <code class="docutils literal notranslate"><span class="pre">-v</span></code> commands mount your data, output, and the FreeSurfer license file into the docker container. Inside the container these are visible under the name following the colon (in this case the same paths as on your system).</p></li>
-<li><p>The <code class="docutils literal notranslate"><span class="pre">--rm</span></code> flag takes care of removing the container once the analysis finished.</p></li>
-<li><p>The <code class="docutils literal notranslate"><span class="pre">--user</span> <span class="pre">$(id</span> <span class="pre">-u):$(id</span> <span class="pre">-g)</span></code> part automatically runs the container with your group- (<code class="docutils literal notranslate"><span class="pre">id</span> <span class="pre">-g</span></code>) and user-id (<code class="docutils literal notranslate"><span class="pre">id</span> <span class="pre">-u</span></code>). All generated files will then belong to the specified user. Without the flag, the docker container will return an error. If running the container as root is required (despite being against best practice, for example because it is run in a sandbox, pass <code class="docutils literal notranslate"><span class="pre">--user</span> <span class="pre">0:0</span></code>).</p></li>
-</ul>
-</section>
-<section id="docker-image">
-<h3>Docker image<a class="headerlink" href="#docker-image" title="Link to this heading">¶</a></h3>
-<ul class="simple">
-<li><p>This command assumes you want to use the most recent (locally cached) version of FastSurfer <code class="docutils literal notranslate"><span class="pre">deepmi/fastsurfer:cu128-v2.5.4</span></code>. This will always include current nVidia drivers and libraries.</p></li>
-<li><p>For older libraries, an image with AMD drivers or a smaller, CPU-only docker image, images are available in <a class="reference external" href="https://hub.docker.com/r/deepmi/fastsurfer/tags">multiple configurations</a>.</p></li>
-</ul>
-</section>
-<section id="fastsurfer-flag">
-<h3>FastSurfer Flag<a class="headerlink" href="#fastsurfer-flag" title="Link to this heading">¶</a></h3>
-<ul class="simple">
-<li><p>The <code class="docutils literal notranslate"><span class="pre">--fs_license</span></code> points to your FreeSurfer license which needs to be available on your computer: set <code class="docutils literal notranslate"><span class="pre">freesurfer_license</span></code> to its full path before running the command (it must be mounted via <code class="docutils literal notranslate"><span class="pre">-v</span> <span class="pre">$freesurfer_license:$freesurfer_license</span></code>).</p></li>
-<li><p>The <code class="docutils literal notranslate"><span class="pre">--t1</span></code> points to the t1-weighted MRI image to analyse (full path, must be mounted via <code class="docutils literal notranslate"><span class="pre">-v</span> <span class="pre">&lt;data_dir&gt;:&lt;data_dir&gt;</span></code>)</p></li>
-<li><p>The <code class="docutils literal notranslate"><span class="pre">--sid</span></code> is the subject ID name (output folder name)</p></li>
-<li><p>The <code class="docutils literal notranslate"><span class="pre">--sd</span></code> points to the output directory (must be mounted via <code class="docutils literal notranslate"><span class="pre">-v</span> <span class="pre">&lt;subjects_dir&gt;:&lt;subjects_dir&gt;</span></code>)</p></li>
-<li><p>The <code class="docutils literal notranslate"><span class="pre">--3T</span></code> changes the atlas for registration to the 3T atlas for better Talairach transforms and ICV estimates (eTIV)</p></li>
-<li><p>The <code class="docutils literal notranslate"><span class="pre">--threads</span></code> tells FastSurfer to use that many threads in segmentation and surface reconstruction. <code class="docutils literal notranslate"><span class="pre">max</span></code> will auto-detect the number of threads available, i.e. <code class="docutils literal notranslate"><span class="pre">16</span></code> on an 8-core system with hyperthreading. If the number of threads is greater than 1, FastSurfer will process the left and right hemispheres in parallel.</p></li>
-</ul>
-<p>A directory with the name as specified in <code class="docutils literal notranslate"><span class="pre">--sid</span></code> (here subjectX) will be created in the output directory if it does not exist. So in this example output will be written to <code class="docutils literal notranslate"><span class="pre">$HOME/my_fastsurfer_analysis/subjectX/</span></code>. Make sure the output directory is empty, to avoid overwriting existing files.</p>
-</section>
+<p>The output will be written to <code class="docutils literal notranslate"><span class="pre">$HOME/my_fastsurfer_analysis/subjectX/</span></code>.
+<a class="reference internal" href="CONTAINERS.html#using-docker"><span class="std std-ref">Running FastSurfer in a container</span></a> explains the <a class="reference internal" href="CONTAINERS.html#docker-flags"><span class="std std-ref">Docker flags</span></a>
+and the <a class="reference internal" href="CONTAINERS.html#fastsurfer-flags-in-a-container"><span class="std std-ref">FastSurfer flags</span></a>. Without a GPU, use the
+<a class="reference internal" href="install/LINUX.html#cpu-only"><span class="std std-ref">CPU image</span></a> and leave out <code class="docutils literal notranslate"><span class="pre">--gpus</span> <span class="pre">all</span></code>.</p>
 </section>
 <section id="example-3-native-fastsurfer-on-subjectx-with-parallel-processing-of-hemis">
 <h2>Example 3: Native FastSurfer on subjectX with parallel processing of hemis<a class="headerlink" href="#example-3-native-fastsurfer-on-subjectx-with-parallel-processing-of-hemis" title="Link to this heading">¶</a></h2>
@@ -643,7 +582,7 @@ Prepare the subjects_list file as follows (one line subject per line; delimited 
 <h3>Docker<a class="headerlink" href="#docker" title="Link to this heading">¶</a></h3>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>This documents the development version 2.6.0. Official Docker images only exist for releases, so the commands below use the latest release, 2.5.4, for its default CUDA version, 12.8. Images of 2.5.4 for other CUDA versions, ROCm and CPU are available on <a class="reference external" href="https://hub.docker.com/r/deepmi/fastsurfer/tags?name=v2.5.4">Docker Hub</a>. To run the development version, <a class="reference internal" href="docker.html"><span class="doc">build your own image</span></a>.</p>
+<p>This documents the development version 2.6.0. Official Docker images only exist for releases, so the commands below use the latest release, 2.5.4, for its default CUDA version, 12.8. Images of 2.5.4 for other CUDA versions, ROCm and CPU are available on <a class="reference external" href="https://hub.docker.com/r/deepmi/fastsurfer/tags?name=v2.5.4">Docker Hub</a>. To run the development version, <a class="reference internal" href="../developer/docker.html"><span class="doc">build your own image</span></a>.</p>
 </div>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">freesurfer_license</span><span class="o">=</span><span class="si">${</span><span class="nv">freesurfer_license</span><span class="k">:-</span><span class="p">/path/to/your/freesurfer/license_file</span><span class="si">}</span>
 docker<span class="w"> </span>run<span class="w"> </span>--gpus<span class="w"> </span>all<span class="w"> </span>-v<span class="w"> </span><span class="nv">$HOME</span>/my_mri_data:<span class="nv">$HOME</span>/my_mri_data<span class="w"> </span><span class="se">\</span>
@@ -664,7 +603,7 @@ docker<span class="w"> </span>run<span class="w"> </span>--gpus<span class="w"> 
 <h3>Singularity<a class="headerlink" href="#singularity" title="Link to this heading">¶</a></h3>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>This documents the development version 2.6.0. Official Docker images only exist for releases, so the commands below use the latest release, 2.5.4, for its default CUDA version, 12.8. Images of 2.5.4 for other CUDA versions, ROCm and CPU are available on <a class="reference external" href="https://hub.docker.com/r/deepmi/fastsurfer/tags?name=v2.5.4">Docker Hub</a>. To run the development version, <a class="reference internal" href="docker.html"><span class="doc">build your own image</span></a>.</p>
+<p>This documents the development version 2.6.0. Official Docker images only exist for releases, so the commands below use the latest release, 2.5.4, for its default CUDA version, 12.8. Images of 2.5.4 for other CUDA versions, ROCm and CPU are available on <a class="reference external" href="https://hub.docker.com/r/deepmi/fastsurfer/tags?name=v2.5.4">Docker Hub</a>. To run the development version, <a class="reference internal" href="../developer/docker.html"><span class="doc">build your own image</span></a>.</p>
 </div>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">freesurfer_license</span><span class="o">=</span><span class="si">${</span><span class="nv">freesurfer_license</span><span class="k">:-</span><span class="p">/path/to/your/freesurfer/license_file</span><span class="si">}</span>
 singularity<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>--nv<span class="w"> </span><span class="se">\</span>
@@ -725,7 +664,7 @@ It will furthermore output a brain mask (<code class="docutils literal notransla
 <p>The above <code class="docutils literal notranslate"><span class="pre">run_fastsurfer.sh</span></code> commands can also be called from the Docker or Singularity images by passing the flags and adjusting input and output directories to the locations inside the containers (where you mapped them via the -v flag in Docker or -B in Singularity, here at the same paths as on your system).</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>This documents the development version 2.6.0. Official Docker images only exist for releases, so the commands below use the latest release, 2.5.4, for its default CUDA version, 12.8. Images of 2.5.4 for other CUDA versions, ROCm and CPU are available on <a class="reference external" href="https://hub.docker.com/r/deepmi/fastsurfer/tags?name=v2.5.4">Docker Hub</a>. To run the development version, <a class="reference internal" href="docker.html"><span class="doc">build your own image</span></a>.</p>
+<p>This documents the development version 2.6.0. Official Docker images only exist for releases, so the commands below use the latest release, 2.5.4, for its default CUDA version, 12.8. Images of 2.5.4 for other CUDA versions, ROCm and CPU are available on <a class="reference external" href="https://hub.docker.com/r/deepmi/fastsurfer/tags?name=v2.5.4">Docker Hub</a>. To run the development version, <a class="reference internal" href="../developer/docker.html"><span class="doc">build your own image</span></a>.</p>
 </div>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Docker</span>
 docker<span class="w"> </span>run<span class="w"> </span>--gpus<span class="w"> </span>all<span class="w"> </span><span class="se">\</span>
@@ -749,7 +688,7 @@ docker<span class="w"> </span>run<span class="w"> </span>--gpus<span class="w"> 
 <p>This script distributes GPU-heavy and CPU-heavy workloads to different SLURM partitions and manages intermediate files in a work directory for IO performance.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>This documents the development version 2.6.0. Official Docker images only exist for releases, so the commands below use the latest release, 2.5.4, for its default CUDA version, 12.8. Images of 2.5.4 for other CUDA versions, ROCm and CPU are available on <a class="reference external" href="https://hub.docker.com/r/deepmi/fastsurfer/tags?name=v2.5.4">Docker Hub</a>. To run the development version, <a class="reference internal" href="docker.html"><span class="doc">build your own image</span></a>.</p>
+<p>This documents the development version 2.6.0. Official Docker images only exist for releases, so the commands below use the latest release, 2.5.4, for its default CUDA version, 12.8. Images of 2.5.4 for other CUDA versions, ROCm and CPU are available on <a class="reference external" href="https://hub.docker.com/r/deepmi/fastsurfer/tags?name=v2.5.4">Docker Hub</a>. To run the development version, <a class="reference internal" href="../developer/docker.html"><span class="doc">build your own image</span></a>.</p>
 </div>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span><span class="w"> </span><span class="nv">FASTSURFER_HOME</span><span class="o">=</span><span class="si">${</span><span class="nv">FASTSURFER_HOME</span><span class="k">:-</span><span class="p">/path/to/FastSurfer</span><span class="si">}</span>
 <span class="nv">$FASTSURFER_HOME</span>/srun_fastsurfer.sh<span class="w"> </span>--partition_seg<span class="w"> </span>GPU_Partition<span class="w"> </span><span class="se">\</span>
@@ -779,7 +718,7 @@ wrapped with the Lesion Inpainting Tool (LIT) by providing <code class="docutils
 <h3>Docker<a class="headerlink" href="#id1" title="Link to this heading">¶</a></h3>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>This documents the development version 2.6.0. Official Docker images only exist for releases, so the commands below use the latest release, 2.5.4, for its default CUDA version, 12.8. Images of 2.5.4 for other CUDA versions, ROCm and CPU are available on <a class="reference external" href="https://hub.docker.com/r/deepmi/fastsurfer/tags?name=v2.5.4">Docker Hub</a>. To run the development version, <a class="reference internal" href="docker.html"><span class="doc">build your own image</span></a>.</p>
+<p>This documents the development version 2.6.0. Official Docker images only exist for releases, so the commands below use the latest release, 2.5.4, for its default CUDA version, 12.8. Images of 2.5.4 for other CUDA versions, ROCm and CPU are available on <a class="reference external" href="https://hub.docker.com/r/deepmi/fastsurfer/tags?name=v2.5.4">Docker Hub</a>. To run the development version, <a class="reference internal" href="../developer/docker.html"><span class="doc">build your own image</span></a>.</p>
 </div>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">freesurfer_license</span><span class="o">=</span><span class="si">${</span><span class="nv">freesurfer_license</span><span class="k">:-</span><span class="p">/path/to/your/freesurfer/license_file</span><span class="si">}</span>
 docker<span class="w"> </span>run<span class="w"> </span>--gpus<span class="w"> </span>all<span class="w"> </span>-v<span class="w"> </span><span class="nv">$HOME</span>/my_mri_data:<span class="nv">$HOME</span>/my_mri_data<span class="w"> </span><span class="se">\</span>
@@ -835,14 +774,14 @@ docker<span class="w"> </span>run<span class="w"> </span>--gpus<span class="w"> 
               </div>
               <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
             </a>
-          <a class="prev-page" href="install/NATIVE.html">
+          <a class="prev-page" href="CONTAINERS.html">
               <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
               <div class="page-info">
                 <div class="context">
                   <span>Previous</span>
                 </div>
                 
-                <div class="title">Installing from source</div>
+                <div class="title">Running FastSurfer in a container</div>
                 
               </div>
             </a>
@@ -883,19 +822,8 @@ docker<span class="w"> </span>run<span class="w"> </span>--gpus<span class="w"> 
           <div class="toc-tree">
             <ul>
 <li><a class="reference internal" href="#">Examples</a><ul>
-<li><a class="reference internal" href="#example-1-fastsurfer-apptainer-or-singularity">Example 1: FastSurfer Apptainer (or Singularity)</a><ul>
-<li><a class="reference internal" href="#preparation">Preparation</a></li>
-<li><a class="reference internal" href="#running-fastsurfer">Running FastSurfer</a></li>
-<li><a class="reference internal" href="#singularity-flags">Singularity Flags</a></li>
-<li><a class="reference internal" href="#fastsurfer-flags">FastSurfer Flags</a></li>
-</ul>
-</li>
-<li><a class="reference internal" href="#example-2-fastsurfer-docker">Example 2: FastSurfer Docker</a><ul>
-<li><a class="reference internal" href="#docker-flags">Docker Flags</a></li>
-<li><a class="reference internal" href="#docker-image">Docker image</a></li>
-<li><a class="reference internal" href="#fastsurfer-flag">FastSurfer Flag</a></li>
-</ul>
-</li>
+<li><a class="reference internal" href="#example-1-fastsurfer-apptainer-or-singularity">Example 1: FastSurfer Apptainer (or Singularity)</a></li>
+<li><a class="reference internal" href="#example-2-fastsurfer-docker">Example 2: FastSurfer Docker</a></li>
 <li><a class="reference internal" href="#example-3-native-fastsurfer-on-subjectx-with-parallel-processing-of-hemis">Example 3: Native FastSurfer on subjectX with parallel processing of hemis</a></li>
 <li><a class="reference internal" href="#example-4-fastsurfer-on-multiple-subjects">Example 4: FastSurfer on multiple subjects</a><ul>
 <li><a class="reference internal" href="#docker">Docker</a></li>

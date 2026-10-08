@@ -18,10 +18,7 @@ a few minutes longer. You can use your own T1-weighted full head MRI (0.7 to 1 m
 mkdir fastsurfer_test
 cd fastsurfer_test
 
-# 1. Download the docker image and create the singularity image
-#    (do this only the first time)
-#    It will produce the fastsurfer-{{ CUDA_STRING }}-v{{ FASTSURFER_VERSION }}.sif singularity image
-#    file in $HOME/my_singularity_images
+# 1. Build the Apptainer image from our Docker image (only the first time)
 mkdir -p $HOME/my_singularity_images
 singularity build \
     $HOME/my_singularity_images/fastsurfer-{{ CUDA_STRING }}-v{{ FASTSURFER_VERSION }}.sif \
@@ -97,7 +94,7 @@ run_fastsurfer.sh --t1 "$PWD/140_orig.mgz" \
 That's it, it will run the full brain segmentation. For speed, we switched off the cerebellum and hypothalamic sub-segmentation (would add a couple minutes).
 We also switched off the bias field correction, which is used to compute partial volume estimates for the statsfiles, so you might want to switch it on again if you want the volume statistics text file (under ```subjectX/stats```).
 Also if you need the estimated total intracranial volume for correcting the stats, you would either need to run the surface stream or switch on the Talairach registration with
-`--tal_reg` in the segmentation module. For the full surface stream, just remove the ```--seg_only``` and you need a [FreeSurfer license file](INSTALL.md#freesurfer-license) and pass it into the container, as described in more detail later.
+`--tal_reg` in the segmentation module. For the full surface stream, just remove the ```--seg_only```; you then need a [FreeSurfer license file](INSTALL.md#freesurfer-license) and pass it into the container, see [Running FastSurfer in a container](CONTAINERS.md).
 
 You will find the full brain segmentation in ```./subjectX/mri/aparc.DKTatlas+aseg.deep.mgz``` in FreeSurfer's MGZ file format. To convert it back to nifti (if you prefer), run `nib-convert`, which comes with FastSurfer, for example with the Singularity image (in the macOS console, call `nib-convert` directly):
 
@@ -119,7 +116,7 @@ freeview -v 140_orig.mgz \
     subjectX/mri/aparc.DKTatlas+aseg.deep.mgz:colormap=lut:opacity=0.2
 ```
 
-Other interesting outputs of the segmentation are the ```aseg.auto_noCCseg.mgz``` containing a reduced segmentation according to FreeSurfer's aseg (no cortical sub-division and no corpus callosum, which is added later). Also ```mask.mgz``` can come in handy if you need a brainmask. And you get all of this within a few seconds (including startup of singularity or docker it is **20 sec** in total with a GeForce RTX 4080, **40 sec** with a Quadro RTX 4000 or Titan XP, CPU-only processing takes about **5 minutes** longer).
+Other interesting outputs of the segmentation are the ```aseg.auto_noCCseg.mgz``` containing a reduced segmentation according to FreeSurfer's aseg (no cortical sub-division and no corpus callosum, which is added later). Also ```mask.mgz``` can come in handy if you need a brainmask.
 
 Google Colab
 ------------

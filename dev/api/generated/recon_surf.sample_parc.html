@@ -204,11 +204,10 @@
 <li class="toctree-l3"><a class="reference internal" href="../../overview/install/MACOS.html">macOS</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../overview/install/LINUX.html">Linux</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../overview/install/WINDOWS.html">Windows</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../overview/SINGULARITY.html">Apptainer and Singularity</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../overview/docker.html">Docker</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../overview/install/NATIVE.html">Installing from source</a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="../../overview/CONTAINERS.html">Running FastSurfer in a container</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../overview/EXAMPLES.html">Examples</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../overview/OUTPUT_FILES.html">Output files</a></li>
 <li class="toctree-l2 has-children"><a class="reference internal" href="../../overview/modules/index.html">Modules</a><input aria-label="Toggle navigation of Modules" class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
@@ -229,10 +228,10 @@
 </li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../../scripts/index.html">Command Reference</a><input aria-label="Toggle navigation of Command Reference" class="toctree-checkbox" id="toctree-checkbox-4" name="toctree-checkbox-4" role="switch" type="checkbox"/><label for="toctree-checkbox-4"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l2"><a class="reference internal" href="../../scripts/RUN_FASTSURFER.html">run_fastsurfer.sh</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../scripts/long_fastsurfer.html">LONG: long_fastsurfer.sh</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../scripts/BATCH.html">BATCH: brun_fastsurfer.sh</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../scripts/BIDS.html">BIDS: bids_fastsurfer.py</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../scripts/SLURM.html">SLURM: srun_fastsurfer.sh</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../scripts/long_fastsurfer.html">long_fastsurfer.sh</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../scripts/BATCH.html">brun_fastsurfer.sh</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../scripts/SLURM.html">srun_fastsurfer.sh</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../scripts/BIDS.html">bids_fastsurfer.py</a></li>
 <li class="toctree-l2 has-children"><a class="reference internal" href="../../scripts/advanced.html">Running modules directly</a><input aria-label="Toggle navigation of Running modules directly" class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../scripts/fastsurfercnn.html">FastSurferCNN: run_prediction.py</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../scripts/cerebnet.html">CerebNet: run_prediction.py</a></li>
@@ -258,10 +257,11 @@
 </li>
 </ul>
 </li>
-<li class="toctree-l1 has-children"><a class="reference internal" href="../../developer/index.html">Contributor Guide</a><input aria-label="Toggle navigation of Contributor Guide" class="toctree-checkbox" id="toctree-checkbox-8" name="toctree-checkbox-8" role="switch" type="checkbox"/><label for="toctree-checkbox-8"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
-<li class="toctree-l2"><a class="reference internal" href="../../developer/GIT-HOOKS.html">git hook setup / CD</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../developer/code_of_conduct.html">Code of Conduct</a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../developer/index.html">Developer Guide</a><input aria-label="Toggle navigation of Developer Guide" class="toctree-checkbox" id="toctree-checkbox-8" name="toctree-checkbox-8" role="switch" type="checkbox"/><label for="toctree-checkbox-8"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l2"><a class="reference internal" href="../../developer/contributing.html">Contribution Guide</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../developer/GIT-HOOKS.html">Git hooks</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../developer/docker.html">Building Docker images</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../developer/code_of_conduct.html">Code of Conduct</a></li>
 </ul>
 </li>
 <li class="toctree-l1 current has-children"><a class="reference internal" href="../index.html">FastSurfer API</a><input aria-label="Toggle navigation of FastSurfer API" checked="" class="toctree-checkbox" id="toctree-checkbox-9" name="toctree-checkbox-9" role="switch" type="checkbox"/><label for="toctree-checkbox-9"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul class="current">
@@ -482,7 +482,7 @@
 <span id="recon-surf-sample-parc"></span><h1>recon_surf.sample_parc<a class="headerlink" href="#module-recon_surf.sample_parc" title="Link to this heading">¶</a></h1>
 <dl class="py function">
 <dt class="sig sig-object py" id="recon_surf.sample_parc.construct_adj_cluster">
-<span class="sig-prename descclassname"><span class="pre">recon_surf.sample_parc.</span></span><span class="sig-name descname"><span class="pre">construct_adj_cluster</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tria</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">annot</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/797594b/recon_surf/sample_parc.py#L97-L127"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#recon_surf.sample_parc.construct_adj_cluster" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">recon_surf.sample_parc.</span></span><span class="sig-name descname"><span class="pre">construct_adj_cluster</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tria</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">annot</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/1dc0247/recon_surf/sample_parc.py#L97-L127"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#recon_surf.sample_parc.construct_adj_cluster" title="Link to this definition">¶</a></dt>
 <dd><p>Compute adjacency matrix of edges from same annotation label only.</p>
 <p>Operates only on triangles and removes edges that cross annotation
 label boundaries.</p>
@@ -504,7 +504,7 @@ adj.data = np.ones(adj.data.shape).</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="recon_surf.sample_parc.find_all_islands">
-<span class="sig-prename descclassname"><span class="pre">recon_surf.sample_parc.</span></span><span class="sig-name descname"><span class="pre">find_all_islands</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">surf</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">annot</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/797594b/recon_surf/sample_parc.py#L129-L165"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#recon_surf.sample_parc.find_all_islands" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">recon_surf.sample_parc.</span></span><span class="sig-name descname"><span class="pre">find_all_islands</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">surf</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">annot</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/1dc0247/recon_surf/sample_parc.py#L129-L165"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#recon_surf.sample_parc.find_all_islands" title="Link to this definition">¶</a></dt>
 <dd><p>Find vertices in disconnected islands for all labels in surface annotation.</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -531,7 +531,7 @@ nibabel fs.read_annot.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="recon_surf.sample_parc.options_parse">
-<span class="sig-prename descclassname"><span class="pre">recon_surf.sample_parc.</span></span><span class="sig-name descname"><span class="pre">options_parse</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/797594b/recon_surf/sample_parc.py#L60-L95"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#recon_surf.sample_parc.options_parse" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">recon_surf.sample_parc.</span></span><span class="sig-name descname"><span class="pre">options_parse</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/1dc0247/recon_surf/sample_parc.py#L60-L95"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#recon_surf.sample_parc.options_parse" title="Link to this definition">¶</a></dt>
 <dd><p>Create a command line interface and return command line options.</p>
 <dl class="field-list">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
@@ -545,7 +545,7 @@ nibabel fs.read_annot.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="recon_surf.sample_parc.replace_labels">
-<span class="sig-prename descclassname"><span class="pre">recon_surf.sample_parc.</span></span><span class="sig-name descname"><span class="pre">replace_labels</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">img_labels</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">img_lut</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">surf_lut</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/797594b/recon_surf/sample_parc.py#L332-L365"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#recon_surf.sample_parc.replace_labels" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">recon_surf.sample_parc.</span></span><span class="sig-name descname"><span class="pre">replace_labels</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">img_labels</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">img_lut</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">surf_lut</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/1dc0247/recon_surf/sample_parc.py#L332-L365"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#recon_surf.sample_parc.replace_labels" title="Link to this definition">¶</a></dt>
 <dd><p>Replace image labels with corresponding surface labels or unknown.</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -573,7 +573,7 @@ nibabel fs.read_annot.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="recon_surf.sample_parc.sample_img">
-<span class="sig-prename descclassname"><span class="pre">recon_surf.sample_parc.</span></span><span class="sig-name descname"><span class="pre">sample_img</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">surf</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">img</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cortex</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">projmm</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">radius</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/797594b/recon_surf/sample_parc.py#L247-L329"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#recon_surf.sample_parc.sample_img" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">recon_surf.sample_parc.</span></span><span class="sig-name descname"><span class="pre">sample_img</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">surf</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">img</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cortex</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">projmm</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">radius</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/1dc0247/recon_surf/sample_parc.py#L247-L329"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#recon_surf.sample_parc.sample_img" title="Link to this definition">¶</a></dt>
 <dd><p>Sample volume at a distance from the surface.</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -606,7 +606,7 @@ all voxels inside this radius to find a non-zero value.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="recon_surf.sample_parc.sample_nearest_nonzero">
-<span class="sig-prename descclassname"><span class="pre">recon_surf.sample_parc.</span></span><span class="sig-name descname"><span class="pre">sample_nearest_nonzero</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">img</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vox_coords</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">radius</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">3.0</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/797594b/recon_surf/sample_parc.py#L167-L244"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#recon_surf.sample_parc.sample_nearest_nonzero" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">recon_surf.sample_parc.</span></span><span class="sig-name descname"><span class="pre">sample_nearest_nonzero</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">img</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vox_coords</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">radius</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">3.0</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/1dc0247/recon_surf/sample_parc.py#L167-L244"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#recon_surf.sample_parc.sample_nearest_nonzero" title="Link to this definition">¶</a></dt>
 <dd><p>Sample closest non-zero value in a ball of radius around vox_coords.</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -630,7 +630,7 @@ all voxels inside this radius to find a non-zero value.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="recon_surf.sample_parc.sample_parc">
-<span class="sig-prename descclassname"><span class="pre">recon_surf.sample_parc.</span></span><span class="sig-name descname"><span class="pre">sample_parc</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">surf</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seg</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">imglut</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">surflut</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">outaparc</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cortex</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">projmm</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">radius</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/797594b/recon_surf/sample_parc.py#L368-L416"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#recon_surf.sample_parc.sample_parc" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">recon_surf.sample_parc.</span></span><span class="sig-name descname"><span class="pre">sample_parc</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">surf</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seg</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">imglut</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">surflut</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">outaparc</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cortex</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">projmm</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">radius</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/1dc0247/recon_surf/sample_parc.py#L368-L416"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#recon_surf.sample_parc.sample_parc" title="Link to this definition">¶</a></dt>
 <dd><p>Sample cortical GM labels from image to surface and smooth.</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>

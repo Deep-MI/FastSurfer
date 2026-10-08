@@ -204,11 +204,10 @@
 <li class="toctree-l3"><a class="reference internal" href="install/MACOS.html">macOS</a></li>
 <li class="toctree-l3"><a class="reference internal" href="install/LINUX.html">Linux</a></li>
 <li class="toctree-l3"><a class="reference internal" href="install/WINDOWS.html">Windows</a></li>
-<li class="toctree-l3"><a class="reference internal" href="SINGULARITY.html">Apptainer and Singularity</a></li>
-<li class="toctree-l3"><a class="reference internal" href="docker.html">Docker</a></li>
 <li class="toctree-l3"><a class="reference internal" href="install/NATIVE.html">Installing from source</a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="CONTAINERS.html">Running FastSurfer in a container</a></li>
 <li class="toctree-l2"><a class="reference internal" href="EXAMPLES.html">Examples</a></li>
 <li class="toctree-l2"><a class="reference internal" href="OUTPUT_FILES.html">Output files</a></li>
 <li class="toctree-l2 has-children"><a class="reference internal" href="modules/index.html">Modules</a><input aria-label="Toggle navigation of Modules" class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
@@ -229,10 +228,10 @@
 </li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../scripts/index.html">Command Reference</a><input aria-label="Toggle navigation of Command Reference" class="toctree-checkbox" id="toctree-checkbox-4" name="toctree-checkbox-4" role="switch" type="checkbox"/><label for="toctree-checkbox-4"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l2"><a class="reference internal" href="../scripts/RUN_FASTSURFER.html">run_fastsurfer.sh</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../scripts/long_fastsurfer.html">LONG: long_fastsurfer.sh</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../scripts/BATCH.html">BATCH: brun_fastsurfer.sh</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../scripts/BIDS.html">BIDS: bids_fastsurfer.py</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../scripts/SLURM.html">SLURM: srun_fastsurfer.sh</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../scripts/long_fastsurfer.html">long_fastsurfer.sh</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../scripts/BATCH.html">brun_fastsurfer.sh</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../scripts/SLURM.html">srun_fastsurfer.sh</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../scripts/BIDS.html">bids_fastsurfer.py</a></li>
 <li class="toctree-l2 has-children"><a class="reference internal" href="../scripts/advanced.html">Running modules directly</a><input aria-label="Toggle navigation of Running modules directly" class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l3"><a class="reference internal" href="../scripts/fastsurfercnn.html">FastSurferCNN: run_prediction.py</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../scripts/cerebnet.html">CerebNet: run_prediction.py</a></li>
@@ -258,10 +257,11 @@
 </li>
 </ul>
 </li>
-<li class="toctree-l1 has-children"><a class="reference internal" href="../developer/index.html">Contributor Guide</a><input aria-label="Toggle navigation of Contributor Guide" class="toctree-checkbox" id="toctree-checkbox-8" name="toctree-checkbox-8" role="switch" type="checkbox"/><label for="toctree-checkbox-8"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
-<li class="toctree-l2"><a class="reference internal" href="../developer/GIT-HOOKS.html">git hook setup / CD</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../developer/code_of_conduct.html">Code of Conduct</a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../developer/index.html">Developer Guide</a><input aria-label="Toggle navigation of Developer Guide" class="toctree-checkbox" id="toctree-checkbox-8" name="toctree-checkbox-8" role="switch" type="checkbox"/><label for="toctree-checkbox-8"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l2"><a class="reference internal" href="../developer/contributing.html">Contribution Guide</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../developer/GIT-HOOKS.html">Git hooks</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../developer/docker.html">Building Docker images</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../developer/code_of_conduct.html">Code of Conduct</a></li>
 </ul>
 </li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../api/index.html">FastSurfer API</a><input aria-label="Toggle navigation of FastSurfer API" class="toctree-checkbox" id="toctree-checkbox-9" name="toctree-checkbox-9" role="switch" type="checkbox"/><label for="toctree-checkbox-9"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
@@ -490,7 +490,7 @@ a few minutes longer. You can use your own T1-weighted full head MRI (0.7 to 1 m
 <code class="docutils literal notranslate"><span class="pre">.nii</span></code>, <code class="docutils literal notranslate"><span class="pre">.nii.gz</span></code> or <code class="docutils literal notranslate"><span class="pre">.mgz</span></code>), or the example image the commands download.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>This documents the development version 2.6.0. Official Docker images only exist for releases, so the commands below use the latest release, 2.5.4, for its default CUDA version, 12.8. Images of 2.5.4 for other CUDA versions, ROCm and CPU are available on <a class="reference external" href="https://hub.docker.com/r/deepmi/fastsurfer/tags?name=v2.5.4">Docker Hub</a>. To run the development version, <a class="reference internal" href="docker.html"><span class="doc">build your own image</span></a>.</p>
+<p>This documents the development version 2.6.0. Official Docker images only exist for releases, so the commands below use the latest release, 2.5.4, for its default CUDA version, 12.8. Images of 2.5.4 for other CUDA versions, ROCm and CPU are available on <a class="reference external" href="https://hub.docker.com/r/deepmi/fastsurfer/tags?name=v2.5.4">Docker Hub</a>. To run the development version, <a class="reference internal" href="../developer/docker.html"><span class="doc">build your own image</span></a>.</p>
 </div>
 <div class="sd-tab-set docutils">
 <input checked="checked" id="sd-tab-item-0" name="sd-tab-set-0" type="radio">
@@ -500,10 +500,7 @@ Apptainer / Singularity</label><div class="sd-tab-content docutils">
 mkdir<span class="w"> </span>fastsurfer_test
 <span class="nb">cd</span><span class="w"> </span>fastsurfer_test
 
-<span class="c1"># 1. Download the docker image and create the singularity image</span>
-<span class="c1">#    (do this only the first time)</span>
-<span class="c1">#    It will produce the fastsurfer-cu128-v2.5.4.sif singularity image</span>
-<span class="c1">#    file in $HOME/my_singularity_images</span>
+<span class="c1"># 1. Build the Apptainer image from our Docker image (only the first time)</span>
 mkdir<span class="w"> </span>-p<span class="w"> </span><span class="nv">$HOME</span>/my_singularity_images
 singularity<span class="w"> </span>build<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span><span class="nv">$HOME</span>/my_singularity_images/fastsurfer-cu128-v2.5.4.sif<span class="w"> </span><span class="se">\</span>
@@ -579,11 +576,11 @@ run_fastsurfer.sh<span class="w"> </span>--t1<span class="w"> </span><span class
 <p>That’s it, it will run the full brain segmentation. For speed, we switched off the cerebellum and hypothalamic sub-segmentation (would add a couple minutes).
 We also switched off the bias field correction, which is used to compute partial volume estimates for the statsfiles, so you might want to switch it on again if you want the volume statistics text file (under <code class="docutils literal notranslate"><span class="pre">subjectX/stats</span></code>).
 Also if you need the estimated total intracranial volume for correcting the stats, you would either need to run the surface stream or switch on the Talairach registration with
-<code class="docutils literal notranslate"><span class="pre">--tal_reg</span></code> in the segmentation module. For the full surface stream, just remove the <code class="docutils literal notranslate"><span class="pre">--seg_only</span></code> and you need a <a class="reference internal" href="INSTALL.html#freesurfer-license"><span class="std std-ref">FreeSurfer license file</span></a> and pass it into the container, as described in more detail later.</p>
+<code class="docutils literal notranslate"><span class="pre">--tal_reg</span></code> in the segmentation module. For the full surface stream, just remove the <code class="docutils literal notranslate"><span class="pre">--seg_only</span></code>; you then need a <a class="reference internal" href="INSTALL.html#freesurfer-license"><span class="std std-ref">FreeSurfer license file</span></a> and pass it into the container, see <a class="reference internal" href="CONTAINERS.html"><span class="std std-doc">Running FastSurfer in a container</span></a>.</p>
 <p>You will find the full brain segmentation in <code class="docutils literal notranslate"><span class="pre">./subjectX/mri/aparc.DKTatlas+aseg.deep.mgz</span></code> in FreeSurfer’s MGZ file format. To convert it back to nifti (if you prefer), run <code class="docutils literal notranslate"><span class="pre">nib-convert</span></code>, which comes with FastSurfer, for example with the Singularity image (in the macOS console, call <code class="docutils literal notranslate"><span class="pre">nib-convert</span></code> directly):</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>This documents the development version 2.6.0. Official Docker images only exist for releases, so the commands below use the latest release, 2.5.4, for its default CUDA version, 12.8. Images of 2.5.4 for other CUDA versions, ROCm and CPU are available on <a class="reference external" href="https://hub.docker.com/r/deepmi/fastsurfer/tags?name=v2.5.4">Docker Hub</a>. To run the development version, <a class="reference internal" href="docker.html"><span class="doc">build your own image</span></a>.</p>
+<p>This documents the development version 2.6.0. Official Docker images only exist for releases, so the commands below use the latest release, 2.5.4, for its default CUDA version, 12.8. Images of 2.5.4 for other CUDA versions, ROCm and CPU are available on <a class="reference external" href="https://hub.docker.com/r/deepmi/fastsurfer/tags?name=v2.5.4">Docker Hub</a>. To run the development version, <a class="reference internal" href="../developer/docker.html"><span class="doc">build your own image</span></a>.</p>
 </div>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Convert mgz to nifti</span>
 singularity<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>--nv<span class="w"> </span><span class="se">\</span>
@@ -600,7 +597,7 @@ freeview<span class="w"> </span>-v<span class="w"> </span>140_orig.mgz<span clas
 <span class="w">    </span>subjectX/mri/aparc.DKTatlas+aseg.deep.mgz:colormap<span class="o">=</span>lut:opacity<span class="o">=</span><span class="m">0</span>.2
 </pre></div>
 </div>
-<p>Other interesting outputs of the segmentation are the <code class="docutils literal notranslate"><span class="pre">aseg.auto_noCCseg.mgz</span></code> containing a reduced segmentation according to FreeSurfer’s aseg (no cortical sub-division and no corpus callosum, which is added later). Also <code class="docutils literal notranslate"><span class="pre">mask.mgz</span></code> can come in handy if you need a brainmask. And you get all of this within a few seconds (including startup of singularity or docker it is <strong>20 sec</strong> in total with a GeForce RTX 4080, <strong>40 sec</strong> with a Quadro RTX 4000 or Titan XP, CPU-only processing takes about <strong>5 minutes</strong> longer).</p>
+<p>Other interesting outputs of the segmentation are the <code class="docutils literal notranslate"><span class="pre">aseg.auto_noCCseg.mgz</span></code> containing a reduced segmentation according to FreeSurfer’s aseg (no cortical sub-division and no corpus callosum, which is added later). Also <code class="docutils literal notranslate"><span class="pre">mask.mgz</span></code> can come in handy if you need a brainmask.</p>
 </section>
 <section id="google-colab">
 <h2>Google Colab<a class="headerlink" href="#google-colab" title="Link to this heading">¶</a></h2>

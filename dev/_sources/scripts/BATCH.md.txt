@@ -1,5 +1,5 @@
-BATCH: brun_fastsurfer.sh
-=========================
+brun_fastsurfer.sh
+==================
 
 Usage
 -----
