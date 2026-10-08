@@ -3,10 +3,10 @@
   <head><meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
-<link rel="index" title="Index" href="../genindex.html"><link rel="search" title="Search" href="../search.html"><link rel="next" title="FastSurferCNN: download_checkpoints.py" href="fastsurfercnn.download_checkpoints.html"><link rel="prev" title="Surface registration: recon-surfreg.sh" href="recon_surfreg.html">
+<link rel="index" title="Index" href="../genindex.html"><link rel="search" title="Search" href="../search.html"><link rel="next" title="FastSurferCNN: generate_hdf5.py" href="fastsurfercnn.generate_hdf5.html"><link rel="prev" title="recon_surf: long_compat_segmentHA.py" href="long_compat_segmentHA.html">
 
     <!-- Generated with Sphinx 7.4.7 and Furo 2025.12.19 -->
-        <title>Utilities - FastSurfer</title>
+        <title>Training - FastSurfer</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
@@ -242,7 +242,7 @@
 <li class="toctree-l3"><a class="reference internal" href="recon_surfreg.html">Surface registration: recon-surfreg.sh</a></li>
 </ul>
 </li>
-<li class="toctree-l2 current has-children current-page"><a class="current reference internal" href="#">Utilities</a><input aria-label="Toggle navigation of Utilities" checked="" class="toctree-checkbox" id="toctree-checkbox-6" name="toctree-checkbox-6" role="switch" type="checkbox"/><label for="toctree-checkbox-6"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="util.html">Utilities</a><input aria-label="Toggle navigation of Utilities" class="toctree-checkbox" id="toctree-checkbox-6" name="toctree-checkbox-6" role="switch" type="checkbox"/><label for="toctree-checkbox-6"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l3"><a class="reference internal" href="fastsurfercnn.download_checkpoints.html">FastSurferCNN: download_checkpoints.py</a></li>
 <li class="toctree-l3"><a class="reference internal" href="fastsurfercnn.conform.html">FastSurferCNN: conform.py</a></li>
 <li class="toctree-l3"><a class="reference internal" href="segstats.html">FastSurferCNN: segstats.py</a></li>
@@ -251,7 +251,7 @@
 <li class="toctree-l3"><a class="reference internal" href="long_compat_segmentHA.html">recon_surf: long_compat_segmentHA.py</a></li>
 </ul>
 </li>
-<li class="toctree-l2 has-children"><a class="reference internal" href="training.html">Training</a><input aria-label="Toggle navigation of Training" class="toctree-checkbox" id="toctree-checkbox-7" name="toctree-checkbox-7" role="switch" type="checkbox"/><label for="toctree-checkbox-7"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2 current has-children current-page"><a class="current reference internal" href="#">Training</a><input aria-label="Toggle navigation of Training" checked="" class="toctree-checkbox" id="toctree-checkbox-7" name="toctree-checkbox-7" role="switch" type="checkbox"/><label for="toctree-checkbox-7"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l3"><a class="reference internal" href="fastsurfercnn.generate_hdf5.html">FastSurferCNN: generate_hdf5.py</a></li>
 <li class="toctree-l3"><a class="reference internal" href="fastsurfercnn.run_model.html">FastSurferCNN: run_model.py</a></li>
 </ul>
@@ -460,7 +460,7 @@
         </a>
         <div class="content-icon-container">
           <div class="view-this-page">
-  <a class="muted-link" href="../_sources/scripts/util.rst.txt" title="View this page">
+  <a class="muted-link" href="../_sources/scripts/training.rst.txt" title="View this page">
     <svg><use href="#svg-eye"></use></svg>
     <span class="visually-hidden">View this page</span>
   </a>
@@ -478,38 +478,27 @@
           </label>
         </div>
         <article role="main" id="furo-main-content">
-          <section id="utilities">
-<h1>Utilities<a class="headerlink" href="#utilities" title="Link to this heading">¶</a></h1>
-<p>Tools for setting FastSurfer up, preparing inputs and working with results: downloading the network checkpoints,
-conforming images, computing statistics, comparing two runs, visualizing corpus callosum results, and preparing
-longitudinal subjects for FreeSurfer’s tools.</p>
+          <section id="training">
+<h1>Training<a class="headerlink" href="#training" title="Link to this heading">¶</a></h1>
+<p>Scripts for training FastSurfer’s segmentation networks: creating the training datasets and training the models. They
+are only needed to retrain or extend the networks; processing images uses the trained checkpoints that FastSurfer
+downloads.</p>
 <div class="toctree-wrapper compound">
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="fastsurfercnn.download_checkpoints.html">FastSurferCNN: download_checkpoints.py</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="fastsurfercnn.download_checkpoints.html#full-commandline-interface-of-fastsurfercnn-download-checkpoints-py">Full commandline interface of FastSurferCNN/download_checkpoints.py</a></li>
+<li class="toctree-l1"><a class="reference internal" href="fastsurfercnn.generate_hdf5.html">FastSurferCNN: generate_hdf5.py</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="fastsurfercnn.generate_hdf5.html#full-commandline-interface-of-fastsurfercnn-generate-hdf5-py">Full commandline interface of FastSurferCNN/generate_hdf5.py</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="fastsurfercnn.conform.html">FastSurferCNN: conform.py</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="fastsurfercnn.conform.html#full-commandline-interface-of-fastsurfercnn-data-loader-conform-py">Full commandline interface of FastSurferCNN/data_loader/conform.py</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="segstats.html">FastSurferCNN: segstats.py</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="segstats.html#full-commandline-interface-of-fastsurfercnn-segstats-py">Full commandline interface of FastSurferCNN/segstats.py</a></li>
-<li class="toctree-l2"><a class="reference internal" href="segstats.html#freesurfer-compatible-interfaces-mri-segstats-py-and-mri-brainvol-stats-py">FreeSurfer-compatible interfaces: mri_segstats.py and mri_brainvol_stats.py</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="compare_subjects.html">tools: compare_subjects.py</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="compare_subjects.html#full-commandline-interface-of-tools-compare-subjects-py">Full commandline interface of tools/compare_subjects.py</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="cc_visualization.html">CorpusCallosum: cc_visualization.py</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="cc_visualization.html#CorpusCallosum.cc_visualization-make_parser-named-arguments">Named Arguments</a></li>
-<li class="toctree-l2"><a class="reference internal" href="cc_visualization.html#usage-examples">Usage Examples</a></li>
-<li class="toctree-l2"><a class="reference internal" href="cc_visualization.html#outputs">Outputs</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="long_compat_segmentHA.html">recon_surf: long_compat_segmentHA.py</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="long_compat_segmentHA.html#full-commandline-interface-of-recon-surf-long-compat-segmentha-py">Full commandline interface of recon_surf/long_compat_segmentHA.py</a></li>
+<li class="toctree-l1"><a class="reference internal" href="fastsurfercnn.run_model.html">FastSurferCNN: run_model.py</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="fastsurfercnn.run_model.html#model-options">Model options</a></li>
+<li class="toctree-l2"><a class="reference internal" href="fastsurfercnn.run_model.html#optimizer-options">Optimizer options</a></li>
+<li class="toctree-l2"><a class="reference internal" href="fastsurfercnn.run_model.html#data-options">Data options</a></li>
+<li class="toctree-l2"><a class="reference internal" href="fastsurfercnn.run_model.html#training-options">Training options</a></li>
+<li class="toctree-l2"><a class="reference internal" href="fastsurfercnn.run_model.html#misc-options">Misc. Options</a></li>
+<li class="toctree-l2"><a class="reference internal" href="fastsurfercnn.run_model.html#example-command-training-default-fastsurfervinn">Example Command: Training Default FastSurferVINN</a></li>
+<li class="toctree-l2"><a class="reference internal" href="fastsurfercnn.run_model.html#example-command-training-fastsurfervinn-single-resolution">Example Command: Training FastSurferVINN (Single Resolution)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="fastsurfercnn.run_model.html#example-command-training-fastsurfercnn">Example Command: Training FastSurferCNN</a></li>
+<li class="toctree-l2"><a class="reference internal" href="fastsurfercnn.run_model.html#full-commandline-interface-of-fastsurfercnn-run-model-py">Full commandline interface of FastSurferCNN/run_model.py</a></li>
 </ul>
 </li>
 </ul>
@@ -521,23 +510,23 @@ longitudinal subjects for FreeSurfer’s tools.</p>
       <footer>
         
         <div class="related-pages">
-          <a class="next-page" href="fastsurfercnn.download_checkpoints.html">
+          <a class="next-page" href="fastsurfercnn.generate_hdf5.html">
               <div class="page-info">
                 <div class="context">
                   <span>Next</span>
                 </div>
-                <div class="title">FastSurferCNN: download_checkpoints.py</div>
+                <div class="title">FastSurferCNN: generate_hdf5.py</div>
               </div>
               <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
             </a>
-          <a class="prev-page" href="recon_surfreg.html">
+          <a class="prev-page" href="long_compat_segmentHA.html">
               <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
               <div class="page-info">
                 <div class="context">
                   <span>Previous</span>
                 </div>
                 
-                <div class="title">Surface registration: recon-surfreg.sh</div>
+                <div class="title">recon_surf: long_compat_segmentHA.py</div>
                 
               </div>
             </a>
