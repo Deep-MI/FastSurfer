@@ -191,6 +191,8 @@ myst_enable_extensions = {
 # configure substitutions, fix_links also replaces string substitutions inside code, which MyST does not
 myst_substitutions = {
     "FASTSURFER_VERSION": image_version,
+    # the same version for the folder of the macOS package, without the note on docker images
+    "PACKAGE_VERSION": image_version,
     "CUDA_STRING": image_cuda,
     "CUDA_VERSION": version_cuda,
     "CUDA_DEFAULT_STRING": image_cuda_default,

@@ -156,7 +156,8 @@ supported versions.
 `fix_links` also renders a note on top of each code block that uses them (`fix_links_substitution_banners` in
 `doc/conf.py`), with a separate text for `{{ FASTSURFER_VERSION }}`, `{{ CUDA_STRING }}` and both: that the commands
 use the latest release (in the development documentation), and that images for other CUDA versions are available on
-Docker Hub. Do not add such notes by hand.
+Docker Hub. Do not add such notes by hand. Where the version is not about an image, such as the folder of the macOS
+package, use `{{ PACKAGE_VERSION }}`, the same version without the note.
 
 The software in the images of that release, which is also what the native installation clones (`--branch stable`),
 comes with versions from the same tree: `{{ PYTHON_VERSION }}` is `tool.python.version` in `pyproject.toml`,
