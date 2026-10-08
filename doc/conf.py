@@ -125,11 +125,12 @@ version_ubuntu = _runtime_base_image.removeprefix("ubuntu:")
 # the PyTorch backend and device name of that CUDA version (13.2 -> cu132)
 image_cuda = "cu" + version_cuda.replace(".", "")
 image_rocm = "rocm" + version_rocm
-# the CUDA images this tree builds, their GPUs and oldest drivers, for the table of which image fits which GPU; from
-# this tree, not image_version, so the table matches pyproject.toml and the message FastSurfer prints for a GPU it
-# cannot use
-(version_cuda_default,) = _tool_values_gitref(None, "cuda.version")
+# the images this tree builds, the GPUs and oldest drivers of the CUDA images, for the table of which image fits which
+# GPU and the build examples; from this tree, not image_version, so they match pyproject.toml, build.py and the message
+# FastSurfer prints for a GPU it cannot use
+version_cuda_default, version_rocm_default = _tool_values_gitref(None, "cuda.version", "rocm.version")
 image_cuda_default = "cu" + version_cuda_default.replace(".", "")
+image_rocm_default = "rocm" + version_rocm_default
 (_legacy_major, _legacy_minor), image_cuda_legacy = LEGACY_BUILD
 version_cuda_legacy = f"{_legacy_major}.{_legacy_minor}"
 driver_cuda = MIN_DRIVER[int(version_cuda_default.split(".")[0])]
@@ -203,6 +204,8 @@ myst_substitutions = {
     "CUDA_LEGACY_DRIVER": str(driver_cuda_legacy),
     "ROCM_STRING": image_rocm,
     "ROCM_VERSION": version_rocm,
+    "ROCM_DEFAULT_STRING": image_rocm_default,
+    "ROCM_DEFAULT_VERSION": version_rocm_default,
     "PYTHON_VERSION": version_python,
     "UBUNTU_VERSION": version_ubuntu,
     "FREESURFER_VERSION": version_freesurfer,

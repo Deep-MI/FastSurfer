@@ -159,6 +159,11 @@ use the latest release (in the development documentation), and that images for o
 Docker Hub. Do not add such notes by hand. Where the version is not about an image, such as the folder of the macOS
 package, use `{{ PACKAGE_VERSION }}`, the same version without the note.
 
+What this tree builds comes from this tree, not from that release: `{{ CUDA_DEFAULT_STRING }}` and
+`{{ ROCM_DEFAULT_STRING }}` (with `{{ CUDA_DEFAULT_VERSION }}` and `{{ ROCM_DEFAULT_VERSION }}`) are the default CUDA
+and ROCm images of `pyproject.toml`, and `{{ CUDA_LEGACY_STRING }}` is the image for older GPUs, from
+`FastSurferCNN/gpu_support.py`. Use them where the text is about building images or choosing one.
+
 The software in the images of that release, which is also what the native installation clones (`--branch stable`),
 comes with versions from the same tree: `{{ PYTHON_VERSION }}` is `tool.python.version` in `pyproject.toml`,
 `{{ UBUNTU_VERSION }}` the Ubuntu version of `tool.docker.runtime_base` in `pyproject.toml`, and

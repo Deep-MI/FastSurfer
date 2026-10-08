@@ -144,10 +144,13 @@ To build your own Docker image for FastSurfer (segmentation and surface reconstr
 FreeSurfer), run the following command in the FastSurfer directory:
 
 ```bash
-python tools/Docker/build.py --device cuda --tag my_fastsurfer:cuda
+python tools/Docker/build.py --device {{ CUDA_DEFAULT_STRING }} --tag my_fastsurfer:{{ CUDA_DEFAULT_STRING }}
 ```
 
-To build for another CUDA version, pass it to `--device`, for example `--device {{ CUDA_LEGACY_STRING }}`;
+`--device {{ CUDA_DEFAULT_STRING }}` builds for CUDA {{ CUDA_DEFAULT_VERSION }}, the default, which `--device cuda`
+also selects. To build for another CUDA version, pass it to `--device`, for example
+`--device {{ CUDA_LEGACY_STRING }}` for older GPUs and drivers, see
+[which image fits your GPU](../../doc/overview/install/LINUX.md#nvidia-gpus);
 `python tools/Docker/build.py --print_supported cuda` lists the supported versions. Add `--pinned_requirements` to
 use the pinned dependency versions of `requirements.txt` (see `build.py --help` for all options).
 
@@ -158,7 +161,7 @@ docker run --gpus all \
            -v $HOME/my_mri_data:$HOME/my_mri_data \
            -v $HOME/my_fastsurfer_analysis:$HOME/my_fastsurfer_analysis \
            -v $freesurfer_license:$freesurfer_license \
-           --rm --user $(id -u):$(id -g) my_fastsurfer:cuda \
+           --rm --user $(id -u):$(id -g) my_fastsurfer:{{ CUDA_DEFAULT_STRING }} \
                --fs_license $freesurfer_license \
                --t1 $HOME/my_mri_data/subjectX/t1_weighted.nii.gz \
                --sid subjectX --sd $HOME/my_fastsurfer_analysis \
@@ -172,7 +175,7 @@ To build the Docker image for FastSurfer for the CPU only, run in the FastSurfer
 python tools/Docker/build.py --device cpu --tag my_fastsurfer:cpu
 ```
 
-Only `--device` changes, from `cuda` to `cpu`.
+Only `--device` changes, to `cpu`.
 
 To run the analysis, use the same command as above, but without the `--gpus all` option:
 ```bash
@@ -199,10 +202,13 @@ https://rocm.docs.amd.com/projects/install-on-linux/en/latest/install/amdgpu-ins
 https://rocm.docs.amd.com/projects/install-on-linux/en/latest/how-to/docker.html.
 
 ```bash
-python tools/Docker/build.py --device rocm --tag my_fastsurfer:rocm
+python tools/Docker/build.py --device {{ ROCM_DEFAULT_STRING }} --tag my_fastsurfer:{{ ROCM_DEFAULT_STRING }}
 ```
 
-and run the segmentation only (FastSurfer addresses AMD GPUs as `cuda` devices, so `--device cuda` or `--device cuda:0`
+`--device {{ ROCM_DEFAULT_STRING }}` builds for ROCm {{ ROCM_DEFAULT_VERSION }}, the default, which `--device rocm`
+also selects; `python tools/Docker/build.py --print_supported rocm` lists the supported versions.
+
+Run the segmentation only (FastSurfer addresses AMD GPUs as `cuda` devices, so `--device cuda` or `--device cuda:0`
 selects a specific GPU):
 
 ```bash
@@ -210,7 +216,7 @@ docker run --rm --security-opt seccomp=unconfined \
            --device=/dev/kfd --device=/dev/dri --group-add video \
            -v $HOME/my_mri_data:$HOME/my_mri_data \
            -v $HOME/my_fastsurfer_analysis:$HOME/my_fastsurfer_analysis \
-           --user $(id -u):$(id -g) my_fastsurfer:rocm \
+           --user $(id -u):$(id -g) my_fastsurfer:{{ ROCM_DEFAULT_STRING }} \
                --t1 $HOME/my_mri_data/subjectX/t1_weighted.nii.gz \
                --sid subjectX --sd $HOME/my_fastsurfer_analysis \
                --seg_only
@@ -231,7 +237,7 @@ docker run --rm --security-opt seccomp=unconfined \
            -v $HOME/my_mri_data:$HOME/my_mri_data \
            -v $HOME/my_fastsurfer_analysis:$HOME/my_fastsurfer_analysis \
            -e HSA_OVERRIDE_GFX_VERSION=10.3.0 \
-           --user $(id -u):$(id -g) my_fastsurfer:rocm \
+           --user $(id -u):$(id -g) my_fastsurfer:{{ ROCM_DEFAULT_STRING }} \
                --t1 $HOME/my_mri_data/subjectX/t1_weighted.nii.gz \
                --sid subjectX --sd $HOME/my_fastsurfer_analysis \
                --seg_only
