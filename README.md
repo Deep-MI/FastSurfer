@@ -9,7 +9,7 @@ Welcome to FastSurfer!
 
 Overview
 --------
-FastSurfer is a fast and accurate deep-learning based neuroimaging pipeline. It provides a fully compatible [FreeSurfer](https://freesurfer.net/) alternative for volumetric analysis (within minutes) and surface-based thickness analysis (within only around 1h run time), and it supports sub-millimeter resolutions down to 0.7mm (see the modules below for details).
+FastSurfer is a fast and accurate deep-learning based neuroimaging pipeline. It provides a fully compatible [FreeSurfer](https://freesurfer.net/) alternative for volumetric analysis (within minutes) and surface-based thickness analysis (in about half an hour), and it supports sub-millimeter resolutions down to 0.7mm (see the modules below for details).
 
 The FastSurfer pipeline consists of two main parts for segmentation and surface reconstruction.  
 
@@ -17,7 +17,7 @@ The FastSurfer pipeline consists of two main parts for segmentation and surface 
 - the surface sub-pipeline (`recon-surf`) reconstructs cortical surfaces, maps cortical labels and performs a traditional point-wise and ROI thickness analysis. 
 
 ### Segmentation Modules
-- approximately 5 minutes (GPU), `--seg_only` only runs this part. 
+- a few minutes on a GPU, `--seg_only` only runs this part.
  
 Modules (all run by default):
 1. `asegdkt:` [FastSurferVINN](doc/overview/modules/ASEGDKT.md) for whole brain segmentation (deactivate with `--no_asegdkt`)
@@ -38,7 +38,7 @@ Modules (all run by default):
    - calculates summary statistics based on the biasfield-corrected T1w image (skipped if `--no_biasfield` is passed).
 
 ### Surface reconstruction
-- approximately 60-90 minutes, `--surf_only` runs only [the surface part](doc/overview/modules/SURFACE.md).
+- approximately 20 to 40 minutes with both hemispheres in parallel (the default), `--surf_only` runs only [the surface part](doc/overview/modules/SURFACE.md).
 - supports high-resolution images (up to 0.7mm, experimental beyond that).
 - requires a FreeSurfer license file as it uses some FreeSurfer binaries internally.
 - requires outputs of the `asegdkt` and the `cc` modules as a prerequisite (can be included in the same run).
