@@ -6,7 +6,7 @@
 <link rel="index" title="Index" href="../genindex.html"><link rel="search" title="Search" href="../search.html"><link rel="next" title="SLURM: srun_fastsurfer.sh" href="SLURM.html"><link rel="prev" title="BATCH: brun_fastsurfer.sh" href="BATCH.html">
 
     <!-- Generated with Sphinx 7.4.7 and Furo 2025.12.19 -->
-        <title>BIDS: run_fastsurfer_bids.py - FastSurfer</title>
+        <title>BIDS: bids_fastsurfer.py - FastSurfer</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
@@ -231,7 +231,7 @@
 <li class="toctree-l2"><a class="reference internal" href="RUN_FASTSURFER.html">run_fastsurfer.sh</a></li>
 <li class="toctree-l2"><a class="reference internal" href="long_fastsurfer.html">LONG: long_fastsurfer.sh</a></li>
 <li class="toctree-l2"><a class="reference internal" href="BATCH.html">BATCH: brun_fastsurfer.sh</a></li>
-<li class="toctree-l2 current current-page"><a class="current reference internal" href="#">BIDS: run_fastsurfer_bids.py</a></li>
+<li class="toctree-l2 current current-page"><a class="current reference internal" href="#">BIDS: bids_fastsurfer.py</a></li>
 <li class="toctree-l2"><a class="reference internal" href="SLURM.html">SLURM: srun_fastsurfer.sh</a></li>
 <li class="toctree-l2 has-children"><a class="reference internal" href="advanced.html">Running modules directly</a><input aria-label="Toggle navigation of Running modules directly" class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l3"><a class="reference internal" href="fastsurfercnn.html">FastSurferCNN: run_prediction.py</a></li>
@@ -478,9 +478,9 @@
           </label>
         </div>
         <article role="main" id="furo-main-content">
-          <section id="bids-run-fastsurfer-bids-py">
-<h1>BIDS: run_fastsurfer_bids.py<a class="headerlink" href="#bids-run-fastsurfer-bids-py" title="Link to this heading">¶</a></h1>
-<p><code class="docutils literal notranslate"><span class="pre">run_fastsurfer_bids.py</span></code> is a <a class="reference external" href="https://bids-apps.neuroimaging.io/about/">BIDS-App</a>-style entrypoint for FastSurfer.
+          <section id="bids-bids-fastsurfer-py">
+<h1>BIDS: bids_fastsurfer.py<a class="headerlink" href="#bids-bids-fastsurfer-py" title="Link to this heading">¶</a></h1>
+<p><code class="docutils literal notranslate"><span class="pre">bids_fastsurfer.py</span></code> is a <a class="reference external" href="https://bids-apps.neuroimaging.io/about/">BIDS-App</a>-style entrypoint for FastSurfer. It is currently <strong>experimental</strong>. If you encounter errors or unexpected behavior, please report this to the <a class="reference external" href="https://github.com/Deep-MI/FastSurfer/issues/new?template=questions-help-support.md">issue tracker on GitHub</a>.
 It discovers subjects and sessions in a BIDS dataset and hands them to the existing entrypoints: it writes a subject
 list and calls <a class="reference internal" href="BATCH.html"><span class="std std-doc"><code class="docutils literal notranslate"><span class="pre">brun_fastsurfer.sh</span></code></span></a>, or <a class="reference internal" href="SLURM.html"><span class="std std-doc"><code class="docutils literal notranslate"><span class="pre">srun_fastsurfer.sh</span></code></span></a> with <code class="docutils literal notranslate"><span class="pre">--slurm</span></code>. No part of the
 pipeline is reimplemented here, and every option it does not define itself is passed through unchanged.</p>
@@ -488,12 +488,12 @@ pipeline is reimplemented here, and every option it does not define itself is pa
 BIDS directory layout itself, so discovery is a glob over <code class="docutils literal notranslate"><span class="pre">sub-&lt;label&gt;/[ses-&lt;label&gt;/]anat/</span></code>.</p>
 <section id="usage">
 <h2>Usage<a class="headerlink" href="#usage" title="Link to this heading">¶</a></h2>
-<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>./run_fastsurfer_bids.py --help
-usage: run_fastsurfer_bids.py [-h] [--participant_label LABEL [LABEL ...]]
-                              [--session_label LABEL [LABEL ...]] [--use_t2]
-                              [--skip_bids_validator]
-                              [--fs_license FS_LICENSE] [--slurm] [--dry]
-                              bids_dir output_dir {participant,group}
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>./bids_fastsurfer.py --help
+usage: bids_fastsurfer.py [-h] [--participant_label LABEL [LABEL ...]]
+                          [--session_label LABEL [LABEL ...]] [--use_t2]
+                          [--skip_bids_validator] [--fs_license FS_LICENSE]
+                          [--slurm] [--dry]
+                          bids_dir output_dir {participant,group}
 
 BIDS-App entrypoint for FastSurfer.
 
@@ -550,7 +550,7 @@ options:
 
 Any options after a literal '--' are passed through unchanged to
 brun_fastsurfer.sh (or srun_fastsurfer.sh), e.g.:
-  run_fastsurfer_bids.py &lt;bids_dir&gt; &lt;output_dir&gt; participant -- --seg_only --3T
+  bids_fastsurfer.py &lt;bids_dir&gt; &lt;output_dir&gt; participant -- --seg_only --3T
 </pre></div>
 </div>
 </section>
@@ -558,7 +558,7 @@ brun_fastsurfer.sh (or srun_fastsurfer.sh), e.g.:
 <h2>Basic example<a class="headerlink" href="#basic-example" title="Link to this heading">¶</a></h2>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span><span class="w"> </span><span class="nv">FASTSURFER_HOME</span><span class="o">=</span><span class="si">${</span><span class="nv">FASTSURFER_HOME</span><span class="k">:-</span><span class="p">/path/to/FastSurfer</span><span class="si">}</span>
 <span class="nv">freesurfer_license</span><span class="o">=</span><span class="si">${</span><span class="nv">freesurfer_license</span><span class="k">:-</span><span class="p">/path/to/your/freesurfer/license_file</span><span class="si">}</span>
-<span class="nv">$FASTSURFER_HOME</span>/run_fastsurfer_bids.py<span class="w"> </span><span class="nv">$HOME</span>/my_bids_dataset<span class="w"> </span><span class="se">\</span>
+<span class="nv">$FASTSURFER_HOME</span>/bids_fastsurfer.py<span class="w"> </span><span class="nv">$HOME</span>/my_bids_dataset<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span><span class="nv">$HOME</span>/my_fastsurfer_analysis<span class="w"> </span>participant<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--participant_label<span class="w"> </span><span class="m">01</span><span class="w"> </span><span class="m">02</span><span class="w"> </span>--fs_license<span class="w"> </span><span class="nv">$freesurfer_license</span><span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--<span class="w"> </span>--threads<span class="w"> </span><span class="m">4</span>
@@ -583,7 +583,7 @@ docker<span class="w"> </span>run<span class="w"> </span>--gpus<span class="w"> 
 <span class="w">           </span>-v<span class="w"> </span><span class="nv">$freesurfer_license</span>:<span class="nv">$freesurfer_license</span><span class="w"> </span><span class="se">\</span>
 <span class="w">           </span>--entrypoint<span class="w"> </span><span class="s2">"/fastsurfer/tools/Docker/entrypoint.sh"</span><span class="w"> </span><span class="se">\</span>
 <span class="w">           </span>--rm<span class="w"> </span>--user<span class="w"> </span><span class="k">$(</span>id<span class="w"> </span>-u<span class="k">)</span>:<span class="k">$(</span>id<span class="w"> </span>-g<span class="k">)</span><span class="w"> </span>deepmi/fastsurfer:cu128-v2.5.4<span class="w"> </span><span class="se">\</span>
-<span class="w">           </span>/fastsurfer/run_fastsurfer_bids.py<span class="w"> </span><span class="se">\</span>
+<span class="w">           </span>/fastsurfer/bids_fastsurfer.py<span class="w"> </span><span class="se">\</span>
 <span class="w">           </span><span class="nv">$HOME</span>/my_bids_dataset<span class="w"> </span><span class="nv">$HOME</span>/my_fastsurfer_analysis<span class="w"> </span>participant<span class="w"> </span><span class="se">\</span>
 <span class="w">           </span>--fs_license<span class="w"> </span><span class="nv">$freesurfer_license</span><span class="w"> </span><span class="se">\</span>
 <span class="w">           </span>--<span class="w"> </span>--3T<span class="w"> </span>--threads<span class="w"> </span><span class="m">4</span>
@@ -593,7 +593,7 @@ docker<span class="w"> </span>run<span class="w"> </span>--gpus<span class="w"> 
 <code class="docutils literal notranslate"><span class="pre">--</span></code> as well:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span><span class="w"> </span><span class="nv">FASTSURFER_HOME</span><span class="o">=</span><span class="si">${</span><span class="nv">FASTSURFER_HOME</span><span class="k">:-</span><span class="p">/path/to/FastSurfer</span><span class="si">}</span>
 <span class="nv">freesurfer_license</span><span class="o">=</span><span class="si">${</span><span class="nv">freesurfer_license</span><span class="k">:-</span><span class="p">/path/to/your/freesurfer/license_file</span><span class="si">}</span>
-<span class="nv">$FASTSURFER_HOME</span>/run_fastsurfer_bids.py<span class="w"> </span><span class="nv">$HOME</span>/my_bids_dataset<span class="w"> </span><span class="se">\</span>
+<span class="nv">$FASTSURFER_HOME</span>/bids_fastsurfer.py<span class="w"> </span><span class="nv">$HOME</span>/my_bids_dataset<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span><span class="nv">$HOME</span>/my_fastsurfer_analysis<span class="w"> </span>participant<span class="w"> </span>--slurm<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--fs_license<span class="w"> </span><span class="nv">$freesurfer_license</span><span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--<span class="w"> </span>--partition<span class="w"> </span>gpu<span class="w"> </span>--work<span class="w"> </span><span class="nv">$HOME</span>/my_fastsurfer_work
@@ -737,7 +737,7 @@ with <code class="docutils literal notranslate"><span class="pre">--check_only</
         <div class="toc-tree-container">
           <div class="toc-tree">
             <ul>
-<li><a class="reference internal" href="#">BIDS: run_fastsurfer_bids.py</a><ul>
+<li><a class="reference internal" href="#">BIDS: bids_fastsurfer.py</a><ul>
 <li><a class="reference internal" href="#usage">Usage</a></li>
 <li><a class="reference internal" href="#basic-example">Basic example</a></li>
 <li><a class="reference internal" href="#in-docker">In Docker</a></li>
