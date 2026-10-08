@@ -24,8 +24,8 @@ What it needs
 - Voxel sizes between 0.7 mm and 1 mm are supported (smaller voxels are experimental); below 1 mm, the pipeline runs in
   its high-resolution mode.
 
-The surface reconstruction takes about an hour, less with several threads (`--threads`), which also process both
-hemispheres in parallel.
+The surface reconstruction takes about 20 to 40 minutes, because it processes both hemispheres in parallel by default.
+With `--threads 1`, it processes them one after the other and takes considerably longer.
 
 Options
 -------
