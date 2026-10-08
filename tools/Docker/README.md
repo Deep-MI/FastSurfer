@@ -1,31 +1,37 @@
 FastSurfer Docker Support
 =========================
 
-Pull FastSurfer from DockerHub
-------------------------------
-We provide pre-built Docker images with support for nVidia GPU-acceleration and for CPU-only use on [Docker Hub](https://hub.docker.com/r/deepmi/fastsurfer/tags). In order to quickly get the latest Docker image, simply execute:
+Pull FastSurfer from Docker Hub
+-------------------------------
+We provide pre-built Docker images for NVIDIA GPUs, for AMD GPUs (experimental) and for CPU-only use on
+[Docker Hub](https://hub.docker.com/r/deepmi/fastsurfer/tags). To get the latest Docker image, run:
 
 ```bash
 docker pull deepmi/fastsurfer
 ```
 
-This will download the newest, official FastSurfer image with support for nVidia GPUs, which is currently CUDA {{CUDA_VERSION}}.
-If you want to pull a specific version of FastSurfer or CUDA, you can specify the tag, for example:
+This downloads the newest official FastSurfer image for NVIDIA GPUs, with the default CUDA version of that release,
+{{ CUDA_VERSION }}. To pull a specific version of FastSurfer or CUDA, specify the tag, for example:
 
-```bash 
+```bash
 docker pull deepmi/fastsurfer:{{ CUDA_STRING }}-v{{ FASTSURFER_VERSION }}
 ```
 
-In general, images are named and tagged as: `deepmi/fastsurfer:<device>-v<version>`, where `<device>` is `cu<cuda_version>` for NVIDIA GPUs with a specific CUDA version (e.g. `{{ CUDA_STRING }}`) or `rocm<rocm_version>` for AMD GPUs (experimental), and `cpu` without hardware acceleration (the latter is smaller and thus faster to download). Check [Docker Hub](https://hub.docker.com/r/deepmi/fastsurfer/tags) to find the `<device>` options available for each version.
-Similarly, `v<version>` is the version string, for example `v{{ FASTSURFER_VERSION }}`. `latest` points to the newest NVIDIA image (with the default CUDA version of that release), `cpu-latest` to the newest `cpu` image, for example:
+In general, images are named and tagged as `deepmi/fastsurfer:<device>-v<version>`, where `<device>` is
+`cu<cuda_version>` for NVIDIA GPUs with a specific CUDA version (e.g. `{{ CUDA_STRING }}`), `rocm<rocm_version>` for
+AMD GPUs (experimental), or `cpu` without hardware acceleration (smaller and thus faster to download).
+[Which image fits your GPU](../../doc/overview/install/LINUX.md#nvidia-gpus) explains the CUDA images, and
+[Docker Hub](https://hub.docker.com/r/deepmi/fastsurfer/tags) lists the `<device>` options available for each version.
+Similarly, `v<version>` is the version string, for example `v{{ FASTSURFER_VERSION }}`. `latest` points to the newest
+NVIDIA image (with the default CUDA version of that release), `cpu-latest` to the newest `cpu` image, for example:
 
-```bash 
+```bash
 docker pull deepmi/fastsurfer:cpu-v{{ FASTSURFER_VERSION }}
 ```
 
 Running the (official) Docker Image
 -----------------------------------
-After pulling the image, you can start a FastSurfer container and process a T1-weighted image (both segmentation and 
+After pulling the image, you can start a FastSurfer container and process a T1-weighted image (both segmentation and
 surface reconstruction) with the following command:
 
 ```bash
@@ -41,73 +47,111 @@ docker run --gpus all -v $HOME/my_mri_data:$HOME/my_mri_data \
 ```
 
 ### Docker Flags
-* `--gpus`: This argument is used to access GPU resources. With it, you can also specify how many GPUs to use. In the example above, `all` will make every GPU available to FastSurfer in the Docker container. To use a single one (e.g.  GPU 0), set `--gpus device=0`. To use multiple specific GPUs (e.g. GPU 0, 1 and 3), use `--gpus "device=0,1,3"`.
-* `-v`: This argument defines which and how data is shared between the host system and the docker container. By default, no data is shared between the host and the container. `-v` is used to explicitly share data. It follows the format `-v <host_dir>:<container_dir>:<options>`. In its simplest form, `<host_dir>` and `<container_dir>` are the same and folders inside the container are the same as on the host. `:<options>` may be left out or `:ro` to indicate that files from this folder may not be modified by the docker container (readonly). The following files need to be shared: input files, output folder (subjects directory) and FreeSurfer license.
-* `--user $(id -u):$(id -g)`: Which user the container runs as (relevant for file access, the user-id and group-id, **required**!). `$(id -u)` and `$(id -g)` determine the user and group, respectively. If this flag is omitted, FastSurfer exits with a message asking you to map your host user. Running the docker container as root `--user 0:0` is strongly discouraged and must be combined with the FastSurfer flag `--allow_root`.
-* `--rm`: The flag takes care of removing the container (cleanup of the container) once the analysis finished (optional, but recommended). 
-* `-d`: You can add this flag to run in detached mode (no screen output, and you return to shell, optional).
+* `--gpus`: gives the container access to GPUs, and selects which ones. In the example above, `all` makes every GPU
+  available to FastSurfer in the container. To use a single one (e.g. GPU 0), set `--gpus device=0`. To use several
+  specific GPUs (e.g. GPU 0, 1 and 3), use `--gpus "device=0,1,3"`. Leave it out to run FastSurfer on the CPU.
+* `-v`: defines which data is shared between the host system and the container, and how. By default, nothing is
+  shared, so `-v` explicitly shares a directory or file. It follows the format `-v <host_dir>:<container_dir>:<options>`.
+  In its simplest form, `<host_dir>` and `<container_dir>` are the same, so paths inside the container are the same as
+  on the host. `:<options>` may be left out, or `:ro` makes the files read-only for the container. Share the input
+  files, the output folder (subjects directory) and the FreeSurfer license.
+* `--user $(id -u):$(id -g)`: the user and group the container runs as, which decides the access to files
+  (**required**). `$(id -u)` and `$(id -g)` give your user and group IDs. Without this flag, FastSurfer exits with a
+  message asking you to map your host user. Running the container as root (`--user 0:0`) is strongly discouraged and
+  must be combined with the FastSurfer flag `--allow_root`.
+* `--rm`: removes the container once the analysis has finished (optional, but recommended).
+* `-d`: runs the container in detached mode, so you return to the shell without screen output (optional).
 
 #### Advanced Docker Flags
-* `--group-add <group_list>`: If additional user groups are required to access files, additional groups may be added via `--group-add <group_id>[,...]` or `--group-add $(id -G <group_name>)`.
+* `--group-add <group_list>`: If additional user groups are required to access files, add them with
+  `--group-add <group_id>[,...]` or `--group-add $(id -G <group_name>)`.
 
 ### FastSurfer Flags
-In principle, the same as [basic run_fastsurfer.sh](../../doc/scripts/RUN_FASTSURFER.md#required-arguments) with the 
-following modifications:
-* The `--fs_license` cannot be auto-detected and must be passed. Must point to your FreeSurfer license how it is 
-  accessible inside the container (check `-v` [above](#docker-flags), `--fs_license` works in concert with `-v`). 
-* `--t1` and `--sd` are required! They work in concert with `-v` [above](#docker-flags).
-* `--sid` is the subject ID name (output folder), same as in [basic run_fastsurfer.sh](../../doc/scripts/RUN_FASTSURFER.md).
+In principle, these are the same as for [run_fastsurfer.sh](../../doc/scripts/RUN_FASTSURFER.md#required-arguments),
+with the following changes:
+* `--fs_license` cannot be detected automatically and must be passed. It is the path of your FreeSurfer license
+  inside the container, so share the file with `-v` ([above](#docker-flags)).
+* `--t1` and `--sd` are required, and also need to be shared with `-v` ([above](#docker-flags)).
+* `--sid` is the subject ID (the name of the output folder), as for
+  [run_fastsurfer.sh](../../doc/scripts/RUN_FASTSURFER.md).
 
-A directory with the name as specified in `--sid` (here subjectX) will be created in the output directory (specified via `--sd`). So in this example output will be written to `$HOME/my_fastsurfer_analysis/subjectX/`. Make sure the output directory is empty, to avoid overwriting existing files. 
+A directory with the name specified in `--sid` (here subjectX) will be created in the output directory (specified via
+`--sd`), so in this example, the output will be written to `$HOME/my_fastsurfer_analysis/subjectX/`. Make sure this
+directory does not exist yet, to avoid overwriting existing files.
 
-All other available flags are identical to the ones explained on the main page [README](../../README.md).
+All other flags are the same as explained in the [run_fastsurfer.sh documentation](../../doc/scripts/RUN_FASTSURFER.md).
 
 ### Docker Best Practice
-* Do not mount the user home directory into the docker container as the home directory.
-  
-  Why? If the user inside the docker container has access to a user directory, settings from that directory might bleed into the FastSurfer pipeline.
+* Do not mount the user home directory into the Docker container as the home directory.
 
-  How? Docker does not mount the home directory by default, so unless you manually set the `HOME` environment variable, all should be fine. 
+  Why? If the user inside the Docker container has access to a user directory, settings from that directory might
+  bleed into the FastSurfer pipeline.
+
+  How? Docker does not mount the home directory by default, so unless you manually set the `HOME` environment
+  variable, all should be fine.
 
 FastSurfer Docker Image Creation
 --------------------------------
-Within this directory, we currently provide a build script and Dockerfile to create multiple Docker images for users (usually developers) who wish to create their own Docker images for 3 platforms:
+In `tools/Docker`, we provide a build script and a Dockerfile for users (usually developers) who want to build their
+own Docker images, for these platforms:
 
-* Nvidia / CUDA (Example 1)
+* NVIDIA / CUDA (Example 1)
 * CPU (Example 2)
-* AMD / rocm (experimental, Example 3)
+* AMD / ROCm (experimental, Example 3)
+* Intel / XPU (very experimental)
 
-To run only the surface pipeline or only the segmentation pipeline, the entrypoint to these images has to be adapted, which is possible through
--  for the segmentation pipeline: `--entrypoint "python /fastsurfer/FastSurferCNN/run_prediction.py"`
--  for the surface pipeline: `--entrypoint "/fastsurfer/recon_surf/recon-surf.sh"`
+To run only the segmentation or only the surface reconstruction, pass `--seg_only` or `--surf_only` to FastSurfer.
 
-Note, for many HPC users with limited GPUs or with very large datasets, it may be most efficient to run the full pipeline on the CPU, trading a longer run-time for the segmentation with massive parallelization on the subject level. 
+For many HPC users with limited GPUs or with very large datasets, it may be most efficient to run the full pipeline on
+the CPU, trading a longer runtime of the segmentation for massive parallelization on the subject level.
 
-Also note, to run our Docker containers on an Intel Mac, increase the memory Docker Desktop may use, see [Docker on Intel Macs](../../doc/overview/install/MACOS.md#docker-intel-macs) and [Change Docker Desktop settings on Mac](https://docs.docker.com/desktop/settings/mac/). On a Mac with Apple silicon, use the [macOS package](../../doc/overview/install/MACOS.md) instead: Docker cannot use the Apple GPU, the package uses it automatically.
+To run our Docker containers on an Intel Mac, increase the memory Docker Desktop may use, see
+[Docker on Intel Macs](../../doc/overview/install/MACOS.md#docker-intel-macs) and
+[Change Docker Desktop settings on Mac](https://docs.docker.com/desktop/settings/mac/). On a Mac with Apple silicon,
+use the [macOS package](../../doc/overview/install/MACOS.md) instead: Docker cannot use the Apple GPU, the package uses
+it automatically.
 
 ### General build settings
-The build script `build.py` supports additional args, targets and options, see `python tools/Docker/build.py --help`.
+The build script `build.py` supports additional arguments, targets and options, see
+`python tools/Docker/build.py --help`.
 
-Note, that the build script's main function is to select parameters for build args, but also create the FastSurfer-root/BUILD.info file, which will be used by FastSurfer to document the version (including git hash of the docker container). This BUILD.info file must exist for the docker build to be successful.
-In general, if you specify `--dry_run` the command will not be executed but sent to stdout, so you can run `python build.py --device cuda --dry_run | bash` as well.
+Besides selecting the build arguments, the build script creates the file `BUILD.info` in the FastSurfer root
+directory, which FastSurfer uses to report its version (including the git hash of the source the image was built
+from). The Docker build fails without this file.
+With `--dry_run`, the build script prints the command instead of executing it, so you can also run
+`python tools/Docker/build.py --device cuda --dry_run | bash`.
 
-By default, the build script will tag your image as `"fastsurfer:<device>-v<version_tag>"`, where `<version_tag>` is `<version>_<git_hash>` (the version identifier from pyproject.toml and the current git hash) and `<device>` is the value to `--device` (`cuda` and `rocm` are replaced by their default versions, e.g. `{{ CUDA_STRING }}`), but a custom tag can be specified by `--tag <image_tag>`.
+By default, the build script tags your image as `fastsurfer:<device>-v<version_tag>`, where `<version_tag>` is
+`<version>_<git_hash>` (the version from pyproject.toml and the current git hash) and `<device>` is the value of
+`--device` (`cuda` and `rocm` are replaced by their default versions, e.g. `{{ CUDA_STRING }}`). Specify a custom tag
+with `--tag <image_tag>`.
 
-By default, the Python environment is resolved from `pyproject.toml`, which allows the latest compatible dependency versions. To build from the backend-neutral pinned `requirements.txt` instead, add `--pinned_requirements`. The selected `--device` is still passed to `uv --torch-backend`, so the same pinned requirements file can be used for CPU and supported CUDA variants while PyTorch backend wheels are selected during the build.
+By default, the Python environment is resolved from `pyproject.toml`, which allows the latest compatible dependency
+versions. To build from the backend-neutral pinned `requirements.txt` instead, add `--pinned_requirements`. The
+selected `--device` is still passed to `uv --torch-backend`, so the same pinned requirements file works for the CPU
+and all supported CUDA versions, and the PyTorch wheels for the backend are selected during the build.
 
 #### BuildKit
-Note, we recommend using BuildKit to build docker images (e.g. `DOCKER_BUILDKIT=1` -- the build.py script already always adds this). To install BuildKit, run `wget -qO ~/.docker/cli-plugins/docker-buildx https://github.com/docker/buildx/releases/download/<buildx_version>/buildx-<buildx_version>.<platform>`, for example `wget -qO ~/.docker/cli-plugins/docker-buildx https://github.com/docker/buildx/releases/download/v0.12.1/buildx-v0.12.1.linux-amd64`. See also https://github.com/docker/buildx#manual-download.
+We recommend using BuildKit to build Docker images (e.g. `DOCKER_BUILDKIT=1`; `build.py` always adds this). To
+install BuildKit, run
+`wget -qO ~/.docker/cli-plugins/docker-buildx https://github.com/docker/buildx/releases/download/<buildx_version>/buildx-<buildx_version>.<platform>`,
+for example
+`wget -qO ~/.docker/cli-plugins/docker-buildx https://github.com/docker/buildx/releases/download/v0.12.1/buildx-v0.12.1.linux-amd64`.
+See also https://github.com/docker/buildx#manual-download.
 
 ### Example 1: Build GPU FastSurfer Image
-In order to build your own Docker image for FastSurfer (FastSurferCNN + recon-surf; on GPU; including FreeSurfer) yourself simply execute the following command:
+To build your own Docker image for FastSurfer (segmentation and surface reconstruction, for NVIDIA GPUs, including
+FreeSurfer), run the following command in the FastSurfer directory:
 
 ```bash
 python tools/Docker/build.py --device cuda --tag my_fastsurfer:cuda
 ```
 
-The build script allows more specific options, that specify different CUDA options as well (see `build.py --help`). Add `--pinned_requirements` to use the pinned `requirements.txt` dependency versions while still selecting the CUDA backend from `--device`.
+To build for another CUDA version, pass it to `--device`, for example `--device {{ CUDA_LEGACY_STRING }}`;
+`python tools/Docker/build.py --print_supported cuda` lists the supported versions. Add `--pinned_requirements` to
+use the pinned dependency versions of `requirements.txt` (see `build.py --help` for all options).
 
-For running the analysis, the command is the same as above for the prebuild option:
+To run the analysis, use the same command as for the official image above, with your image:
 ```bash
 freesurfer_license=${freesurfer_license:-/path/to/your/freesurfer/license_file}
 docker run --gpus all \
@@ -121,17 +165,16 @@ docker run --gpus all \
                --threads 4 --3T
 ```
 
-
 ### Example 2: Build CPU FastSurfer Image
-In order to build the docker image for FastSurfer (FastSurferCNN + recon-surf; on CPU; including FreeSurfer) simply go to the parent directory (FastSurfer) and execute the docker build command directly:
+To build the Docker image for FastSurfer for the CPU only, run in the FastSurfer directory:
 
 ```bash
 python tools/Docker/build.py --device cpu --tag my_fastsurfer:cpu
 ```
 
-As you can see, only the `--device` to the build command is changed from `cuda` to `cpu`. 
+Only `--device` changes, from `cuda` to `cpu`.
 
-To run the analysis, the command is basically the same as above, except for removing the `--gpus all` GPU option:
+To run the analysis, use the same command as above, but without the `--gpus all` option:
 ```bash
 freesurfer_license=${freesurfer_license:-/path/to/your/freesurfer/license_file}
 docker run -v $HOME/my_mri_data:$HOME/my_mri_data \
@@ -145,61 +188,66 @@ docker run -v $HOME/my_mri_data:$HOME/my_mri_data \
                --threads 16 --3T
 ```
 
-FastSurfer will automatically detect, that no GPU is available and use the CPU.
+Without a GPU, FastSurfer runs on the CPU anyway; `--device cpu` makes that explicit.
 
 ### Example 3: Experimental Build for AMD GPUs
-Here we build an experimental image to test performance when running on AMD GPUs. Note that you need a supported OS and Kernel version and supported GPU for the RocM to work correctly. You need to install the Kernel drivers into your host machine kernel (`amdgpu-install --usecase=dkms`) for the amd docker to work. For this follow: https://rocm.docs.amd.com/projects/install-on-linux/en/latest/install/quick-start.html#rocm-install-quick, https://rocm.docs.amd.com/projects/install-on-linux/en/latest/install/amdgpu-install.html#amdgpu-install-dkms and https://rocm.docs.amd.com/projects/install-on-linux/en/latest/how-to/docker.html
+We also release a ROCm image, see [AMD GPUs](../../doc/overview/install/LINUX.md#amd-gpus-experimental). To build
+your own, note that ROCm needs a supported OS, kernel version and GPU. Install the kernel drivers on your host
+(`amdgpu-install --usecase=dkms`) for the AMD image to work, following
+https://rocm.docs.amd.com/projects/install-on-linux/en/latest/install/quick-start.html#rocm-install-quick,
+https://rocm.docs.amd.com/projects/install-on-linux/en/latest/install/amdgpu-install.html#amdgpu-install-dkms and
+https://rocm.docs.amd.com/projects/install-on-linux/en/latest/how-to/docker.html.
 
 ```bash
 python tools/Docker/build.py --device rocm --tag my_fastsurfer:rocm
 ```
 
-and run segmentation only:
+and run the segmentation only (FastSurfer addresses AMD GPUs as `cuda` devices, so `--device cuda` or `--device cuda:0`
+selects a specific GPU):
 
 ```bash
-freesurfer_license=${freesurfer_license:-/path/to/your/freesurfer/license_file}
 docker run --rm --security-opt seccomp=unconfined \
            --device=/dev/kfd --device=/dev/dri --group-add video \
-	       -v $HOME/my_mri_data:$HOME/my_mri_data \
+           -v $HOME/my_mri_data:$HOME/my_mri_data \
            -v $HOME/my_fastsurfer_analysis:$HOME/my_fastsurfer_analysis \
-           -v $freesurfer_license:$freesurfer_license \
            --user $(id -u):$(id -g) my_fastsurfer:rocm \
-               --fs_license $freesurfer_license \
                --t1 $HOME/my_mri_data/subjectX/t1_weighted.nii.gz \
                --sid subjectX --sd $HOME/my_fastsurfer_analysis \
-               --parallel \
-               # alternatively: --device cuda is also possible
-               # (or --device cuda:0 to specify the GPU
+               --seg_only
 ```
 
-In conflict with the official ROCm documentation (above), we also needed to add the group render `--group-add render` (in addition to `--group-add video`).
+Unlike the official ROCm documentation (above), we also needed to add the group render with `--group-add render` (in
+addition to `--group-add video`).
 
-Note, we tested on an AMD Radeon Pro W6600, which is [not officially supported](https://rocm.docs.amd.com/projects/install-on-linux/en/latest/reference/system-requirements.html#supported-gpus), but setting `HSA_OVERRIDE_GFX_VERSION=10.3.0` [inside docker did the trick](https://en.opensuse.org/SDB:AMD_GPGPU#Using_CUDA_code_with_ZLUDA_and_ROCm):
+We tested on an AMD Radeon Pro W6600, which is
+[not officially supported](https://rocm.docs.amd.com/projects/install-on-linux/en/latest/reference/system-requirements.html#supported-gpus),
+but setting `HSA_OVERRIDE_GFX_VERSION=10.3.0`
+[inside Docker did the trick](https://en.opensuse.org/SDB:AMD_GPGPU#Using_CUDA_code_with_ZLUDA_and_ROCm):
 
 ```bash
-freesurfer_license=${freesurfer_license:-/path/to/your/freesurfer/license_file}
 docker run --rm --security-opt seccomp=unconfined \
            --device=/dev/kfd --device=/dev/dri --group-add video \
            --group-add render \
-	       -v $HOME/my_mri_data:$HOME/my_mri_data \
+           -v $HOME/my_mri_data:$HOME/my_mri_data \
            -v $HOME/my_fastsurfer_analysis:$HOME/my_fastsurfer_analysis \
-           -v $freesurfer_license:$freesurfer_license \
            -e HSA_OVERRIDE_GFX_VERSION=10.3.0 \
            --user $(id -u):$(id -g) my_fastsurfer:rocm \
-               --fs_license $freesurfer_license \
                --t1 $HOME/my_mri_data/subjectX/t1_weighted.nii.gz \
                --sid subjectX --sd $HOME/my_fastsurfer_analysis \
-               --parallel \
-               # alternatively: --device cuda is also possible
-               # (or --device cuda:0 to specify the GPU
+               --seg_only
 ```
 
 Build docker image with attestation and provenance
 --------------------------------------------------
-To build a docker image with attestation and provenance, i.e. Software Bill Of Materials (SBOM) information, several requirements have to be met:
+To build a Docker image with attestation and provenance, i.e. Software Bill Of Materials (SBOM) information, several
+requirements have to be met:
 
-1. The image must be built with version v0.11+ of BuildKit (we recommend you [install BuildKit](#buildkit) independent of attestation).
-2. You must configure a docker-container builder in buildx (`docker buildx create --use --bootstrap --name fastsurfer-bctx --driver docker-container`). Here, you can add additional configuration options such as safe registries to the builder configuration (add `--config /etc/buildkitd.toml`).
+1. The image must be built with version v0.11+ of BuildKit (we recommend you [install BuildKit](#buildkit) independent
+   of attestation).
+2. You must configure a docker-container builder in buildx
+   (`docker buildx create --use --bootstrap --name fastsurfer-bctx --driver docker-container`). Here, you can add
+   additional configuration options such as safe registries to the builder configuration (add
+   `--config /etc/buildkitd.toml`).
    ```toml
    root = "/path/to/data/for/buildkit"
    [worker.containerd]
@@ -215,11 +263,15 @@ To build a docker image with attestation and provenance, i.e. Software Bill Of M
        all = true
        keepBytes = 1024000000
    ```
-3. Attestation files are not supported by the standard docker image storage driver. Therefore, images cannot be tested locally. 
-   There are two solutions to this limitation.
-   1. Directly push to the registry: 
-      Add `--action push` to the build script (the default is `--action load`, which loads the created image into the current docker context, and for the image name, also add the registry name. For example `... python tools/Docker/build.py ... --attest --action push --tag docker.io/<account>/fastsurfer:latest`.
-   2. [Install the containerd image storage driver](https://docs.docker.com/storage/containerd/#enable-containerd-image-store-on-docker-engine), which supports attestation: To implement this on Linux, make sure your docker daemon config file `/etc/docker/daemon.json` includes
+3. The standard Docker image storage driver does not support attestation files, so such images cannot be tested
+   locally. There are two solutions to this limitation:
+   1. Push directly to the registry:
+      Add `--action push` to the build script (the default is `--action load`, which loads the created image into the
+      current Docker context), and add the registry name to the image name. For example
+      `python tools/Docker/build.py ... --attest --action push --tag docker.io/<account>/fastsurfer:latest`.
+   2. [Install the containerd image storage driver](https://docs.docker.com/storage/containerd/#enable-containerd-image-store-on-docker-engine),
+      which supports attestation. To do this on Linux, make sure your Docker daemon config file
+      `/etc/docker/daemon.json` includes
       ```json
       {
           "features": {
@@ -227,12 +279,18 @@ To build a docker image with attestation and provenance, i.e. Software Bill Of M
           }
       }
       ```
-      Also note, that the image storage location with containerd is not defined by the docker config file `/etc/docker/daemon.json`, but by the containerd config `/etc/containerd/config.toml`, which will likely not exist. You can [create a default config](https://github.com/containerd/containerd/blob/main/docs/getting-started.md#customizing-containerd) file with `containerd config default > /etc/containerd/config.toml`, in this config file edit the `"root"`-entry (default value is `/var/lib/containerd`).  
-4. Finally, you can now build the FastSurfer image with `python tools/Docker/build.py ... --attest`. This will add the additional flags to the docker build command.
+      Note that the image storage location with containerd is not defined by the Docker config file
+      `/etc/docker/daemon.json`, but by the containerd config `/etc/containerd/config.toml`, which will likely not
+      exist. You can [create a default config](https://github.com/containerd/containerd/blob/main/docs/getting-started.md#customizing-containerd)
+      file with `containerd config default > /etc/containerd/config.toml`, and edit its `"root"` entry (default value
+      `/var/lib/containerd`).
+4. Finally, build the FastSurfer image with `python tools/Docker/build.py ... --attest`, which adds the additional
+   flags to the Docker build command.
 
 Building for release
 --------------------
-Make sure, you are building on a machine that has [containerd-storage and Buildkit](#build-docker-image-with-attestation-and-provenance).
+Make sure you are building on a machine with
+[containerd storage and BuildKit](#build-docker-image-with-attestation-and-provenance).
 
 ```bash
 # configuration
@@ -241,9 +299,9 @@ build_dir=$HOME/FastSurfer-build
 image=deepmi/fastsurfer
 # the version can be identified with: $build_dir/run_fastsurfer.sh --version
 version={{ FASTSURFER_VERSION }}
-# available cuda and rocm version can be identified with:
-# python $build_dir/tools/Docker/build.py --print_supported cuda # or rocm
-device_for_latest={{ CUDA_STRING }} # tag this as latest
+# the default CUDA image, tagged as latest, and the CUDA image for older GPUs and drivers
+device_for_latest={{ CUDA_STRING }}
+device_legacy={{ CUDA_LEGACY_STRING }}
 # if you change the FreeSurfer version, create and upload or rename the
 # FreeSurfer build image below or remove the --freesurfer_build_image argument
 freesurfer_version={{ FREESURFER_VERSION }}
@@ -254,12 +312,11 @@ freesurfer_image=deepmi/fastsurfer-build:freesurfer${freesurfer_version//./}
 git clone --branch stable --single-branch \
     https://github.com/Deep-MI/FastSurfer $build_dir
 cd $build_dir
-# supported cuda and rocm versions of this checkout's build.py
-cudas=($(python3 tools/Docker/build.py --print_supported cuda))
+# supported rocm versions of this checkout's build.py
 rocms=($(python3 tools/Docker/build.py --print_supported rocm))
 all_tags=("latest" "cpu-latest")
 # build all distinct images
-for dev in cpu xpu "${rocms[@]}" "${cudas[@]}"
+for dev in cpu "${rocms[@]}" $device_legacy $device_for_latest
 do
   python3 tools/Docker/build.py --tag $image:$dev-v$version \
       $([[ -n "$freesurfer_image" ]] && echo "--freesurfer_build_image $freesurfer_image") \
