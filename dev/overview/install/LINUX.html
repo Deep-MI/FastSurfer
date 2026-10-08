@@ -500,12 +500,12 @@ and for the CPU only, on <a class="reference external" href="https://hub.docker.
 </tr>
 </thead>
 <tbody>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">cu128-v2.5.4</span></code> (default, also <code class="docutils literal notranslate"><span class="pre">latest</span></code>)</p></td>
-<td><p>12.8</p></td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">cu132-v&lt;version&gt;</span></code> (default)</p></td>
+<td><p>13.2</p></td>
 <td><p>Turing (RTX 20, T4) to Blackwell (RTX 50, B200)</p></td>
-<td><p>525 or newer</p></td>
+<td><p>580 or newer</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">cu126-v2.5.4</span></code></p></td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">cu126-v&lt;version&gt;</span></code></p></td>
 <td><p>12.6</p></td>
 <td><p>Maxwell (GTX 900) to Hopper (H100), including Pascal (GTX 10, P100) and Volta (V100), but not Blackwell</p></td>
 <td><p>525 or newer</p></td>
@@ -513,7 +513,7 @@ and for the CPU only, on <a class="reference external" href="https://hub.docker.
 </tbody>
 </table>
 </div>
-<p>Use the default image unless your GPU is older than Turing or your driver is older than 525; then use the
+<p>Use the default image unless your GPU is older than Turing or your driver is older than 580; then use the
 12.6 image. <code class="docutils literal notranslate"><span class="pre">nvidia-smi</span></code> shows the name of your GPU and the driver version.</p>
 <p>If FastSurfer cannot use your GPU, because the image has no support for it, the driver is too old, or the container was
 started without access to the GPU, it says so, names the image or flag to use instead, and runs on the CPU, which takes
