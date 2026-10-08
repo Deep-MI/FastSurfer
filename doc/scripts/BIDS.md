@@ -1,7 +1,7 @@
 BIDS: bids_fastsurfer.py
 ========================
 
-`bids_fastsurfer.py` is a [BIDS-App](https://bids-apps.neuroimaging.io/about/)-style entrypoint for FastSurfer.
+`bids_fastsurfer.py` is a [BIDS-App](https://bids-apps.neuroimaging.io/about/)-style entrypoint for FastSurfer. It is currently **experimental**. If you encounter errors or unexpected behavior, please report this to the [issue tracker on GitHub](https://github.com/Deep-MI/FastSurfer/issues/new?template=questions-help-support.md).
 It discovers subjects and sessions in a BIDS dataset and hands them to the existing entrypoints: it writes a subject
 list and calls [`brun_fastsurfer.sh`](BATCH.md), or [`srun_fastsurfer.sh`](SLURM.md) with `--slurm`. No part of the
 pipeline is reimplemented here, and every option it does not define itself is passed through unchanged.
