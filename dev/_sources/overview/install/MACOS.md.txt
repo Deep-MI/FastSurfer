@@ -105,7 +105,7 @@ No shell profile is modified.
 In a bash or zsh Terminal window, you can set up the same environment by sourcing the script the app uses:
 
 ```bash
-source /Applications/FastSurfer{{ FASTSURFER_VERSION }}/macos_setup_fastsurfer.sh
+source /Applications/FastSurfer{{ PACKAGE_VERSION }}/macos_setup_fastsurfer.sh
 ```
 
 The script is bash syntax, so from tcsh or fish, start `bash` (or `zsh`) first and source it there.
