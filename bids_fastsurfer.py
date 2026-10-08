@@ -46,7 +46,7 @@ RESERVED_PASSTHROUGH = ("--subject_list", "--subjects_list", "--sd", "--sid", "-
 
 def make_parser() -> argparse.ArgumentParser:
     """
-    Create the argument parser for run_fastsurfer_bids.py.
+    Create the argument parser for bids_fastsurfer.py.
 
     Returns
     -------
@@ -58,7 +58,7 @@ def make_parser() -> argparse.ArgumentParser:
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="Any options after a literal '--' are passed through unchanged to\n"
                "brun_fastsurfer.sh (or srun_fastsurfer.sh), e.g.:\n"
-               "  run_fastsurfer_bids.py <bids_dir> <output_dir> participant -- --seg_only --3T",
+               "  bids_fastsurfer.py <bids_dir> <output_dir> participant -- --seg_only --3T",
     )
     parser.add_argument("bids_dir", type=Path, help="Path to the BIDS-valid input dataset.")
     parser.add_argument(

@@ -13,7 +13,7 @@
 # limitations under the License.
 
 """
-Check what run_fastsurfer_bids.py discovers in a BIDS dataset and what it would run.
+Check what bids_fastsurfer.py discovers in a BIDS dataset and what it would run.
 
 Discovery is a glob over the BIDS directory layout, so the interesting cases are the ones where
 that layout varies: a dataset with no session level, a session with a T2w next to the T1w, and a
@@ -33,9 +33,9 @@ import pytest
 from FastSurferCNN.utils import bids
 
 FASTSURFER_HOME = Path(__file__).parent.parent.parent
-sys.path.insert(0, str(FASTSURFER_HOME))  # run_fastsurfer_bids.py is a script, not part of the package
+sys.path.insert(0, str(FASTSURFER_HOME))  # bids_fastsurfer.py is a script, not part of the package
 
-import run_fastsurfer_bids  # noqa: E402
+import bids_fastsurfer  # noqa: E402
 
 
 def _touch(path: Path) -> None:
@@ -149,7 +149,7 @@ def test_a_path_with_a_space_is_quoted_for_the_subject_list(tmp_path: Path) -> N
     _touch(root / "sub-01" / "anat" / "sub-01_T1w.nii.gz")
     _touch(root / "sub-01" / "anat" / "sub-01_T2w.nii.gz")
     sessions = bids.find_sessions(root, with_t2=True)
-    (line,) = run_fastsurfer_bids.subject_list_lines(sessions)
+    (line,) = bids_fastsurfer.subject_list_lines(sessions)
 
     subject_id, _, image_parameters = line.partition("=")
     assert subject_id == "sub-01"
@@ -164,7 +164,7 @@ def test_a_path_with_a_space_is_quoted_for_the_subject_list(tmp_path: Path) -> N
 def test_a_mistyped_label_is_an_error_line_not_a_traceback(bids_dataset: Path, tmp_path: Path) -> None:
     """The user mistyped something; a stack trace tells them nothing about which flag it was."""
     result = subprocess.run(
-        [sys.executable, str(FASTSURFER_HOME / "run_fastsurfer_bids.py"),
+        [sys.executable, str(FASTSURFER_HOME / "bids_fastsurfer.py"),
          str(bids_dataset), str(tmp_path / "out"), "participant",
          "--skip_bids_validator", "--dry", "--participant_label", "99"],
         capture_output=True, text=True,
@@ -177,7 +177,7 @@ def test_a_mistyped_label_is_an_error_line_not_a_traceback(bids_dataset: Path, t
 def test_a_missing_bids_dir_is_an_error(tmp_path: Path) -> None:
     """An empty glob would otherwise read as a dataset that holds no T1w at all."""
     result = subprocess.run(
-        [sys.executable, str(FASTSURFER_HOME / "run_fastsurfer_bids.py"),
+        [sys.executable, str(FASTSURFER_HOME / "bids_fastsurfer.py"),
          str(tmp_path / "nope"), str(tmp_path / "out"), "participant", "--dry"],
         capture_output=True, text=True,
     )
@@ -199,7 +199,7 @@ def test_derivatives_description_records_the_version_and_the_model(tmp_path: Pat
 def _dry_run(bids_dataset: Path, tmp_path: Path, *extra: str) -> str:
     """Run the entrypoint with --dry and return what it printed."""
     result = subprocess.run(
-        [sys.executable, str(FASTSURFER_HOME / "run_fastsurfer_bids.py"),
+        [sys.executable, str(FASTSURFER_HOME / "bids_fastsurfer.py"),
          str(bids_dataset), str(tmp_path / "out"), "participant",
          "--skip_bids_validator", "--dry", *extra],
         capture_output=True, text=True, check=True,
@@ -234,7 +234,7 @@ def test_passthrough_options_reach_the_batch_script(bids_dataset: Path, tmp_path
 def test_a_passthrough_option_this_script_sets_is_refused(bids_dataset: Path, tmp_path: Path) -> None:
     """A second --sd would decide the output directory, silently overriding the positional one."""
     result = subprocess.run(
-        [sys.executable, str(FASTSURFER_HOME / "run_fastsurfer_bids.py"),
+        [sys.executable, str(FASTSURFER_HOME / "bids_fastsurfer.py"),
          str(bids_dataset), str(tmp_path / "out"), "participant",
          "--skip_bids_validator", "--dry", "--", "--sd", "/somewhere/else"],
         capture_output=True, text=True,
@@ -247,7 +247,7 @@ def test_an_output_dir_inside_the_dataset_is_refused(bids_dataset: Path) -> None
     """The output would land in the input dataset, where a later run finds it as a subject."""
     for output_dir in (bids_dataset, bids_dataset / "sub-01" / "fastsurfer"):
         result = subprocess.run(
-            [sys.executable, str(FASTSURFER_HOME / "run_fastsurfer_bids.py"),
+            [sys.executable, str(FASTSURFER_HOME / "bids_fastsurfer.py"),
              str(bids_dataset), str(output_dir), "participant", "--skip_bids_validator", "--dry"],
             capture_output=True, text=True,
         )
@@ -265,7 +265,7 @@ def test_a_passthrough_t2_is_refused(bids_dataset: Path, tmp_path: Path) -> None
     """
     def run(*extra: str) -> subprocess.CompletedProcess:
         return subprocess.run(
-            [sys.executable, str(FASTSURFER_HOME / "run_fastsurfer_bids.py"),
+            [sys.executable, str(FASTSURFER_HOME / "bids_fastsurfer.py"),
              str(bids_dataset), str(tmp_path / "out"), "participant",
              "--skip_bids_validator", "--dry", *extra, "--", "--t2", "/elsewhere/t2.nii.gz"],
             capture_output=True, text=True,
@@ -280,7 +280,7 @@ def test_a_directory_holding_the_other_model_is_refused(bids_dataset: Path, tmp_
     output_dir = tmp_path / "out"
     bids.write_derivatives_dataset_description(output_dir, "2.6.0-dev0", bids.LONGITUDINAL)
     result = subprocess.run(
-        [sys.executable, str(FASTSURFER_HOME / "run_fastsurfer_bids.py"),
+        [sys.executable, str(FASTSURFER_HOME / "bids_fastsurfer.py"),
          str(bids_dataset), str(output_dir), "participant", "--skip_bids_validator", "--dry"],
         capture_output=True, text=True,
     )
