@@ -125,11 +125,14 @@ version_ubuntu = _runtime_base_image.removeprefix("ubuntu:")
 # the PyTorch backend and device name of that CUDA version (13.2 -> cu132)
 image_cuda = "cu" + version_cuda.replace(".", "")
 image_rocm = "rocm" + version_rocm
-# the image for GPUs the default CUDA version dropped, and the oldest drivers, as FastSurfer names them when it cannot
-# use a GPU; from this tree, so a development build documents what it would tell the user
+# the CUDA images this tree builds, their GPUs and oldest drivers, for the table of which image fits which GPU; from
+# this tree, not image_version, so the table matches pyproject.toml and the message FastSurfer prints for a GPU it
+# cannot use
+(version_cuda_default,) = _tool_values_gitref(None, "cuda.version")
+image_cuda_default = "cu" + version_cuda_default.replace(".", "")
 (_legacy_major, _legacy_minor), image_cuda_legacy = LEGACY_BUILD
 version_cuda_legacy = f"{_legacy_major}.{_legacy_minor}"
-driver_cuda = MIN_DRIVER[int(version_cuda.split(".")[0])]
+driver_cuda = MIN_DRIVER[int(version_cuda_default.split(".")[0])]
 driver_cuda_legacy = MIN_DRIVER[_legacy_major]
 
 # -- General configuration ---------------------------------------------------
@@ -190,6 +193,8 @@ myst_substitutions = {
     "FASTSURFER_VERSION": image_version,
     "CUDA_STRING": image_cuda,
     "CUDA_VERSION": version_cuda,
+    "CUDA_DEFAULT_STRING": image_cuda_default,
+    "CUDA_DEFAULT_VERSION": version_cuda_default,
     "CUDA_DRIVER": str(driver_cuda),
     "CUDA_LEGACY_STRING": image_cuda_legacy,
     "CUDA_LEGACY_VERSION": version_cuda_legacy,
