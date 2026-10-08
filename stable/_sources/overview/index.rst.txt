@@ -7,13 +7,12 @@ User Guide
     intro
     QUICKSTART.md
     INSTALL.md
+    CONTAINERS.md
     EXAMPLES.md
     OUTPUT_FILES.md
     modules/index
-    docker
-    SINGULARITY.md
-    MACOS.md
     EDITING.md
     LONG.md
+    REPRODUCIBILITY.md
     SECURITY.md
     license

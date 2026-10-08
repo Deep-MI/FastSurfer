@@ -3,7 +3,7 @@
   <head><meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
-<link rel="index" title="Index" href="../genindex.html"><link rel="search" title="Search" href="../search.html"><link rel="next" title="Surface pipeline: recon-surf.sh" href="recon_surf.html"><link rel="prev" title="CorpusCallosum: fastsurfer_cc.py" href="fastsurfer_cc.html">
+<link rel="index" title="Index" href="../genindex.html"><link rel="search" title="Search" href="../search.html"><link rel="next" title="recon_surf: long_compat_segmentHA.py" href="long_compat_segmentHA.html"><link rel="prev" title="tools: compare_subjects.py" href="compare_subjects.html">
 
     <!-- Generated with Sphinx 7.4.7 and Furo 2025.12.19 -->
         <title>CorpusCallosum: cc_visualization.py - FastSurfer</title>
@@ -153,7 +153,11 @@
 
 <a class="skip-to-content muted-link" href="#furo-main-content">Skip to content</a>
 
-
+<div class="announcement">
+  <aside class="announcement-content">
+     This documents the latest release. The <a href="../dev/" data-doc-tree="dev">dev documentation</a> covers changes that are not released yet. 
+  </aside>
+</div>
 
 <div class="page">
   <header class="mobile-header">
@@ -196,57 +200,75 @@
 <li class="toctree-l1 has-children"><a class="reference internal" href="../overview/index.html">User Guide</a><input aria-label="Toggle navigation of User Guide" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l2"><a class="reference internal" href="../overview/intro.html">Introduction</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../overview/QUICKSTART.html">Quick Start</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../overview/INSTALL.html">Installation</a></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../overview/INSTALL.html">Installation</a><input aria-label="Toggle navigation of Installation" class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="../overview/install/MACOS.html">macOS</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../overview/install/LINUX.html">Linux</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../overview/install/WINDOWS.html">Windows</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../overview/install/NATIVE.html">Installing from source</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../overview/CONTAINERS.html">Running FastSurfer in a container</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../overview/EXAMPLES.html">Examples</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../overview/OUTPUT_FILES.html">Output files</a></li>
-<li class="toctree-l2 has-children"><a class="reference internal" href="../overview/modules/index.html">Modules</a><input aria-label="Toggle navigation of Modules" class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../overview/modules/index.html">Modules</a><input aria-label="Toggle navigation of Modules" class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="../overview/modules/ASEGDKT.html">Whole-Brain Segmentation (FastSurferVINN)</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../overview/modules/CC.html">Corpus Callosum Pipeline</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../overview/modules/CEREBNET.html">Cerebellum Sub-Segmentation (CerebNet)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../overview/modules/HYPVINN.html">Hypothalamus Sub-Segmentation (HypVINN)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../overview/modules/SURFACE.html">Surface Reconstruction (recon-surf)</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../overview/modules/LIT.html">Lesion Inpainting Tool (LIT)</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="../overview/docker.html">Docker Support</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../overview/SINGULARITY.html">Singularity Support</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../overview/MACOS.html">Running FastSurfer as MacOS package</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../overview/EDITING.html">Manual Edits</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../overview/LONG.html">Longitudinal Processing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../overview/REPRODUCIBILITY.html">Reproducibility</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../overview/SECURITY.html">Security Policy</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../overview/license.html">FastSurfer License</a></li>
 </ul>
 </li>
-<li class="toctree-l1 current has-children"><a class="reference internal" href="index.html">Scripts</a><input aria-label="Toggle navigation of Scripts" checked="" class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul class="current">
+<li class="toctree-l1 current has-children"><a class="reference internal" href="index.html">Command Reference</a><input aria-label="Toggle navigation of Command Reference" checked="" class="toctree-checkbox" id="toctree-checkbox-4" name="toctree-checkbox-4" role="switch" type="checkbox"/><label for="toctree-checkbox-4"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul class="current">
 <li class="toctree-l2"><a class="reference internal" href="RUN_FASTSURFER.html">run_fastsurfer.sh</a></li>
-<li class="toctree-l2"><a class="reference internal" href="long_fastsurfer.html">LONG: long_fastsurfer.sh</a></li>
-<li class="toctree-l2"><a class="reference internal" href="BATCH.html">BATCH: brun_fastsurfer.sh</a></li>
-<li class="toctree-l2"><a class="reference internal" href="SLURM.html">SLURM: srun_fastsurfer.sh</a></li>
-<li class="toctree-l2 current has-children"><a class="reference internal" href="advanced.html">Advanced scripts</a><input aria-label="Toggle navigation of Advanced scripts" checked="" class="toctree-checkbox" id="toctree-checkbox-4" name="toctree-checkbox-4" role="switch" type="checkbox"/><label for="toctree-checkbox-4"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="long_fastsurfer.html">long_fastsurfer.sh</a></li>
+<li class="toctree-l2"><a class="reference internal" href="BATCH.html">brun_fastsurfer.sh</a></li>
+<li class="toctree-l2"><a class="reference internal" href="SLURM.html">srun_fastsurfer.sh</a></li>
+<li class="toctree-l2"><a class="reference internal" href="BIDS.html">bids_fastsurfer.py</a></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="advanced.html">Running modules directly</a><input aria-label="Toggle navigation of Running modules directly" class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l3"><a class="reference internal" href="fastsurfercnn.html">FastSurferCNN: run_prediction.py</a></li>
 <li class="toctree-l3"><a class="reference internal" href="cerebnet.html">CerebNet: run_prediction.py</a></li>
 <li class="toctree-l3"><a class="reference internal" href="hypvinn.html">HypVINN: run_prediction.py</a></li>
 <li class="toctree-l3"><a class="reference internal" href="fastsurfer_cc.html">CorpusCallosum: fastsurfer_cc.py</a></li>
-<li class="toctree-l3 current current-page"><a class="current reference internal" href="#">CorpusCallosum: cc_visualization.py</a></li>
 <li class="toctree-l3"><a class="reference internal" href="recon_surf.html">Surface pipeline: recon-surf.sh</a></li>
+<li class="toctree-l3"><a class="reference internal" href="recon_surfreg.html">Surface registration: recon-surfreg.sh</a></li>
+</ul>
+</li>
+<li class="toctree-l2 current has-children"><a class="reference internal" href="util.html">Utilities</a><input aria-label="Toggle navigation of Utilities" checked="" class="toctree-checkbox" id="toctree-checkbox-6" name="toctree-checkbox-6" role="switch" type="checkbox"/><label for="toctree-checkbox-6"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="fastsurfercnn.download_checkpoints.html">FastSurferCNN: download_checkpoints.py</a></li>
+<li class="toctree-l3"><a class="reference internal" href="fastsurfercnn.conform.html">FastSurferCNN: conform.py</a></li>
 <li class="toctree-l3"><a class="reference internal" href="segstats.html">FastSurferCNN: segstats.py</a></li>
+<li class="toctree-l3"><a class="reference internal" href="compare_subjects.html">tools: compare_subjects.py</a></li>
+<li class="toctree-l3 current current-page"><a class="current reference internal" href="#">CorpusCallosum: cc_visualization.py</a></li>
 <li class="toctree-l3"><a class="reference internal" href="long_compat_segmentHA.html">recon_surf: long_compat_segmentHA.py</a></li>
 </ul>
 </li>
-<li class="toctree-l2 has-children"><a class="reference internal" href="util.html">FastSurfer Utilities</a><input aria-label="Toggle navigation of FastSurfer Utilities" class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
-<li class="toctree-l3"><a class="reference internal" href="fastsurfercnn.download_checkpoints.html">FastSurferCNN: download_checkpoints.py</a></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="training.html">Training</a><input aria-label="Toggle navigation of Training" class="toctree-checkbox" id="toctree-checkbox-7" name="toctree-checkbox-7" role="switch" type="checkbox"/><label for="toctree-checkbox-7"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l3"><a class="reference internal" href="fastsurfercnn.generate_hdf5.html">FastSurferCNN: generate_hdf5.py</a></li>
 <li class="toctree-l3"><a class="reference internal" href="fastsurfercnn.run_model.html">FastSurferCNN: run_model.py</a></li>
 </ul>
 </li>
 </ul>
 </li>
-<li class="toctree-l1 has-children"><a class="reference internal" href="../developer/index.html">Contributor Guide</a><input aria-label="Toggle navigation of Contributor Guide" class="toctree-checkbox" id="toctree-checkbox-6" name="toctree-checkbox-6" role="switch" type="checkbox"/><label for="toctree-checkbox-6"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
-<li class="toctree-l2"><a class="reference internal" href="../developer/GIT-HOOKS.html">git hook setup / CD</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../developer/code_of_conduct.html">Code of Conduct</a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../developer/index.html">Developer Guide</a><input aria-label="Toggle navigation of Developer Guide" class="toctree-checkbox" id="toctree-checkbox-8" name="toctree-checkbox-8" role="switch" type="checkbox"/><label for="toctree-checkbox-8"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l2"><a class="reference internal" href="../developer/contributing.html">Contribution Guide</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../developer/GIT-HOOKS.html">Git hooks</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../developer/docker.html">Building Docker images</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../developer/code_of_conduct.html">Code of Conduct</a></li>
 </ul>
 </li>
-<li class="toctree-l1 has-children"><a class="reference internal" href="../api/index.html">FastSurfer API</a><input aria-label="Toggle navigation of FastSurfer API" class="toctree-checkbox" id="toctree-checkbox-7" name="toctree-checkbox-7" role="switch" type="checkbox"/><label for="toctree-checkbox-7"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
-<li class="toctree-l2 has-children"><a class="reference internal" href="../api/FastSurferCNN.html">FastSurferCNN</a><input aria-label="Toggle navigation of FastSurferCNN" class="toctree-checkbox" id="toctree-checkbox-8" name="toctree-checkbox-8" role="switch" type="checkbox"/><label for="toctree-checkbox-8"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../api/index.html">FastSurfer API</a><input aria-label="Toggle navigation of FastSurfer API" class="toctree-checkbox" id="toctree-checkbox-9" name="toctree-checkbox-9" role="switch" type="checkbox"/><label for="toctree-checkbox-9"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../api/FastSurferCNN.html">FastSurferCNN</a><input aria-label="Toggle navigation of FastSurferCNN" class="toctree-checkbox" id="toctree-checkbox-10" name="toctree-checkbox-10" role="switch" type="checkbox"/><label for="toctree-checkbox-10"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/FastSurferCNN.download_checkpoints.html">FastSurferCNN.download_checkpoints</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/FastSurferCNN.generate_hdf5.html">FastSurferCNN.generate_hdf5</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/generated/FastSurferCNN.gpu_support.html">FastSurferCNN.gpu_support</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/FastSurferCNN.inference.html">FastSurferCNN.inference</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/FastSurferCNN.mri_brainvol_stats.html">FastSurferCNN.mri_brainvol_stats</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/FastSurferCNN.mri_segstats.html">FastSurferCNN.mri_segstats</a></li>
@@ -259,7 +281,7 @@
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/FastSurferCNN.version.html">FastSurferCNN.version</a></li>
 </ul>
 </li>
-<li class="toctree-l2 has-children"><a class="reference internal" href="../api/FastSurferCNN.data_loader.html">FastSurferCNN.data_loader</a><input aria-label="Toggle navigation of FastSurferCNN.data_loader" class="toctree-checkbox" id="toctree-checkbox-9" name="toctree-checkbox-9" role="switch" type="checkbox"/><label for="toctree-checkbox-9"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../api/FastSurferCNN.data_loader.html">FastSurferCNN.data_loader</a><input aria-label="Toggle navigation of FastSurferCNN.data_loader" class="toctree-checkbox" id="toctree-checkbox-11" name="toctree-checkbox-11" role="switch" type="checkbox"/><label for="toctree-checkbox-11"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/FastSurferCNN.data_loader.augmentation.html">FastSurferCNN.data_loader.augmentation</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/FastSurferCNN.data_loader.conform.html">FastSurferCNN.data_loader.conform</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/FastSurferCNN.data_loader.data_utils.html">FastSurferCNN.data_loader.data_utils</a></li>
@@ -267,7 +289,7 @@
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/FastSurferCNN.data_loader.loader.html">FastSurferCNN.data_loader.loader</a></li>
 </ul>
 </li>
-<li class="toctree-l2 has-children"><a class="reference internal" href="../api/FastSurferCNN.models.html">FastSurferCNN.models</a><input aria-label="Toggle navigation of FastSurferCNN.models" class="toctree-checkbox" id="toctree-checkbox-10" name="toctree-checkbox-10" role="switch" type="checkbox"/><label for="toctree-checkbox-10"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../api/FastSurferCNN.models.html">FastSurferCNN.models</a><input aria-label="Toggle navigation of FastSurferCNN.models" class="toctree-checkbox" id="toctree-checkbox-12" name="toctree-checkbox-12" role="switch" type="checkbox"/><label for="toctree-checkbox-12"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/FastSurferCNN.models.interpolation_layer.html">FastSurferCNN.models.interpolation_layer</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/FastSurferCNN.models.losses.html">FastSurferCNN.models.losses</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/FastSurferCNN.models.networks.html">FastSurferCNN.models.networks</a></li>
@@ -275,7 +297,7 @@
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/FastSurferCNN.models.sub_module.html">FastSurferCNN.models.sub_module</a></li>
 </ul>
 </li>
-<li class="toctree-l2 has-children"><a class="reference internal" href="../api/FastSurferCNN.utils.html">FastSurferCNN.utils</a><input aria-label="Toggle navigation of FastSurferCNN.utils" class="toctree-checkbox" id="toctree-checkbox-11" name="toctree-checkbox-11" role="switch" type="checkbox"/><label for="toctree-checkbox-11"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../api/FastSurferCNN.utils.html">FastSurferCNN.utils</a><input aria-label="Toggle navigation of FastSurferCNN.utils" class="toctree-checkbox" id="toctree-checkbox-13" name="toctree-checkbox-13" role="switch" type="checkbox"/><label for="toctree-checkbox-13"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/FastSurferCNN.utils.arg_types.html">FastSurferCNN.utils.arg_types</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/FastSurferCNN.utils.brainvolstats.html">FastSurferCNN.utils.brainvolstats</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/FastSurferCNN.utils.checkpoint.html">FastSurferCNN.utils.checkpoint</a></li>
@@ -293,32 +315,32 @@
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/FastSurferCNN.utils.run_tools.html">FastSurferCNN.utils.run_tools</a></li>
 </ul>
 </li>
-<li class="toctree-l2 has-children"><a class="reference internal" href="../api/CerebNet.html">CerebNet</a><input aria-label="Toggle navigation of CerebNet" class="toctree-checkbox" id="toctree-checkbox-12" name="toctree-checkbox-12" role="switch" type="checkbox"/><label for="toctree-checkbox-12"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../api/CerebNet.html">CerebNet</a><input aria-label="Toggle navigation of CerebNet" class="toctree-checkbox" id="toctree-checkbox-14" name="toctree-checkbox-14" role="switch" type="checkbox"/><label for="toctree-checkbox-14"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/CerebNet.apply_warp.html">CerebNet.apply_warp</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/CerebNet.inference.html">CerebNet.inference</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/CerebNet.run_prediction.html">CerebNet.run_prediction</a></li>
 </ul>
 </li>
-<li class="toctree-l2 has-children"><a class="reference internal" href="../api/CerebNet.data_loader.html">CerebNet.data_loader</a><input aria-label="Toggle navigation of CerebNet.data_loader" class="toctree-checkbox" id="toctree-checkbox-13" name="toctree-checkbox-13" role="switch" type="checkbox"/><label for="toctree-checkbox-13"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../api/CerebNet.data_loader.html">CerebNet.data_loader</a><input aria-label="Toggle navigation of CerebNet.data_loader" class="toctree-checkbox" id="toctree-checkbox-15" name="toctree-checkbox-15" role="switch" type="checkbox"/><label for="toctree-checkbox-15"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/CerebNet.data_loader.augmentation.html">CerebNet.data_loader.augmentation</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/CerebNet.data_loader.data_utils.html">CerebNet.data_loader.data_utils</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/CerebNet.data_loader.dataset.html">CerebNet.data_loader.dataset</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/CerebNet.data_loader.loader.html">CerebNet.data_loader.loader</a></li>
 </ul>
 </li>
-<li class="toctree-l2 has-children"><a class="reference internal" href="../api/CerebNet.datasets.html">CerebNet.datasets</a><input aria-label="Toggle navigation of CerebNet.datasets" class="toctree-checkbox" id="toctree-checkbox-14" name="toctree-checkbox-14" role="switch" type="checkbox"/><label for="toctree-checkbox-14"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../api/CerebNet.datasets.html">CerebNet.datasets</a><input aria-label="Toggle navigation of CerebNet.datasets" class="toctree-checkbox" id="toctree-checkbox-16" name="toctree-checkbox-16" role="switch" type="checkbox"/><label for="toctree-checkbox-16"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/CerebNet.datasets.generate_hdf5.html">CerebNet.datasets.generate_hdf5</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/CerebNet.datasets.load_data.html">CerebNet.datasets.load_data</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/CerebNet.datasets.utils.html">CerebNet.datasets.utils</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/CerebNet.datasets.wm_merge_clean.html">CerebNet.datasets.wm_merge_clean</a></li>
 </ul>
 </li>
-<li class="toctree-l2 has-children"><a class="reference internal" href="../api/CerebNet.models.html">CerebNet_models</a><input aria-label="Toggle navigation of CerebNet_models" class="toctree-checkbox" id="toctree-checkbox-15" name="toctree-checkbox-15" role="switch" type="checkbox"/><label for="toctree-checkbox-15"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../api/CerebNet.models.html">CerebNet_models</a><input aria-label="Toggle navigation of CerebNet_models" class="toctree-checkbox" id="toctree-checkbox-17" name="toctree-checkbox-17" role="switch" type="checkbox"/><label for="toctree-checkbox-17"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/CerebNet.models.networks.html">CerebNet.models.networks</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/CerebNet.models.sub_module.html">CerebNet.models.sub_module</a></li>
 </ul>
 </li>
-<li class="toctree-l2 has-children"><a class="reference internal" href="../api/CerebNet.utils.html">CerebNet.utils</a><input aria-label="Toggle navigation of CerebNet.utils" class="toctree-checkbox" id="toctree-checkbox-16" name="toctree-checkbox-16" role="switch" type="checkbox"/><label for="toctree-checkbox-16"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../api/CerebNet.utils.html">CerebNet.utils</a><input aria-label="Toggle navigation of CerebNet.utils" class="toctree-checkbox" id="toctree-checkbox-18" name="toctree-checkbox-18" role="switch" type="checkbox"/><label for="toctree-checkbox-18"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/CerebNet.utils.checkpoint.html">CerebNet.utils.checkpoint</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/CerebNet.utils.load_config.html">CerebNet.utils.load_config</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/CerebNet.utils.lr_scheduler.html">CerebNet.utils.lr_scheduler</a></li>
@@ -326,32 +348,32 @@
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/CerebNet.utils.misc.html">CerebNet.utils.misc</a></li>
 </ul>
 </li>
-<li class="toctree-l2 has-children"><a class="reference internal" href="../api/CorpusCallosum.html">CorpusCallosum</a><input aria-label="Toggle navigation of CorpusCallosum" class="toctree-checkbox" id="toctree-checkbox-17" name="toctree-checkbox-17" role="switch" type="checkbox"/><label for="toctree-checkbox-17"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../api/CorpusCallosum.html">CorpusCallosum</a><input aria-label="Toggle navigation of CorpusCallosum" class="toctree-checkbox" id="toctree-checkbox-19" name="toctree-checkbox-19" role="switch" type="checkbox"/><label for="toctree-checkbox-19"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/CorpusCallosum.fastsurfer_cc.html">CorpusCallosum.fastsurfer_cc</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/CorpusCallosum.cc_visualization.html">CorpusCallosum.cc_visualization</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/CorpusCallosum.paint_cc_into_pred.html">CorpusCallosum.paint_cc_into_pred</a></li>
 </ul>
 </li>
-<li class="toctree-l2 has-children"><a class="reference internal" href="../api/CorpusCallosum.data.html">CorpusCallosum.data</a><input aria-label="Toggle navigation of CorpusCallosum.data" class="toctree-checkbox" id="toctree-checkbox-18" name="toctree-checkbox-18" role="switch" type="checkbox"/><label for="toctree-checkbox-18"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../api/CorpusCallosum.data.html">CorpusCallosum.data</a><input aria-label="Toggle navigation of CorpusCallosum.data" class="toctree-checkbox" id="toctree-checkbox-20" name="toctree-checkbox-20" role="switch" type="checkbox"/><label for="toctree-checkbox-20"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/CorpusCallosum.data.constants.html">CorpusCallosum.data.constants</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/CorpusCallosum.data.fsaverage_cc_template.html">CorpusCallosum.data.fsaverage_cc_template</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/CorpusCallosum.data.read_write.html">CorpusCallosum.data.read_write</a></li>
 </ul>
 </li>
-<li class="toctree-l2 has-children"><a class="reference internal" href="../api/CorpusCallosum.localization.html">CorpusCallosum.localization</a><input aria-label="Toggle navigation of CorpusCallosum.localization" class="toctree-checkbox" id="toctree-checkbox-19" name="toctree-checkbox-19" role="switch" type="checkbox"/><label for="toctree-checkbox-19"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../api/CorpusCallosum.localization.html">CorpusCallosum.localization</a><input aria-label="Toggle navigation of CorpusCallosum.localization" class="toctree-checkbox" id="toctree-checkbox-21" name="toctree-checkbox-21" role="switch" type="checkbox"/><label for="toctree-checkbox-21"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/CorpusCallosum.localization.inference.html">CorpusCallosum.localization.inference</a></li>
 </ul>
 </li>
-<li class="toctree-l2 has-children"><a class="reference internal" href="../api/CorpusCallosum.registration.html">CorpusCallosum.registration</a><input aria-label="Toggle navigation of CorpusCallosum.registration" class="toctree-checkbox" id="toctree-checkbox-20" name="toctree-checkbox-20" role="switch" type="checkbox"/><label for="toctree-checkbox-20"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../api/CorpusCallosum.registration.html">CorpusCallosum.registration</a><input aria-label="Toggle navigation of CorpusCallosum.registration" class="toctree-checkbox" id="toctree-checkbox-22" name="toctree-checkbox-22" role="switch" type="checkbox"/><label for="toctree-checkbox-22"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/CorpusCallosum.registration.midsagittal_plane_alignment.html">CorpusCallosum.registration.midsagittal_plane_alignment</a></li>
 </ul>
 </li>
-<li class="toctree-l2 has-children"><a class="reference internal" href="../api/CorpusCallosum.segmentation.html">CorpusCallosum.segmentation</a><input aria-label="Toggle navigation of CorpusCallosum.segmentation" class="toctree-checkbox" id="toctree-checkbox-21" name="toctree-checkbox-21" role="switch" type="checkbox"/><label for="toctree-checkbox-21"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../api/CorpusCallosum.segmentation.html">CorpusCallosum.segmentation</a><input aria-label="Toggle navigation of CorpusCallosum.segmentation" class="toctree-checkbox" id="toctree-checkbox-23" name="toctree-checkbox-23" role="switch" type="checkbox"/><label for="toctree-checkbox-23"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/CorpusCallosum.segmentation.inference.html">CorpusCallosum.segmentation.inference</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/CorpusCallosum.segmentation.segmentation_postprocessing.html">CorpusCallosum.segmentation.segmentation_postprocessing</a></li>
 </ul>
 </li>
-<li class="toctree-l2 has-children"><a class="reference internal" href="../api/CorpusCallosum.shape.html">CorpusCallosum.shape</a><input aria-label="Toggle navigation of CorpusCallosum.shape" class="toctree-checkbox" id="toctree-checkbox-22" name="toctree-checkbox-22" role="switch" type="checkbox"/><label for="toctree-checkbox-22"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../api/CorpusCallosum.shape.html">CorpusCallosum.shape</a><input aria-label="Toggle navigation of CorpusCallosum.shape" class="toctree-checkbox" id="toctree-checkbox-24" name="toctree-checkbox-24" role="switch" type="checkbox"/><label for="toctree-checkbox-24"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/CorpusCallosum.shape.contour.html">CorpusCallosum.shape.contour</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/CorpusCallosum.shape.curvature.html">CorpusCallosum.shape.curvature</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/CorpusCallosum.shape.endpoint_heuristic.html">CorpusCallosum.shape.endpoint_heuristic</a></li>
@@ -362,33 +384,33 @@
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/CorpusCallosum.shape.thickness.html">CorpusCallosum.shape.thickness</a></li>
 </ul>
 </li>
-<li class="toctree-l2 has-children"><a class="reference internal" href="../api/CorpusCallosum.transforms.html">CorpusCallosum.transforms</a><input aria-label="Toggle navigation of CorpusCallosum.transforms" class="toctree-checkbox" id="toctree-checkbox-23" name="toctree-checkbox-23" role="switch" type="checkbox"/><label for="toctree-checkbox-23"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../api/CorpusCallosum.transforms.html">CorpusCallosum.transforms</a><input aria-label="Toggle navigation of CorpusCallosum.transforms" class="toctree-checkbox" id="toctree-checkbox-25" name="toctree-checkbox-25" role="switch" type="checkbox"/><label for="toctree-checkbox-25"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/CorpusCallosum.transforms.localization.html">CorpusCallosum.transforms.localization</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/CorpusCallosum.transforms.segmentation.html">CorpusCallosum.transforms.segmentation</a></li>
 </ul>
 </li>
-<li class="toctree-l2 has-children"><a class="reference internal" href="../api/CorpusCallosum.utils.html">CorpusCallosum.utils</a><input aria-label="Toggle navigation of CorpusCallosum.utils" class="toctree-checkbox" id="toctree-checkbox-24" name="toctree-checkbox-24" role="switch" type="checkbox"/><label for="toctree-checkbox-24"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../api/CorpusCallosum.utils.html">CorpusCallosum.utils</a><input aria-label="Toggle navigation of CorpusCallosum.utils" class="toctree-checkbox" id="toctree-checkbox-26" name="toctree-checkbox-26" role="switch" type="checkbox"/><label for="toctree-checkbox-26"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/CorpusCallosum.utils.checkpoint.html">CorpusCallosum.utils.checkpoint</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/CorpusCallosum.utils.mapping_helpers.html">CorpusCallosum.utils.mapping_helpers</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/CorpusCallosum.utils.types.html">CorpusCallosum.utils.types</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/CorpusCallosum.utils.visualization.html">CorpusCallosum.utils.visualization</a></li>
 </ul>
 </li>
-<li class="toctree-l2 has-children"><a class="reference internal" href="../api/HypVINN.html">HypVINN</a><input aria-label="Toggle navigation of HypVINN" class="toctree-checkbox" id="toctree-checkbox-25" name="toctree-checkbox-25" role="switch" type="checkbox"/><label for="toctree-checkbox-25"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../api/HypVINN.html">HypVINN</a><input aria-label="Toggle navigation of HypVINN" class="toctree-checkbox" id="toctree-checkbox-27" name="toctree-checkbox-27" role="switch" type="checkbox"/><label for="toctree-checkbox-27"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/HypVINN.inference.html">HypVINN.inference</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/HypVINN.run_prediction.html">HypVINN.run_prediction</a></li>
 </ul>
 </li>
-<li class="toctree-l2 has-children"><a class="reference internal" href="../api/HypVINN.dataloader.html">HypVINN.data_loader</a><input aria-label="Toggle navigation of HypVINN.data_loader" class="toctree-checkbox" id="toctree-checkbox-26" name="toctree-checkbox-26" role="switch" type="checkbox"/><label for="toctree-checkbox-26"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../api/HypVINN.dataloader.html">HypVINN.data_loader</a><input aria-label="Toggle navigation of HypVINN.data_loader" class="toctree-checkbox" id="toctree-checkbox-28" name="toctree-checkbox-28" role="switch" type="checkbox"/><label for="toctree-checkbox-28"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/HypVINN.data_loader.data_utils.html">HypVINN.data_loader.data_utils</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/HypVINN.data_loader.dataset.html">HypVINN.data_loader.dataset</a></li>
 </ul>
 </li>
-<li class="toctree-l2 has-children"><a class="reference internal" href="../api/HypVINN.models.html">HypVINN.models</a><input aria-label="Toggle navigation of HypVINN.models" class="toctree-checkbox" id="toctree-checkbox-27" name="toctree-checkbox-27" role="switch" type="checkbox"/><label for="toctree-checkbox-27"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../api/HypVINN.models.html">HypVINN.models</a><input aria-label="Toggle navigation of HypVINN.models" class="toctree-checkbox" id="toctree-checkbox-29" name="toctree-checkbox-29" role="switch" type="checkbox"/><label for="toctree-checkbox-29"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/HypVINN.models.networks.html">HypVINN.models.networks</a></li>
 </ul>
 </li>
-<li class="toctree-l2 has-children"><a class="reference internal" href="../api/HypVINN.utils.html">HypVINN.utils</a><input aria-label="Toggle navigation of HypVINN.utils" class="toctree-checkbox" id="toctree-checkbox-28" name="toctree-checkbox-28" role="switch" type="checkbox"/><label for="toctree-checkbox-28"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../api/HypVINN.utils.html">HypVINN.utils</a><input aria-label="Toggle navigation of HypVINN.utils" class="toctree-checkbox" id="toctree-checkbox-30" name="toctree-checkbox-30" role="switch" type="checkbox"/><label for="toctree-checkbox-30"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/HypVINN.utils.checkpoint.html">HypVINN.utils.checkpoint</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/HypVINN.utils.img_processing_utils.html">HypVINN.utils.img_processing_utils</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/HypVINN.utils.load_config.html">HypVINN.utils.load_config</a></li>
@@ -399,13 +421,14 @@
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/HypVINN.utils.visualization_utils.html">HypVINN.utils.visualization_utils</a></li>
 </ul>
 </li>
-<li class="toctree-l2 has-children"><a class="reference internal" href="../api/recon_surf.html">recon_surf</a><input aria-label="Toggle navigation of recon_surf" class="toctree-checkbox" id="toctree-checkbox-29" name="toctree-checkbox-29" role="switch" type="checkbox"/><label for="toctree-checkbox-29"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../api/recon_surf.html">recon_surf</a><input aria-label="Toggle navigation of recon_surf" class="toctree-checkbox" id="toctree-checkbox-31" name="toctree-checkbox-31" role="switch" type="checkbox"/><label for="toctree-checkbox-31"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/recon_surf.create_annotation.html">recon_surf.create_annotation</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/recon_surf.fs_balabels.html">recon_surf.fs_balabels</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/recon_surf.image_io.html">recon_surf.image_io</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/recon_surf.long_compat_segmentHA.html">recon_surf.long_compat_segmentHA</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/recon_surf.map_surf_label.html">recon_surf.map_surf_label</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/recon_surf.N4_bias_correct.html">recon_surf.N4_bias_correct</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/generated/recon_surf.pin_cpu_dispatch.html">recon_surf.pin_cpu_dispatch</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/recon_surf.rewrite_mc_surface.html">recon_surf.rewrite_mc_surface</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/recon_surf.rewrite_oriented_surface.html">recon_surf.rewrite_oriented_surface</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/recon_surf.rotate_sphere.html">recon_surf.rotate_sphere</a></li>
@@ -459,12 +482,15 @@
 <h1>CorpusCallosum: cc_visualization.py<a class="headerlink" href="#corpuscallosum-cc-visualization-py" title="Link to this heading">¶</a></h1>
 <p><p>Visualize corpus callosum from template files.</p>
 </p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">usage</span><span class="p">:</span> <span class="n">cc_visualization</span><span class="o">.</span><span class="n">py</span> <span class="p">[</span><span class="o">-</span><span class="n">h</span><span class="p">]</span> <span class="o">--</span><span class="n">template_dir</span> <span class="n">TEMPLATE_DIR</span> <span class="o">--</span><span class="n">output_dir</span>
-                           <span class="n">OUTPUT_DIR</span> <span class="p">[</span><span class="o">--</span><span class="n">resolution</span> <span class="n">RESOLUTION</span><span class="p">]</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">usage</span><span class="p">:</span> <span class="n">cc_visualization</span><span class="o">.</span><span class="n">py</span> <span class="p">[</span><span class="o">-</span><span class="n">h</span><span class="p">]</span>
+                           <span class="p">(</span><span class="o">--</span><span class="n">template_dir</span> <span class="n">TEMPLATE_DIR</span> <span class="o">|</span> <span class="o">--</span><span class="n">values_file</span> <span class="n">VALUES_FILE</span><span class="p">)</span>
+                           <span class="o">--</span><span class="n">output_dir</span> <span class="n">OUTPUT_DIR</span> <span class="p">[</span><span class="o">--</span><span class="n">resolution</span> <span class="n">RESOLUTION</span><span class="p">]</span>
                            <span class="p">[</span><span class="o">--</span><span class="n">smoothing_window</span> <span class="n">SMOOTHING_WINDOW</span><span class="p">]</span>
-                           <span class="p">[</span><span class="o">--</span><span class="n">colormap</span> <span class="p">{</span><span class="n">red_to_blue</span><span class="p">,</span><span class="n">blue_to_red</span><span class="p">,</span><span class="n">red_to_yellow</span><span class="p">,</span><span class="n">yellow_to_red</span><span class="p">}]</span>
-                           <span class="p">[</span><span class="o">--</span><span class="n">color_range</span> <span class="n">MIN</span> <span class="n">MAX</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">legend</span> <span class="n">LEGEND</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">twoD</span><span class="p">]</span>
-                           <span class="p">[</span><span class="o">-</span><span class="n">v</span><span class="p">]</span>
+                           <span class="p">[</span><span class="o">--</span><span class="n">colormap</span> <span class="n">COLORMAP</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">color_range</span> <span class="n">MIN</span> <span class="n">MAX</span><span class="p">]</span>
+                           <span class="p">[</span><span class="o">--</span><span class="n">legend</span> <span class="n">LEGEND</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">mode</span> <span class="p">{</span><span class="n">thickness</span><span class="p">,</span><span class="n">p</span><span class="o">-</span><span class="n">value</span><span class="p">,</span><span class="n">icc</span><span class="p">}]</span>
+                           <span class="p">[</span><span class="o">--</span><span class="n">log_scale</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">upper_threshold</span> <span class="n">VALUE</span><span class="p">]</span>
+                           <span class="p">[</span><span class="o">--</span><span class="n">threshold_color</span> <span class="n">THRESHOLD_COLOR</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">title</span> <span class="n">TITLE</span><span class="p">]</span>
+                           <span class="p">[</span><span class="o">--</span><span class="n">output_name</span> <span class="n">FILENAME</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">twoD</span><span class="p">]</span> <span class="p">[</span><span class="o">-</span><span class="n">v</span><span class="p">]</span>
 </pre></div>
 </div>
 <section id="CorpusCallosum.cc_visualization-make_parser-named-arguments">
@@ -473,8 +499,11 @@
 <dt><kbd>--template_dir</kbd></dt>
 <dd><p>Path to a template directory containing per-slice files named thickness_values_&lt;idx&gt;.txt, and optionally contour_&lt;idx&gt;.txt and thickness_measurement_points_&lt;idx&gt;.txt. If contour_&lt;idx&gt;.txt and thickness_measurement_points_&lt;idx&gt;.txt are not provided, uses fsaverage template. For FreeSurfer surfaces in orig.mgz reference space, also provide mri/orig.mgz and mri/transforms/cc_up.lta in this directory.</p>
 </dd>
+<dt><kbd>--values_file</kbd></dt>
+<dd><p>One-column CSV containing values ordered anterior to posterior. The first row is treated as a header. Uses the bundled fsaverage contour and generates a 2D plot; no template directory is required.</p>
+</dd>
 <dt><kbd>--output_dir</kbd></dt>
-<dd><p>Directory for output files. Writes: cc_mesh.html - Interactive 3D mesh visualization (HTML file) midslice_2d.png - 2D midslice visualization of the corpus callosum cc_mesh.vtk - VTK mesh file format cc_mesh.fssurf - FreeSurfer surface file cc_mesh_overlay.curv - FreeSurfer curvature overlay file cc_mesh_snap.png - Screenshot/snapshot of the 3D mesh (requires whippersnappy&gt;=2.1). If template_dir does not contain orig.mgz and cc_up.lta, output_dir/mri/upright.mgz is used as the fallback reference when available; otherwise FreeSurfer surfaces are written without a reference space.</p>
+<dd><p>Directory for output files. Writes: cc_mesh.html - Interactive 3D mesh visualization (HTML file) midslice_2d.png - 2D midslice visualization of the corpus callosum cc_mesh.vtk - VTK mesh file format cc_mesh.fssurf - FreeSurfer surface file cc_mesh_overlay.curv - FreeSurfer curvature overlay file cc_mesh_snap.png - Screenshot/snapshot of the 3D mesh (requires whippersnappy&gt;=2.1). If template_dir does not contain orig.mgz and cc_up.lta, &lt;output_dir&gt;/mri/upright.mgz is used as the fallback reference when available; otherwise FreeSurfer surfaces are written without a reference space.</p>
 </dd>
 <dt><kbd>--resolution</kbd></dt>
 <dd><p>Legacy spacing in mm used when template contour files do not store slice positions.</p>
@@ -486,23 +515,44 @@
 </dd>
 <dt><kbd>--colormap</kbd></dt>
 <dd><p>Possible choices: red_to_blue, blue_to_red, red_to_yellow, yellow_to_red</p>
-<p>Colormap to use for thickness visualization, lower to higher values.</p>
+<p>Colormap progression from lower to higher values: red_to_blue, blue_to_red, red_to_yellow or yellow_to_red.</p>
 <p>Default: <code class="docutils literal notranslate"><span class="pre">'red_to_yellow'</span></code></p>
 </dd>
 <dt><kbd>--color_range</kbd></dt>
 <dd><p>Specify the range for the colorbar (2 values: min max). Defaults to automatic choice.               (e.g. –color_range 0 10).</p>
 </dd>
 <dt><kbd>--legend</kbd></dt>
-<dd><p>Legend for the colorbar.</p>
-<p>Default: <code class="docutils literal notranslate"><span class="pre">'Thickness</span> <span class="pre">(mm)'</span></code></p>
+<dd><p>Override the colorbar label.</p>
+</dd>
+<dt><kbd>--mode</kbd></dt>
+<dd><p>Possible choices: thickness, p-value, icc</p>
+<p>Value type for –values_file (default: thickness).</p>
+<p>Default: <code class="docutils literal notranslate"><span class="pre">'thickness'</span></code></p>
+</dd>
+<dt><kbd>--log_scale</kbd></dt>
+<dd><p>Use logarithmic color normalization for –values_file.</p>
+<p>Default: <code class="docutils literal notranslate"><span class="pre">False</span></code></p>
+</dd>
+<dt><kbd>--upper_threshold</kbd></dt>
+<dd><p>Color values above this limit with –threshold_color.</p>
+</dd>
+<dt><kbd>--threshold_color</kbd></dt>
+<dd><p>Matplotlib color for values above –upper_threshold (default: gray).</p>
+<p>Default: <code class="docutils literal notranslate"><span class="pre">'gray'</span></code></p>
+</dd>
+<dt><kbd>--title</kbd></dt>
+<dd><p>Optional title for a 2D values plot.</p>
+</dd>
+<dt><kbd>--output_name</kbd></dt>
+<dd><p>Filename for the 2D PNG within –output_dir.</p>
 </dd>
 <dt><kbd>--twoD</kbd></dt>
 <dd><p>Generate 2D visualization instead of 3D mesh.</p>
 <p>Default: <code class="docutils literal notranslate"><span class="pre">False</span></code></p>
 </dd>
 <dt><kbd>-v, --verbose</kbd></dt>
-<dd><p>Enable verbose (pass twice for debug-output).</p>
-<p>Default: <code class="docutils literal notranslate"><span class="pre">0</span></code></p>
+<dd><p>Log debug output as well.</p>
+<p>Default: <code class="docutils literal notranslate"><span class="pre">False</span></code></p>
 </dd>
 </dl>
 </section>
@@ -512,25 +562,99 @@
 <h3>3D Visualization<a class="headerlink" href="#d-visualization" title="Link to this heading">¶</a></h3>
 <p>To visualize a 3D template generated by <code class="docutils literal notranslate"><span class="pre">fastsurfer_cc.py</span></code> (using <code class="docutils literal notranslate"><span class="pre">--slice_selection</span> <span class="pre">all</span> <span class="pre">--save_template_dir</span> <span class="pre">...</span></code>),
 point the script to the exported template directory:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python3<span class="w"> </span>cc_visualization.py<span class="w"> </span><span class="se">\</span>
-<span class="w">    </span>--template_dir<span class="w"> </span>/data/templates/sub001/cc_template<span class="w"> </span><span class="se">\</span>
-<span class="w">    </span>--output_dir<span class="w"> </span>/data/visualizations/sub001
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span><span class="w"> </span><span class="nv">FASTSURFER_HOME</span><span class="o">=</span><span class="si">${</span><span class="nv">FASTSURFER_HOME</span><span class="k">:-</span><span class="p">/path/to/FastSurfer</span><span class="si">}</span>
+python3<span class="w"> </span><span class="nv">$FASTSURFER_HOME</span>/CorpusCallosum/cc_visualization.py<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--template_dir<span class="w"> </span><span class="nv">$HOME</span>/my_fastsurfer_analysis/subjectX/cc_template<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--output_dir<span class="w"> </span><span class="nv">$HOME</span>/my_fastsurfer_analysis/subjectX/cc_visualization
 </pre></div>
 </div>
 </section>
 <section id="id1">
 <h3>2D Visualization<a class="headerlink" href="#id1" title="Link to this heading">¶</a></h3>
 <p>To visualize a 2D template (using <code class="docutils literal notranslate"><span class="pre">--slice_selection</span> <span class="pre">middle</span> <span class="pre">--save_template_dir</span> <span class="pre">...</span></code>):</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python3<span class="w"> </span>cc_visualization.py<span class="w"> </span><span class="se">\</span>
-<span class="w">    </span>--template_dir<span class="w"> </span>/data/templates/sub001/cc_template<span class="w"> </span><span class="se">\</span>
-<span class="w">    </span>--output_dir<span class="w"> </span>/data/visualizations/sub001<span class="w"> </span><span class="se">\</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span><span class="w"> </span><span class="nv">FASTSURFER_HOME</span><span class="o">=</span><span class="si">${</span><span class="nv">FASTSURFER_HOME</span><span class="k">:-</span><span class="p">/path/to/FastSurfer</span><span class="si">}</span>
+python3<span class="w"> </span><span class="nv">$FASTSURFER_HOME</span>/CorpusCallosum/cc_visualization.py<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--template_dir<span class="w"> </span><span class="nv">$HOME</span>/my_fastsurfer_analysis/subjectX/cc_template<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--output_dir<span class="w"> </span><span class="nv">$HOME</span>/my_fastsurfer_analysis/subjectX/cc_visualization<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--twoD
 </pre></div>
 </div>
+<p>The template’s <code class="docutils literal notranslate"><span class="pre">thickness_values_&lt;slice&gt;.txt</span></code> is a per-contour-vertex file,
+not a one-value-per-level-path profile. Each thickness measurement occurs at
+both ends of its level path, so the non-empty measurements follow the contour
+as anterior-to-posterior and then posterior-to-anterior. Do not copy a JSON
+<code class="docutils literal notranslate"><span class="pre">thickness_profile</span></code> directly into this template file.</p>
+<p>To visualize a one-column CSV of p-values on the bundled fsaverage contour,
+where the first row is a header and the remaining rows contain positive values
+ordered from anterior to posterior:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span><span class="w"> </span><span class="nv">FASTSURFER_HOME</span><span class="o">=</span><span class="si">${</span><span class="nv">FASTSURFER_HOME</span><span class="k">:-</span><span class="p">/path/to/FastSurfer</span><span class="si">}</span>
+python3<span class="w"> </span><span class="nv">$FASTSURFER_HOME</span>/CorpusCallosum/cc_visualization.py<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--values_file<span class="w"> </span><span class="nv">$HOME</span>/my_fastsurfer_analysis/p_values.csv<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--output_dir<span class="w"> </span><span class="nv">$HOME</span>/my_fastsurfer_analysis/visualizations<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--mode<span class="w"> </span>p-value<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--colormap<span class="w"> </span>yellow_to_red<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--log_scale<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--upper_threshold<span class="w"> </span><span class="m">0</span>.05<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--threshold_color<span class="w"> </span>gray<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--twoD
+</pre></div>
+</div>
+<p>The <code class="docutils literal notranslate"><span class="pre">--values_file</span></code> format is also the supported way to visualize a
+<code class="docutils literal notranslate"><span class="pre">thickness_profile</span></code> copied from the FastSurfer JSON output: write its values
+once, in their existing anterior-to-posterior order, beneath a single header
+such as <code class="docutils literal notranslate"><span class="pre">thickness</span></code> and select <code class="docutils literal notranslate"><span class="pre">--mode</span> <span class="pre">thickness</span></code>.</p>
+<p>For the default midslice metrics file, <code class="docutils literal notranslate"><span class="pre">jq</span></code> can create this input without
+changing the order:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>jq<span class="w"> </span>-r<span class="w"> </span><span class="s1">'"thickness", .thickness_profile[]'</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span><span class="nv">$HOME</span>/my_fastsurfer_analysis/subjectX/stats/callosum.CC.midslice.json<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>&gt;<span class="w"> </span><span class="nv">$HOME</span>/my_fastsurfer_analysis/subjectX/thickness_profile.csv
+</pre></div>
+</div>
+<p>The same command can be run from a FastSurfer container without installing
+FastSurfer or FreeSurfer on the host. From the directory containing
+<code class="docutils literal notranslate"><span class="pre">p_values.csv</span></code>:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>mkdir<span class="w"> </span>-p<span class="w"> </span>visualizations
+
+docker<span class="w"> </span>run<span class="w"> </span>--rm<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--user<span class="w"> </span><span class="s2">"</span><span class="k">$(</span>id<span class="w"> </span>-u<span class="k">)</span><span class="s2">:</span><span class="k">$(</span>id<span class="w"> </span>-g<span class="k">)</span><span class="s2">"</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--volume<span class="w"> </span><span class="s2">"</span><span class="nv">$PWD</span><span class="s2">/p_values.csv:</span><span class="nv">$PWD</span><span class="s2">/p_values.csv:ro"</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--volume<span class="w"> </span><span class="s2">"</span><span class="nv">$PWD</span><span class="s2">/visualizations:</span><span class="nv">$PWD</span><span class="s2">/visualizations"</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--entrypoint<span class="w"> </span>/fastsurfer/tools/Docker/entrypoint.sh<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>deepmi/fastsurfer:latest<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>python3<span class="w"> </span>/fastsurfer/CorpusCallosum/cc_visualization.py<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--values_file<span class="w"> </span><span class="s2">"</span><span class="nv">$PWD</span><span class="s2">/p_values.csv"</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--output_dir<span class="w"> </span><span class="s2">"</span><span class="nv">$PWD</span><span class="s2">/visualizations"</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--mode<span class="w"> </span>p-value<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--colormap<span class="w"> </span>yellow_to_red<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--log_scale<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--upper_threshold<span class="w"> </span><span class="m">0</span>.05<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--threshold_color<span class="w"> </span>gray<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--legend<span class="w"> </span><span class="s2">"p-value (log scale)"</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--title<span class="w"> </span><span class="s2">"Example p-value visualization"</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--output_name<span class="w"> </span>p_values_fsaverage_2d.png<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--smoothing_window<span class="w"> </span><span class="m">0</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--twoD
+</pre></div>
+</div>
+<p>The output is written to <code class="docutils literal notranslate"><span class="pre">visualizations/p_values_fsaverage_2d.png</span></code>. On macOS, the
+<code class="docutils literal notranslate"><span class="pre">--user</span></code> option can be omitted if Docker Desktop reports a user-mapping
+problem.</p>
+<p>The following example uses 100 smoothly varying dummy p-values. Values above
+0.05 are shown in gray; the remaining values use a logarithmic yellow-to-red
+scale.</p>
+<figure class="align-default" id="id2">
+<a class="reference internal image-reference" href="../_images/cc_pvalues_fsaverage_2d.png"><img alt="Smooth dummy p-values plotted on the bundled fsaverage corpus callosum contour" src="../_images/cc_pvalues_fsaverage_2d.png" style="width: 100%;" />
+</a>
+<figcaption>
+<p><span class="caption-text">A 2D p-value visualization generated by the container command above.</span><a class="headerlink" href="#id2" title="Link to this image">¶</a></p>
+</figcaption>
+</figure>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>The <code class="docutils literal notranslate"><span class="pre">--template_dir</span></code> is the required way to load the templates
-produced by <code class="docutils literal notranslate"><span class="pre">fastsurfer_cc.py</span></code>.</p>
+<p>Use <code class="docutils literal notranslate"><span class="pre">--template_dir</span></code> to load templates produced by <code class="docutils literal notranslate"><span class="pre">fastsurfer_cc.py</span></code>.</p>
+<p><code class="docutils literal notranslate"><span class="pre">--values_file</span></code> instead uses a precomputed fsaverage corpus-callosum
+contour bundled with FastSurfer. It does not require <code class="docutils literal notranslate"><span class="pre">FREESURFER_HOME</span></code> or
+a separate FreeSurfer installation.</p>
 </div>
 </section>
 </section>
@@ -548,6 +672,7 @@ produced by <code class="docutils literal notranslate"><span class="pre">fastsur
 </dd>
 <dt>2D Mode Outputs (when <code class="docutils literal notranslate"><span class="pre">--twoD</span></code> is specified):</dt><dd><ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">cc_thickness_2d.png</span></code>: 2D contour visualization with thickness colormap</p></li>
+<li><p>The filename passed to <code class="docutils literal notranslate"><span class="pre">--output_name</span></code> for <code class="docutils literal notranslate"><span class="pre">--values_file</span></code> input</p></li>
 </ul>
 </dd>
 </dl>
@@ -559,23 +684,23 @@ produced by <code class="docutils literal notranslate"><span class="pre">fastsur
       <footer>
         
         <div class="related-pages">
-          <a class="next-page" href="recon_surf.html">
+          <a class="next-page" href="long_compat_segmentHA.html">
               <div class="page-info">
                 <div class="context">
                   <span>Next</span>
                 </div>
-                <div class="title">Surface pipeline: recon-surf.sh</div>
+                <div class="title">recon_surf: long_compat_segmentHA.py</div>
               </div>
               <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
             </a>
-          <a class="prev-page" href="fastsurfer_cc.html">
+          <a class="prev-page" href="compare_subjects.html">
               <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
               <div class="page-info">
                 <div class="context">
                   <span>Previous</span>
                 </div>
                 
-                <div class="title">CorpusCallosum: fastsurfer_cc.py</div>
+                <div class="title">tools: compare_subjects.py</div>
                 
               </div>
             </a>
@@ -639,7 +764,8 @@ produced by <code class="docutils literal notranslate"><span class="pre">fastsur
     <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../_static/scripts/furo.js?v=46bd48cc"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
-    <script src="../_static/copybutton.js?v=f281be69"></script>
+    <script src="../_static/copybutton.js?v=1be11439"></script>
     <script src="../_static/design-tabs.js?v=f930bc37"></script>
+    <script src="../_static/doc-version-link.js?v=e710a016"></script>
     </body>
 </html>

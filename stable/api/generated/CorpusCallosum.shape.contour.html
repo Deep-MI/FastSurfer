@@ -153,7 +153,11 @@
 
 <a class="skip-to-content muted-link" href="#furo-main-content">Skip to content</a>
 
-
+<div class="announcement">
+  <aside class="announcement-content">
+     This documents the latest release. The <a href="../dev/" data-doc-tree="dev">dev documentation</a> covers changes that are not released yet. 
+  </aside>
+</div>
 
 <div class="page">
   <header class="mobile-header">
@@ -196,57 +200,75 @@
 <li class="toctree-l1 has-children"><a class="reference internal" href="../../overview/index.html">User Guide</a><input aria-label="Toggle navigation of User Guide" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l2"><a class="reference internal" href="../../overview/intro.html">Introduction</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../overview/QUICKSTART.html">Quick Start</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../overview/INSTALL.html">Installation</a></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../overview/INSTALL.html">Installation</a><input aria-label="Toggle navigation of Installation" class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../overview/install/MACOS.html">macOS</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../overview/install/LINUX.html">Linux</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../overview/install/WINDOWS.html">Windows</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../overview/install/NATIVE.html">Installing from source</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../overview/CONTAINERS.html">Running FastSurfer in a container</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../overview/EXAMPLES.html">Examples</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../overview/OUTPUT_FILES.html">Output files</a></li>
-<li class="toctree-l2 has-children"><a class="reference internal" href="../../overview/modules/index.html">Modules</a><input aria-label="Toggle navigation of Modules" class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../overview/modules/index.html">Modules</a><input aria-label="Toggle navigation of Modules" class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../overview/modules/ASEGDKT.html">Whole-Brain Segmentation (FastSurferVINN)</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../overview/modules/CC.html">Corpus Callosum Pipeline</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../overview/modules/CEREBNET.html">Cerebellum Sub-Segmentation (CerebNet)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../overview/modules/HYPVINN.html">Hypothalamus Sub-Segmentation (HypVINN)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../overview/modules/SURFACE.html">Surface Reconstruction (recon-surf)</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../overview/modules/LIT.html">Lesion Inpainting Tool (LIT)</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="../../overview/docker.html">Docker Support</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../overview/SINGULARITY.html">Singularity Support</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../overview/MACOS.html">Running FastSurfer as MacOS package</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../overview/EDITING.html">Manual Edits</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../overview/LONG.html">Longitudinal Processing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../overview/REPRODUCIBILITY.html">Reproducibility</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../overview/SECURITY.html">Security Policy</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../overview/license.html">FastSurfer License</a></li>
 </ul>
 </li>
-<li class="toctree-l1 has-children"><a class="reference internal" href="../../scripts/index.html">Scripts</a><input aria-label="Toggle navigation of Scripts" class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../scripts/index.html">Command Reference</a><input aria-label="Toggle navigation of Command Reference" class="toctree-checkbox" id="toctree-checkbox-4" name="toctree-checkbox-4" role="switch" type="checkbox"/><label for="toctree-checkbox-4"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l2"><a class="reference internal" href="../../scripts/RUN_FASTSURFER.html">run_fastsurfer.sh</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../scripts/long_fastsurfer.html">LONG: long_fastsurfer.sh</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../scripts/BATCH.html">BATCH: brun_fastsurfer.sh</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../scripts/SLURM.html">SLURM: srun_fastsurfer.sh</a></li>
-<li class="toctree-l2 has-children"><a class="reference internal" href="../../scripts/advanced.html">Advanced scripts</a><input aria-label="Toggle navigation of Advanced scripts" class="toctree-checkbox" id="toctree-checkbox-4" name="toctree-checkbox-4" role="switch" type="checkbox"/><label for="toctree-checkbox-4"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../scripts/long_fastsurfer.html">long_fastsurfer.sh</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../scripts/BATCH.html">brun_fastsurfer.sh</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../scripts/SLURM.html">srun_fastsurfer.sh</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../scripts/BIDS.html">bids_fastsurfer.py</a></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../scripts/advanced.html">Running modules directly</a><input aria-label="Toggle navigation of Running modules directly" class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../scripts/fastsurfercnn.html">FastSurferCNN: run_prediction.py</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../scripts/cerebnet.html">CerebNet: run_prediction.py</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../scripts/hypvinn.html">HypVINN: run_prediction.py</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../scripts/fastsurfer_cc.html">CorpusCallosum: fastsurfer_cc.py</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../../scripts/cc_visualization.html">CorpusCallosum: cc_visualization.py</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../scripts/recon_surf.html">Surface pipeline: recon-surf.sh</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../scripts/recon_surfreg.html">Surface registration: recon-surfreg.sh</a></li>
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../scripts/util.html">Utilities</a><input aria-label="Toggle navigation of Utilities" class="toctree-checkbox" id="toctree-checkbox-6" name="toctree-checkbox-6" role="switch" type="checkbox"/><label for="toctree-checkbox-6"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../scripts/fastsurfercnn.download_checkpoints.html">FastSurferCNN: download_checkpoints.py</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../scripts/fastsurfercnn.conform.html">FastSurferCNN: conform.py</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../scripts/segstats.html">FastSurferCNN: segstats.py</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../scripts/compare_subjects.html">tools: compare_subjects.py</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../scripts/cc_visualization.html">CorpusCallosum: cc_visualization.py</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../scripts/long_compat_segmentHA.html">recon_surf: long_compat_segmentHA.py</a></li>
 </ul>
 </li>
-<li class="toctree-l2 has-children"><a class="reference internal" href="../../scripts/util.html">FastSurfer Utilities</a><input aria-label="Toggle navigation of FastSurfer Utilities" class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
-<li class="toctree-l3"><a class="reference internal" href="../../scripts/fastsurfercnn.download_checkpoints.html">FastSurferCNN: download_checkpoints.py</a></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../../scripts/training.html">Training</a><input aria-label="Toggle navigation of Training" class="toctree-checkbox" id="toctree-checkbox-7" name="toctree-checkbox-7" role="switch" type="checkbox"/><label for="toctree-checkbox-7"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../scripts/fastsurfercnn.generate_hdf5.html">FastSurferCNN: generate_hdf5.py</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../scripts/fastsurfercnn.run_model.html">FastSurferCNN: run_model.py</a></li>
 </ul>
 </li>
 </ul>
 </li>
-<li class="toctree-l1 has-children"><a class="reference internal" href="../../developer/index.html">Contributor Guide</a><input aria-label="Toggle navigation of Contributor Guide" class="toctree-checkbox" id="toctree-checkbox-6" name="toctree-checkbox-6" role="switch" type="checkbox"/><label for="toctree-checkbox-6"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
-<li class="toctree-l2"><a class="reference internal" href="../../developer/GIT-HOOKS.html">git hook setup / CD</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../developer/code_of_conduct.html">Code of Conduct</a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../../developer/index.html">Developer Guide</a><input aria-label="Toggle navigation of Developer Guide" class="toctree-checkbox" id="toctree-checkbox-8" name="toctree-checkbox-8" role="switch" type="checkbox"/><label for="toctree-checkbox-8"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l2"><a class="reference internal" href="../../developer/contributing.html">Contribution Guide</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../developer/GIT-HOOKS.html">Git hooks</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../developer/docker.html">Building Docker images</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../developer/code_of_conduct.html">Code of Conduct</a></li>
 </ul>
 </li>
-<li class="toctree-l1 current has-children"><a class="reference internal" href="../index.html">FastSurfer API</a><input aria-label="Toggle navigation of FastSurfer API" checked="" class="toctree-checkbox" id="toctree-checkbox-7" name="toctree-checkbox-7" role="switch" type="checkbox"/><label for="toctree-checkbox-7"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul class="current">
-<li class="toctree-l2 has-children"><a class="reference internal" href="../FastSurferCNN.html">FastSurferCNN</a><input aria-label="Toggle navigation of FastSurferCNN" class="toctree-checkbox" id="toctree-checkbox-8" name="toctree-checkbox-8" role="switch" type="checkbox"/><label for="toctree-checkbox-8"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l1 current has-children"><a class="reference internal" href="../index.html">FastSurfer API</a><input aria-label="Toggle navigation of FastSurfer API" checked="" class="toctree-checkbox" id="toctree-checkbox-9" name="toctree-checkbox-9" role="switch" type="checkbox"/><label for="toctree-checkbox-9"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul class="current">
+<li class="toctree-l2 has-children"><a class="reference internal" href="../FastSurferCNN.html">FastSurferCNN</a><input aria-label="Toggle navigation of FastSurferCNN" class="toctree-checkbox" id="toctree-checkbox-10" name="toctree-checkbox-10" role="switch" type="checkbox"/><label for="toctree-checkbox-10"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l3"><a class="reference internal" href="FastSurferCNN.download_checkpoints.html">FastSurferCNN.download_checkpoints</a></li>
 <li class="toctree-l3"><a class="reference internal" href="FastSurferCNN.generate_hdf5.html">FastSurferCNN.generate_hdf5</a></li>
+<li class="toctree-l3"><a class="reference internal" href="FastSurferCNN.gpu_support.html">FastSurferCNN.gpu_support</a></li>
 <li class="toctree-l3"><a class="reference internal" href="FastSurferCNN.inference.html">FastSurferCNN.inference</a></li>
 <li class="toctree-l3"><a class="reference internal" href="FastSurferCNN.mri_brainvol_stats.html">FastSurferCNN.mri_brainvol_stats</a></li>
 <li class="toctree-l3"><a class="reference internal" href="FastSurferCNN.mri_segstats.html">FastSurferCNN.mri_segstats</a></li>
@@ -259,7 +281,7 @@
 <li class="toctree-l3"><a class="reference internal" href="FastSurferCNN.version.html">FastSurferCNN.version</a></li>
 </ul>
 </li>
-<li class="toctree-l2 has-children"><a class="reference internal" href="../FastSurferCNN.data_loader.html">FastSurferCNN.data_loader</a><input aria-label="Toggle navigation of FastSurferCNN.data_loader" class="toctree-checkbox" id="toctree-checkbox-9" name="toctree-checkbox-9" role="switch" type="checkbox"/><label for="toctree-checkbox-9"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../FastSurferCNN.data_loader.html">FastSurferCNN.data_loader</a><input aria-label="Toggle navigation of FastSurferCNN.data_loader" class="toctree-checkbox" id="toctree-checkbox-11" name="toctree-checkbox-11" role="switch" type="checkbox"/><label for="toctree-checkbox-11"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l3"><a class="reference internal" href="FastSurferCNN.data_loader.augmentation.html">FastSurferCNN.data_loader.augmentation</a></li>
 <li class="toctree-l3"><a class="reference internal" href="FastSurferCNN.data_loader.conform.html">FastSurferCNN.data_loader.conform</a></li>
 <li class="toctree-l3"><a class="reference internal" href="FastSurferCNN.data_loader.data_utils.html">FastSurferCNN.data_loader.data_utils</a></li>
@@ -267,7 +289,7 @@
 <li class="toctree-l3"><a class="reference internal" href="FastSurferCNN.data_loader.loader.html">FastSurferCNN.data_loader.loader</a></li>
 </ul>
 </li>
-<li class="toctree-l2 has-children"><a class="reference internal" href="../FastSurferCNN.models.html">FastSurferCNN.models</a><input aria-label="Toggle navigation of FastSurferCNN.models" class="toctree-checkbox" id="toctree-checkbox-10" name="toctree-checkbox-10" role="switch" type="checkbox"/><label for="toctree-checkbox-10"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../FastSurferCNN.models.html">FastSurferCNN.models</a><input aria-label="Toggle navigation of FastSurferCNN.models" class="toctree-checkbox" id="toctree-checkbox-12" name="toctree-checkbox-12" role="switch" type="checkbox"/><label for="toctree-checkbox-12"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l3"><a class="reference internal" href="FastSurferCNN.models.interpolation_layer.html">FastSurferCNN.models.interpolation_layer</a></li>
 <li class="toctree-l3"><a class="reference internal" href="FastSurferCNN.models.losses.html">FastSurferCNN.models.losses</a></li>
 <li class="toctree-l3"><a class="reference internal" href="FastSurferCNN.models.networks.html">FastSurferCNN.models.networks</a></li>
@@ -275,7 +297,7 @@
 <li class="toctree-l3"><a class="reference internal" href="FastSurferCNN.models.sub_module.html">FastSurferCNN.models.sub_module</a></li>
 </ul>
 </li>
-<li class="toctree-l2 has-children"><a class="reference internal" href="../FastSurferCNN.utils.html">FastSurferCNN.utils</a><input aria-label="Toggle navigation of FastSurferCNN.utils" class="toctree-checkbox" id="toctree-checkbox-11" name="toctree-checkbox-11" role="switch" type="checkbox"/><label for="toctree-checkbox-11"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../FastSurferCNN.utils.html">FastSurferCNN.utils</a><input aria-label="Toggle navigation of FastSurferCNN.utils" class="toctree-checkbox" id="toctree-checkbox-13" name="toctree-checkbox-13" role="switch" type="checkbox"/><label for="toctree-checkbox-13"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l3"><a class="reference internal" href="FastSurferCNN.utils.arg_types.html">FastSurferCNN.utils.arg_types</a></li>
 <li class="toctree-l3"><a class="reference internal" href="FastSurferCNN.utils.brainvolstats.html">FastSurferCNN.utils.brainvolstats</a></li>
 <li class="toctree-l3"><a class="reference internal" href="FastSurferCNN.utils.checkpoint.html">FastSurferCNN.utils.checkpoint</a></li>
@@ -293,32 +315,32 @@
 <li class="toctree-l3"><a class="reference internal" href="FastSurferCNN.utils.run_tools.html">FastSurferCNN.utils.run_tools</a></li>
 </ul>
 </li>
-<li class="toctree-l2 has-children"><a class="reference internal" href="../CerebNet.html">CerebNet</a><input aria-label="Toggle navigation of CerebNet" class="toctree-checkbox" id="toctree-checkbox-12" name="toctree-checkbox-12" role="switch" type="checkbox"/><label for="toctree-checkbox-12"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../CerebNet.html">CerebNet</a><input aria-label="Toggle navigation of CerebNet" class="toctree-checkbox" id="toctree-checkbox-14" name="toctree-checkbox-14" role="switch" type="checkbox"/><label for="toctree-checkbox-14"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l3"><a class="reference internal" href="CerebNet.apply_warp.html">CerebNet.apply_warp</a></li>
 <li class="toctree-l3"><a class="reference internal" href="CerebNet.inference.html">CerebNet.inference</a></li>
 <li class="toctree-l3"><a class="reference internal" href="CerebNet.run_prediction.html">CerebNet.run_prediction</a></li>
 </ul>
 </li>
-<li class="toctree-l2 has-children"><a class="reference internal" href="../CerebNet.data_loader.html">CerebNet.data_loader</a><input aria-label="Toggle navigation of CerebNet.data_loader" class="toctree-checkbox" id="toctree-checkbox-13" name="toctree-checkbox-13" role="switch" type="checkbox"/><label for="toctree-checkbox-13"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../CerebNet.data_loader.html">CerebNet.data_loader</a><input aria-label="Toggle navigation of CerebNet.data_loader" class="toctree-checkbox" id="toctree-checkbox-15" name="toctree-checkbox-15" role="switch" type="checkbox"/><label for="toctree-checkbox-15"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l3"><a class="reference internal" href="CerebNet.data_loader.augmentation.html">CerebNet.data_loader.augmentation</a></li>
 <li class="toctree-l3"><a class="reference internal" href="CerebNet.data_loader.data_utils.html">CerebNet.data_loader.data_utils</a></li>
 <li class="toctree-l3"><a class="reference internal" href="CerebNet.data_loader.dataset.html">CerebNet.data_loader.dataset</a></li>
 <li class="toctree-l3"><a class="reference internal" href="CerebNet.data_loader.loader.html">CerebNet.data_loader.loader</a></li>
 </ul>
 </li>
-<li class="toctree-l2 has-children"><a class="reference internal" href="../CerebNet.datasets.html">CerebNet.datasets</a><input aria-label="Toggle navigation of CerebNet.datasets" class="toctree-checkbox" id="toctree-checkbox-14" name="toctree-checkbox-14" role="switch" type="checkbox"/><label for="toctree-checkbox-14"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../CerebNet.datasets.html">CerebNet.datasets</a><input aria-label="Toggle navigation of CerebNet.datasets" class="toctree-checkbox" id="toctree-checkbox-16" name="toctree-checkbox-16" role="switch" type="checkbox"/><label for="toctree-checkbox-16"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l3"><a class="reference internal" href="CerebNet.datasets.generate_hdf5.html">CerebNet.datasets.generate_hdf5</a></li>
 <li class="toctree-l3"><a class="reference internal" href="CerebNet.datasets.load_data.html">CerebNet.datasets.load_data</a></li>
 <li class="toctree-l3"><a class="reference internal" href="CerebNet.datasets.utils.html">CerebNet.datasets.utils</a></li>
 <li class="toctree-l3"><a class="reference internal" href="CerebNet.datasets.wm_merge_clean.html">CerebNet.datasets.wm_merge_clean</a></li>
 </ul>
 </li>
-<li class="toctree-l2 has-children"><a class="reference internal" href="../CerebNet.models.html">CerebNet_models</a><input aria-label="Toggle navigation of CerebNet_models" class="toctree-checkbox" id="toctree-checkbox-15" name="toctree-checkbox-15" role="switch" type="checkbox"/><label for="toctree-checkbox-15"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../CerebNet.models.html">CerebNet_models</a><input aria-label="Toggle navigation of CerebNet_models" class="toctree-checkbox" id="toctree-checkbox-17" name="toctree-checkbox-17" role="switch" type="checkbox"/><label for="toctree-checkbox-17"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l3"><a class="reference internal" href="CerebNet.models.networks.html">CerebNet.models.networks</a></li>
 <li class="toctree-l3"><a class="reference internal" href="CerebNet.models.sub_module.html">CerebNet.models.sub_module</a></li>
 </ul>
 </li>
-<li class="toctree-l2 has-children"><a class="reference internal" href="../CerebNet.utils.html">CerebNet.utils</a><input aria-label="Toggle navigation of CerebNet.utils" class="toctree-checkbox" id="toctree-checkbox-16" name="toctree-checkbox-16" role="switch" type="checkbox"/><label for="toctree-checkbox-16"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../CerebNet.utils.html">CerebNet.utils</a><input aria-label="Toggle navigation of CerebNet.utils" class="toctree-checkbox" id="toctree-checkbox-18" name="toctree-checkbox-18" role="switch" type="checkbox"/><label for="toctree-checkbox-18"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l3"><a class="reference internal" href="CerebNet.utils.checkpoint.html">CerebNet.utils.checkpoint</a></li>
 <li class="toctree-l3"><a class="reference internal" href="CerebNet.utils.load_config.html">CerebNet.utils.load_config</a></li>
 <li class="toctree-l3"><a class="reference internal" href="CerebNet.utils.lr_scheduler.html">CerebNet.utils.lr_scheduler</a></li>
@@ -326,32 +348,32 @@
 <li class="toctree-l3"><a class="reference internal" href="CerebNet.utils.misc.html">CerebNet.utils.misc</a></li>
 </ul>
 </li>
-<li class="toctree-l2 has-children"><a class="reference internal" href="../CorpusCallosum.html">CorpusCallosum</a><input aria-label="Toggle navigation of CorpusCallosum" class="toctree-checkbox" id="toctree-checkbox-17" name="toctree-checkbox-17" role="switch" type="checkbox"/><label for="toctree-checkbox-17"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../CorpusCallosum.html">CorpusCallosum</a><input aria-label="Toggle navigation of CorpusCallosum" class="toctree-checkbox" id="toctree-checkbox-19" name="toctree-checkbox-19" role="switch" type="checkbox"/><label for="toctree-checkbox-19"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l3"><a class="reference internal" href="CorpusCallosum.fastsurfer_cc.html">CorpusCallosum.fastsurfer_cc</a></li>
 <li class="toctree-l3"><a class="reference internal" href="CorpusCallosum.cc_visualization.html">CorpusCallosum.cc_visualization</a></li>
 <li class="toctree-l3"><a class="reference internal" href="CorpusCallosum.paint_cc_into_pred.html">CorpusCallosum.paint_cc_into_pred</a></li>
 </ul>
 </li>
-<li class="toctree-l2 has-children"><a class="reference internal" href="../CorpusCallosum.data.html">CorpusCallosum.data</a><input aria-label="Toggle navigation of CorpusCallosum.data" class="toctree-checkbox" id="toctree-checkbox-18" name="toctree-checkbox-18" role="switch" type="checkbox"/><label for="toctree-checkbox-18"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../CorpusCallosum.data.html">CorpusCallosum.data</a><input aria-label="Toggle navigation of CorpusCallosum.data" class="toctree-checkbox" id="toctree-checkbox-20" name="toctree-checkbox-20" role="switch" type="checkbox"/><label for="toctree-checkbox-20"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l3"><a class="reference internal" href="CorpusCallosum.data.constants.html">CorpusCallosum.data.constants</a></li>
 <li class="toctree-l3"><a class="reference internal" href="CorpusCallosum.data.fsaverage_cc_template.html">CorpusCallosum.data.fsaverage_cc_template</a></li>
 <li class="toctree-l3"><a class="reference internal" href="CorpusCallosum.data.read_write.html">CorpusCallosum.data.read_write</a></li>
 </ul>
 </li>
-<li class="toctree-l2 has-children"><a class="reference internal" href="../CorpusCallosum.localization.html">CorpusCallosum.localization</a><input aria-label="Toggle navigation of CorpusCallosum.localization" class="toctree-checkbox" id="toctree-checkbox-19" name="toctree-checkbox-19" role="switch" type="checkbox"/><label for="toctree-checkbox-19"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../CorpusCallosum.localization.html">CorpusCallosum.localization</a><input aria-label="Toggle navigation of CorpusCallosum.localization" class="toctree-checkbox" id="toctree-checkbox-21" name="toctree-checkbox-21" role="switch" type="checkbox"/><label for="toctree-checkbox-21"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l3"><a class="reference internal" href="CorpusCallosum.localization.inference.html">CorpusCallosum.localization.inference</a></li>
 </ul>
 </li>
-<li class="toctree-l2 has-children"><a class="reference internal" href="../CorpusCallosum.registration.html">CorpusCallosum.registration</a><input aria-label="Toggle navigation of CorpusCallosum.registration" class="toctree-checkbox" id="toctree-checkbox-20" name="toctree-checkbox-20" role="switch" type="checkbox"/><label for="toctree-checkbox-20"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../CorpusCallosum.registration.html">CorpusCallosum.registration</a><input aria-label="Toggle navigation of CorpusCallosum.registration" class="toctree-checkbox" id="toctree-checkbox-22" name="toctree-checkbox-22" role="switch" type="checkbox"/><label for="toctree-checkbox-22"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l3"><a class="reference internal" href="CorpusCallosum.registration.midsagittal_plane_alignment.html">CorpusCallosum.registration.midsagittal_plane_alignment</a></li>
 </ul>
 </li>
-<li class="toctree-l2 has-children"><a class="reference internal" href="../CorpusCallosum.segmentation.html">CorpusCallosum.segmentation</a><input aria-label="Toggle navigation of CorpusCallosum.segmentation" class="toctree-checkbox" id="toctree-checkbox-21" name="toctree-checkbox-21" role="switch" type="checkbox"/><label for="toctree-checkbox-21"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../CorpusCallosum.segmentation.html">CorpusCallosum.segmentation</a><input aria-label="Toggle navigation of CorpusCallosum.segmentation" class="toctree-checkbox" id="toctree-checkbox-23" name="toctree-checkbox-23" role="switch" type="checkbox"/><label for="toctree-checkbox-23"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l3"><a class="reference internal" href="CorpusCallosum.segmentation.inference.html">CorpusCallosum.segmentation.inference</a></li>
 <li class="toctree-l3"><a class="reference internal" href="CorpusCallosum.segmentation.segmentation_postprocessing.html">CorpusCallosum.segmentation.segmentation_postprocessing</a></li>
 </ul>
 </li>
-<li class="toctree-l2 current has-children"><a class="reference internal" href="../CorpusCallosum.shape.html">CorpusCallosum.shape</a><input aria-label="Toggle navigation of CorpusCallosum.shape" checked="" class="toctree-checkbox" id="toctree-checkbox-22" name="toctree-checkbox-22" role="switch" type="checkbox"/><label for="toctree-checkbox-22"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul class="current">
+<li class="toctree-l2 current has-children"><a class="reference internal" href="../CorpusCallosum.shape.html">CorpusCallosum.shape</a><input aria-label="Toggle navigation of CorpusCallosum.shape" checked="" class="toctree-checkbox" id="toctree-checkbox-24" name="toctree-checkbox-24" role="switch" type="checkbox"/><label for="toctree-checkbox-24"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul class="current">
 <li class="toctree-l3 current current-page"><a class="current reference internal" href="#">CorpusCallosum.shape.contour</a></li>
 <li class="toctree-l3"><a class="reference internal" href="CorpusCallosum.shape.curvature.html">CorpusCallosum.shape.curvature</a></li>
 <li class="toctree-l3"><a class="reference internal" href="CorpusCallosum.shape.endpoint_heuristic.html">CorpusCallosum.shape.endpoint_heuristic</a></li>
@@ -362,33 +384,33 @@
 <li class="toctree-l3"><a class="reference internal" href="CorpusCallosum.shape.thickness.html">CorpusCallosum.shape.thickness</a></li>
 </ul>
 </li>
-<li class="toctree-l2 has-children"><a class="reference internal" href="../CorpusCallosum.transforms.html">CorpusCallosum.transforms</a><input aria-label="Toggle navigation of CorpusCallosum.transforms" class="toctree-checkbox" id="toctree-checkbox-23" name="toctree-checkbox-23" role="switch" type="checkbox"/><label for="toctree-checkbox-23"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../CorpusCallosum.transforms.html">CorpusCallosum.transforms</a><input aria-label="Toggle navigation of CorpusCallosum.transforms" class="toctree-checkbox" id="toctree-checkbox-25" name="toctree-checkbox-25" role="switch" type="checkbox"/><label for="toctree-checkbox-25"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l3"><a class="reference internal" href="CorpusCallosum.transforms.localization.html">CorpusCallosum.transforms.localization</a></li>
 <li class="toctree-l3"><a class="reference internal" href="CorpusCallosum.transforms.segmentation.html">CorpusCallosum.transforms.segmentation</a></li>
 </ul>
 </li>
-<li class="toctree-l2 has-children"><a class="reference internal" href="../CorpusCallosum.utils.html">CorpusCallosum.utils</a><input aria-label="Toggle navigation of CorpusCallosum.utils" class="toctree-checkbox" id="toctree-checkbox-24" name="toctree-checkbox-24" role="switch" type="checkbox"/><label for="toctree-checkbox-24"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../CorpusCallosum.utils.html">CorpusCallosum.utils</a><input aria-label="Toggle navigation of CorpusCallosum.utils" class="toctree-checkbox" id="toctree-checkbox-26" name="toctree-checkbox-26" role="switch" type="checkbox"/><label for="toctree-checkbox-26"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l3"><a class="reference internal" href="CorpusCallosum.utils.checkpoint.html">CorpusCallosum.utils.checkpoint</a></li>
 <li class="toctree-l3"><a class="reference internal" href="CorpusCallosum.utils.mapping_helpers.html">CorpusCallosum.utils.mapping_helpers</a></li>
 <li class="toctree-l3"><a class="reference internal" href="CorpusCallosum.utils.types.html">CorpusCallosum.utils.types</a></li>
 <li class="toctree-l3"><a class="reference internal" href="CorpusCallosum.utils.visualization.html">CorpusCallosum.utils.visualization</a></li>
 </ul>
 </li>
-<li class="toctree-l2 has-children"><a class="reference internal" href="../HypVINN.html">HypVINN</a><input aria-label="Toggle navigation of HypVINN" class="toctree-checkbox" id="toctree-checkbox-25" name="toctree-checkbox-25" role="switch" type="checkbox"/><label for="toctree-checkbox-25"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../HypVINN.html">HypVINN</a><input aria-label="Toggle navigation of HypVINN" class="toctree-checkbox" id="toctree-checkbox-27" name="toctree-checkbox-27" role="switch" type="checkbox"/><label for="toctree-checkbox-27"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l3"><a class="reference internal" href="HypVINN.inference.html">HypVINN.inference</a></li>
 <li class="toctree-l3"><a class="reference internal" href="HypVINN.run_prediction.html">HypVINN.run_prediction</a></li>
 </ul>
 </li>
-<li class="toctree-l2 has-children"><a class="reference internal" href="../HypVINN.dataloader.html">HypVINN.data_loader</a><input aria-label="Toggle navigation of HypVINN.data_loader" class="toctree-checkbox" id="toctree-checkbox-26" name="toctree-checkbox-26" role="switch" type="checkbox"/><label for="toctree-checkbox-26"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../HypVINN.dataloader.html">HypVINN.data_loader</a><input aria-label="Toggle navigation of HypVINN.data_loader" class="toctree-checkbox" id="toctree-checkbox-28" name="toctree-checkbox-28" role="switch" type="checkbox"/><label for="toctree-checkbox-28"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l3"><a class="reference internal" href="HypVINN.data_loader.data_utils.html">HypVINN.data_loader.data_utils</a></li>
 <li class="toctree-l3"><a class="reference internal" href="HypVINN.data_loader.dataset.html">HypVINN.data_loader.dataset</a></li>
 </ul>
 </li>
-<li class="toctree-l2 has-children"><a class="reference internal" href="../HypVINN.models.html">HypVINN.models</a><input aria-label="Toggle navigation of HypVINN.models" class="toctree-checkbox" id="toctree-checkbox-27" name="toctree-checkbox-27" role="switch" type="checkbox"/><label for="toctree-checkbox-27"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../HypVINN.models.html">HypVINN.models</a><input aria-label="Toggle navigation of HypVINN.models" class="toctree-checkbox" id="toctree-checkbox-29" name="toctree-checkbox-29" role="switch" type="checkbox"/><label for="toctree-checkbox-29"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l3"><a class="reference internal" href="HypVINN.models.networks.html">HypVINN.models.networks</a></li>
 </ul>
 </li>
-<li class="toctree-l2 has-children"><a class="reference internal" href="../HypVINN.utils.html">HypVINN.utils</a><input aria-label="Toggle navigation of HypVINN.utils" class="toctree-checkbox" id="toctree-checkbox-28" name="toctree-checkbox-28" role="switch" type="checkbox"/><label for="toctree-checkbox-28"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../HypVINN.utils.html">HypVINN.utils</a><input aria-label="Toggle navigation of HypVINN.utils" class="toctree-checkbox" id="toctree-checkbox-30" name="toctree-checkbox-30" role="switch" type="checkbox"/><label for="toctree-checkbox-30"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l3"><a class="reference internal" href="HypVINN.utils.checkpoint.html">HypVINN.utils.checkpoint</a></li>
 <li class="toctree-l3"><a class="reference internal" href="HypVINN.utils.img_processing_utils.html">HypVINN.utils.img_processing_utils</a></li>
 <li class="toctree-l3"><a class="reference internal" href="HypVINN.utils.load_config.html">HypVINN.utils.load_config</a></li>
@@ -399,13 +421,14 @@
 <li class="toctree-l3"><a class="reference internal" href="HypVINN.utils.visualization_utils.html">HypVINN.utils.visualization_utils</a></li>
 </ul>
 </li>
-<li class="toctree-l2 has-children"><a class="reference internal" href="../recon_surf.html">recon_surf</a><input aria-label="Toggle navigation of recon_surf" class="toctree-checkbox" id="toctree-checkbox-29" name="toctree-checkbox-29" role="switch" type="checkbox"/><label for="toctree-checkbox-29"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../recon_surf.html">recon_surf</a><input aria-label="Toggle navigation of recon_surf" class="toctree-checkbox" id="toctree-checkbox-31" name="toctree-checkbox-31" role="switch" type="checkbox"/><label for="toctree-checkbox-31"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l3"><a class="reference internal" href="recon_surf.create_annotation.html">recon_surf.create_annotation</a></li>
 <li class="toctree-l3"><a class="reference internal" href="recon_surf.fs_balabels.html">recon_surf.fs_balabels</a></li>
 <li class="toctree-l3"><a class="reference internal" href="recon_surf.image_io.html">recon_surf.image_io</a></li>
 <li class="toctree-l3"><a class="reference internal" href="recon_surf.long_compat_segmentHA.html">recon_surf.long_compat_segmentHA</a></li>
 <li class="toctree-l3"><a class="reference internal" href="recon_surf.map_surf_label.html">recon_surf.map_surf_label</a></li>
 <li class="toctree-l3"><a class="reference internal" href="recon_surf.N4_bias_correct.html">recon_surf.N4_bias_correct</a></li>
+<li class="toctree-l3"><a class="reference internal" href="recon_surf.pin_cpu_dispatch.html">recon_surf.pin_cpu_dispatch</a></li>
 <li class="toctree-l3"><a class="reference internal" href="recon_surf.rewrite_mc_surface.html">recon_surf.rewrite_mc_surface</a></li>
 <li class="toctree-l3"><a class="reference internal" href="recon_surf.rewrite_oriented_surface.html">recon_surf.rewrite_oriented_surface</a></li>
 <li class="toctree-l3"><a class="reference internal" href="recon_surf.rotate_sphere.html">recon_surf.rotate_sphere</a></li>
@@ -470,7 +493,7 @@ measured.</p></li>
 </ul>
 <dl class="py class">
 <dt class="sig sig-object py" id="CorpusCallosum.shape.contour.CCContour">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">CorpusCallosum.shape.contour.</span></span><span class="sig-name descname"><span class="pre">CCContour</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">points</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">thickness_values</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">endpoint_idxs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">z_position</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//CorpusCallosum/shape/contour.py#L52-L838"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CorpusCallosum.shape.contour.CCContour" title="Link to this definition">¶</a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">CorpusCallosum.shape.contour.</span></span><span class="sig-name descname"><span class="pre">CCContour</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">points</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">thickness_values</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">endpoint_idxs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">z_position</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/1dc0247/CorpusCallosum/shape/contour.py#L52-L931"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CorpusCallosum.shape.contour.CCContour" title="Link to this definition">¶</a></dt>
 <dd><p>A class for representing and manipulating corpus callosum (CC) contours.</p>
 <p>This class provides functionality for manipulating and analyzing corpus callosum contours.</p>
 <p class="rubric">Attributes</p>
@@ -511,28 +534,31 @@ measured.</p></li>
 <tr class="row-even"><td><p><a class="reference internal" href="#CorpusCallosum.shape.contour.CCContour.get_contour_edge_lengths" title="CorpusCallosum.shape.contour.CCContour.get_contour_edge_lengths"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_contour_edge_lengths</span></code></a>()</p></td>
 <td><p>Get the lengths of the edges of a contour.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#CorpusCallosum.shape.contour.CCContour.load_thickness_values" title="CorpusCallosum.shape.contour.CCContour.load_thickness_values"><code class="xref py py-obj docutils literal notranslate"><span class="pre">load_thickness_values</span></code></a>(input_path)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#CorpusCallosum.shape.contour.CCContour.get_thickness_profile" title="CorpusCallosum.shape.contour.CCContour.get_thickness_profile"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_thickness_profile</span></code></a>()</p></td>
+<td><p>Return one thickness value per level path, ordered anterior to posterior.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#CorpusCallosum.shape.contour.CCContour.load_thickness_values" title="CorpusCallosum.shape.contour.CCContour.load_thickness_values"><code class="xref py py-obj docutils literal notranslate"><span class="pre">load_thickness_values</span></code></a>(input_path)</p></td>
 <td><p>Load thickness values from a CSV file.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#CorpusCallosum.shape.contour.CCContour.plot_contour" title="CorpusCallosum.shape.contour.CCContour.plot_contour"><code class="xref py py-obj docutils literal notranslate"><span class="pre">plot_contour</span></code></a>([output_path])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#CorpusCallosum.shape.contour.CCContour.plot_contour" title="CorpusCallosum.shape.contour.CCContour.plot_contour"><code class="xref py py-obj docutils literal notranslate"><span class="pre">plot_contour</span></code></a>([output_path])</p></td>
 <td><p>Plot a single contour with thickness values.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#CorpusCallosum.shape.contour.CCContour.plot_contour_colorfill" title="CorpusCallosum.shape.contour.CCContour.plot_contour_colorfill"><code class="xref py py-obj docutils literal notranslate"><span class="pre">plot_contour_colorfill</span></code></a>(plot_values[, title, ...])</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#CorpusCallosum.shape.contour.CCContour.plot_contour_colorfill" title="CorpusCallosum.shape.contour.CCContour.plot_contour_colorfill"><code class="xref py py-obj docutils literal notranslate"><span class="pre">plot_contour_colorfill</span></code></a>(plot_values[, title, ...])</p></td>
 <td><p>Plot a contour with levelset visualization.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#CorpusCallosum.shape.contour.CCContour.save_contour" title="CorpusCallosum.shape.contour.CCContour.save_contour"><code class="xref py py-obj docutils literal notranslate"><span class="pre">save_contour</span></code></a>(output_path)</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#CorpusCallosum.shape.contour.CCContour.save_contour" title="CorpusCallosum.shape.contour.CCContour.save_contour"><code class="xref py py-obj docutils literal notranslate"><span class="pre">save_contour</span></code></a>(output_path)</p></td>
 <td><p>Save the contours to a CSV file.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#CorpusCallosum.shape.contour.CCContour.save_thickness_values" title="CorpusCallosum.shape.contour.CCContour.save_thickness_values"><code class="xref py py-obj docutils literal notranslate"><span class="pre">save_thickness_values</span></code></a>(output_path)</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#CorpusCallosum.shape.contour.CCContour.save_thickness_values" title="CorpusCallosum.shape.contour.CCContour.save_thickness_values"><code class="xref py py-obj docutils literal notranslate"><span class="pre">save_thickness_values</span></code></a>(output_path)</p></td>
 <td><p>Save thickness values to a CSV file.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#CorpusCallosum.shape.contour.CCContour.set_thickness_values" title="CorpusCallosum.shape.contour.CCContour.set_thickness_values"><code class="xref py py-obj docutils literal notranslate"><span class="pre">set_thickness_values</span></code></a>(thickness_values[, ...])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#CorpusCallosum.shape.contour.CCContour.set_thickness_values" title="CorpusCallosum.shape.contour.CCContour.set_thickness_values"><code class="xref py py-obj docutils literal notranslate"><span class="pre">set_thickness_values</span></code></a>(thickness_values[, ...])</p></td>
 <td><p>Set the thickness values for the contour.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#CorpusCallosum.shape.contour.CCContour.smooth_contour" title="CorpusCallosum.shape.contour.CCContour.smooth_contour"><code class="xref py py-obj docutils literal notranslate"><span class="pre">smooth_contour</span></code></a>([window_size])</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#CorpusCallosum.shape.contour.CCContour.smooth_contour" title="CorpusCallosum.shape.contour.CCContour.smooth_contour"><code class="xref py py-obj docutils literal notranslate"><span class="pre">smooth_contour</span></code></a>([window_size])</p></td>
 <td><p>Smooth a contour using a moving average filter.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#CorpusCallosum.shape.contour.CCContour.smooth_thickness_values" title="CorpusCallosum.shape.contour.CCContour.smooth_thickness_values"><code class="xref py py-obj docutils literal notranslate"><span class="pre">smooth_thickness_values</span></code></a>([iterations])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#CorpusCallosum.shape.contour.CCContour.smooth_thickness_values" title="CorpusCallosum.shape.contour.CCContour.smooth_thickness_values"><code class="xref py py-obj docutils literal notranslate"><span class="pre">smooth_thickness_values</span></code></a>([iterations])</p></td>
 <td><p>Smooth the thickness values using a Gaussian filter.</p></td>
 </tr>
 </tbody>
@@ -546,44 +572,44 @@ measured.</p></li>
 <span class="gp">&gt;&gt;&gt; </span>                    <span class="n">z_position</span><span class="o">=</span><span class="mf">0.0</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">contour</span><span class="o">.</span><span class="n">fill_thickness_values</span><span class="p">()</span>   <span class="c1"># interpolate missing values</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">contour</span><span class="o">.</span><span class="n">smooth_contour</span><span class="p">(</span><span class="n">window_size</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">contour</span><span class="o">.</span><span class="n">save_contour</span><span class="p">(</span><span class="s2">&quot;contour_0.txt&quot;</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">contour</span><span class="o">.</span><span class="n">save_thickness_values</span><span class="p">(</span><span class="s2">&quot;thickness_values_0.txt&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">contour</span><span class="o">.</span><span class="n">save_contour</span><span class="p">(</span><span class="s2">"contour_0.txt"</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">contour</span><span class="o">.</span><span class="n">save_thickness_values</span><span class="p">(</span><span class="s2">"thickness_values_0.txt"</span><span class="p">)</span>
 </pre></div>
 </div>
 <dl class="py method">
 <dt class="sig sig-object py" id="CorpusCallosum.shape.contour.CCContour.copy">
-<span class="sig-name descname"><span class="pre">copy</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//CorpusCallosum/shape/contour.py#L153-L161"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CorpusCallosum.shape.contour.CCContour.copy" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">copy</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/1dc0247/CorpusCallosum/shape/contour.py#L153-L161"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CorpusCallosum.shape.contour.CCContour.copy" title="Link to this definition">¶</a></dt>
 <dd><p>Copy the contour.</p>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="CorpusCallosum.shape.contour.CCContour.create_levelpaths">
-<span class="sig-name descname"><span class="pre">create_levelpaths</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">num_points</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inplace</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//CorpusCallosum/shape/contour.py#L180-L229"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CorpusCallosum.shape.contour.CCContour.create_levelpaths" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">create_levelpaths</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">num_points</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inplace</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/1dc0247/CorpusCallosum/shape/contour.py#L180-L229"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CorpusCallosum.shape.contour.CCContour.create_levelpaths" title="Link to this definition">¶</a></dt>
 <dd><p>Calculate thickness and level paths for the CC contour using Laplace equation.</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><dl>
-<dt><strong>num_points</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">int</span></code></a></span></dt><dd><p>Number of points for thickness estimation.</p>
+<dt><strong>num_points</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">int</span></code></a></span></dt><dd><p>Number of points for thickness estimation.</p>
 </dd>
-<dt><strong>inplace</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">bool</span></code></a>, default=True</span></dt><dd><p>Whether to update the contour points and thickness values in place.</p>
+<dt><strong>inplace</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#bool" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">bool</span></code></a>, default=True</span></dt><dd><p>Whether to update the contour points and thickness values in place.</p>
 </dd>
 </dl>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><dl>
-<dt><strong>levelpaths</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">list</span></code></a>[<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.4)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a>]</span></dt><dd><p>List of level paths across the CC.</p>
+<dt><strong>levelpaths</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#list" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">list</span></code></a>[<a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.5)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a>]</span></dt><dd><p>List of level paths across the CC.</p>
 </dd>
-<dt><strong>thickness</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a></span></dt><dd><p>Mean thickness of the CC.</p>
+<dt><strong>thickness</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a></span></dt><dd><p>Mean thickness of the CC.</p>
 </dd>
-<dt><strong>midline_len</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a></span></dt><dd><p>Length of the CC midline.</p>
+<dt><strong>midline_len</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a></span></dt><dd><p>Length of the CC midline.</p>
 </dd>
-<dt><strong>midline_equi</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.4)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></span></dt><dd><p>Equidistant points along the midline.</p>
+<dt><strong>midline_equi</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.5)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></span></dt><dd><p>Equidistant points along the midline.</p>
 </dd>
-<dt><strong>contour_with_thickness</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.4)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></span></dt><dd><p>Contour points with thickness information, shape (N, 3).</p>
+<dt><strong>contour_with_thickness</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.5)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></span></dt><dd><p>Contour points with thickness information, shape (N, 3).</p>
 </dd>
-<dt><strong>endpoint_idxs</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">tuple</span></code></a>[<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">int</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">int</span></code></a>]</span></dt><dd><p>Indices of the anterior and posterior endpoints on the updated contour.</p>
+<dt><strong>endpoint_idxs</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#tuple" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">tuple</span></code></a>[<a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">int</span></code></a>, <a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">int</span></code></a>]</span></dt><dd><p>Indices of the anterior and posterior endpoints on the updated contour.</p>
 </dd>
-<dt><strong>curvature</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a></span></dt><dd><p>Mean curvature of the midline.</p>
+<dt><strong>curvature</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a></span></dt><dd><p>Mean curvature of the midline.</p>
 </dd>
 </dl>
 </dd>
@@ -592,7 +618,7 @@ measured.</p></li>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="CorpusCallosum.shape.contour.CCContour.fill_thickness_values">
-<span class="sig-name descname"><span class="pre">fill_thickness_values</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//CorpusCallosum/shape/contour.py#L267-L335"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CorpusCallosum.shape.contour.CCContour.fill_thickness_values" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">fill_thickness_values</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/1dc0247/CorpusCallosum/shape/contour.py#L305-L373"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CorpusCallosum.shape.contour.CCContour.fill_thickness_values" title="Link to this definition">¶</a></dt>
 <dd><p>Interpolate missing thickness values using weighted averaging.</p>
 <p class="rubric">Notes</p>
 <p>The function:
@@ -608,22 +634,22 @@ points have more influence on the interpolated value.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="CorpusCallosum.shape.contour.CCContour.from_contour_file">
-<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_contour_file</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">thickness_values_path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">z_position</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//CorpusCallosum/shape/contour.py#L644-L700"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CorpusCallosum.shape.contour.CCContour.from_contour_file" title="Link to this definition">¶</a></dt>
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_contour_file</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">thickness_values_path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">z_position</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/1dc0247/CorpusCallosum/shape/contour.py#L737-L793"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CorpusCallosum.shape.contour.CCContour.from_contour_file" title="Link to this definition">¶</a></dt>
 <dd><p>Load contour from a CSV file.</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><dl>
-<dt><strong>input_path</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.14)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Path</span></code></a></span></dt><dd><p>Path to the CSV file containing the contours.</p>
+<dt><strong>input_path</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.14)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Path</span></code></a></span></dt><dd><p>Path to the CSV file containing the contours.</p>
 </dd>
-<dt><strong>thickness_values_path</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.14)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Path</span></code></a></span></dt><dd><p>Path to the CSV file containing the thickness_values.</p>
+<dt><strong>thickness_values_path</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.14)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Path</span></code></a></span></dt><dd><p>Path to the CSV file containing the thickness_values.</p>
 </dd>
-<dt><strong>z_position</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a>, default=0.0</span></dt><dd><p>The distance to the midslice (in fsaverage space).</p>
+<dt><strong>z_position</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a>, default=0.0</span></dt><dd><p>The distance to the midslice (in fsaverage space).</p>
 </dd>
 </dl>
 </dd>
 <dt class="field-even">Raises<span class="colon">:</span></dt>
 <dd class="field-even"><dl class="simple">
-<dt><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.14)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ValueError</span></code></a></dt><dd><p>If the file format doesn’t match expected structure.</p>
+<dt><a class="reference external" href="https://docs.python.org/3/builtins/exceptions.html#ValueError" title="(in Python v3.14)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ValueError</span></code></a></dt><dd><p>If the file format doesn’t match expected structure.</p>
 </dd>
 </dl>
 </dd>
@@ -638,20 +664,20 @@ points have more influence on the interpolated value.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="CorpusCallosum.shape.contour.CCContour.from_mask_and_acpc">
-<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_mask_and_acpc</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cc_mask</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ac_2d</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pc_2d</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">slice_vox2ras</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">contour_smoothing</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//CorpusCallosum/shape/contour.py#L789-L838"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CorpusCallosum.shape.contour.CCContour.from_mask_and_acpc" title="Link to this definition">¶</a></dt>
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">from_mask_and_acpc</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cc_mask</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ac_2d</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pc_2d</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">slice_vox2ras</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">contour_smoothing</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/1dc0247/CorpusCallosum/shape/contour.py#L882-L931"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CorpusCallosum.shape.contour.CCContour.from_mask_and_acpc" title="Link to this definition">¶</a></dt>
 <dd><p>Extracts the contour of the CC using marching squares, smooth and transform to RAS coordinates.</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><dl>
-<dt><strong>cc_mask</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.4)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a> <code class="xref py py-obj docutils literal notranslate"><span class="pre">of</span></code> <code class="xref py py-obj docutils literal notranslate"><span class="pre">shape</span></code> (<code class="xref py py-obj docutils literal notranslate"><span class="pre">H</span></code>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">W</span></code>) <code class="xref py py-obj docutils literal notranslate"><span class="pre">and</span></code> <a class="reference external" href="https://docs.python.org/3/library/functions.html#type" title="(in Python v3.14)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">type</span></code></a> <a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">bool</span></code></a></span></dt><dd><p>Binary mask of the corpus callosum.</p>
+<dt><strong>cc_mask</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.5)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a> <code class="xref py py-obj docutils literal notranslate"><span class="pre">of</span></code> <code class="xref py py-obj docutils literal notranslate"><span class="pre">shape</span></code> (<code class="xref py py-obj docutils literal notranslate"><span class="pre">H</span></code>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">W</span></code>) <code class="xref py py-obj docutils literal notranslate"><span class="pre">and</span></code> <a class="reference external" href="https://docs.python.org/3/builtins/functions.html#type" title="(in Python v3.14)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">type</span></code></a> <a class="reference external" href="https://docs.python.org/3/builtins/functions.html#bool" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">bool</span></code></a></span></dt><dd><p>Binary mask of the corpus callosum.</p>
 </dd>
-<dt><strong>ac_2d</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.4)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a> <code class="xref py py-obj docutils literal notranslate"><span class="pre">of</span></code> <code class="xref py py-obj docutils literal notranslate"><span class="pre">shape</span></code> (2,) <code class="xref py py-obj docutils literal notranslate"><span class="pre">and</span></code> <a class="reference external" href="https://docs.python.org/3/library/functions.html#type" title="(in Python v3.14)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">type</span></code></a> <a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a></span></dt><dd><p>2D voxel coordinates of the anterior commissure.</p>
+<dt><strong>ac_2d</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.5)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a> <code class="xref py py-obj docutils literal notranslate"><span class="pre">of</span></code> <code class="xref py py-obj docutils literal notranslate"><span class="pre">shape</span></code> (2,) <code class="xref py py-obj docutils literal notranslate"><span class="pre">and</span></code> <a class="reference external" href="https://docs.python.org/3/builtins/functions.html#type" title="(in Python v3.14)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">type</span></code></a> <a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a></span></dt><dd><p>2D voxel coordinates of the anterior commissure.</p>
 </dd>
-<dt><strong>pc_2d</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.4)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a> <code class="xref py py-obj docutils literal notranslate"><span class="pre">of</span></code> <code class="xref py py-obj docutils literal notranslate"><span class="pre">shape</span></code> (2,) <code class="xref py py-obj docutils literal notranslate"><span class="pre">and</span></code> <a class="reference external" href="https://docs.python.org/3/library/functions.html#type" title="(in Python v3.14)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">type</span></code></a> <a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a></span></dt><dd><p>2D voxel coordinates of the posterior commissure.</p>
+<dt><strong>pc_2d</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.5)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a> <code class="xref py py-obj docutils literal notranslate"><span class="pre">of</span></code> <code class="xref py py-obj docutils literal notranslate"><span class="pre">shape</span></code> (2,) <code class="xref py py-obj docutils literal notranslate"><span class="pre">and</span></code> <a class="reference external" href="https://docs.python.org/3/builtins/functions.html#type" title="(in Python v3.14)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">type</span></code></a> <a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a></span></dt><dd><p>2D voxel coordinates of the posterior commissure.</p>
 </dd>
 <dt><strong>slice_vox2ras</strong><span class="classifier"><code class="xref py py-obj docutils literal notranslate"><span class="pre">AffineMatrix4x4</span></code></span></dt><dd><p>Transformation matrix from slice-voxel space to RAS-coordinates.</p>
 </dd>
-<dt><strong>contour_smoothing</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">int</span></code></a>, default=5</span></dt><dd><p>Window size for contour smoothing.</p>
+<dt><strong>contour_smoothing</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">int</span></code></a>, default=5</span></dt><dd><p>Window size for contour smoothing.</p>
 </dd>
 </dl>
 </dd>
@@ -668,12 +694,12 @@ points have more influence on the interpolated value.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="CorpusCallosum.shape.contour.CCContour.get_contour_edge_lengths">
-<span class="sig-name descname"><span class="pre">get_contour_edge_lengths</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//CorpusCallosum/shape/contour.py#L163-L178"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CorpusCallosum.shape.contour.CCContour.get_contour_edge_lengths" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">get_contour_edge_lengths</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/1dc0247/CorpusCallosum/shape/contour.py#L163-L178"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CorpusCallosum.shape.contour.CCContour.get_contour_edge_lengths" title="Link to this definition">¶</a></dt>
 <dd><p>Get the lengths of the edges of a contour.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
 <dd class="field-odd"><dl class="simple">
-<dt><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.4)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></dt><dd><p>Array of edge lengths for the contour.</p>
+<dt><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.5)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></dt><dd><p>Array of edge lengths for the contour.</p>
 </dd>
 </dl>
 </dd>
@@ -685,19 +711,45 @@ first point.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="CorpusCallosum.shape.contour.CCContour.load_thickness_values">
-<span class="sig-name descname"><span class="pre">load_thickness_values</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_path</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//CorpusCallosum/shape/contour.py#L724-L741"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CorpusCallosum.shape.contour.CCContour.load_thickness_values" title="Link to this definition">¶</a></dt>
-<dd><p>Load thickness values from a CSV file.</p>
-<dl class="field-list">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><dl>
-<dt><strong>input_path</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.14)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Path</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a></span></dt><dd><p>Path to the CSV file containing thickness values.</p>
+<dt class="sig sig-object py" id="CorpusCallosum.shape.contour.CCContour.get_thickness_profile">
+<span class="sig-name descname"><span class="pre">get_thickness_profile</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/1dc0247/CorpusCallosum/shape/contour.py#L267-L303"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CorpusCallosum.shape.contour.CCContour.get_thickness_profile" title="Link to this definition">¶</a></dt>
+<dd><p>Return one thickness value per level path, ordered anterior to posterior.</p>
+<p>Saved template thickness values are attached to vertices of the closed
+contour.  Every level path therefore contributes the same measurement
+at both contour intersections.  Because the two contour sides are
+traversed in opposite directions, measurement vertices contain an
+anterior-to-posterior sequence followed by its reverse.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.5)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></dt><dd><p>One-dimensional anterior-to-posterior thickness profile.</p>
 </dd>
 </dl>
 </dd>
 <dt class="field-even">Raises<span class="colon">:</span></dt>
 <dd class="field-even"><dl class="simple">
-<dt><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.14)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ValueError</span></code></a></dt><dd><p>If number of thickness values doesn’t match measurement points
+<dt><a class="reference external" href="https://docs.python.org/3/builtins/exceptions.html#ValueError" title="(in Python v3.14)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ValueError</span></code></a></dt><dd><p>If measurement vertices are unavailable, their number is odd, or
+the measurements on the two contour sides do not agree.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="CorpusCallosum.shape.contour.CCContour.load_thickness_values">
+<span class="sig-name descname"><span class="pre">load_thickness_values</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_path</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/1dc0247/CorpusCallosum/shape/contour.py#L817-L834"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CorpusCallosum.shape.contour.CCContour.load_thickness_values" title="Link to this definition">¶</a></dt>
+<dd><p>Load thickness values from a CSV file.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl>
+<dt><strong>input_path</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.14)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Path</span></code></a>, <a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a></span></dt><dd><p>Path to the CSV file containing thickness values.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><dl class="simple">
+<dt><a class="reference external" href="https://docs.python.org/3/builtins/exceptions.html#ValueError" title="(in Python v3.14)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ValueError</span></code></a></dt><dd><p>If number of thickness values doesn’t match measurement points
 or if number of slices is inconsistent.</p>
 </dd>
 </dl>
@@ -707,12 +759,12 @@ or if number of slices is inconsistent.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="CorpusCallosum.shape.contour.CCContour.plot_contour">
-<span class="sig-name descname"><span class="pre">plot_contour</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">output_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//CorpusCallosum/shape/contour.py#L356-L401"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CorpusCallosum.shape.contour.CCContour.plot_contour" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">plot_contour</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">output_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/1dc0247/CorpusCallosum/shape/contour.py#L394-L439"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CorpusCallosum.shape.contour.CCContour.plot_contour" title="Link to this definition">¶</a></dt>
 <dd><p>Plot a single contour with thickness values.</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><dl>
-<dt><strong>output_path</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a></span></dt><dd><p>Path where to save the plot.</p>
+<dt><strong>output_path</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a></span></dt><dd><p>Path where to save the plot.</p>
 </dd>
 </dl>
 </dd>
@@ -727,28 +779,40 @@ or if number of slices is inconsistent.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="CorpusCallosum.shape.contour.CCContour.plot_contour_colorfill">
-<span class="sig-name descname"><span class="pre">plot_contour_colorfill</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">plot_values</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">title</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">save_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">colorbar</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'p-value'</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//CorpusCallosum/shape/contour.py#L403-L600"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CorpusCallosum.shape.contour.CCContour.plot_contour_colorfill" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">plot_contour_colorfill</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">plot_values</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">title</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">save_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">colorbar</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'p-value'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">colormap</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">log_scale</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">upper_threshold</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">threshold_color</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'gray'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">colorbar_label</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/1dc0247/CorpusCallosum/shape/contour.py#L441-L693"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CorpusCallosum.shape.contour.CCContour.plot_contour_colorfill" title="Link to this definition">¶</a></dt>
 <dd><p>Plot a contour with levelset visualization.</p>
 <p>Creates a visualization of a contour with interpolated levelsets, useful for
 analyzing the thickness distribution across the corpus callosum.</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><dl>
-<dt><strong>plot_values</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.4)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></span></dt><dd><p>Array of values to plot on CC from anterior to posterior (left to right in the plot).</p>
+<dt><strong>plot_values</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.5)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></span></dt><dd><p>Array of values to plot on CC from anterior to posterior (left to right in the plot).</p>
 </dd>
-<dt><strong>title</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">optional</span></code></span></dt><dd><p>Title for the plot.</p>
+<dt><strong>title</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">optional</span></code></span></dt><dd><p>Title for the plot.</p>
 </dd>
-<dt><strong>save_path</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">optional</span></code></span></dt><dd><p>Path to save the plot. If None, displays interactively.</p>
+<dt><strong>save_path</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">optional</span></code></span></dt><dd><p>Path to save the plot. If None, displays interactively.</p>
 </dd>
-<dt><strong>colorbar</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">bool</span></code></a>, default=True</span></dt><dd><p>Whether to show the colorbar.</p>
+<dt><strong>colorbar</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#bool" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">bool</span></code></a>, default=True</span></dt><dd><p>Whether to show the colorbar.</p>
 </dd>
 <dt><strong>mode</strong><span class="classifier">{“p-value”, “icc”, “thickness”}, default=”p-value”</span></dt><dd><p>Mode of the plot.</p>
+</dd>
+<dt><strong>colormap</strong><span class="classifier">{“red_to_blue”, “blue_to_red”, “red_to_yellow”, “yellow_to_red”}, <code class="xref py py-obj docutils literal notranslate"><span class="pre">optional</span></code></span></dt><dd><p>Color progression from lower to higher values. If omitted, use the
+mode-specific legacy colormap.</p>
+</dd>
+<dt><strong>log_scale</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#bool" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">bool</span></code></a>, default=False</span></dt><dd><p>Use logarithmic color normalization. All finite plot values and the
+upper threshold, when provided, must be positive.</p>
+</dd>
+<dt><strong>upper_threshold</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">optional</span></code></span></dt><dd><p>Draw interpolated values above this limit with <code class="docutils literal notranslate"><span class="pre">threshold_color</span></code>.</p>
+</dd>
+<dt><strong>threshold_color</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a>, default=”gray”</span></dt><dd><p>Matplotlib color used for values above <code class="docutils literal notranslate"><span class="pre">upper_threshold</span></code>.</p>
+</dd>
+<dt><strong>colorbar_label</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">optional</span></code></span></dt><dd><p>Override the mode-specific colorbar label.</p>
 </dd>
 </dl>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><dl class="simple">
-<dt><a class="reference external" href="https://matplotlib.org/stable/api/_as_gen/matplotlib.figure.Figure.html#matplotlib.figure.Figure" title="(in Matplotlib v3.10.9)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">matplotlib.figure.Figure</span></code></a></dt><dd><p>The created figure object.</p>
+<dt><a class="reference external" href="https://matplotlib.org/stable/api/_as_gen/matplotlib.figure.Figure.html#matplotlib.figure.Figure" title="(in Matplotlib v3.11.2)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">matplotlib.figure.Figure</span></code></a></dt><dd><p>The created figure object.</p>
 </dd>
 </dl>
 </dd>
@@ -757,12 +821,12 @@ analyzing the thickness distribution across the corpus callosum.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="CorpusCallosum.shape.contour.CCContour.save_contour">
-<span class="sig-name descname"><span class="pre">save_contour</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">output_path</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//CorpusCallosum/shape/contour.py#L617-L642"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CorpusCallosum.shape.contour.CCContour.save_contour" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">save_contour</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">output_path</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/1dc0247/CorpusCallosum/shape/contour.py#L710-L735"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CorpusCallosum.shape.contour.CCContour.save_contour" title="Link to this definition">¶</a></dt>
 <dd><p>Save the contours to a CSV file.</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><dl>
-<dt><strong>output_path</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.14)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Path</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a></span></dt><dd><p>Path to save the CSV file.</p>
+<dt><strong>output_path</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.14)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Path</span></code></a>, <a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a></span></dt><dd><p>Path to save the CSV file.</p>
 </dd>
 </dl>
 </dd>
@@ -776,12 +840,12 @@ analyzing the thickness distribution across the corpus callosum.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="CorpusCallosum.shape.contour.CCContour.save_thickness_values">
-<span class="sig-name descname"><span class="pre">save_thickness_values</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">output_path</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//CorpusCallosum/shape/contour.py#L702-L722"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CorpusCallosum.shape.contour.CCContour.save_thickness_values" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">save_thickness_values</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">output_path</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/1dc0247/CorpusCallosum/shape/contour.py#L795-L815"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CorpusCallosum.shape.contour.CCContour.save_thickness_values" title="Link to this definition">¶</a></dt>
 <dd><p>Save thickness values to a CSV file.</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><dl>
-<dt><strong>output_path</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.14)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Path</span></code></a>, <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a></span></dt><dd><p>Path to save the CSV file.</p>
+<dt><strong>output_path</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.14)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Path</span></code></a>, <a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a></span></dt><dd><p>Path to save the CSV file.</p>
 </dd>
 </dl>
 </dd>
@@ -795,15 +859,15 @@ analyzing the thickness distribution across the corpus callosum.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="CorpusCallosum.shape.contour.CCContour.set_thickness_values">
-<span class="sig-name descname"><span class="pre">set_thickness_values</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">thickness_values</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_measurement_points</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//CorpusCallosum/shape/contour.py#L231-L265"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CorpusCallosum.shape.contour.CCContour.set_thickness_values" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">set_thickness_values</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">thickness_values</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_measurement_points</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/1dc0247/CorpusCallosum/shape/contour.py#L231-L265"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CorpusCallosum.shape.contour.CCContour.set_thickness_values" title="Link to this definition">¶</a></dt>
 <dd><p>Set the thickness values for the contour.
 This is useful to update the thickness values for specific plots.</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><dl>
-<dt><strong>thickness_values</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.4)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></span></dt><dd><p>Array of thickness values for the contour.</p>
+<dt><strong>thickness_values</strong><span class="classifier"><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray" title="(in NumPy v2.5)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">np.ndarray</span></code></a></span></dt><dd><p>Array of thickness values for the contour.</p>
 </dd>
-<dt><strong>use_measurement_points</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">bool</span></code></a>, default=False</span></dt><dd><p>Whether to use the measurement points to set the thickness values.</p>
+<dt><strong>use_measurement_points</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#bool" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">bool</span></code></a>, default=False</span></dt><dd><p>Whether to use the measurement points to set the thickness values.</p>
 </dd>
 </dl>
 </dd>
@@ -812,12 +876,12 @@ This is useful to update the thickness values for specific plots.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="CorpusCallosum.shape.contour.CCContour.smooth_contour">
-<span class="sig-name descname"><span class="pre">smooth_contour</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">window_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//CorpusCallosum/shape/contour.py#L139-L151"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CorpusCallosum.shape.contour.CCContour.smooth_contour" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">smooth_contour</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">window_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/1dc0247/CorpusCallosum/shape/contour.py#L139-L151"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CorpusCallosum.shape.contour.CCContour.smooth_contour" title="Link to this definition">¶</a></dt>
 <dd><p>Smooth a contour using a moving average filter.</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><dl>
-<dt><strong>window_size</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">int</span></code></a>, default=5</span></dt><dd><p>Size of the smoothing window.</p>
+<dt><strong>window_size</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">int</span></code></a>, default=5</span></dt><dd><p>Size of the smoothing window.</p>
 </dd>
 </dl>
 </dd>
@@ -828,12 +892,12 @@ This is useful to update the thickness values for specific plots.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="CorpusCallosum.shape.contour.CCContour.smooth_thickness_values">
-<span class="sig-name descname"><span class="pre">smooth_thickness_values</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">iterations</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//CorpusCallosum/shape/contour.py#L337-L354"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CorpusCallosum.shape.contour.CCContour.smooth_thickness_values" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">smooth_thickness_values</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">iterations</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/1dc0247/CorpusCallosum/shape/contour.py#L375-L392"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CorpusCallosum.shape.contour.CCContour.smooth_thickness_values" title="Link to this definition">¶</a></dt>
 <dd><p>Smooth the thickness values using a Gaussian filter.</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><dl>
-<dt><strong>iterations</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">int</span></code></a>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">optional</span></code></span></dt><dd><p>Number of smoothing iterations, by default 1.</p>
+<dt><strong>iterations</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">int</span></code></a>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">optional</span></code></span></dt><dd><p>Number of smoothing iterations, by default 1.</p>
 </dd>
 </dl>
 </dd>
@@ -845,12 +909,12 @@ along the contour.</p>
 
 <dl class="py property">
 <dt class="sig sig-object py" id="CorpusCallosum.shape.contour.CCContour.area">
-<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">area</span></span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//CorpusCallosum/shape/contour.py#L124-L137"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CorpusCallosum.shape.contour.CCContour.area" title="Link to this definition">¶</a></dt>
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">area</span></span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/1dc0247/CorpusCallosum/shape/contour.py#L124-L137"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CorpusCallosum.shape.contour.CCContour.area" title="Link to this definition">¶</a></dt>
 <dd><p>Calculate the area of the contour using the shoelace formula.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
 <dd class="field-odd"><dl class="simple">
-<dt><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a></dt><dd><p>The area of the contour.</p>
+<dt><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a></dt><dd><p>The area of the contour.</p>
 </dd>
 </dl>
 </dd>
@@ -861,7 +925,7 @@ along the contour.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="CorpusCallosum.shape.contour.calculate_volume">
-<span class="sig-prename descclassname"><span class="pre">CorpusCallosum.shape.contour.</span></span><span class="sig-name descname"><span class="pre">calculate_volume</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">contours</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">width</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5.0</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//CorpusCallosum/shape/contour.py#L841-L891"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CorpusCallosum.shape.contour.calculate_volume" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">CorpusCallosum.shape.contour.</span></span><span class="sig-name descname"><span class="pre">calculate_volume</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">contours</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">width</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">5.0</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/1dc0247/CorpusCallosum/shape/contour.py#L934-L984"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CorpusCallosum.shape.contour.calculate_volume" title="Link to this definition">¶</a></dt>
 <dd><p>Calculate the volume of the corpus callosum.</p>
 <p>This method calculates the volume of a slab of the CC centered on the midplane.
 It multiplies the area of each cross-sectional slice by the width it
@@ -870,13 +934,13 @@ around the midplane (z=0).</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><dl>
-<dt><strong>width</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a>, default=CC_ANALYSIS_WIDTH_MM</span></dt><dd><p>The width of the slab centered on the midplane to calculate the volume for (in mm).</p>
+<dt><strong>width</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a>, default=CC_ANALYSIS_WIDTH_MM</span></dt><dd><p>The width of the slab centered on the midplane to calculate the volume for (in mm).</p>
 </dd>
 </dl>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><dl class="simple">
-<dt><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a></dt><dd><p>The volume of the CC in cubic millimeters.</p>
+<dt><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#float" title="(in Python v3.14)"><code class="docutils literal notranslate"><span class="pre">float</span></code></a></dt><dd><p>The volume of the CC in cubic millimeters.</p>
 </dd>
 </dl>
 </dd>
@@ -885,7 +949,7 @@ around the midplane (z=0).</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="CorpusCallosum.shape.contour.contours_for_analysis_width">
-<span class="sig-prename descclassname"><span class="pre">CorpusCallosum.shape.contour.</span></span><span class="sig-name descname"><span class="pre">contours_for_analysis_width</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">contours</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob//CorpusCallosum/shape/contour.py#L894-L928"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CorpusCallosum.shape.contour.contours_for_analysis_width" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">CorpusCallosum.shape.contour.</span></span><span class="sig-name descname"><span class="pre">contours_for_analysis_width</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">contours</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/1dc0247/CorpusCallosum/shape/contour.py#L987-L1021"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#CorpusCallosum.shape.contour.contours_for_analysis_width" title="Link to this definition">¶</a></dt>
 <dd><p>Return contour copies with LR positions spanning a fixed display width.</p>
 <p>The CC segmentation mask is sampled on image slices, so its realized width
 depends on the voxel size and the odd number of slices needed to cover the
@@ -973,6 +1037,7 @@ output gets the fixed physical slab width expected by Freeview inspection.</p>
 <li><a class="reference internal" href="#CorpusCallosum.shape.contour.CCContour.from_contour_file"><code class="docutils literal notranslate"><span class="pre">CCContour.from_contour_file()</span></code></a></li>
 <li><a class="reference internal" href="#CorpusCallosum.shape.contour.CCContour.from_mask_and_acpc"><code class="docutils literal notranslate"><span class="pre">CCContour.from_mask_and_acpc()</span></code></a></li>
 <li><a class="reference internal" href="#CorpusCallosum.shape.contour.CCContour.get_contour_edge_lengths"><code class="docutils literal notranslate"><span class="pre">CCContour.get_contour_edge_lengths()</span></code></a></li>
+<li><a class="reference internal" href="#CorpusCallosum.shape.contour.CCContour.get_thickness_profile"><code class="docutils literal notranslate"><span class="pre">CCContour.get_thickness_profile()</span></code></a></li>
 <li><a class="reference internal" href="#CorpusCallosum.shape.contour.CCContour.load_thickness_values"><code class="docutils literal notranslate"><span class="pre">CCContour.load_thickness_values()</span></code></a></li>
 <li><a class="reference internal" href="#CorpusCallosum.shape.contour.CCContour.plot_contour"><code class="docutils literal notranslate"><span class="pre">CCContour.plot_contour()</span></code></a></li>
 <li><a class="reference internal" href="#CorpusCallosum.shape.contour.CCContour.plot_contour_colorfill"><code class="docutils literal notranslate"><span class="pre">CCContour.plot_contour_colorfill()</span></code></a></li>
@@ -1002,7 +1067,8 @@ output gets the fixed physical slab width expected by Freeview inspection.</p>
     <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/scripts/furo.js?v=46bd48cc"></script>
     <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
-    <script src="../../_static/copybutton.js?v=f281be69"></script>
+    <script src="../../_static/copybutton.js?v=1be11439"></script>
     <script src="../../_static/design-tabs.js?v=f930bc37"></script>
+    <script src="../../_static/doc-version-link.js?v=e710a016"></script>
     </body>
 </html>

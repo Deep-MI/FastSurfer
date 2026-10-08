@@ -11,7 +11,8 @@ The segmentation module outputs the files shown in the table below. The two prim
 | mri       | mask.mgz                     | asegdkt | brainmask                                                          |
 | mri       | orig.mgz                     | asegdkt | conformed image                                                    |
 | mri       | orig_nu.mgz                  | asegdkt | biasfield-corrected image                                          |
-| mri/orig  | 001.mgz                      | asegdkt | original image                                                     |
+| mri       | rawavg.mgz                   | input   | input image in MGH format, read by the surface pipeline            |
+| mri/orig  | 001.\<ext\>                  | input   | verbatim copy of the input, in the format it was passed            |
 | scripts   | deep-seg.log                 | asegdkt | logfile                                                            |
 | stats     | aseg+DKT.stats               | asegdkt | table of cortical and subcortical segmentation statistics          |
 
@@ -23,20 +24,21 @@ The Corpus Callosum module outputs the files in the table shown below. It create
 |:----------------|--------------------------------|--------|--------------------------------------------------------------------------------------------------------------|
 | mri             | callosum.CC.upright.mgz        | cc     | corpus callosum segmentation in upright space                                                                |
 | mri             | callosum.CC.orig.mgz           | cc     | corpus callosum segmentation in conformed image orientation                                                  |
+| mri             | callosum.CC.orig.manedit.mgz   | cc     | corrected CC and supplied or retained fornix mapped to conformed space for downstream inpainting             |
 | mri             | callosum.CC.soft.mgz           | cc     | corpus callosum soft labels (in upright space)                                                               |
 | mri             | fornix.CC.soft.mgz             | cc     | fornix soft labels (in upright space)                                                                        |
 | mri             | background.CC.soft.mgz         | cc     | background soft labels (in upright space)                                                                    |
-| mri             | upright_volume.mgz             | cc     | conformed image mapped to upright space (only with fastsurfer_cc.py `--upright_volume`)                                       |
-| mri/transforms  | cc_up.lta                      | cc     | transform from conformed to upright space                                                                     |
+| mri             | upright_volume.mgz             | cc     | conformed image mapped to upright space (with `--qc_snap` or fastsurfer_cc.py `--upright_volume`)            |
+| mri/transforms  | cc_up.lta                      | cc     | transform from conformed to upright space                                                                    |
 | mri/transforms  | orient_volume.lta              | cc     | transform to standardized space                                                                              |
-| stats           | callosum.CC.midslice.json      | cc     | measurements from the mid-sagittal slice (landmarks, area, thickness, etc.)                               |
-| stats           | callosum.CC.all_slices.json    | cc     | comprehensive per-slice analysis       |
-| qc_snapshots    | callosum.png                   | cc     | debug visualization of CC contours, AC, PC and thickness (only with run_fastsurfer.sh `--qc_snap`)                                       |
-| qc_snapshots    | callosum.thickness.png         | cc     | 3D thickness visualization (only with run_fastsurfer.sh `--qc_snap`)                                                   |
-| qc_snapshots    | corpus_callosum.html           | cc     | interactive 3D mesh visualization (only with run_fastsurfer.sh `--qc_snap`)                                                    |
-| surf            | callosum.surf                  | cc     | 3D Corpus Callosum mesh in FreeSurfer surface format (open with freeview)              |
-| surf            | callosum.thickness.w           | cc     | FreeSurfer overlay file containing thickness values (open with callosum.surf in freeview)                   |
-| surf            | callosum.vtk                   | cc     | VTK format mesh file for 3D visualization                                        |
+| stats           | callosum.CC.midslice.json      | cc     | measurements from the mid-sagittal slice (landmarks, area, thickness, etc.)                                  |
+| stats           | callosum.CC.all_slices.json    | cc     | comprehensive per-slice analysis                                                                             |
+| qc_snapshots    | callosum.png                   | cc     | debug visualization of CC contours, AC, PC and thickness (only with run_fastsurfer.sh `--qc_snap`)           |
+| qc_snapshots    | callosum.thickness.png         | cc     | 3D thickness visualization (only with run_fastsurfer.sh `--qc_snap`)                                         |
+| qc_snapshots    | corpus_callosum.html           | cc     | interactive 3D mesh visualization (only with run_fastsurfer.sh `--qc_snap`)                                  |
+| surf            | callosum.surf                  | cc     | 3D Corpus Callosum mesh in FreeSurfer surface format (open with freeview)                                    |
+| surf            | callosum.thickness.w           | cc     | FreeSurfer overlay file containing thickness values (open with callosum.surf in freeview)                    |
+| surf            | callosum.vtk                   | cc     | VTK format mesh file for 3D visualization                                                                    |
 
 CerebNet module
 ---------------
@@ -98,10 +100,10 @@ The primary output files are pial, white, and inflated surface files, the thickn
 
 Lesion Inpainting Tool (LIT, optional)
 --------------------------------------
-When `--lesion_mask <path to file>` is provided, FastSurfer wraps the segmentation and surface
-pipelines with lesion inpainting using LIT. The extension is currently experimental. It inpaints
-the lesion region, runs the requested FastSurfer modules on the inpainted image, and then maps the
-lesion back into the resulting outputs. The current LIT postprocessing workflow updates the primary
+When `--lesion_mask <lesion_mask_path>` is provided, FastSurfer wraps the segmentation and surface
+pipelines with lesion inpainting using LIT. It inpaints the lesion region, runs the requested
+FastSurfer modules on the inpainted image, and then maps the lesion back into the resulting outputs.
+The current LIT postprocessing workflow updates the primary
 FastSurfer files in place and keeps the original pre-lesion outputs either as `.lit` backups or,
 for some surface-derived files, in the original `.mapped.*` files.
 
@@ -139,7 +141,7 @@ LIT regenerates the relevant stats files after lesion mapping, keeps the pre-les
 
 | directory | filename | module | description |
 |:----------|----------|--------|-------------|
-| stats | lesion_impact_summary.yaml | lit | machine-readable summary of affected brain regions |
+| stats | lesion_impact_summary.json | lit | machine-readable summary of affected brain regions |
 | stats | aparc.DKTatlas+aseg.lesion_report.txt | lit | report of volumetric structures affected by the lesion |
 | stats | aseg.lesion_report.txt | lit | report of affected structures in the FreeSurfer aseg segmentation |
 | stats | aseg+DKT.VINN.stats | lit | lesion-integrated whole-brain/VINN summary statistics |
@@ -166,4 +168,4 @@ surface stats remain in the corresponding `.mapped.stats` files.
 
 Longitudinal Processing
 -----------------------
-When running the [longitudinal pipeline](LONG.md) the output will be as above for the individual time point directories. Note that the templateID directory for the within-subject template will not contain all files and usually is not looked at or analyzed, as it represents an intermediate step in the longitudinal pipeline. 
+When running the [longitudinal pipeline](LONG.md) the output will be as above for the individual time point directories. Note that the `<template_id>` directory for the within-subject template will not contain all files and usually is not looked at or analyzed, as it represents an intermediate step in the longitudinal pipeline.

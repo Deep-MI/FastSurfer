@@ -37,9 +37,10 @@ Possible Edits
 FastSurfer supports the following edits:
 1. [Bias field corrected inputs](#bias-field-correction) (for improved image quality, not really an edit)
 2. [asegdkt_segfile](#asegdkt_segfile): `<subject_dir>/mri/aparc.DKTatlas+aseg.deep.mgz` via `<subject_dir>/mri/aparc.DKTatlas+aseg.deep.manedit.mgz`
-3. [Talairach registration](#talairach-registration): `<subject_dir>/mri/transforms/talairach.xfm` (overwrites automatic results from `<subject_dir>/mri/transforms/talairach.auto.xfm`)
-4. [White matter segmentation](#white-matter-segmentation): `<subject_dir>/mri/wm.mgz` and `<subject_dir>/mri/filled.mgz`
-5. [Pial placement](#pial-surface-placement): `<subject_dir>/mri/brain.finalsurfs.mgz` via `<subject_dir>/mri/brain.finalsurfs.manedit.mgz`
+3. [Corpus callosum segmentation](#corpus-callosum-segmentation): `<subject_dir>/mri/callosum.CC.upright.mgz` via `<subject_dir>/mri/callosum.CC.upright.manedit.mgz`
+4. [Talairach registration](#talairach-registration): `<subject_dir>/mri/transforms/talairach.xfm` (overwrites automatic results from `<subject_dir>/mri/transforms/talairach.auto.xfm`)
+5. [White matter segmentation](#white-matter-segmentation): `<subject_dir>/mri/wm.mgz` and `<subject_dir>/mri/filled.mgz`
+6. [Pial placement](#pial-surface-placement): `<subject_dir>/mri/brain.finalsurfs.mgz` via `<subject_dir>/mri/brain.finalsurfs.manedit.mgz`
 
 Note, as FastSurfer's surface pipeline is derived from FreeSurfer, some editing options and corresponding naming schemes
 are inherited from FreeSurfer.
@@ -52,9 +53,10 @@ For example (including the setup for native processing, see [Examples](EXAMPLES.
 
 ```bash
 # Setup FASTSURFER and FREESURFER
-export FASTSURFER_HOME=/path/to/fastsurfer
-export FREESURFER_HOME=/path/to/freesurfer
+export FASTSURFER_HOME=${FASTSURFER_HOME:-/path/to/FastSurfer}
+export FREESURFER_HOME=${FREESURFER_HOME:-/path/to/freesurfer}
 source $FREESURFER_HOME/SetUpFreeSurfer.sh
+freesurfer_license=${freesurfer_license:-/path/to/your/freesurfer/license_file}
 
 # Define data directory
 export SUBJECTS_DIR=$HOME/my_fastsurfer_analysis
@@ -62,20 +64,35 @@ export SUBJECTS_DIR=$HOME/my_fastsurfer_analysis
 # Run FastSurfer
 $FASTSURFER_HOME/run_fastsurfer.sh \
     --sd $SUBJECTS_DIR --sid case_with_edits \
-    --t1 $SUBJECTS_DIR/case_with_edits/mri/orig/001.mgz \
-    --fs_license $FREESURFER_HOME/.license \
+    --t1 $HOME/my_mri_data/subjectX/t1_weighted.nii.gz \
+    --fs_license $freesurfer_license \
     --edits # more flags as needed, e.g. --3T --threads 4
 ```
 
+Pass the same `--t1` as the first run. Editing refines results for one image, so the subject
+directory belongs to that image, and FastSurfer stops with an error rather than mixing two inputs
+into one directory. The surest way to pass the same file is to pass the copy FastSurfer kept,
+`<subject_dir>/mri/orig/001.<ext>`, which is byte for byte the image you originally gave it, under
+whatever extension you gave it in, `001.mgz` for an MGH input and `001.nii.gz` for a NIfTI one.
+Processing a genuinely different image, a bias field corrected version for instance, is a new run
+into a new `--sid`.
+
 Note, a re-run of the segmentation pipeline, as in the command above, should not be harmful, but is only required if the [asegdkt_segfile](#asegdkt_segfile) was edited. Therefore, in most cases, we can skip the segmentation step with
 ```bash
-# Setup FASTSURFER and FREESURFER ... (see above)
+# Setup FASTSURFER and FREESURFER
+export FASTSURFER_HOME=${FASTSURFER_HOME:-/path/to/FastSurfer}
+export FREESURFER_HOME=${FREESURFER_HOME:-/path/to/freesurfer}
+source $FREESURFER_HOME/SetUpFreeSurfer.sh
+freesurfer_license=${freesurfer_license:-/path/to/your/freesurfer/license_file}
+
+# Define data directory
+export SUBJECTS_DIR=$HOME/my_fastsurfer_analysis
 
 # Run FastSurfer
 $FASTSURFER_HOME/run_fastsurfer.sh \
     --sd $SUBJECTS_DIR --sid case_with_edits \
-    --t1 $SUBJECTS_DIR/case_with_edits/mri/orig/001.mgz \
-    --fs_license $FREESURFER_HOME/.license \
+    --t1 $HOME/my_mri_data/subjectX/t1_weighted.nii.gz \
+    --fs_license $freesurfer_license \
     --edits --surf_only # more flags as needed, e.g. --3T --threads 4
 ```
 
@@ -92,29 +109,42 @@ Perform bias field correction prior to segmentation (FastSurfer) and provide the
 For example:
 1. Run FastSurfer to obtain a bias field corrected image (not needed if you already processed with FastSurfer a first time):
    ```bash
-   # Setup FASTSURFER and FREESURFER ... (see above)
+   # Setup FASTSURFER
+   export FASTSURFER_HOME=${FASTSURFER_HOME:-/path/to/FastSurfer}
+
+   # Define data directory
+   export SUBJECTS_DIR=$HOME/my_fastsurfer_analysis
 
    # Run FastSurfer
    $FASTSURFER_HOME/run_fastsurfer.sh \
        --sd $SUBJECTS_DIR --sid case_bias_only \
-       --t1 /path/to/the/original/T1.mgz \
+       --t1 $HOME/my_mri_data/subjectX/t1_weighted.nii.gz \
        --seg_only --no_hypothal --no_cereb --threads 16
     ```
 2. Run FastSurfer again, but this time input the bias field corrected image (i.e. `orig_nu.mgz`) instead of original input image. The file `orig_nu.mgz` can be found in the output directory under the *mri* subfolder. The output produced from the second iteration should be saved in a different output directory for comparative analysis with the output produced in first iteration.
    ```bash
-   # Setup FASTSURFER and FREESURFER ... (see above)
+   # Setup FASTSURFER and FREESURFER
+   export FASTSURFER_HOME=${FASTSURFER_HOME:-/path/to/FastSurfer}
+   export FREESURFER_HOME=${FREESURFER_HOME:-/path/to/freesurfer}
+   source $FREESURFER_HOME/SetUpFreeSurfer.sh
+   freesurfer_license=${freesurfer_license:-/path/to/your/freesurfer/license_file}
+
+   # Define data directory
+   export SUBJECTS_DIR=$HOME/my_fastsurfer_analysis
 
    # Run FastSurfer
    $FASTSURFER_HOME/run_fastsurfer.sh \
        --sd $SUBJECTS_DIR --sid case_bias_corrected \
        --t1 $SUBJECTS_DIR/case_bias_only/mri/orig_nu.mgz \
-       --fs_license $FREESURFER_HOME/.license # more flags as needed, e.g. --3T --threads 4
+       --fs_license $freesurfer_license
+       # more flags as needed, e.g. --3T --threads 4
     ```
 3. Compare and check if bias field correction fixed the issues:
    ```bash
+   export SUBJECTS_DIR=$HOME/my_fastsurfer_analysis
    freeview $SUBJECTS_DIR/case_bias_only/mri/orig_nu.mgz \
-            $SUBJECTS_DIR/case_bias_corrected/mri/aparc.DKTatlas+aseg.deep.mgz \
-            $SUBJECTS_DIR/case_bias_only/mri/orig_nu.mgz \
+            $SUBJECTS_DIR/case_bias_only/mri/aparc.DKTatlas+aseg.deep.mgz \
+            $SUBJECTS_DIR/case_bias_corrected/mri/orig_nu.mgz \
             $SUBJECTS_DIR/case_bias_corrected/mri/aparc.DKTatlas+aseg.deep.mgz
    ```
 
@@ -130,6 +160,75 @@ In specific, such errors are inspected in `<subject_dir>/mri/aparc.DKTatlas+aseg
 1. Copy the file `<subject_dir>/mri/aparc.DKTatlas+aseg.deep.mgz` to the same directory and name it `<subject_dir>/mri/aparc.DKTatlas+aseg.deep.manedit.mgz`.
 2. Open `<subject_dir>/mri/aparc.DKTatlas+aseg.deep.manedit.mgz` (for example using Freeview) and resolve all errors/quality issues.
 3. [Re-run FastSurfer](#general-process) to propagate the changes into other results. Among others, this updates `<subject_dir>/mri/aseg.auto_noCCseg.mgz` and `<subject_dir>/mri/mask.mgz`.
+
+Corpus callosum segmentation
+----------------------------
+
+### When to use
+The corpus callosum mask is over- or under-segmented, or the error affects the CC contours, thickness, subdivisions,
+surface, QC images, or volumetric inpainting.
+
+### What to do
+1. Run FastSurfer with `--qc_snap`. This creates `mri/upright_volume.mgz`, the intensity reference in the same space as
+   the editable CC segmentation. For example:
+
+   ```bash
+   export FASTSURFER_HOME=${FASTSURFER_HOME:-/path/to/FastSurfer}
+   $FASTSURFER_HOME/run_fastsurfer.sh \
+       --t1 $HOME/my_mri_data/subjectX/t1_weighted.nii.gz \
+       --sd $HOME/my_fastsurfer_analysis \
+       --sid subjectX \
+       --seg_only \
+       --qc_snap
+   ```
+
+2. Copy `<subject_dir>/mri/callosum.CC.upright.mgz` to
+   `<subject_dir>/mri/callosum.CC.upright.manedit.mgz`:
+
+   ```bash
+   subject_dir=$HOME/my_fastsurfer_analysis/subjectX
+   export SUBJECTS_DIR=$HOME/my_fastsurfer_analysis
+   cp "$SUBJECTS_DIR/subjectX/mri/callosum.CC.upright.mgz" \
+      "$SUBJECTS_DIR/subjectX/mri/callosum.CC.upright.manedit.mgz"
+   ```
+
+3. Edit label 192 in the manedit file using `mri/upright_volume.mgz` as the reference image. For example:
+
+   ```bash
+   export SUBJECTS_DIR=$HOME/my_fastsurfer_analysis
+   freeview \
+       -v "$SUBJECTS_DIR/subjectX/mri/upright_volume.mgz" \
+       -v "$SUBJECTS_DIR/subjectX/mri/callosum.CC.upright.manedit.mgz":colormap=lut:opacity=0.5
+   ```
+
+   A manual file containing any fornix label-250 voxels is self-contained and authoritative for the entire fornix. To
+   retain the automatic fornix instead, remove all label-250 voxels from the manual file; the automatic upright and
+   original-space CC segmentations must then be present.
+
+4. Re-run the original FastSurfer command with `--edits` and otherwise identical options:
+
+   ```bash
+   export FASTSURFER_HOME=${FASTSURFER_HOME:-/path/to/FastSurfer}
+   $FASTSURFER_HOME/run_fastsurfer.sh \
+       --t1 $HOME/my_mri_data/subjectX/t1_weighted.nii.gz \
+       --sd $HOME/my_fastsurfer_analysis \
+       --sid subjectX \
+       --seg_only \
+       --qc_snap \
+       --edits
+   ```
+
+FastSurfer recomputes CC contours, morphometry, subdivisions, surfaces, statistics, and QC outputs. It creates
+`mri/callosum.CC.orig.manedit.mgz` and uses that derived volume for downstream CC inpainting. The automatic
+`callosum.CC.upright.mgz` and `callosum.CC.orig.mgz` files remain unchanged. Do not edit the original-space file
+directly. If an upright manedit exists but `--edits` is omitted, FastSurfer exits with an error rather than silently
+ignoring the correction.
+
+If the upright segmentation was created with supplied AC/PC coordinates through `fastsurfer_cc.py`, pass exactly the
+same coordinates on the edit rerun so the edited slab geometry remains valid.
+
+For direct expert usage, including Docker and Apptainer/Singularity commands, see the
+[FastSurfer-CC expert documentation](../scripts/fastsurfer_cc.rst).
 
 Talairach registration
 ----------------------
@@ -168,7 +267,7 @@ Over- and/or under-segmentation of the cortical gray matter: voxels that should 
 
 ### What to do
 Often, these errors should be fixed in [asegdkt_segfile](#asegdkt_segfile) `<subject_dir>/mri/aparc.DKTatlas+aseg.deep.manedit.mgz`, but if that is not successful:
-1. Open end edit `<subject_dir>/mri/brain.finalsurfs.manedit.mgz` (overwriting values in `<subject_dir>/mri/brain.finalsurfs.mgz`).
+1. Open and edit `<subject_dir>/mri/brain.finalsurfs.manedit.mgz` (overwriting values in `<subject_dir>/mri/brain.finalsurfs.mgz`).
 2. [Re-run FastSurfer](#general-process) to fix the pial surface.
 The manual label 255 indicates a voxel should be included in the gray matter and a voxel labeled 1 should not.
 

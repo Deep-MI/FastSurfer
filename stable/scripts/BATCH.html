@@ -3,10 +3,10 @@
   <head><meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
-<link rel="index" title="Index" href="../genindex.html"><link rel="search" title="Search" href="../search.html"><link rel="next" title="SLURM: srun_fastsurfer.sh" href="SLURM.html"><link rel="prev" title="LONG: long_fastsurfer.sh" href="long_fastsurfer.html">
+<link rel="index" title="Index" href="../genindex.html"><link rel="search" title="Search" href="../search.html"><link rel="next" title="srun_fastsurfer.sh" href="SLURM.html"><link rel="prev" title="long_fastsurfer.sh" href="long_fastsurfer.html">
 
     <!-- Generated with Sphinx 7.4.7 and Furo 2025.12.19 -->
-        <title>BATCH: brun_fastsurfer.sh - FastSurfer</title>
+        <title>brun_fastsurfer.sh - FastSurfer</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
@@ -153,7 +153,11 @@
 
 <a class="skip-to-content muted-link" href="#furo-main-content">Skip to content</a>
 
-
+<div class="announcement">
+  <aside class="announcement-content">
+     This documents the latest release. The <a href="../dev/" data-doc-tree="dev">dev documentation</a> covers changes that are not released yet. 
+  </aside>
+</div>
 
 <div class="page">
   <header class="mobile-header">
@@ -196,57 +200,75 @@
 <li class="toctree-l1 has-children"><a class="reference internal" href="../overview/index.html">User Guide</a><input aria-label="Toggle navigation of User Guide" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" role="switch" type="checkbox"/><label for="toctree-checkbox-1"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l2"><a class="reference internal" href="../overview/intro.html">Introduction</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../overview/QUICKSTART.html">Quick Start</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../overview/INSTALL.html">Installation</a></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../overview/INSTALL.html">Installation</a><input aria-label="Toggle navigation of Installation" class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="../overview/install/MACOS.html">macOS</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../overview/install/LINUX.html">Linux</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../overview/install/WINDOWS.html">Windows</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../overview/install/NATIVE.html">Installing from source</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../overview/CONTAINERS.html">Running FastSurfer in a container</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../overview/EXAMPLES.html">Examples</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../overview/OUTPUT_FILES.html">Output files</a></li>
-<li class="toctree-l2 has-children"><a class="reference internal" href="../overview/modules/index.html">Modules</a><input aria-label="Toggle navigation of Modules" class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" role="switch" type="checkbox"/><label for="toctree-checkbox-2"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../overview/modules/index.html">Modules</a><input aria-label="Toggle navigation of Modules" class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="../overview/modules/ASEGDKT.html">Whole-Brain Segmentation (FastSurferVINN)</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../overview/modules/CC.html">Corpus Callosum Pipeline</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../overview/modules/CEREBNET.html">Cerebellum Sub-Segmentation (CerebNet)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../overview/modules/HYPVINN.html">Hypothalamus Sub-Segmentation (HypVINN)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../overview/modules/SURFACE.html">Surface Reconstruction (recon-surf)</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../overview/modules/LIT.html">Lesion Inpainting Tool (LIT)</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="../overview/docker.html">Docker Support</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../overview/SINGULARITY.html">Singularity Support</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../overview/MACOS.html">Running FastSurfer as MacOS package</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../overview/EDITING.html">Manual Edits</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../overview/LONG.html">Longitudinal Processing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../overview/REPRODUCIBILITY.html">Reproducibility</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../overview/SECURITY.html">Security Policy</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../overview/license.html">FastSurfer License</a></li>
 </ul>
 </li>
-<li class="toctree-l1 current has-children"><a class="reference internal" href="index.html">Scripts</a><input aria-label="Toggle navigation of Scripts" checked="" class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul class="current">
+<li class="toctree-l1 current has-children"><a class="reference internal" href="index.html">Command Reference</a><input aria-label="Toggle navigation of Command Reference" checked="" class="toctree-checkbox" id="toctree-checkbox-4" name="toctree-checkbox-4" role="switch" type="checkbox"/><label for="toctree-checkbox-4"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul class="current">
 <li class="toctree-l2"><a class="reference internal" href="RUN_FASTSURFER.html">run_fastsurfer.sh</a></li>
-<li class="toctree-l2"><a class="reference internal" href="long_fastsurfer.html">LONG: long_fastsurfer.sh</a></li>
-<li class="toctree-l2 current current-page"><a class="current reference internal" href="#">BATCH: brun_fastsurfer.sh</a></li>
-<li class="toctree-l2"><a class="reference internal" href="SLURM.html">SLURM: srun_fastsurfer.sh</a></li>
-<li class="toctree-l2 has-children"><a class="reference internal" href="advanced.html">Advanced scripts</a><input aria-label="Toggle navigation of Advanced scripts" class="toctree-checkbox" id="toctree-checkbox-4" name="toctree-checkbox-4" role="switch" type="checkbox"/><label for="toctree-checkbox-4"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="long_fastsurfer.html">long_fastsurfer.sh</a></li>
+<li class="toctree-l2 current current-page"><a class="current reference internal" href="#">brun_fastsurfer.sh</a></li>
+<li class="toctree-l2"><a class="reference internal" href="SLURM.html">srun_fastsurfer.sh</a></li>
+<li class="toctree-l2"><a class="reference internal" href="BIDS.html">bids_fastsurfer.py</a></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="advanced.html">Running modules directly</a><input aria-label="Toggle navigation of Running modules directly" class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l3"><a class="reference internal" href="fastsurfercnn.html">FastSurferCNN: run_prediction.py</a></li>
 <li class="toctree-l3"><a class="reference internal" href="cerebnet.html">CerebNet: run_prediction.py</a></li>
 <li class="toctree-l3"><a class="reference internal" href="hypvinn.html">HypVINN: run_prediction.py</a></li>
 <li class="toctree-l3"><a class="reference internal" href="fastsurfer_cc.html">CorpusCallosum: fastsurfer_cc.py</a></li>
-<li class="toctree-l3"><a class="reference internal" href="cc_visualization.html">CorpusCallosum: cc_visualization.py</a></li>
 <li class="toctree-l3"><a class="reference internal" href="recon_surf.html">Surface pipeline: recon-surf.sh</a></li>
+<li class="toctree-l3"><a class="reference internal" href="recon_surfreg.html">Surface registration: recon-surfreg.sh</a></li>
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="util.html">Utilities</a><input aria-label="Toggle navigation of Utilities" class="toctree-checkbox" id="toctree-checkbox-6" name="toctree-checkbox-6" role="switch" type="checkbox"/><label for="toctree-checkbox-6"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="fastsurfercnn.download_checkpoints.html">FastSurferCNN: download_checkpoints.py</a></li>
+<li class="toctree-l3"><a class="reference internal" href="fastsurfercnn.conform.html">FastSurferCNN: conform.py</a></li>
 <li class="toctree-l3"><a class="reference internal" href="segstats.html">FastSurferCNN: segstats.py</a></li>
+<li class="toctree-l3"><a class="reference internal" href="compare_subjects.html">tools: compare_subjects.py</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cc_visualization.html">CorpusCallosum: cc_visualization.py</a></li>
 <li class="toctree-l3"><a class="reference internal" href="long_compat_segmentHA.html">recon_surf: long_compat_segmentHA.py</a></li>
 </ul>
 </li>
-<li class="toctree-l2 has-children"><a class="reference internal" href="util.html">FastSurfer Utilities</a><input aria-label="Toggle navigation of FastSurfer Utilities" class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
-<li class="toctree-l3"><a class="reference internal" href="fastsurfercnn.download_checkpoints.html">FastSurferCNN: download_checkpoints.py</a></li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="training.html">Training</a><input aria-label="Toggle navigation of Training" class="toctree-checkbox" id="toctree-checkbox-7" name="toctree-checkbox-7" role="switch" type="checkbox"/><label for="toctree-checkbox-7"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l3"><a class="reference internal" href="fastsurfercnn.generate_hdf5.html">FastSurferCNN: generate_hdf5.py</a></li>
 <li class="toctree-l3"><a class="reference internal" href="fastsurfercnn.run_model.html">FastSurferCNN: run_model.py</a></li>
 </ul>
 </li>
 </ul>
 </li>
-<li class="toctree-l1 has-children"><a class="reference internal" href="../developer/index.html">Contributor Guide</a><input aria-label="Toggle navigation of Contributor Guide" class="toctree-checkbox" id="toctree-checkbox-6" name="toctree-checkbox-6" role="switch" type="checkbox"/><label for="toctree-checkbox-6"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
-<li class="toctree-l2"><a class="reference internal" href="../developer/GIT-HOOKS.html">git hook setup / CD</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../developer/code_of_conduct.html">Code of Conduct</a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../developer/index.html">Developer Guide</a><input aria-label="Toggle navigation of Developer Guide" class="toctree-checkbox" id="toctree-checkbox-8" name="toctree-checkbox-8" role="switch" type="checkbox"/><label for="toctree-checkbox-8"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l2"><a class="reference internal" href="../developer/contributing.html">Contribution Guide</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../developer/GIT-HOOKS.html">Git hooks</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../developer/docker.html">Building Docker images</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../developer/code_of_conduct.html">Code of Conduct</a></li>
 </ul>
 </li>
-<li class="toctree-l1 has-children"><a class="reference internal" href="../api/index.html">FastSurfer API</a><input aria-label="Toggle navigation of FastSurfer API" class="toctree-checkbox" id="toctree-checkbox-7" name="toctree-checkbox-7" role="switch" type="checkbox"/><label for="toctree-checkbox-7"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
-<li class="toctree-l2 has-children"><a class="reference internal" href="../api/FastSurferCNN.html">FastSurferCNN</a><input aria-label="Toggle navigation of FastSurferCNN" class="toctree-checkbox" id="toctree-checkbox-8" name="toctree-checkbox-8" role="switch" type="checkbox"/><label for="toctree-checkbox-8"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../api/index.html">FastSurfer API</a><input aria-label="Toggle navigation of FastSurfer API" class="toctree-checkbox" id="toctree-checkbox-9" name="toctree-checkbox-9" role="switch" type="checkbox"/><label for="toctree-checkbox-9"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../api/FastSurferCNN.html">FastSurferCNN</a><input aria-label="Toggle navigation of FastSurferCNN" class="toctree-checkbox" id="toctree-checkbox-10" name="toctree-checkbox-10" role="switch" type="checkbox"/><label for="toctree-checkbox-10"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/FastSurferCNN.download_checkpoints.html">FastSurferCNN.download_checkpoints</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/FastSurferCNN.generate_hdf5.html">FastSurferCNN.generate_hdf5</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/generated/FastSurferCNN.gpu_support.html">FastSurferCNN.gpu_support</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/FastSurferCNN.inference.html">FastSurferCNN.inference</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/FastSurferCNN.mri_brainvol_stats.html">FastSurferCNN.mri_brainvol_stats</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/FastSurferCNN.mri_segstats.html">FastSurferCNN.mri_segstats</a></li>
@@ -259,7 +281,7 @@
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/FastSurferCNN.version.html">FastSurferCNN.version</a></li>
 </ul>
 </li>
-<li class="toctree-l2 has-children"><a class="reference internal" href="../api/FastSurferCNN.data_loader.html">FastSurferCNN.data_loader</a><input aria-label="Toggle navigation of FastSurferCNN.data_loader" class="toctree-checkbox" id="toctree-checkbox-9" name="toctree-checkbox-9" role="switch" type="checkbox"/><label for="toctree-checkbox-9"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../api/FastSurferCNN.data_loader.html">FastSurferCNN.data_loader</a><input aria-label="Toggle navigation of FastSurferCNN.data_loader" class="toctree-checkbox" id="toctree-checkbox-11" name="toctree-checkbox-11" role="switch" type="checkbox"/><label for="toctree-checkbox-11"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/FastSurferCNN.data_loader.augmentation.html">FastSurferCNN.data_loader.augmentation</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/FastSurferCNN.data_loader.conform.html">FastSurferCNN.data_loader.conform</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/FastSurferCNN.data_loader.data_utils.html">FastSurferCNN.data_loader.data_utils</a></li>
@@ -267,7 +289,7 @@
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/FastSurferCNN.data_loader.loader.html">FastSurferCNN.data_loader.loader</a></li>
 </ul>
 </li>
-<li class="toctree-l2 has-children"><a class="reference internal" href="../api/FastSurferCNN.models.html">FastSurferCNN.models</a><input aria-label="Toggle navigation of FastSurferCNN.models" class="toctree-checkbox" id="toctree-checkbox-10" name="toctree-checkbox-10" role="switch" type="checkbox"/><label for="toctree-checkbox-10"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../api/FastSurferCNN.models.html">FastSurferCNN.models</a><input aria-label="Toggle navigation of FastSurferCNN.models" class="toctree-checkbox" id="toctree-checkbox-12" name="toctree-checkbox-12" role="switch" type="checkbox"/><label for="toctree-checkbox-12"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/FastSurferCNN.models.interpolation_layer.html">FastSurferCNN.models.interpolation_layer</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/FastSurferCNN.models.losses.html">FastSurferCNN.models.losses</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/FastSurferCNN.models.networks.html">FastSurferCNN.models.networks</a></li>
@@ -275,7 +297,7 @@
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/FastSurferCNN.models.sub_module.html">FastSurferCNN.models.sub_module</a></li>
 </ul>
 </li>
-<li class="toctree-l2 has-children"><a class="reference internal" href="../api/FastSurferCNN.utils.html">FastSurferCNN.utils</a><input aria-label="Toggle navigation of FastSurferCNN.utils" class="toctree-checkbox" id="toctree-checkbox-11" name="toctree-checkbox-11" role="switch" type="checkbox"/><label for="toctree-checkbox-11"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../api/FastSurferCNN.utils.html">FastSurferCNN.utils</a><input aria-label="Toggle navigation of FastSurferCNN.utils" class="toctree-checkbox" id="toctree-checkbox-13" name="toctree-checkbox-13" role="switch" type="checkbox"/><label for="toctree-checkbox-13"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/FastSurferCNN.utils.arg_types.html">FastSurferCNN.utils.arg_types</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/FastSurferCNN.utils.brainvolstats.html">FastSurferCNN.utils.brainvolstats</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/FastSurferCNN.utils.checkpoint.html">FastSurferCNN.utils.checkpoint</a></li>
@@ -293,32 +315,32 @@
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/FastSurferCNN.utils.run_tools.html">FastSurferCNN.utils.run_tools</a></li>
 </ul>
 </li>
-<li class="toctree-l2 has-children"><a class="reference internal" href="../api/CerebNet.html">CerebNet</a><input aria-label="Toggle navigation of CerebNet" class="toctree-checkbox" id="toctree-checkbox-12" name="toctree-checkbox-12" role="switch" type="checkbox"/><label for="toctree-checkbox-12"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../api/CerebNet.html">CerebNet</a><input aria-label="Toggle navigation of CerebNet" class="toctree-checkbox" id="toctree-checkbox-14" name="toctree-checkbox-14" role="switch" type="checkbox"/><label for="toctree-checkbox-14"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/CerebNet.apply_warp.html">CerebNet.apply_warp</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/CerebNet.inference.html">CerebNet.inference</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/CerebNet.run_prediction.html">CerebNet.run_prediction</a></li>
 </ul>
 </li>
-<li class="toctree-l2 has-children"><a class="reference internal" href="../api/CerebNet.data_loader.html">CerebNet.data_loader</a><input aria-label="Toggle navigation of CerebNet.data_loader" class="toctree-checkbox" id="toctree-checkbox-13" name="toctree-checkbox-13" role="switch" type="checkbox"/><label for="toctree-checkbox-13"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../api/CerebNet.data_loader.html">CerebNet.data_loader</a><input aria-label="Toggle navigation of CerebNet.data_loader" class="toctree-checkbox" id="toctree-checkbox-15" name="toctree-checkbox-15" role="switch" type="checkbox"/><label for="toctree-checkbox-15"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/CerebNet.data_loader.augmentation.html">CerebNet.data_loader.augmentation</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/CerebNet.data_loader.data_utils.html">CerebNet.data_loader.data_utils</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/CerebNet.data_loader.dataset.html">CerebNet.data_loader.dataset</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/CerebNet.data_loader.loader.html">CerebNet.data_loader.loader</a></li>
 </ul>
 </li>
-<li class="toctree-l2 has-children"><a class="reference internal" href="../api/CerebNet.datasets.html">CerebNet.datasets</a><input aria-label="Toggle navigation of CerebNet.datasets" class="toctree-checkbox" id="toctree-checkbox-14" name="toctree-checkbox-14" role="switch" type="checkbox"/><label for="toctree-checkbox-14"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../api/CerebNet.datasets.html">CerebNet.datasets</a><input aria-label="Toggle navigation of CerebNet.datasets" class="toctree-checkbox" id="toctree-checkbox-16" name="toctree-checkbox-16" role="switch" type="checkbox"/><label for="toctree-checkbox-16"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/CerebNet.datasets.generate_hdf5.html">CerebNet.datasets.generate_hdf5</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/CerebNet.datasets.load_data.html">CerebNet.datasets.load_data</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/CerebNet.datasets.utils.html">CerebNet.datasets.utils</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/CerebNet.datasets.wm_merge_clean.html">CerebNet.datasets.wm_merge_clean</a></li>
 </ul>
 </li>
-<li class="toctree-l2 has-children"><a class="reference internal" href="../api/CerebNet.models.html">CerebNet_models</a><input aria-label="Toggle navigation of CerebNet_models" class="toctree-checkbox" id="toctree-checkbox-15" name="toctree-checkbox-15" role="switch" type="checkbox"/><label for="toctree-checkbox-15"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../api/CerebNet.models.html">CerebNet_models</a><input aria-label="Toggle navigation of CerebNet_models" class="toctree-checkbox" id="toctree-checkbox-17" name="toctree-checkbox-17" role="switch" type="checkbox"/><label for="toctree-checkbox-17"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/CerebNet.models.networks.html">CerebNet.models.networks</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/CerebNet.models.sub_module.html">CerebNet.models.sub_module</a></li>
 </ul>
 </li>
-<li class="toctree-l2 has-children"><a class="reference internal" href="../api/CerebNet.utils.html">CerebNet.utils</a><input aria-label="Toggle navigation of CerebNet.utils" class="toctree-checkbox" id="toctree-checkbox-16" name="toctree-checkbox-16" role="switch" type="checkbox"/><label for="toctree-checkbox-16"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../api/CerebNet.utils.html">CerebNet.utils</a><input aria-label="Toggle navigation of CerebNet.utils" class="toctree-checkbox" id="toctree-checkbox-18" name="toctree-checkbox-18" role="switch" type="checkbox"/><label for="toctree-checkbox-18"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/CerebNet.utils.checkpoint.html">CerebNet.utils.checkpoint</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/CerebNet.utils.load_config.html">CerebNet.utils.load_config</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/CerebNet.utils.lr_scheduler.html">CerebNet.utils.lr_scheduler</a></li>
@@ -326,32 +348,32 @@
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/CerebNet.utils.misc.html">CerebNet.utils.misc</a></li>
 </ul>
 </li>
-<li class="toctree-l2 has-children"><a class="reference internal" href="../api/CorpusCallosum.html">CorpusCallosum</a><input aria-label="Toggle navigation of CorpusCallosum" class="toctree-checkbox" id="toctree-checkbox-17" name="toctree-checkbox-17" role="switch" type="checkbox"/><label for="toctree-checkbox-17"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../api/CorpusCallosum.html">CorpusCallosum</a><input aria-label="Toggle navigation of CorpusCallosum" class="toctree-checkbox" id="toctree-checkbox-19" name="toctree-checkbox-19" role="switch" type="checkbox"/><label for="toctree-checkbox-19"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/CorpusCallosum.fastsurfer_cc.html">CorpusCallosum.fastsurfer_cc</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/CorpusCallosum.cc_visualization.html">CorpusCallosum.cc_visualization</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/CorpusCallosum.paint_cc_into_pred.html">CorpusCallosum.paint_cc_into_pred</a></li>
 </ul>
 </li>
-<li class="toctree-l2 has-children"><a class="reference internal" href="../api/CorpusCallosum.data.html">CorpusCallosum.data</a><input aria-label="Toggle navigation of CorpusCallosum.data" class="toctree-checkbox" id="toctree-checkbox-18" name="toctree-checkbox-18" role="switch" type="checkbox"/><label for="toctree-checkbox-18"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../api/CorpusCallosum.data.html">CorpusCallosum.data</a><input aria-label="Toggle navigation of CorpusCallosum.data" class="toctree-checkbox" id="toctree-checkbox-20" name="toctree-checkbox-20" role="switch" type="checkbox"/><label for="toctree-checkbox-20"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/CorpusCallosum.data.constants.html">CorpusCallosum.data.constants</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/CorpusCallosum.data.fsaverage_cc_template.html">CorpusCallosum.data.fsaverage_cc_template</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/CorpusCallosum.data.read_write.html">CorpusCallosum.data.read_write</a></li>
 </ul>
 </li>
-<li class="toctree-l2 has-children"><a class="reference internal" href="../api/CorpusCallosum.localization.html">CorpusCallosum.localization</a><input aria-label="Toggle navigation of CorpusCallosum.localization" class="toctree-checkbox" id="toctree-checkbox-19" name="toctree-checkbox-19" role="switch" type="checkbox"/><label for="toctree-checkbox-19"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../api/CorpusCallosum.localization.html">CorpusCallosum.localization</a><input aria-label="Toggle navigation of CorpusCallosum.localization" class="toctree-checkbox" id="toctree-checkbox-21" name="toctree-checkbox-21" role="switch" type="checkbox"/><label for="toctree-checkbox-21"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/CorpusCallosum.localization.inference.html">CorpusCallosum.localization.inference</a></li>
 </ul>
 </li>
-<li class="toctree-l2 has-children"><a class="reference internal" href="../api/CorpusCallosum.registration.html">CorpusCallosum.registration</a><input aria-label="Toggle navigation of CorpusCallosum.registration" class="toctree-checkbox" id="toctree-checkbox-20" name="toctree-checkbox-20" role="switch" type="checkbox"/><label for="toctree-checkbox-20"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../api/CorpusCallosum.registration.html">CorpusCallosum.registration</a><input aria-label="Toggle navigation of CorpusCallosum.registration" class="toctree-checkbox" id="toctree-checkbox-22" name="toctree-checkbox-22" role="switch" type="checkbox"/><label for="toctree-checkbox-22"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/CorpusCallosum.registration.midsagittal_plane_alignment.html">CorpusCallosum.registration.midsagittal_plane_alignment</a></li>
 </ul>
 </li>
-<li class="toctree-l2 has-children"><a class="reference internal" href="../api/CorpusCallosum.segmentation.html">CorpusCallosum.segmentation</a><input aria-label="Toggle navigation of CorpusCallosum.segmentation" class="toctree-checkbox" id="toctree-checkbox-21" name="toctree-checkbox-21" role="switch" type="checkbox"/><label for="toctree-checkbox-21"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../api/CorpusCallosum.segmentation.html">CorpusCallosum.segmentation</a><input aria-label="Toggle navigation of CorpusCallosum.segmentation" class="toctree-checkbox" id="toctree-checkbox-23" name="toctree-checkbox-23" role="switch" type="checkbox"/><label for="toctree-checkbox-23"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/CorpusCallosum.segmentation.inference.html">CorpusCallosum.segmentation.inference</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/CorpusCallosum.segmentation.segmentation_postprocessing.html">CorpusCallosum.segmentation.segmentation_postprocessing</a></li>
 </ul>
 </li>
-<li class="toctree-l2 has-children"><a class="reference internal" href="../api/CorpusCallosum.shape.html">CorpusCallosum.shape</a><input aria-label="Toggle navigation of CorpusCallosum.shape" class="toctree-checkbox" id="toctree-checkbox-22" name="toctree-checkbox-22" role="switch" type="checkbox"/><label for="toctree-checkbox-22"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../api/CorpusCallosum.shape.html">CorpusCallosum.shape</a><input aria-label="Toggle navigation of CorpusCallosum.shape" class="toctree-checkbox" id="toctree-checkbox-24" name="toctree-checkbox-24" role="switch" type="checkbox"/><label for="toctree-checkbox-24"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/CorpusCallosum.shape.contour.html">CorpusCallosum.shape.contour</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/CorpusCallosum.shape.curvature.html">CorpusCallosum.shape.curvature</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/CorpusCallosum.shape.endpoint_heuristic.html">CorpusCallosum.shape.endpoint_heuristic</a></li>
@@ -362,33 +384,33 @@
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/CorpusCallosum.shape.thickness.html">CorpusCallosum.shape.thickness</a></li>
 </ul>
 </li>
-<li class="toctree-l2 has-children"><a class="reference internal" href="../api/CorpusCallosum.transforms.html">CorpusCallosum.transforms</a><input aria-label="Toggle navigation of CorpusCallosum.transforms" class="toctree-checkbox" id="toctree-checkbox-23" name="toctree-checkbox-23" role="switch" type="checkbox"/><label for="toctree-checkbox-23"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../api/CorpusCallosum.transforms.html">CorpusCallosum.transforms</a><input aria-label="Toggle navigation of CorpusCallosum.transforms" class="toctree-checkbox" id="toctree-checkbox-25" name="toctree-checkbox-25" role="switch" type="checkbox"/><label for="toctree-checkbox-25"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/CorpusCallosum.transforms.localization.html">CorpusCallosum.transforms.localization</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/CorpusCallosum.transforms.segmentation.html">CorpusCallosum.transforms.segmentation</a></li>
 </ul>
 </li>
-<li class="toctree-l2 has-children"><a class="reference internal" href="../api/CorpusCallosum.utils.html">CorpusCallosum.utils</a><input aria-label="Toggle navigation of CorpusCallosum.utils" class="toctree-checkbox" id="toctree-checkbox-24" name="toctree-checkbox-24" role="switch" type="checkbox"/><label for="toctree-checkbox-24"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../api/CorpusCallosum.utils.html">CorpusCallosum.utils</a><input aria-label="Toggle navigation of CorpusCallosum.utils" class="toctree-checkbox" id="toctree-checkbox-26" name="toctree-checkbox-26" role="switch" type="checkbox"/><label for="toctree-checkbox-26"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/CorpusCallosum.utils.checkpoint.html">CorpusCallosum.utils.checkpoint</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/CorpusCallosum.utils.mapping_helpers.html">CorpusCallosum.utils.mapping_helpers</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/CorpusCallosum.utils.types.html">CorpusCallosum.utils.types</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/CorpusCallosum.utils.visualization.html">CorpusCallosum.utils.visualization</a></li>
 </ul>
 </li>
-<li class="toctree-l2 has-children"><a class="reference internal" href="../api/HypVINN.html">HypVINN</a><input aria-label="Toggle navigation of HypVINN" class="toctree-checkbox" id="toctree-checkbox-25" name="toctree-checkbox-25" role="switch" type="checkbox"/><label for="toctree-checkbox-25"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../api/HypVINN.html">HypVINN</a><input aria-label="Toggle navigation of HypVINN" class="toctree-checkbox" id="toctree-checkbox-27" name="toctree-checkbox-27" role="switch" type="checkbox"/><label for="toctree-checkbox-27"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/HypVINN.inference.html">HypVINN.inference</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/HypVINN.run_prediction.html">HypVINN.run_prediction</a></li>
 </ul>
 </li>
-<li class="toctree-l2 has-children"><a class="reference internal" href="../api/HypVINN.dataloader.html">HypVINN.data_loader</a><input aria-label="Toggle navigation of HypVINN.data_loader" class="toctree-checkbox" id="toctree-checkbox-26" name="toctree-checkbox-26" role="switch" type="checkbox"/><label for="toctree-checkbox-26"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../api/HypVINN.dataloader.html">HypVINN.data_loader</a><input aria-label="Toggle navigation of HypVINN.data_loader" class="toctree-checkbox" id="toctree-checkbox-28" name="toctree-checkbox-28" role="switch" type="checkbox"/><label for="toctree-checkbox-28"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/HypVINN.data_loader.data_utils.html">HypVINN.data_loader.data_utils</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/HypVINN.data_loader.dataset.html">HypVINN.data_loader.dataset</a></li>
 </ul>
 </li>
-<li class="toctree-l2 has-children"><a class="reference internal" href="../api/HypVINN.models.html">HypVINN.models</a><input aria-label="Toggle navigation of HypVINN.models" class="toctree-checkbox" id="toctree-checkbox-27" name="toctree-checkbox-27" role="switch" type="checkbox"/><label for="toctree-checkbox-27"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../api/HypVINN.models.html">HypVINN.models</a><input aria-label="Toggle navigation of HypVINN.models" class="toctree-checkbox" id="toctree-checkbox-29" name="toctree-checkbox-29" role="switch" type="checkbox"/><label for="toctree-checkbox-29"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/HypVINN.models.networks.html">HypVINN.models.networks</a></li>
 </ul>
 </li>
-<li class="toctree-l2 has-children"><a class="reference internal" href="../api/HypVINN.utils.html">HypVINN.utils</a><input aria-label="Toggle navigation of HypVINN.utils" class="toctree-checkbox" id="toctree-checkbox-28" name="toctree-checkbox-28" role="switch" type="checkbox"/><label for="toctree-checkbox-28"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../api/HypVINN.utils.html">HypVINN.utils</a><input aria-label="Toggle navigation of HypVINN.utils" class="toctree-checkbox" id="toctree-checkbox-30" name="toctree-checkbox-30" role="switch" type="checkbox"/><label for="toctree-checkbox-30"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/HypVINN.utils.checkpoint.html">HypVINN.utils.checkpoint</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/HypVINN.utils.img_processing_utils.html">HypVINN.utils.img_processing_utils</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/HypVINN.utils.load_config.html">HypVINN.utils.load_config</a></li>
@@ -399,13 +421,14 @@
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/HypVINN.utils.visualization_utils.html">HypVINN.utils.visualization_utils</a></li>
 </ul>
 </li>
-<li class="toctree-l2 has-children"><a class="reference internal" href="../api/recon_surf.html">recon_surf</a><input aria-label="Toggle navigation of recon_surf" class="toctree-checkbox" id="toctree-checkbox-29" name="toctree-checkbox-29" role="switch" type="checkbox"/><label for="toctree-checkbox-29"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../api/recon_surf.html">recon_surf</a><input aria-label="Toggle navigation of recon_surf" class="toctree-checkbox" id="toctree-checkbox-31" name="toctree-checkbox-31" role="switch" type="checkbox"/><label for="toctree-checkbox-31"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/recon_surf.create_annotation.html">recon_surf.create_annotation</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/recon_surf.fs_balabels.html">recon_surf.fs_balabels</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/recon_surf.image_io.html">recon_surf.image_io</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/recon_surf.long_compat_segmentHA.html">recon_surf.long_compat_segmentHA</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/recon_surf.map_surf_label.html">recon_surf.map_surf_label</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/recon_surf.N4_bias_correct.html">recon_surf.N4_bias_correct</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../api/generated/recon_surf.pin_cpu_dispatch.html">recon_surf.pin_cpu_dispatch</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/recon_surf.rewrite_mc_surface.html">recon_surf.rewrite_mc_surface</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/recon_surf.rewrite_oriented_surface.html">recon_surf.rewrite_oriented_surface</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../api/generated/recon_surf.rotate_sphere.html">recon_surf.rotate_sphere</a></li>
@@ -455,98 +478,114 @@
           </label>
         </div>
         <article role="main" id="furo-main-content">
-          <section id="batch-brun-fastsurfer-sh">
-<h1>BATCH: brun_fastsurfer.sh<a class="headerlink" href="#batch-brun-fastsurfer-sh" title="Link to this heading">¶</a></h1>
+          <section id="brun-fastsurfer-sh">
+<h1>brun_fastsurfer.sh<a class="headerlink" href="#brun-fastsurfer-sh" title="Link to this heading">¶</a></h1>
 <section id="usage">
 <h2>Usage<a class="headerlink" href="#usage" title="Link to this heading">¶</a></h2>
-<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>$ ./brun_fastsurfer.sh --help
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>./brun_fastsurfer.sh --help
 Script to run FastSurfer on multiple subjects in parallel/series.
 
 Usage:
-brun_fastsurfer.sh --subject_list &lt;file&gt; [other options]
+brun_fastsurfer.sh --subjects_list &lt;subjects_list_path&gt; [other options]
 OR
-brun_fastsurfer.sh --subjects &lt;subject_id&gt;=&lt;file&gt; [&lt;subject_id&gt;=&lt;file&gt; [...]] [other options]
+brun_fastsurfer.sh --subjects &lt;subject_id&gt;=&lt;t1_path&gt; [&lt;subject_id&gt;=&lt;t1_path&gt;
+    [...]] [other options]
 OR
 brun_fastsurfer.sh [other options]
 
 Other options:
-brun_fastsurfer.sh [...] [--batch &quot;&lt;i&gt;/&lt;n&gt;&quot;] [--parallel &lt;N&gt;|max] [--parallel_seg &lt;N&gt;|max] [--parallel_surf &lt;N&gt;|max]
-    [--run_fastsurfer &lt;script to run fastsurfer&gt;] [--statusfile &lt;filename&gt;] [--debug] [--help]
-    [&lt;additional run_fastsurfer.sh options&gt;]
+brun_fastsurfer.sh [...] [--batch "&lt;i&gt;/&lt;n&gt;"] [--parallel &lt;n&gt;|max]
+    [--parallel_seg &lt;n&gt;|max] [--parallel_surf &lt;n&gt;|max]
+    [--run_fastsurfer &lt;command/run_fastsurfer_script&gt;]
+    [--statusfile &lt;filename&gt;] [--debug] [--help]
+    [&lt;fastsurfer_flags&gt;]
 
-Author:   David Kügler, david.kuegler@dzne.de
-Date:     Nov 6, 2023
-Version:  1.0
 License:  Apache License, Version 2.0
 
 Documentation of Options:
-Generally, brun_fastsurfer works similar to run_fastsurfer, but loops over multiple subjects from
+Generally, brun_fastsurfer works similar to run_fastsurfer, but loops over
+multiple subjects from
 i. a list passed through stdin of the format (one subject per line)
 ---
-&lt;subject_id&gt;=&lt;path to t1 image&gt;[ &lt;subject-specific parameters&gt;[ ...]]
+&lt;subject_id&gt;=&lt;t1_path&gt;[ &lt;subject_specific_parameters&gt;[ ...]]
 ...
 ---
-ii. a subject_list file using the same format (use Ctrl-D to end the input), or
-iii. a list of subjects directly passed (this does not support subject-specific parameters)
+ii. a subjects list file using the same format (use Ctrl-D to end the input), or
+iii. a list of subjects directly passed (this does not support subject-specific
+  parameters)
 
---batch &quot;&lt;i&gt;/&lt;n&gt;&quot;: run the i-th of n batches (starting at 1) of the full list of subjects
-  (default: 1/1, == run all). &quot;slurm_task_id&quot; is a valid option for &quot;&lt;i&gt;&quot;.
-  Note, brun_fastsurfer.sh will also automatically detect being run in a SLURM JOBARRAY and split
-  according to $SLURM_ARRAY_TASK_ID and $SLURM_ARRAY_TASK_COUNT (unless values are specifically
-  assigned with the --batch argument).
---parallel &lt;n&gt;|max: parallel execution of run_fastsurfer for &lt;n&gt; images. Creates &lt;n&gt; processes with
-  each process performing segmentation and surface reconstruction. The default is this serial execution
-  mode with n=1: &#39;--parallel 1&#39;.
+A path or parameter that contains a space has to be quoted or escaped as it
+would be in the shell, i.e. '/data/my subject/t1.mgz', "/data/my subject/t1.mgz"
+or /data/my\ subject/t1.mgz. Single quotes are the simplest, because everything
+inside them is taken literally, including backslashes. No expansion is performed
+in either kind of quotes, so a $ or a ` is just that character.
+
+--batch "&lt;i&gt;/&lt;n&gt;": run the i-th of n batches (starting at 1) of the full list of
+  subjects (default: 1/1, == run all). "slurm_task_id" is a valid option for
+  "&lt;i&gt;".
+  Note, brun_fastsurfer.sh will also automatically detect being run in a SLURM
+  JOBARRAY and split according to $SLURM_ARRAY_TASK_ID and
+  $SLURM_ARRAY_TASK_COUNT (unless values are specifically assigned with the
+  --batch argument).
+--parallel &lt;n&gt;|max: parallel execution of run_fastsurfer for &lt;n&gt; images. Creates
+  &lt;n&gt; processes with each process performing segmentation and surface
+  reconstruction. The default is this serial execution mode with n=1:
+  '--parallel 1'.
 --parallel_seg &lt;n&gt;|max and
---parallel_surf &lt;m&gt;|max: activate independent segmentation and surface reconstruction pipelines.
-  Segmentation and Surface reconstruction have independent processing queues. After successful
-  segmentation (&lt;n&gt; parallel processes), cases are transferred into the surface queue (&lt;m&gt; parallel
-  processes). Together max. m+n processes will run. Logfiles unchanged, console output for individual
-  subjects is interleaved with subject_id prepended.
---run_fastsurfer &lt;path/command&gt;: This option enables the startup of fastsurfer in a more controlled
-  manner, for example to delegate the fastsurfer run to container:
-  --run_fastsurfer &quot;singularity exec --nv --no-mount home,cwd -e -B &lt;dir&gt;:/data /fastsurfer/run_fastsurfer.sh&quot;
-  Note, paths to files and --sd have to be defined in the container file system in this case.
---statusfile &lt;filename&gt;: a file to document which subject ran successfully. Also used to skip
-  surface recon, if the previous segmentation failed.
+--parallel_surf &lt;m&gt;|max: activate independent segmentation and surface
+  reconstruction pipelines. Segmentation and Surface reconstruction have
+  independent processing queues. After successful segmentation (&lt;n&gt; parallel
+  processes), cases are transferred into the surface queue (&lt;m&gt; parallel
+  processes). Together max. m+n processes will run. Logfiles unchanged, console
+  output for individual subjects is interleaved with subject_id prepended.
+--run_fastsurfer &lt;command&gt;: This option enables the startup of fastsurfer in a
+  more controlled manner, for example to delegate the fastsurfer run to
+  container:
+  --run_fastsurfer "singularity exec --nv --no-mount home,cwd -e -B &lt;host_dir&gt;:/data /fastsurfer/run_fastsurfer.sh"
+  Note, paths to files and --sd have to be defined in the container file system
+  in this case.
+--statusfile &lt;filename&gt;: a file to document which subject ran successfully. Also
+  used to skip surface recon, if the previous segmentation failed.
 --threads &lt;n&gt;,
 --threads_seg &lt;n&gt;, and
---threads_surf &lt;n&gt;: specify number of threads for each parallel &quot;process&quot;, i.e.
-  total_threads=num_seg_processes * num_seg_threads + num_surf_processes * num_surf_threads.
+--threads_surf &lt;n&gt;: specify number of threads for each parallel "process", i.e.
+  total_threads=num_seg_processes * num_seg_threads + num_surf_processes *
+  num_surf_threads.
 --debug: Additional debug output.
 --help: print this help.
 
-With the exception of --t1 and --sid, all run_fastsurfer.sh options are supported, see
-&#39;run_fastsurfer.sh --help&#39;.
+With the exception of --t1 and --sid, all run_fastsurfer.sh options are
+supported, see 'run_fastsurfer.sh --help'.
 
-This tool requires functions in stools.sh (expected in same folder as this script).
+This tool requires functions in stools.sh (expected in same folder as this
+script).
 </pre></div>
 </div>
 </section>
-<section id="subject-lists">
-<h2>Subject Lists<a class="headerlink" href="#subject-lists" title="Link to this heading">¶</a></h2>
+<section id="subjects-lists">
+<h2>Subjects Lists<a class="headerlink" href="#subjects-lists" title="Link to this heading">¶</a></h2>
 <p>The input files and options may be specified in three ways:</p>
 <ol class="arabic simple">
 <li><p>By writing them into the console (or by piping them in) (default) (one case per line),</p></li>
-<li><p>by passing a subject list file <code class="docutils literal notranslate"><span class="pre">--subject_list</span> <span class="pre">&lt;filename&gt;</span></code> (one case per line), or</p></li>
-<li><p>by passing them on the command line <code class="docutils literal notranslate"><span class="pre">--subjects</span> <span class="pre">&quot;&lt;subject_id&gt;=&lt;t1</span> <span class="pre">file&gt;&quot;</span> <span class="pre">[more</span> <span class="pre">cases]</span></code> (no additional options
+<li><p>by passing a subjects list file <code class="docutils literal notranslate"><span class="pre">--subjects_list</span> <span class="pre">&lt;subjects_list_path&gt;</span></code> (one case per line), or</p></li>
+<li><p>by passing them on the command line <code class="docutils literal notranslate"><span class="pre">--subjects</span> <span class="pre">&quot;&lt;subject_id&gt;=&lt;t1_path&gt;&quot;</span> <span class="pre">[more</span> <span class="pre">cases]</span></code> (no additional options
 supported).</p></li>
 </ol>
-<p>These files/input options will usually be in the format <code class="docutils literal notranslate"><span class="pre">&lt;subject_id&gt;=&lt;t1</span> <span class="pre">file&gt;</span> <span class="pre">[additional</span> <span class="pre">options]</span></code>, where additional
+<p>These files/input options will usually be in the format <code class="docutils literal notranslate"><span class="pre">&lt;subject_id&gt;=&lt;t1_path&gt;</span> <span class="pre">[additional</span> <span class="pre">options]</span></code>, where additional
 options are optional and enable passing options different to the “general options” given on the command line to
 <code class="docutils literal notranslate"><span class="pre">brun_fastsurfer.sh</span></code>. One example for such a case-specific option is an optional T2w image (e.g. for the
-<a class="reference internal" href="../overview/OUTPUT_FILES.html#hypvinn-module"><span class="std std-ref">HypVINN</span></a>). An example subject list file might look like this:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="mi">001</span><span class="o">=/</span><span class="n">data</span><span class="o">/</span><span class="n">study</span><span class="o">/</span><span class="n">raw</span><span class="o">/</span><span class="n">T1w</span><span class="o">-</span><span class="mf">001.</span><span class="n">nii</span><span class="o">.</span><span class="n">gz</span> <span class="o">--</span><span class="n">t2</span> <span class="o">/</span><span class="n">data</span><span class="o">/</span><span class="n">study</span><span class="o">/</span><span class="n">raw</span><span class="o">/</span><span class="n">T2w</span><span class="o">-</span><span class="mf">001.</span><span class="n">nii</span><span class="o">.</span><span class="n">gz</span>
-<span class="mi">002</span><span class="o">=/</span><span class="n">data</span><span class="o">/</span><span class="n">study</span><span class="o">/</span><span class="n">raw</span><span class="o">/</span><span class="n">T1w</span><span class="o">-</span><span class="mf">002.</span><span class="n">nii</span><span class="o">.</span><span class="n">gz</span> <span class="o">--</span><span class="n">t2</span> <span class="o">/</span><span class="n">data</span><span class="o">/</span><span class="n">study</span><span class="o">/</span><span class="n">raw</span><span class="o">/</span><span class="n">T2w</span><span class="o">-</span><span class="mf">002.</span><span class="n">nii</span><span class="o">.</span><span class="n">gz</span>
-<span class="mi">002</span><span class="o">=/</span><span class="n">data</span><span class="o">/</span><span class="n">study</span><span class="o">/</span><span class="n">raw</span><span class="o">/</span><span class="n">T1w</span><span class="o">-</span><span class="mi">003</span><span class="o">-</span><span class="n">alt</span><span class="o">.</span><span class="n">nii</span><span class="o">.</span><span class="n">gz</span> <span class="o">--</span><span class="n">t2</span> <span class="o">/</span><span class="n">data</span><span class="o">/</span><span class="n">study</span><span class="o">/</span><span class="n">raw</span><span class="o">/</span><span class="n">T2w</span><span class="o">-</span><span class="mf">003.</span><span class="n">nii</span><span class="o">.</span><span class="n">gz</span>
-<span class="o">...</span>
+<a class="reference internal" href="../overview/OUTPUT_FILES.html#hypvinn-module"><span class="std std-ref">HypVINN</span></a>). An example subjects list file might look like this:</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>001=/home/user/my_mri_data/001/t1_weighted.nii.gz --t2 /home/user/my_mri_data/001/t2_weighted.nii.gz
+002=/home/user/my_mri_data/002/t1_weighted.nii.gz --t2 /home/user/my_mri_data/002/t2_weighted.nii.gz
+003=/home/user/my_mri_data/003/t1_weighted_alt.nii.gz --t2 /home/user/my_mri_data/003/t2_weighted.nii.gz
+...
 </pre></div>
 </div>
 </section>
 <section id="parallelization-with-brun-fastsurfer-sh">
 <h2>Parallelization with <code class="docutils literal notranslate"><span class="pre">brun_fastsurfer.sh</span></code><a class="headerlink" href="#parallelization-with-brun-fastsurfer-sh" title="Link to this heading">¶</a></h2>
 <p><code class="docutils literal notranslate"><span class="pre">brun_fastsurfer.sh</span></code> has powerful builtin parallel processing capabilities. These are hidden underneath the
-<code class="docutils literal notranslate"><span class="pre">--parallel*</span> <span class="pre">&lt;n&gt;|max</span></code> and the <code class="docutils literal notranslate"><span class="pre">--device</span> <span class="pre">&lt;device&gt;</span></code> as well as <code class="docutils literal notranslate"><span class="pre">--viewagg_device</span> <span class="pre">&lt;device&gt;</span></code> flags.
+<code class="docutils literal notranslate"><span class="pre">--parallel*</span> <span class="pre">&lt;n&gt;|max</span></code> and the <code class="docutils literal notranslate"><span class="pre">--device</span> <span class="pre">&lt;torch_device&gt;</span></code> as well as <code class="docutils literal notranslate"><span class="pre">--viewagg_device</span> <span class="pre">&lt;torch_device&gt;</span></code> flags.
 One of the core properties of FastSurfer is the split into the segmentation (which uses Deep Learning and therefore
 benefits from GPUs) and the surface pipeline (which does not benefit from GPUs). For ideal batch processing, we want
 different resource scheduling.</p>
@@ -560,7 +599,8 @@ segmentation of case 2 is started. This setting is the default and represents th
 <h3>Single parallel pipeline<a class="headerlink" href="#single-parallel-pipeline" title="Link to this heading">¶</a></h3>
 <p>This mode is ideal for CPU-based processing for segmentation. It will process segmentations and surfaces in series
 in the same process, but multiple cases are processed at the same time.</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">$FASTSURFER_HOME</span>/brun_fastsurfer.sh<span class="w"> </span>--parallel<span class="w"> </span><span class="m">4</span><span class="w"> </span>--threads<span class="w"> </span><span class="m">2</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span><span class="w"> </span><span class="nv">FASTSURFER_HOME</span><span class="o">=</span><span class="si">${</span><span class="nv">FASTSURFER_HOME</span><span class="k">:-</span><span class="p">/path/to/FastSurfer</span><span class="si">}</span>
+<span class="nv">$FASTSURFER_HOME</span>/brun_fastsurfer.sh<span class="w"> </span>--parallel<span class="w"> </span><span class="m">4</span><span class="w"> </span>--threads<span class="w"> </span><span class="m">2</span>
 </pre></div>
 </div>
 <p>will start 4 segmentations (and surface reconstructions) at the same time, and will start a fifth, when the surface
@@ -568,13 +608,20 @@ processing of one of the four first cases is finished (<code class="docutils lit
 (<code class="docutils literal notranslate"><span class="pre">--threads</span> <span class="pre">2</span></code>) and perform reconstruction of left and right hemispheres in parallel (<code class="docutils literal notranslate"><span class="pre">--threads</span> <span class="pre">2</span></code>, 2 &gt;= 2).
 <code class="docutils literal notranslate"><span class="pre">--parallel</span> <span class="pre">max</span></code> will remove the limit and start all cases at the same time (each with the target number of threads
 given by <code class="docutils literal notranslate"><span class="pre">--threads</span></code>).</p>
+<p>Without <code class="docutils literal notranslate"><span class="pre">--threads</span></code> (and without an exported <code class="docutils literal notranslate"><span class="pre">OMP_NUM_THREADS</span></code>), each case would choose its threads itself and take
+what <code class="docutils literal notranslate"><span class="pre">auto</span></code> gives the whole machine. So when more than one case runs at a time, <code class="docutils literal notranslate"><span class="pre">brun_fastsurfer.sh</span></code> divides that
+between them instead and passes each case its share as <code class="docutils literal notranslate"><span class="pre">--threads_seg</span></code> and <code class="docutils literal notranslate"><span class="pre">--threads_surf</span></code>, within the same limits
+<code class="docutils literal notranslate"><span class="pre">auto</span></code> keeps to (at most 4 threads for a segmentation with <code class="docutils literal notranslate"><span class="pre">--device</span> <span class="pre">cuda</span></code> or <code class="docutils literal notranslate"><span class="pre">mps</span></code>, 8 otherwise). This also reaches
+cases started in a container through <code class="docutils literal notranslate"><span class="pre">--run_fastsurfer</span></code>. A subject line that sets its own <code class="docutils literal notranslate"><span class="pre">--threads</span></code> keeps it, on
+top of the shares of the others, and <code class="docutils literal notranslate"><span class="pre">brun_fastsurfer.sh</span></code> names such lines in a warning.</p>
 </section>
 <section id="dual-parallel-pipeline">
 <h3>Dual parallel pipeline<a class="headerlink" href="#dual-parallel-pipeline" title="Link to this heading">¶</a></h3>
 <p>This is ideal for GPU-based processing for segmentation. It will process segmentations and surfaces in separate
 pipelines, which is useful for optimized GPU loading. Multiple cases may be processed at the same time.</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">$FASTSURFER_HOME</span>/brun_fastsurfer.sh<span class="w"> </span>--device<span class="w"> </span>cuda:0-1<span class="w"> </span>--parallel_seg<span class="w"> </span><span class="m">2</span><span class="w"> </span>--parallel_surf<span class="w"> </span>max<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--threads_seg<span class="w"> </span><span class="m">8</span><span class="w"> </span>--threads_surf<span class="w"> </span><span class="m">4</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span><span class="w"> </span><span class="nv">FASTSURFER_HOME</span><span class="o">=</span><span class="si">${</span><span class="nv">FASTSURFER_HOME</span><span class="k">:-</span><span class="p">/path/to/FastSurfer</span><span class="si">}</span>
+<span class="nv">$FASTSURFER_HOME</span>/brun_fastsurfer.sh<span class="w"> </span>--device<span class="w"> </span>cuda:0-1<span class="w"> </span>--parallel_seg<span class="w"> </span><span class="m">2</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--parallel_surf<span class="w"> </span>max<span class="w"> </span>--threads_seg<span class="w"> </span><span class="m">8</span><span class="w"> </span>--threads_surf<span class="w"> </span><span class="m">4</span>
 </pre></div>
 </div>
 <p>will start 2 parallel segmentations (<code class="docutils literal notranslate"><span class="pre">--parallel_seg</span> <span class="pre">2</span></code>) using GPU 0 for case 1 and GPU 1 for case 2
@@ -595,7 +642,7 @@ can run on the same GPU, but the script cannot schedule more than one process pe
 <div><p>You can disable the progress bars by setting the TQDM_DISABLE environment variable to 1, if you have tqdm&gt;=4.66.</p>
 <p>For docker, this can be done with the flag <code class="docutils literal notranslate"><span class="pre">-e</span></code>, e.g. <code class="docutils literal notranslate"><span class="pre">docker</span> <span class="pre">run</span> <span class="pre">-e</span> <span class="pre">TQDM_DISABLE=1</span> <span class="pre">...</span></code>, for singularity with the
 flag <code class="docutils literal notranslate"><span class="pre">--env</span></code>, e.g. <code class="docutils literal notranslate"><span class="pre">singularity</span> <span class="pre">exec</span> <span class="pre">--env</span> <span class="pre">TQDM_DISABLE=1</span> <span class="pre">...</span></code> and for native installations by prepending, e.g.
-<code class="docutils literal notranslate"><span class="pre">TQDM_DISABLE=1</span> <span class="pre">./run_fastsurfer.sh</span> <span class="pre">...</span></code>.</p>
+<code class="docutils literal notranslate"><span class="pre">TQDM_DISABLE=1</span> <span class="pre">$FASTSURFER_HOME/run_fastsurfer.sh</span> <span class="pre">...</span></code>.</p>
 </div></blockquote>
 </section>
 </section>
@@ -610,7 +657,7 @@ flag <code class="docutils literal notranslate"><span class="pre">--env</span></
                 <div class="context">
                   <span>Next</span>
                 </div>
-                <div class="title">SLURM: srun_fastsurfer.sh</div>
+                <div class="title">srun_fastsurfer.sh</div>
               </div>
               <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
             </a>
@@ -621,7 +668,7 @@ flag <code class="docutils literal notranslate"><span class="pre">--env</span></
                   <span>Previous</span>
                 </div>
                 
-                <div class="title">LONG: long_fastsurfer.sh</div>
+                <div class="title">long_fastsurfer.sh</div>
                 
               </div>
             </a>
@@ -661,9 +708,9 @@ flag <code class="docutils literal notranslate"><span class="pre">--env</span></
         <div class="toc-tree-container">
           <div class="toc-tree">
             <ul>
-<li><a class="reference internal" href="#">BATCH: brun_fastsurfer.sh</a><ul>
+<li><a class="reference internal" href="#">brun_fastsurfer.sh</a><ul>
 <li><a class="reference internal" href="#usage">Usage</a></li>
-<li><a class="reference internal" href="#subject-lists">Subject Lists</a></li>
+<li><a class="reference internal" href="#subjects-lists">Subjects Lists</a></li>
 <li><a class="reference internal" href="#parallelization-with-brun-fastsurfer-sh">Parallelization with <code class="docutils literal notranslate"><span class="pre">brun_fastsurfer.sh</span></code></a><ul>
 <li><a class="reference internal" href="#serial-processing-default">Serial processing (default)</a></li>
 <li><a class="reference internal" href="#single-parallel-pipeline">Single parallel pipeline</a></li>
@@ -687,7 +734,8 @@ flag <code class="docutils literal notranslate"><span class="pre">--env</span></
     <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../_static/scripts/furo.js?v=46bd48cc"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
-    <script src="../_static/copybutton.js?v=f281be69"></script>
+    <script src="../_static/copybutton.js?v=1be11439"></script>
     <script src="../_static/design-tabs.js?v=f930bc37"></script>
+    <script src="../_static/doc-version-link.js?v=e710a016"></script>
     </body>
 </html>

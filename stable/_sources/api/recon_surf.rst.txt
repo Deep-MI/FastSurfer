@@ -13,6 +13,7 @@ recon_surf
     long_compat_segmentHA
     map_surf_label
     N4_bias_correct
+    pin_cpu_dispatch
     rewrite_mc_surface
     rewrite_oriented_surface
     rotate_sphere
