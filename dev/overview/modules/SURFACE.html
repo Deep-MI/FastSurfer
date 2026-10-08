@@ -505,8 +505,8 @@ run can compute.</p></li>
 <li><p>Voxel sizes between 0.7 mm and 1 mm are supported (smaller voxels are experimental); below 1 mm, the pipeline runs in
 its high-resolution mode.</p></li>
 </ul>
-<p>The surface reconstruction takes about an hour, less with several threads (<code class="docutils literal notranslate"><span class="pre">--threads</span></code>), which also process both
-hemispheres in parallel.</p>
+<p>The surface reconstruction takes about 20 to 40 minutes, because it processes both hemispheres in parallel by default.
+With <code class="docutils literal notranslate"><span class="pre">--threads</span> <span class="pre">1</span></code>, it processes them one after the other and takes considerably longer.</p>
 </section>
 <section id="options">
 <h2>Options<a class="headerlink" href="#options" title="Link to this heading">¶</a></h2>

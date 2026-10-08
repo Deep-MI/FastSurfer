@@ -483,7 +483,7 @@
 <h1>Welcome to FastSurfer!<a class="headerlink" href="#welcome-to-fastsurfer" title="Link to this heading">¶</a></h1>
 <section id="overview">
 <h2>Overview<a class="headerlink" href="#overview" title="Link to this heading">¶</a></h2>
-<p>FastSurfer is a fast and accurate deep-learning based neuroimaging pipeline. It provides a fully compatible <a class="reference external" href="https://freesurfer.net/">FreeSurfer</a> alternative for volumetric analysis (within minutes) and surface-based thickness analysis (within only around 1h run time), and it supports sub-millimeter resolutions down to 0.7mm (see the modules below for details).</p>
+<p>FastSurfer is a fast and accurate deep-learning based neuroimaging pipeline. It provides a fully compatible <a class="reference external" href="https://freesurfer.net/">FreeSurfer</a> alternative for volumetric analysis (within minutes) and surface-based thickness analysis (in about half an hour), and it supports sub-millimeter resolutions down to 0.7mm (see the modules below for details).</p>
 <p>The FastSurfer pipeline consists of two main parts for segmentation and surface reconstruction.</p>
 <ul class="simple">
 <li><p>the segmentation sub-pipeline (<code class="docutils literal notranslate"><span class="pre">seg</span></code>) employs advanced deep learning networks for fast, accurate segmentation and volumetric calculation of the whole brain and selected substructures.</p></li>
@@ -492,7 +492,7 @@
 <section id="segmentation-modules">
 <h3>Segmentation Modules<a class="headerlink" href="#segmentation-modules" title="Link to this heading">¶</a></h3>
 <ul class="simple">
-<li><p>approximately 5 minutes (GPU), <code class="docutils literal notranslate"><span class="pre">--seg_only</span></code> only runs this part.</p></li>
+<li><p>a few minutes on a GPU, <code class="docutils literal notranslate"><span class="pre">--seg_only</span></code> only runs this part.</p></li>
 </ul>
 <p>Modules (all run by default):</p>
 <ol class="arabic simple">
@@ -529,7 +529,7 @@
 <section id="surface-reconstruction">
 <h3>Surface reconstruction<a class="headerlink" href="#surface-reconstruction" title="Link to this heading">¶</a></h3>
 <ul class="simple">
-<li><p>approximately 60-90 minutes, <code class="docutils literal notranslate"><span class="pre">--surf_only</span></code> runs only <a class="reference internal" href="overview/modules/SURFACE.html"><span class="std std-doc">the surface part</span></a>.</p></li>
+<li><p>approximately 20 to 40 minutes with both hemispheres in parallel (the default), <code class="docutils literal notranslate"><span class="pre">--surf_only</span></code> runs only <a class="reference internal" href="overview/modules/SURFACE.html"><span class="std std-doc">the surface part</span></a>.</p></li>
 <li><p>supports high-resolution images (up to 0.7mm, experimental beyond that).</p></li>
 <li><p>requires a FreeSurfer license file as it uses some FreeSurfer binaries internally.</p></li>
 <li><p>requires outputs of the <code class="docutils literal notranslate"><span class="pre">asegdkt</span></code> and the <code class="docutils literal notranslate"><span class="pre">cc</span></code> modules as a prerequisite (can be included in the same run).</p></li>
