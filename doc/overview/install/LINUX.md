@@ -9,6 +9,13 @@ and for the CPU only, on [Docker Hub](https://hub.docker.com/r/deepmi/fastsurfer
 A GPU with enough memory makes the segmentation much faster, see the
 [system requirements](../intro.rst#system-requirements). Without a GPU, use the [CPU image](#cpu-only).
 
+The images are tagged `deepmi/fastsurfer:<device>-v<version>`, where `<device>` is `cu<cuda_version>` for NVIDIA GPUs
+(see [below](#nvidia-gpus)), `rocm<rocm_version>` for AMD GPUs (experimental), or `cpu` without GPU support (smaller
+and thus faster to download), and `<version>` is the FastSurfer version. `latest` points to the newest NVIDIA image,
+with the default CUDA version of that release, and `cpu-latest` to the newest CPU image.
+[Docker Hub](https://hub.docker.com/r/deepmi/fastsurfer/tags) lists all tags. For reproducible results, use a
+versioned tag.
+
 NVIDIA GPUs
 -----------
 We build the images for two CUDA versions, because newer CUDA versions drop old GPUs and older ones lack the newest:
@@ -54,8 +61,8 @@ singularity build \
     docker://deepmi/fastsurfer:{{ CUDA_STRING }}-v{{ FASTSURFER_VERSION }}
 ```
 
-[Example 1](../EXAMPLES.md#example-1-fastsurfer-apptainer-or-singularity) shows how to run FastSurfer with it, and
-the [Singularity page](../SINGULARITY.md) explains the flags and how to build your own image.
+[Running FastSurfer in a container](../CONTAINERS.md#using-apptainer-or-singularity) shows how to run FastSurfer with
+it and explains the flags.
 
 Docker
 ------
@@ -65,8 +72,8 @@ With Docker installed, download our image:
 docker pull deepmi/fastsurfer:{{ CUDA_STRING }}-v{{ FASTSURFER_VERSION }}
 ```
 
-[Example 2](../EXAMPLES.md#example-2-fastsurfer-docker) shows how to run FastSurfer with it, and the
-[Docker page](../docker.rst) explains the Docker flags and how to build your own image.
+[Running FastSurfer in a container](../CONTAINERS.md#using-docker) shows how to run FastSurfer with it and explains
+the flags.
 
 For NVIDIA GPUs, Docker needs the
 [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html).
@@ -93,7 +100,8 @@ or, for Docker:
 docker pull deepmi/fastsurfer:cpu-v{{ FASTSURFER_VERSION }}
 ```
 
-Run it as in the examples, without `--nv` (Apptainer or Singularity) or `--gpus all` (Docker).
+Run it as described in [Running FastSurfer in a container](../CONTAINERS.md), without `--nv` (Apptainer or
+Singularity) or `--gpus all` (Docker).
 
 AMD GPUs (experimental)
 -----------------------
@@ -109,7 +117,8 @@ docker pull deepmi/fastsurfer:{{ ROCM_STRING }}-v{{ FASTSURFER_VERSION }}
 ```
 
 AMD needs a few more flags in the `docker run` command, see
-[Example 2](../EXAMPLES.md#example-2-fastsurfer-docker) for `<docker_flags>` and `<fastsurfer_flags>`.
+[Running FastSurfer in a container](../CONTAINERS.md#using-docker) for `<docker_flags>` and `<fastsurfer_flags>`. To
+build your own ROCm image, see [Building FastSurfer Docker images](../../developer/docker.rst).
 
 Usage:
 

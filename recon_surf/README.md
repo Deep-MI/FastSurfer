@@ -91,7 +91,7 @@ singularity exec --no-mount home,cwd -e \
 * The `-B` commands mount your output, and directory with the FreeSurfer license file into the Singularity container. 
   Inside the container these are visible under the same paths as on the host.
 
-* The `--no-mount home,cwd` command disables the automatic mount of the users home directory (see [Best Practice](../doc/overview/SINGULARITY.md#mounting-home-and-current-working-directory))
+* The `--no-mount home,cwd` command disables the automatic mount of the users home directory (see [Best Practice](../doc/overview/CONTAINERS.md#mounting-home-and-current-working-directory))
 
 The `--t1` and `--asegdkt_segfile` flags point to the already existing conformed T1 input and segmentation from the 
 segmentation module. Also other files from that pipeline will be reused (e.g. the `mask.mgz`, `orig_nu.mgz`). The 

@@ -82,7 +82,7 @@ All installation methods use the `run_fastsurfer.sh` call interface (replace the
                       <fastsurfer_flags>
       ```
       This command has two placeholders for flags: `<singularity_flags>` and `<fastsurfer_flags>`.
-      `<singularity_flags>` [set up the singularity environment](doc/overview/SINGULARITY.md), `<fastsurfer_flags>` include the options that determine the [behavior of FastSurfer](doc/scripts/RUN_FASTSURFER.md):
+      `<singularity_flags>` [set up the Apptainer environment](doc/overview/CONTAINERS.md#apptainer-flags), `<fastsurfer_flags>` include the options that determine the [behavior of FastSurfer](doc/scripts/RUN_FASTSURFER.md):
       ### Basic FastSurfer Flags
       
       - `--t1`: the path to the image to process.
@@ -106,7 +106,7 @@ All installation methods use the `run_fastsurfer.sh` call interface (replace the
                       --fs_license $freesurfer_license
       ```
 
-      See also __[Example 1](doc/overview/EXAMPLES.md#example-1-fastsurfer-apptainer-or-singularity)__ for a full singularity FastSurfer run command and [the Singularity documentation](doc/overview/SINGULARITY.md#using-apptainer-or-singularity) for details on more singularity flags and how to create the `<sif_path>`.
+      See also __[Example 1](doc/overview/EXAMPLES.md#example-1-fastsurfer-apptainer-or-singularity)__ for a full singularity FastSurfer run command and [Running FastSurfer in a container](doc/overview/CONTAINERS.md#using-apptainer-or-singularity) for details on more Apptainer flags, and [Linux](doc/overview/install/LINUX.md#apptainer-or-singularity) for how to create the `<sif_path>`.
 
    2. For __docker__, the syntax is
       ```text
@@ -115,9 +115,9 @@ All installation methods use the `run_fastsurfer.sh` call interface (replace the
                  <fastsurfer_flags>
       ```
       
-      The options for `<docker_flags>` and [`<fastsurfer_flags>`](README.md#basic-fastsurfer-flags) follow very similar patterns as for Singularity ([but the names of `<docker_flags>` are different](tools/Docker/README.md#docker-flags)).
+      The options for `<docker_flags>` and [`<fastsurfer_flags>`](README.md#basic-fastsurfer-flags) follow very similar patterns as for Singularity ([but the names of `<docker_flags>` are different](doc/overview/CONTAINERS.md#docker-flags)).
  
-      __[Example 2](doc/overview/EXAMPLES.md#example-2-fastsurfer-docker)__ also details a full FastSurfer run inside a Docker container and [the Docker documentation](tools/Docker/README.md#docker-flags) for more details on `<docker_flags>` and the naming of docker images (`<device>-v<version>`).
+      __[Example 2](doc/overview/EXAMPLES.md#example-2-fastsurfer-docker)__ also details a full FastSurfer run inside a Docker container and [Running FastSurfer in a container](doc/overview/CONTAINERS.md#docker-flags) for more details on `<docker_flags>`, and [Linux](doc/overview/install/LINUX.md) for the naming of Docker images (`<device>-v<version>`).
 
 2. For a __macOS package install__, start FastSurfer from Applications and call the `run_fastsurfer.sh` FastSurfer script with [FastSurfer flags](doc/scripts/RUN_FASTSURFER.md#required-arguments) from the terminal that is opened for you.
 

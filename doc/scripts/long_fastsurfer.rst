@@ -1,5 +1,5 @@
-LONG: long_fastsurfer.sh
-========================
+long_fastsurfer.sh
+==================
 
 .. note::
    Please also see the documentation on :doc:`../overview/LONG`.

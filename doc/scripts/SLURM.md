@@ -1,5 +1,5 @@
-SLURM: srun_fastsurfer.sh
-=========================
+srun_fastsurfer.sh
+==================
 
 Usage
 -----

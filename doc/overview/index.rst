@@ -7,6 +7,7 @@ User Guide
     intro
     QUICKSTART.md
     INSTALL.md
+    CONTAINERS.md
     EXAMPLES.md
     OUTPUT_FILES.md
     modules/index

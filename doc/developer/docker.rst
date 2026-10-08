@@ -1,5 +1,5 @@
-Docker
-------
+Building Docker images
+----------------------
 
 .. include:: ../../tools/Docker/README.md
     :parser: fix_links.parser

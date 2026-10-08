@@ -1,12 +1,13 @@
-Contributor Guide
-=================
+Developer Guide
+===============
 
 .. toctree::
     :maxdepth: 2
 
-    GIT-HOOKS.md
-    code_of_conduct
     contributing
+    GIT-HOOKS.md
+    docker
+    code_of_conduct
 
 This section of the documentation contains information for developers to set up FastSurfer for development.
 
