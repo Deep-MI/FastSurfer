@@ -15,8 +15,8 @@ We build the images for two CUDA versions, because newer CUDA versions drop old 
 
 | Image | CUDA | GPUs | NVIDIA driver |
 |-------|------|------|---------------|
-| `{{ CUDA_STRING }}-v{{ FASTSURFER_VERSION }}` (default, also `latest`) | {{ CUDA_VERSION }} | Turing (RTX 20, T4) to Blackwell (RTX 50, B200) | {{ CUDA_DRIVER }} or newer |
-| `{{ CUDA_LEGACY_STRING }}-v{{ FASTSURFER_VERSION }}` | {{ CUDA_LEGACY_VERSION }} | Maxwell (GTX 900) to Hopper (H100), including Pascal (GTX 10, P100) and Volta (V100), but not Blackwell | {{ CUDA_LEGACY_DRIVER }} or newer |
+| `{{ CUDA_DEFAULT_STRING }}-v<version>` (default) | {{ CUDA_DEFAULT_VERSION }} | Turing (RTX 20, T4) to Blackwell (RTX 50, B200) | {{ CUDA_DRIVER }} or newer |
+| `{{ CUDA_LEGACY_STRING }}-v<version>` | {{ CUDA_LEGACY_VERSION }} | Maxwell (GTX 900) to Hopper (H100), including Pascal (GTX 10, P100) and Volta (V100), but not Blackwell | {{ CUDA_LEGACY_DRIVER }} or newer |
 
 Use the default image unless your GPU is older than Turing or your driver is older than {{ CUDA_DRIVER }}; then use the
 {{ CUDA_LEGACY_VERSION }} image. `nvidia-smi` shows the name of your GPU and the driver version.
