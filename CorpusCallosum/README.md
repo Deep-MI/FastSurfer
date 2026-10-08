@@ -55,7 +55,7 @@ docker run --gpus all --rm \
 
 ### Apptainer or Singularity
 
-Build or download an image as described in the [Singularity documentation](../doc/overview/SINGULARITY.md), then bind
+Build or download an image as described in the [Linux installation](../doc/overview/install/LINUX.md#apptainer-or-singularity), then bind
 the subject directory and invoke the expert script directly:
 
 ```bash

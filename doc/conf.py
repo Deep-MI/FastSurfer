@@ -414,7 +414,7 @@ fix_links_target = {
     "^/?(.*)#(.*)ubuntu-(\\d{2})(\\d{2})": ("/\\1#\\2ubuntu-\\3-\\4",),
     f"{_up}readme{_end}": ("/index.rst\\1", "/overview/intro.rst\\1"),
     "^/overview/intro(#.*)?$": ("/overview/index.rst\\2",),
-    f"{_up}/tools/docker/readme{_end}": ("/overview/docker.rst\\2",),
+    f"{_up}/tools/docker/readme{_end}": ("/developer/docker.rst\\2",),
     f"{_up}({_re_script_dirs})/readme{_end}": ("/scripts/\\1.rst\\2",),
     f"{_up}license": ("/overview/license.rst",),
 }
@@ -446,7 +446,7 @@ else:
         f"This documents the development version {version}. Official Docker images only exist for releases, so the "
         f"commands below use the latest release, {image_version}"
     )
-    _build_image = "To run the development version, {doc}`build your own image </overview/docker>`."
+    _build_image = "To run the development version, {doc}`build your own image </developer/docker>`."
     fix_links_substitution_banners = {
         frozenset({"FASTSURFER_VERSION"}): f"{_latest_release_str}. {_build_image}",
         frozenset({"CUDA_STRING"}): (

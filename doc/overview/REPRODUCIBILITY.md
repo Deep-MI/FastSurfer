@@ -74,7 +74,7 @@ set these globally rather than to rely on the three steps that pin themselves.
 modes it selects are a separate source, and we have not tested it. A CPU run and a GPU run of the
 same input are not expected to agree, so `--device` is part of what you have to hold constant.
 
-Use one container image as well, see [Singularity](SINGULARITY.md). On macOS the FreeSurfer
+Use one container image as well, see [Running FastSurfer in a container](CONTAINERS.md). On macOS the FreeSurfer
 binaries are built without OpenMP and run single-threaded regardless, and that combination is
 untested for cross-machine agreement.
 
