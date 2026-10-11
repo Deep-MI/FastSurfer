@@ -45,6 +45,10 @@ from pathlib import Path
 
 DOCKER_REPO = "deepmi/fastsurfer"
 DOC_URL = "https://deep-mi.org/FastSurfer/stable/overview/CONTAINERS.html"
+MACOS_PACKAGE_URL = "https://github.com/Deep-MI/FastSurfer/releases/latest/download/FastSurfer-macos-darwin_arm64.pkg"
+MACOS_DOC_URL = "https://deep-mi.org/FastSurfer/stable/overview/install/MACOS.html"
+# the 15 GB the macOS page asks Docker to have, less what the kernel of Docker's VM keeps for itself
+MIN_DOCKER_MEMORY_GIB = 14
 
 # The CUDA images, as in FastSurferCNN/gpu_support.py: (CUDA version, tag prefix), the oldest GPU
 # each supports and the newest the legacy one does. The test in test/lint keeps them in sync.
@@ -300,9 +304,11 @@ def apptainer_command(runtime: str, sif: Path, gpu: bool, mounts: list[Path], sc
 
 
 def docker_command(image: str, gpu: bool, mounts: list[Path], script: str, args: list[str],
-                   extra: list[str], user: str) -> list[str]:
-    """The Docker command, running as the calling user."""
+                   extra: list[str], user: str, emulate: bool = False) -> list[str]:
+    """The Docker command, running as the calling user; `emulate` runs the Intel image on Apple silicon."""
     cmd = ["docker", "run", "--rm", "--user", user] + (["--gpus", "all"] if gpu else [])
+    if emulate:
+        cmd += ["--platform", "linux/amd64"]
     for mount in mounts:
         cmd += ["-v", f"{mount}:{mount}"]
     cmd += extra
@@ -310,6 +316,32 @@ def docker_command(image: str, gpu: bool, mounts: list[Path], script: str, args:
         # the image's entrypoint runs run_fastsurfer.sh; keep its environment setup for the other scripts
         return cmd + ["--entrypoint", "/fastsurfer/tools/Docker/entrypoint.sh", image, f"/fastsurfer/{script}"] + args
     return cmd + [image] + args
+
+
+def is_apple_silicon() -> bool:
+    """Whether this is a Mac with Apple silicon, also when Python itself runs under Rosetta."""
+    if platform.system() != "Darwin":
+        return False
+    if platform.machine() == "arm64":
+        return True
+    try:
+        out = subprocess.run(["sysctl", "-n", "hw.optional.arm64"], capture_output=True, text=True, timeout=10)
+    except (OSError, subprocess.SubprocessError):
+        return False
+    return out.stdout.strip() == "1"
+
+
+def docker_memory_gib() -> float:
+    """The memory Docker's containers can use; on macOS and Windows, that of Docker's VM."""
+    try:
+        out = subprocess.run(["docker", "info", "--format", "{{.MemTotal}}"],
+                             capture_output=True, text=True, timeout=60)
+    except (OSError, subprocess.SubprocessError) as error:
+        raise LauncherError(f"Could not ask Docker for its settings: {error}") from error
+    if out.returncode != 0:
+        reason = (out.stderr.strip().splitlines() or ["docker info failed"])[-1]
+        raise LauncherError(f"Docker is installed, but not running: {reason}")
+    return int(out.stdout.strip()) / 2**30
 
 
 def _fastsurfer_device(args: list[str]) -> str:
@@ -368,12 +400,23 @@ def main(argv: list[str] | None = None) -> int:
         parser.print_help()
         return 1
 
-    def info(message: str) -> None:
-        print(f"INFO: {message}", file=sys.stderr)
+    def info(message: str, level: str = "INFO") -> None:
+        print(f"{level}: {message}", file=sys.stderr)
 
     try:
         if os.name != "posix":
             raise LauncherError("Run this in WSL on Windows, where Docker's paths are Linux paths.")
+        # the images are built for Intel/AMD processors, which a Mac with Apple silicon only emulates
+        apple_silicon = is_apple_silicon()
+        package_hint = (f"install the FastSurfer package for macOS instead, {MACOS_PACKAGE_URL} (see {MACOS_DOC_URL}). "
+                        f"It runs natively and uses the Mac's GPU: in the console it opens, call run_fastsurfer.sh "
+                        f"with the same flags.")
+        if apple_silicon and options.runtime == "auto":
+            raise LauncherError(f"On a Mac with Apple silicon, {package_hint} To run the Intel image in Docker "
+                                f"under emulation anyway, which is much slower, pass --runtime docker.")
+        if apple_silicon:
+            info(f"Docker on a Mac with Apple silicon emulates the Intel image, which is much slower than the "
+                 f"macOS package and cannot use the GPU. Better {package_hint}", level="WARNING")
         cwd = Path.cwd()
         runtime = find_runtime(options.runtime)
         fastsurfer_args = fastsurfer_args + _license_args(fastsurfer_args, cwd)
@@ -387,9 +430,6 @@ def main(argv: list[str] | None = None) -> int:
                  "FastSurfer, so keep the data in a subdirectory.")
         if "--fs_license" not in args and "--seg_only" not in args:
             info("No FreeSurfer license given (--fs_license or $FS_LICENSE); the surfaces need one.")
-        if platform.system() == "Darwin" and platform.machine() == "arm64":
-            info("On a Mac with Apple silicon, the macOS package runs natively and uses the GPU, see "
-                 "https://deep-mi.org/FastSurfer/stable/overview/install/MACOS.html.")
 
         device = _fastsurfer_device(args)
         if options.image:
@@ -409,7 +449,15 @@ def main(argv: list[str] | None = None) -> int:
         commands = []
         if runtime == "docker":
             user = f"{os.getuid()}:{os.getgid()}"
-            commands.append(docker_command(image, build.gpu, mounts, script, args, extra, user))
+            emulate = apple_silicon and not options.image
+            commands.append(docker_command(image, build.gpu, mounts, script, args, extra, user, emulate))
+            if not options.print_only:
+                memory = docker_memory_gib()
+                if memory < MIN_DOCKER_MEMORY_GIB:
+                    where = ("in Docker's settings (Docker Desktop: Settings > Resources; Colima: colima start "
+                             "--memory 16)") if platform.system() == "Darwin" else "for Docker"
+                    info(f"Docker can use only {memory:.1f} GB of memory, and FastSurfer may fail with less than "
+                         f"15 GB. Increase the memory {where}.", level="WARNING")
         else:
             if image.endswith(".sif"):
                 sif = _absolute(image, cwd)

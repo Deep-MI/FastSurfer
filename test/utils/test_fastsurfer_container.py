@@ -139,6 +139,8 @@ def test_commands(tmp_path):
     docker = launcher.docker_command("img:tag", True, [tmp_path], "run_fastsurfer.sh", args, [], "1000:1000")
     assert docker == ["docker", "run", "--rm", "--user", "1000:1000", "--gpus", "all",
                       "-v", f"{tmp_path}:{tmp_path}", "img:tag"] + args
+    emulated = launcher.docker_command("img:tag", False, [tmp_path], "run_fastsurfer.sh", args, [], "501:20", True)
+    assert emulated[:7] == ["docker", "run", "--rm", "--user", "501:20", "--platform", "linux/amd64"]
     brun = launcher.docker_command("img:tag", False, [tmp_path], "brun_fastsurfer.sh", args, [], "1000:1000")
     assert brun[-len(args) - 4:-len(args)] == ["--entrypoint", "/fastsurfer/tools/Docker/entrypoint.sh", "img:tag",
                                                "/fastsurfer/brun_fastsurfer.sh"]

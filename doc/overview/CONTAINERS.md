@@ -49,6 +49,11 @@ subjects; the paths in a subjects list have to be absolute. `--print_only` print
 instead of running them, and `--help` lists all launcher options. The sections below explain the
 commands it runs.
 
+On a Mac with Apple silicon, use the [macOS package](install/MACOS.md) instead: the images are built for
+Intel and AMD processors, which such a Mac only emulates, much more slowly and without its GPU. The
+launcher therefore stops there and points to the package, unless you pass `--runtime docker`. With
+Docker, it also warns if Docker may use less memory than FastSurfer needs.
+
 Using Apptainer (or Singularity)
 --------------------------------
 [Apptainer](https://apptainer.org) is the open-source continuation of Singularity, and both run the same images.
