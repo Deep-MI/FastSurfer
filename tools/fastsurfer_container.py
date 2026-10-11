@@ -21,7 +21,8 @@ official image with Apptainer, Singularity or Docker, whichever is installed:
 
     python3 fastsurfer_container.py --t1 data/t1.nii.gz --sd results --sid subject1
 
-It picks the image that fits the NVIDIA GPU and driver (or the CPU image), downloads it once,
+It runs the newest FastSurfer release unless --image_version names another, picks the image that
+fits the NVIDIA GPU and driver (or the CPU image), downloads it once,
 shares every file and directory the flags name with the container at the same path, passes the
 FreeSurfer license from $FS_LICENSE if --fs_license is not given, and runs the container as the
 calling user.
@@ -82,15 +83,45 @@ class Build:
     notes: list[str] = field(default_factory=list)
 
 
-def read_image_version(pyproject: Path) -> str | None:
-    """The FastSurfer version in the pyproject.toml of the checkout this file is in, if there is one."""
+def newest_version(tags: list[str], prefix: str) -> str | None:
+    """The newest release among image tags such as cu132-v2.6.0, ignoring development builds."""
+    versions = []
+    for tag in tags:
+        match = re.fullmatch(re.escape(prefix) + r"-v(\d+)\.(\d+)\.(\d+)", tag)
+        if match:
+            versions.append(tuple(int(v) for v in match.groups()))
+    return ".".join(str(v) for v in max(versions)) if versions else None
+
+
+def published_tags(prefix: str) -> list[str]:
+    """The tags of the image on Docker Hub that start with `prefix`; empty if Docker Hub cannot be reached."""
+    import json
+    import urllib.request
+
+    url = f"https://hub.docker.com/v2/repositories/{DOCKER_REPO}/tags?page_size=100&name={prefix}-v"
+    tags: list[str] = []
     try:
-        text = pyproject.read_text()
-    except OSError:
-        return None
-    project = re.search(r"^\[project\]\s*$(.*?)(?=^\[|\Z)", text, re.MULTILINE | re.DOTALL)
-    match = project and re.search(r"^version\s*=\s*['\"]([^'\"]+)['\"]", project.group(1), re.MULTILINE)
-    return match.group(1) if match else None
+        while url and len(tags) < 1000:
+            with urllib.request.urlopen(url, timeout=20) as response:
+                page = json.load(response)
+            tags += [result["name"] for result in page.get("results", [])]
+            url = page.get("next")
+    except (OSError, ValueError, KeyError):
+        return []
+    return tags
+
+
+def local_tags(runtime: str, image_dir: Path) -> list[str]:
+    """The tags of the FastSurfer images already on this machine, for runs without internet."""
+    if runtime != "docker":
+        prefix = DOCKER_REPO.rsplit("/", 1)[-1] + "-"
+        return [p.name[len(prefix):-len(".sif")] for p in image_dir.glob(f"{prefix}*.sif")]
+    try:
+        out = subprocess.run(["docker", "image", "ls", DOCKER_REPO, "--format", "{{.Tag}}"],
+                             capture_output=True, text=True, timeout=60)
+    except (OSError, subprocess.SubprocessError):
+        return []
+    return out.stdout.split() if out.returncode == 0 else []
 
 
 def query_nvidia_gpu(index: int = 0) -> tuple[tuple[int, int] | None, int] | None:
@@ -175,19 +206,27 @@ def choose_build(gpu: tuple[tuple[int, int] | None, int] | None, device: str) ->
     return Build("cpu", False, [f"{reason}, so FastSurfer runs on the CPU."])
 
 
-def image_reference(prefix: str, version: str | None) -> str:
+def image_reference(prefix: str, version: str) -> str:
     """The Docker image to run, e.g. deepmi/fastsurfer:cu132-v2.6.0."""
-    if version is None:
-        raise LauncherError(
-            "Which FastSurfer version to run is unknown, because this file is not part of a FastSurfer "
-            "checkout. Pass it with --image_version, for example --image_version 2.6.0."
-        )
-    if "dev" in version:
-        raise LauncherError(
-            f"There are no images of the development version {version}. Pass a released version with "
-            f"--image_version, or your own image with --image."
-        )
     return f"{DOCKER_REPO}:{prefix}-v{version}"
+
+
+def resolve_version(prefix: str, runtime: str, image_dir: Path) -> tuple[str, str]:
+    """
+    The newest released FastSurfer version for this image, and where that was found.
+
+    Asks Docker Hub, and without internet looks at the images already on this machine.
+    """
+    version = newest_version(published_tags(prefix), prefix)
+    if version is not None:
+        return version, "the newest release"
+    version = newest_version(local_tags(runtime, image_dir), prefix)
+    if version is not None:
+        return version, "the newest image on this machine, Docker Hub could not be reached"
+    raise LauncherError(
+        "Could not find out the newest FastSurfer release, because Docker Hub cannot be reached and no "
+        "FastSurfer image is on this machine yet. Pass the version with --image_version, e.g. 2.6.0."
+    )
 
 
 def _absolute(value: str, cwd: Path) -> Path:
@@ -378,7 +417,7 @@ def make_parser() -> argparse.ArgumentParser:
     parser.add_argument("--runtime", choices=["auto", "apptainer", "singularity", "docker"], default="auto",
                         help="the container runtime (default: auto, the first installed of these)")
     parser.add_argument("--image_version",
-                        help="the FastSurfer version to run, e.g. 2.6.0 (default: the version of this checkout)")
+                        help="the FastSurfer version to run, e.g. 2.6.0 (default: the newest release)")
     parser.add_argument("--image",
                         help="run this image instead: a Docker image (e.g. my_fastsurfer:cu132) or an Apptainer "
                              ".sif file")
@@ -439,8 +478,12 @@ def main(argv: list[str] | None = None) -> int:
         else:
             index = int(device.split(":", 1)[1]) if device.startswith("cuda:") else 0
             build = choose_build(query_nvidia_gpu(index) if device != "cpu" else None, device)
-            pyproject = Path(__file__).resolve().parents[1] / "pyproject.toml"
-            image = image_reference(build.prefix, options.image_version or read_image_version(pyproject))
+            version = options.image_version
+            if version is None:
+                version, source = resolve_version(build.prefix, runtime, options.image_dir)
+                info(f"Running FastSurfer {version}, {source}. Pass --image_version {version} to keep "
+                     f"using this version when newer ones are released.")
+            image = image_reference(build.prefix, version)
         for note in build.notes:
             info(note)
 

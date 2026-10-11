@@ -37,14 +37,15 @@ Download it, and run FastSurfer:
 
 ```bash
 curl -fsSLO https://raw.githubusercontent.com/Deep-MI/FastSurfer/stable/tools/fastsurfer_container.py
-python3 fastsurfer_container.py --image_version {{ FASTSURFER_VERSION }} \
+python3 fastsurfer_container.py \
     --t1 $HOME/my_mri_data/subjectX/t1_weighted.nii.gz \
     --sid subjectX --sd $HOME/my_fastsurfer_analysis \
     --3T --threads 4
 ```
 
-`--image_version` selects the FastSurfer release; in a FastSurfer checkout, the launcher in `tools/`
-defaults to the version of the checkout. With `--brun`, it runs `brun_fastsurfer.sh` for several
+It runs the newest FastSurfer release and says which one. For reproducible results, keep a study on
+one version with `--image_version <version>`. Without internet, it uses the newest FastSurfer image
+already on the machine. With `--brun`, it runs `brun_fastsurfer.sh` for several
 subjects; the paths in a subjects list have to be absolute. `--print_only` prints the commands
 instead of running them, and `--help` lists all launcher options. The sections below explain the
 commands it runs.

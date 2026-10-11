@@ -74,19 +74,21 @@ def test_choose_build_cpu():
         launcher.choose_build(None, "cuda:0")
 
 
-def test_image_reference():
-    assert launcher.image_reference("cu132", "2.6.0") == "deepmi/fastsurfer:cu132-v2.6.0"
-    for version in (None, "2.7.0-dev0"):
-        with pytest.raises(launcher.LauncherError):
-            launcher.image_reference("cpu", version)
+def test_newest_version():
+    tags = ["cu132-v2.6.0", "cu132-v2.10.1", "cu132-v2.9.3", "cu126-v2.11.0", "cu132-v2.11.0-dev0", "latest",
+            "cpu-latest", "cu132-v2.10.1_abc123"]
+    # numeric, not alphabetic: 2.10 is newer than 2.9; other images and development builds do not count
+    assert launcher.newest_version(tags, "cu132") == "2.10.1"
+    assert launcher.newest_version(tags, "cu126") == "2.11.0"
+    assert launcher.newest_version(tags, "cpu") is None
 
 
-def test_read_image_version(tmp_path):
-    pyproject = tmp_path / "pyproject.toml"
-    pyproject.write_text("[build-system]\nversion = '9'\n\n[project]\nname = 'x'\nversion = '2.6.0'\n\n[tool.a]\n"
-                         "version = '13.2'\n")
-    assert launcher.read_image_version(pyproject) == "2.6.0"
-    assert launcher.read_image_version(tmp_path / "missing.toml") is None
+def test_local_tags_apptainer(tmp_path):
+    for name in ("fastsurfer-cpu-v2.5.4.sif", "fastsurfer-cpu-v2.6.0.sif", "fastsurfer-myimage.sif", "other.sif"):
+        (tmp_path / name).write_bytes(b"")
+    tags = launcher.local_tags("apptainer", tmp_path)
+    assert sorted(tags) == ["cpu-v2.5.4", "cpu-v2.6.0", "myimage"]
+    assert launcher.newest_version(tags, "cpu") == "2.6.0"
 
 
 def test_plan_paths_run(tmp_path):
