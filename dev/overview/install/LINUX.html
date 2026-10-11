@@ -540,12 +540,12 @@ also write <code class="docutils literal notranslate"><span class="pre">apptaine
 <code class="docutils literal notranslate"><span class="pre">$HOME/my_singularity_images</span></code>:</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>This documents the development version 2.6.0. Official Docker images only exist for releases, so the commands below use the latest release, 2.5.4, for its default CUDA version, 12.8. Images of 2.5.4 for other CUDA versions, ROCm and CPU are available on <a class="reference external" href="https://hub.docker.com/r/deepmi/fastsurfer/tags?name=v2.5.4">Docker Hub</a>. To run the development version, <a class="reference internal" href="../../developer/docker.html"><span class="doc">build your own image</span></a>.</p>
+<p>This documents the development version 2.6.0. Official Docker images only exist for releases, so the commands below use the latest release, 2.6.0, for its default CUDA version, 13.2. Images of 2.6.0 for other CUDA versions, ROCm and CPU are available on <a class="reference external" href="https://hub.docker.com/r/deepmi/fastsurfer/tags?name=v2.6.0">Docker Hub</a>. To run the development version, <a class="reference internal" href="../../developer/docker.html"><span class="doc">build your own image</span></a>.</p>
 </div>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>mkdir<span class="w"> </span>-p<span class="w"> </span><span class="nv">$HOME</span>/my_singularity_images
 singularity<span class="w"> </span>build<span class="w"> </span><span class="se">\</span>
-<span class="w">    </span><span class="nv">$HOME</span>/my_singularity_images/fastsurfer-cu128-v2.5.4.sif<span class="w"> </span><span class="se">\</span>
-<span class="w">    </span>docker://deepmi/fastsurfer:cu128-v2.5.4
+<span class="w">    </span><span class="nv">$HOME</span>/my_singularity_images/fastsurfer-cu132-v2.6.0.sif<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>docker://deepmi/fastsurfer:cu132-v2.6.0
 </pre></div>
 </div>
 <p><a class="reference internal" href="../CONTAINERS.html#using-apptainer-or-singularity"><span class="std std-ref">Running FastSurfer in a container</span></a> shows how to run FastSurfer with
@@ -556,9 +556,9 @@ it and explains the flags.</p>
 <p>With Docker installed, download our image:</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>This documents the development version 2.6.0. Official Docker images only exist for releases, so the commands below use the latest release, 2.5.4, for its default CUDA version, 12.8. Images of 2.5.4 for other CUDA versions, ROCm and CPU are available on <a class="reference external" href="https://hub.docker.com/r/deepmi/fastsurfer/tags?name=v2.5.4">Docker Hub</a>. To run the development version, <a class="reference internal" href="../../developer/docker.html"><span class="doc">build your own image</span></a>.</p>
+<p>This documents the development version 2.6.0. Official Docker images only exist for releases, so the commands below use the latest release, 2.6.0, for its default CUDA version, 13.2. Images of 2.6.0 for other CUDA versions, ROCm and CPU are available on <a class="reference external" href="https://hub.docker.com/r/deepmi/fastsurfer/tags?name=v2.6.0">Docker Hub</a>. To run the development version, <a class="reference internal" href="../../developer/docker.html"><span class="doc">build your own image</span></a>.</p>
 </div>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>docker<span class="w"> </span>pull<span class="w"> </span>deepmi/fastsurfer:cu128-v2.5.4
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>docker<span class="w"> </span>pull<span class="w"> </span>deepmi/fastsurfer:cu132-v2.6.0
 </pre></div>
 </div>
 <p><a class="reference internal" href="../CONTAINERS.html#using-docker"><span class="std std-ref">Running FastSurfer in a container</span></a> shows how to run FastSurfer with it and explains
@@ -576,20 +576,20 @@ otherwise Docker stops with
 For Apptainer (or Singularity):</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>This documents the development version 2.6.0. Official Docker images only exist for releases, so the commands below use the latest release, 2.5.4. To run the development version, <a class="reference internal" href="../../developer/docker.html"><span class="doc">build your own image</span></a>.</p>
+<p>This documents the development version 2.6.0. Official Docker images only exist for releases, so the commands below use the latest release, 2.6.0. To run the development version, <a class="reference internal" href="../../developer/docker.html"><span class="doc">build your own image</span></a>.</p>
 </div>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>mkdir<span class="w"> </span>-p<span class="w"> </span><span class="nv">$HOME</span>/my_singularity_images
 singularity<span class="w"> </span>build<span class="w"> </span><span class="se">\</span>
-<span class="w">    </span><span class="nv">$HOME</span>/my_singularity_images/fastsurfer-cpu-v2.5.4.sif<span class="w"> </span><span class="se">\</span>
-<span class="w">    </span>docker://deepmi/fastsurfer:cpu-v2.5.4
+<span class="w">    </span><span class="nv">$HOME</span>/my_singularity_images/fastsurfer-cpu-v2.6.0.sif<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>docker://deepmi/fastsurfer:cpu-v2.6.0
 </pre></div>
 </div>
 <p>or, for Docker:</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>This documents the development version 2.6.0. Official Docker images only exist for releases, so the commands below use the latest release, 2.5.4. To run the development version, <a class="reference internal" href="../../developer/docker.html"><span class="doc">build your own image</span></a>.</p>
+<p>This documents the development version 2.6.0. Official Docker images only exist for releases, so the commands below use the latest release, 2.6.0. To run the development version, <a class="reference internal" href="../../developer/docker.html"><span class="doc">build your own image</span></a>.</p>
 </div>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>docker<span class="w"> </span>pull<span class="w"> </span>deepmi/fastsurfer:cpu-v2.5.4
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>docker<span class="w"> </span>pull<span class="w"> </span>deepmi/fastsurfer:cpu-v2.6.0
 </pre></div>
 </div>
 <p>Run it as described in <a class="reference internal" href="../CONTAINERS.html"><span class="std std-doc">Running FastSurfer in a container</span></a>, without <code class="docutils literal notranslate"><span class="pre">--nv</span></code> (Apptainer or
@@ -601,12 +601,12 @@ Singularity) or <code class="docutils literal notranslate"><span class="pre">--g
 semi-supported) GPU and the right kernel version. Install the AMD kernel modules on the host as described in the
 <a class="reference external" href="https://rocm.docs.amd.com/projects/install-on-linux/en/latest/">ROCm installation instructions</a>, and add your user
 to the groups they name.</p>
-<p>Then download our image for ROCm 6.3:</p>
+<p>Then download our image for ROCm 7.2:</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>This documents the development version 2.6.0. Official Docker images only exist for releases, so the commands below use the latest release, 2.5.4. To run the development version, <a class="reference internal" href="../../developer/docker.html"><span class="doc">build your own image</span></a>.</p>
+<p>This documents the development version 2.6.0. Official Docker images only exist for releases, so the commands below use the latest release, 2.6.0. To run the development version, <a class="reference internal" href="../../developer/docker.html"><span class="doc">build your own image</span></a>.</p>
 </div>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>docker<span class="w"> </span>pull<span class="w"> </span>deepmi/fastsurfer:rocm6.3-v2.5.4
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>docker<span class="w"> </span>pull<span class="w"> </span>deepmi/fastsurfer:rocm7.2-v2.6.0
 </pre></div>
 </div>
 <p>AMD needs a few more flags in the <code class="docutils literal notranslate"><span class="pre">docker</span> <span class="pre">run</span></code> command, see
@@ -615,12 +615,12 @@ build your own ROCm image, see <a class="reference internal" href="../../develop
 <p>Usage:</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>This documents the development version 2.6.0. Official Docker images only exist for releases, so the commands below use the latest release, 2.5.4. To run the development version, <a class="reference internal" href="../../developer/docker.html"><span class="doc">build your own image</span></a>.</p>
+<p>This documents the development version 2.6.0. Official Docker images only exist for releases, so the commands below use the latest release, 2.6.0. To run the development version, <a class="reference internal" href="../../developer/docker.html"><span class="doc">build your own image</span></a>.</p>
 </div>
 <div class="highlight-text notranslate"><div class="highlight"><pre><span></span>docker run --cap-add=SYS_PTRACE --security-opt seccomp=unconfined \
         --device=/dev/kfd --device=/dev/dri --group-add video \
         --ipc=host --shm-size 8G \
-        &lt;docker_flags&gt; deepmi/fastsurfer:rocm6.3-v2.5.4 \
+        &lt;docker_flags&gt; deepmi/fastsurfer:rocm7.2-v2.6.0 \
                 &lt;fastsurfer_flags&gt;
 </pre></div>
 </div>

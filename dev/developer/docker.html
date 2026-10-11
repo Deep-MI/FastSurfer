@@ -693,20 +693,20 @@ flags to the Docker build command.</p></li>
 <a class="reference internal" href="#"><span class="doc std std-ref">containerd storage and BuildKit</span></a>.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>This documents the development version 2.6.0. Official Docker images only exist for releases, so the commands below use the latest release, 2.5.4, for its default CUDA version, 12.8. Images of 2.5.4 for other CUDA versions, ROCm and CPU are available on <a class="reference external" href="https://hub.docker.com/r/deepmi/fastsurfer/tags?name=v2.5.4">Docker Hub</a>. To run the development version, <a class="reference internal" href="#"><span class="doc">build your own image</span></a>.</p>
+<p>This documents the development version 2.6.0. Official Docker images only exist for releases, so the commands below use the latest release, 2.6.0, for its default CUDA version, 13.2. Images of 2.6.0 for other CUDA versions, ROCm and CPU are available on <a class="reference external" href="https://hub.docker.com/r/deepmi/fastsurfer/tags?name=v2.6.0">Docker Hub</a>. To run the development version, <a class="reference internal" href="#"><span class="doc">build your own image</span></a>.</p>
 </div>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># configuration</span>
 <span class="nv">build_dir</span><span class="o">=</span><span class="nv">$HOME</span>/FastSurfer-build
 <span class="c1"># &lt;repo&gt;/&lt;name&gt; (the push needs both!)</span>
 <span class="nv">image</span><span class="o">=</span>deepmi/fastsurfer
 <span class="c1"># the version can be identified with: $build_dir/run_fastsurfer.sh --version</span>
-<span class="nv">version</span><span class="o">=</span><span class="m">2</span>.5.4
+<span class="nv">version</span><span class="o">=</span><span class="m">2</span>.6.0
 <span class="c1"># the default CUDA image, tagged as latest, and the CUDA image for older GPUs and drivers</span>
-<span class="nv">device_for_latest</span><span class="o">=</span>cu128
+<span class="nv">device_for_latest</span><span class="o">=</span>cu132
 <span class="nv">device_legacy</span><span class="o">=</span>cu126
 <span class="c1"># if you change the FreeSurfer version, create and upload or rename the</span>
 <span class="c1"># FreeSurfer build image below or remove the --freesurfer_build_image argument</span>
-<span class="nv">freesurfer_version</span><span class="o">=</span><span class="m">7</span>.4.1
+<span class="nv">freesurfer_version</span><span class="o">=</span><span class="m">8</span>.2.0
 <span class="nv">freesurfer_image</span><span class="o">=</span>deepmi/fastsurfer-build:freesurfer<span class="si">${</span><span class="nv">freesurfer_version</span><span class="p">//./</span><span class="si">}</span>
 <span class="c1"># end of config</span>
 

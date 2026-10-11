@@ -531,8 +531,8 @@ git<span class="w"> </span>clone<span class="w"> </span>--branch<span class="w">
 <p>Create a new environment and install the FastSurfer dependencies:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># make sure you are in the FastSurfer directory!</span>
 <span class="c1"># create a .venv environment directory inside the FastSurfer directory,</span>
-<span class="c1"># e.g., python 3.12 (recommended)</span>
-uv<span class="w"> </span>venv<span class="w"> </span>--python<span class="w"> </span>python3.12
+<span class="c1"># e.g., python 3.14 (recommended)</span>
+uv<span class="w"> </span>venv<span class="w"> </span>--python<span class="w"> </span>python3.14
 <span class="c1"># install packages with pinned versions from the last stable release</span>
 <span class="c1"># (recommended, that is what we tested with)</span>
 <span class="c1"># uv pip sync only runs if uv pip compile succeeds</span>
@@ -541,7 +541,7 @@ uv<span class="w"> </span>venv<span class="w"> </span>--python<span class="w"> <
 </pre></div>
 </div>
 <p>To select the PyTorch backend yourself, for example for testing, replace <code class="docutils literal notranslate"><span class="pre">auto</span></code> in both commands, e.g. with <code class="docutils literal notranslate"><span class="pre">cpu</span></code> or
-<code class="docutils literal notranslate"><span class="pre">cu128</span></code>:</p>
+<code class="docutils literal notranslate"><span class="pre">cu132</span></code>:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># make sure you are in the FastSurfer directory!</span>
 <span class="nv">resolved</span><span class="o">=</span><span class="k">$(</span>uv<span class="w"> </span>pip<span class="w"> </span>compile<span class="w"> </span>--no-build<span class="w"> </span>--torch-backend<span class="w"> </span>cpu<span class="w"> </span>requirements.txt<span class="k">)</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>uv<span class="w"> </span>pip<span class="w"> </span>sync<span class="w"> </span>--no-build<span class="w"> </span>--torch-backend<span class="w"> </span>cpu<span class="w"> </span>-<span class="w"> </span><span class="o">&lt;&lt;&lt;</span><span class="w"> </span><span class="s2">"</span><span class="nv">$resolved</span><span class="s2">"</span>
@@ -585,7 +585,7 @@ command line flags.</p>
 <li><p>FreeSurfer</p></li>
 </ol>
 <hr class="docutils" />
-<p>The full pipeline needs FreeSurfer 7.4.1 (the version we recommend and support), installed
+<p>The full pipeline needs FreeSurfer 8.2.0 (the version we recommend and support), installed
 according to <a class="reference external" href="https://surfer.nmr.mgh.harvard.edu/fswiki/DownloadAndInstall">FreeSurfer’s instructions</a>. The
 packages for each version and operating system are in the
 <a class="reference external" href="https://surfer.nmr.mgh.harvard.edu/pub/dist/freesurfer/">release directory</a>. If you run into problems in this
