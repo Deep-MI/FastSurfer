@@ -13,13 +13,12 @@ name: pipelinetest
 #  must not, because the code under test runs in the same job as the FreeSurfer license, so the
 #  label that used to start this could never work for a fork and produced a skipped check for every
 #  unrelated label on every pull request. To test a branch before it lands, dispatch on it.
-# Expected Secrets. They keep the old QUICKTEST_ prefix: a secret cannot be renamed, only deleted
-# and recreated, and their contents are not to hand. Rename them when the reference data is next
-# refreshed, which is when they have to be re-entered anyway.
-#  - QUICKTEST_IMAGE_HREF_08mm: URL to a sample 0.8mm image
-#  - QUICKTEST_IMAGE_HREF_1mm: URL to a sample 1mm image
-#  - QUICKTEST_TARGET_HREF_08mm: URL to the reference processing of the sample 0.8mm image
-#  - QUICKTEST_TARGET_HREF_1mm: URL to the reference processing of the sample 1mm image
+# Expected Secrets. The license keeps the old QUICKTEST_ prefix: a secret cannot be renamed, only
+# deleted and recreated, and its content is not to hand.
+#  - PIPELINETEST_IMAGE_HREF_0800um: URL to a sample 0.8mm image
+#  - PIPELINETEST_IMAGE_HREF_1000um: URL to a sample 1mm image
+#  - PIPELINETEST_TARGET_HREF_0800um: URL to the reference processing of the sample 0.8mm image
+#  - PIPELINETEST_TARGET_HREF_1000um: URL to the reference processing of the sample 1mm image
 #  - QUICKTEST_LICENSE: content of a FreeSurfer license file
 
 concurrency:
@@ -39,17 +38,14 @@ concurrency:
 
 on:
   schedule:
-    # Sundays only, until the reference data is refreshed. The stored reference predates the corpus
-    # callosum module, so every run that gets as far as comparing fails, and a nightly cadence would
-    # buy five red checks a week instead of one while telling us nothing new. The parse step below
-    # already handles a nightly cron, where a night on which the branch did not move stops early, so
-    # restoring '37 2 * * *' is the whole change once the reference is fresh.
+    # Nightly. The parse step below stops early on a night on which the branch did not move, except
+    # on Sundays, which run regardless as the weekly baseline.
     #
     # Not on the hour, which is when GitHub's scheduler is most congested and runs are delayed. A
     # Sunday that fails or never fires costs that week its cache refresh, which the next Sunday
     # repairs; keying the refresh on the weekday rather than on when it last happened is what buys
     # that, and it is the cheaper trade.
-    - cron: '37 2 * * 0'
+    - cron: '37 2 * * *'
   workflow_dispatch:
     inputs:
       docker-image:
@@ -314,24 +310,21 @@ jobs:
       # the following matrix strategy will result in one run per subject as matrix is "one-dimensional".
       # Additional parameters under "include" are then added as additional (dependent) information
       matrix:
-        subject-id: [0.8mm, 1.0mm]
+        subject-id: [0800um, 1000um]
         include:
-          # artifact-id is the subject in micrometres, zero padded, so the name carries no dot and the
-          # artifacts sort by resolution. GitHub serves an artifact as <name>.zip and Safari on macOS
-          # reads ".8mm.zip" as the extension, so a "0.8mm" artifact arrives unpacked as "0".
-          # subject-id itself cannot change: it is also the subject directory name and has to match
-          # the reference tarball.
-          - subject-id: 1.0mm
-            artifact-id: 1000um
+          # The subject is named by its resolution in micrometres, zero padded, so the name carries no
+          # dot and sorts by resolution. It is the subject directory, the artifact name and the folder
+          # in the reference tarball. GitHub serves an artifact as <name>.zip and Safari on macOS reads
+          # ".8mm.zip" as the extension, so a "0.8mm" artifact would arrive unpacked as "0".
+          - subject-id: 1000um
             file-extension: ".mgz"
-            image-key: QUICKTEST_IMAGE_HREF_1mm
-            case-key: QUICKTEST_TARGET_HREF_1mm
+            image-key: PIPELINETEST_IMAGE_HREF_1000um
+            case-key: PIPELINETEST_TARGET_HREF_1000um
             extra-args: ""
-          - subject-id: 0.8mm
-            artifact-id: 0800um
+          - subject-id: 0800um
             file-extension: ".nii.gz"
-            image-key: QUICKTEST_IMAGE_HREF_08mm
-            case-key: QUICKTEST_TARGET_HREF_08mm
+            image-key: PIPELINETEST_IMAGE_HREF_0800um
+            case-key: PIPELINETEST_TARGET_HREF_0800um
             extra-args: "--3T"
     steps:
       - name: Report the runner CPU
@@ -353,7 +346,6 @@ jobs:
         uses: Deep-MI/FastSurfer/.github/actions/run-fastsurfer@dev
         with:
           subject-id: ${{ matrix.subject-id }}
-          artifact-id: ${{ matrix.artifact-id }}
           file-extension: ${{ matrix.file-extension }}
           image-href: ${{ secrets[matrix.image-key] }}
           license: ${{ secrets.QUICKTEST_LICENSE }}
@@ -364,7 +356,6 @@ jobs:
         uses: Deep-MI/FastSurfer/.github/actions/run-tests@dev
         with:
           subject-id: ${{ matrix.subject-id }}
-          artifact-id: ${{ matrix.artifact-id }}
           subjects-dir: ${{ env.SUBJECTS_DIR }}
           reference-dir: ${{ env.REFERENCE_DIR }}
           case-href: ${{ secrets[matrix.case-key] }}
