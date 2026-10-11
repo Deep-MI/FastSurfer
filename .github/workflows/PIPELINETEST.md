@@ -89,11 +89,11 @@ instance, means the reference needs rebuilding rather than the tolerance widenin
 Secrets
 -------
 
-All five are required. They keep an older `QUICKTEST_` prefix because a secret cannot be renamed,
-only deleted and recreated.
+All five are required. The license keeps an older `QUICKTEST_` prefix because a secret cannot be
+renamed, only deleted and recreated.
 
-- `QUICKTEST_IMAGE_HREF_1mm`, `QUICKTEST_IMAGE_HREF_08mm`: the sample images
-- `QUICKTEST_TARGET_HREF_1mm`, `QUICKTEST_TARGET_HREF_08mm`: the reference processing of each
+- `PIPELINETEST_IMAGE_HREF_1000um`, `PIPELINETEST_IMAGE_HREF_0800um`: the sample images
+- `PIPELINETEST_TARGET_HREF_1000um`, `PIPELINETEST_TARGET_HREF_0800um`: the reference processing of each
 - `QUICKTEST_LICENSE`: the contents of a FreeSurfer license file
 
 Running the comparison yourself
