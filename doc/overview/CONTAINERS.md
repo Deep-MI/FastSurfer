@@ -19,6 +19,36 @@ define access to data and hardware such as graphics cards, and the options of Fa
 the container passes on to `run_fastsurfer.sh`. It is useful to think of the image as a "hard drive" and the container
 as a "simulated computer inside the computer".
 
+The launcher
+------------
+`fastsurfer_container.py` writes and runs the container command for you. It takes the same flags as
+`run_fastsurfer.sh` and needs only Python 3.8 or newer, not FastSurfer itself. It
+
+- uses Apptainer, Singularity or Docker, whichever is installed (choose one with `--runtime`),
+- picks the image that runs on your NVIDIA GPU and driver, or the CPU image without one, see
+  [which image fits your GPU](install/LINUX.md#nvidia-gpus),
+- downloads the image once (for Apptainer, into `$HOME/my_singularity_images`),
+- shares the files and directories the flags name with the container, at the same paths, so relative
+  paths work too,
+- passes the FreeSurfer license from `$FS_LICENSE` if `--fs_license` is not given, and runs the
+  container as you.
+
+Download it, and run FastSurfer:
+
+```bash
+curl -fsSLO https://raw.githubusercontent.com/Deep-MI/FastSurfer/stable/tools/fastsurfer_container.py
+python3 fastsurfer_container.py --image_version {{ FASTSURFER_VERSION }} \
+    --t1 $HOME/my_mri_data/subjectX/t1_weighted.nii.gz \
+    --sid subjectX --sd $HOME/my_fastsurfer_analysis \
+    --3T --threads 4
+```
+
+`--image_version` selects the FastSurfer release; in a FastSurfer checkout, the launcher in `tools/`
+defaults to the version of the checkout. With `--brun`, it runs `brun_fastsurfer.sh` for several
+subjects; the paths in a subjects list have to be absolute. `--print_only` prints the commands
+instead of running them, and `--help` lists all launcher options. The sections below explain the
+commands it runs.
+
 Using Apptainer (or Singularity)
 --------------------------------
 [Apptainer](https://apptainer.org) is the open-source continuation of Singularity, and both run the same images.
