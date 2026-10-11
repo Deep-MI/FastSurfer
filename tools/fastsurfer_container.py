@@ -83,22 +83,36 @@ class Build:
     notes: list[str] = field(default_factory=list)
 
 
+def parse_version(version: str) -> tuple[int, ...] | None:
+    """A release version such as 2.6.0 as numbers, None for anything else (e.g. a development build)."""
+    match = re.fullmatch(r"(\d+)\.(\d+)\.(\d+)", version)
+    return tuple(int(v) for v in match.groups()) if match else None
+
+
+def release_versions(tags: list[str], prefix: str) -> list[tuple[int, ...]]:
+    """The releases among image tags such as cu132-v2.6.0, oldest first, ignoring development builds."""
+    versions = set()
+    for tag in tags:
+        if tag.startswith(f"{prefix}-v"):
+            version = parse_version(tag[len(prefix) + 2:])
+            if version is not None:
+                versions.add(version)
+    return sorted(versions)
+
+
 def newest_version(tags: list[str], prefix: str) -> str | None:
     """The newest release among image tags such as cu132-v2.6.0, ignoring development builds."""
-    versions = []
-    for tag in tags:
-        match = re.fullmatch(re.escape(prefix) + r"-v(\d+)\.(\d+)\.(\d+)", tag)
-        if match:
-            versions.append(tuple(int(v) for v in match.groups()))
-    return ".".join(str(v) for v in max(versions)) if versions else None
+    versions = release_versions(tags, prefix)
+    return ".".join(str(v) for v in versions[-1]) if versions else None
 
 
-def published_tags(prefix: str) -> list[str]:
-    """The tags of the image on Docker Hub that start with `prefix`; empty if Docker Hub cannot be reached."""
+def published_tags(name: str) -> list[str] | None:
+    """The tags of the image on Docker Hub that contain `name`; None if Docker Hub cannot be reached."""
     import json
+    import urllib.parse
     import urllib.request
 
-    url = f"https://hub.docker.com/v2/repositories/{DOCKER_REPO}/tags?page_size=100&name={prefix}-v"
+    url = f"https://hub.docker.com/v2/repositories/{DOCKER_REPO}/tags?page_size=100&name={urllib.parse.quote(name)}"
     tags: list[str] = []
     try:
         while url and len(tags) < 1000:
@@ -107,8 +121,49 @@ def published_tags(prefix: str) -> list[str]:
             tags += [result["name"] for result in page.get("results", [])]
             url = page.get("next")
     except (OSError, ValueError, KeyError):
-        return []
+        return None
     return tags
+
+
+def official_image_version(image: str) -> str | None:
+    """The FastSurfer version of an official image, e.g. 2.2.0 for deepmi/fastsurfer:cu118-v2.2.0, else None."""
+    name = Path(image).name if image.endswith(".sif") else image
+    pattern = (rf"{re.escape(DOCKER_REPO.rsplit('/', 1)[-1])}-[a-z0-9.]+-v(.+)\.sif" if image.endswith(".sif")
+               else rf"(?:docker\.io/)?{re.escape(DOCKER_REPO)}:[a-z0-9.]+-v(.+)")
+    match = re.fullmatch(pattern, name)
+    return match.group(1) if match and parse_version(match.group(1)) else None
+
+
+def age_note(version: str, releases: list[tuple[int, ...]], gpu_unsupported: bool,
+             flag: str = "--image_version") -> tuple[str, str] | None:
+    """
+    A note for a run of an older release, as (level, message), None for the newest or an unknown version.
+
+    Parameters
+    ----------
+    version : str
+        The requested version.
+    releases : list[tuple[int, ...]]
+        All releases, oldest first.
+    gpu_unsupported : bool
+        Whether the newest images do not support this GPU, so an old image is the only way to use it.
+    flag : str, default="--image_version"
+        The flag that requested the version.
+    """
+    requested = parse_version(version)
+    if requested is None or not releases or requested >= releases[-1]:
+        return None
+    newest = ".".join(str(v) for v in releases[-1])
+    behind = sum(release > requested for release in releases)
+    message = f"FastSurfer {version} is {behind} release{'s' if behind > 1 else ''} older than the newest, {newest}."
+    if gpu_unsupported:
+        return "WARNING", (
+            f"{message} The images of newer versions do not support this GPU, so they run on the CPU here. "
+            f"Running the newest release on the CPU (leave out --image and --image_version), or on a machine "
+            f"with a newer GPU, is recommended over this old version, which lacks the improvements and fixes "
+            f"since."
+        )
+    return "INFO", f"{message} Leave out {flag} to run the newest release."
 
 
 def local_tags(runtime: str, image_dir: Path) -> list[str]:
@@ -217,7 +272,7 @@ def resolve_version(prefix: str, runtime: str, image_dir: Path) -> tuple[str, st
 
     Asks Docker Hub, and without internet looks at the images already on this machine.
     """
-    version = newest_version(published_tags(prefix), prefix)
+    version = newest_version(published_tags(f"{prefix}-v") or [], prefix)
     if version is not None:
         return version, "the newest release"
     version = newest_version(local_tags(runtime, image_dir), prefix)
@@ -471,19 +526,40 @@ def main(argv: list[str] | None = None) -> int:
             info("No FreeSurfer license given (--fs_license or $FS_LICENSE); the surfaces need one.")
 
         device = _fastsurfer_device(args)
+        index = int(device.split(":", 1)[1]) if device.startswith("cuda:") else 0
+        gpu = query_nvidia_gpu(index) if device != "cpu" else None
+        # whether the newest images can use this GPU; a GPU they do not support runs them on the CPU
+        gpu_unsupported = gpu is not None and not choose_build(gpu, "auto").gpu
         if options.image:
-            # an own image: give it the GPU unless the run is on the CPU
-            build = Build("custom", device != "cpu" and query_nvidia_gpu() is not None)
+            # an own or an older official image: give it the GPU unless the run is on the CPU
+            build = Build("custom", gpu is not None)
             image = options.image
+            requested, flag = official_image_version(image), "--image"
         else:
-            index = int(device.split(":", 1)[1]) if device.startswith("cuda:") else 0
-            build = choose_build(query_nvidia_gpu(index) if device != "cpu" else None, device)
-            version = options.image_version
+            build = choose_build(gpu, device)
+            requested, flag = options.image_version, "--image_version"
+            version = requested
             if version is None:
                 version, source = resolve_version(build.prefix, runtime, options.image_dir)
                 info(f"Running FastSurfer {version}, {source}. Pass --image_version {version} to keep "
                      f"using this version when newer ones are released.")
             image = image_reference(build.prefix, version)
+            if requested is not None:
+                # an older version may have no image for this GPU, e.g. none for a newer CUDA version
+                available = published_tags(f"-v{requested}")
+                tag = image.rsplit(":", 1)[-1]
+                if available is not None and tag not in available:
+                    images = sorted(t for t in available if t.endswith(f"-v{requested}"))
+                    raise LauncherError(
+                        f"There is no image {image}. "
+                        + (f"The images of FastSurfer {requested} are {', '.join(images)}; pass one with "
+                           f"--image {DOCKER_REPO}:<tag>." if images else f"FastSurfer {requested} is not released.")
+                    )
+        if requested is not None:
+            note = age_note(requested, release_versions(published_tags("cpu-v") or [], "cpu"),
+                            gpu_unsupported and build.gpu, flag)
+            if note is not None:
+                info(note[1], level=note[0])
         for note in build.notes:
             info(note)
 
@@ -492,7 +568,8 @@ def main(argv: list[str] | None = None) -> int:
         commands = []
         if runtime == "docker":
             user = f"{os.getuid()}:{os.getgid()}"
-            emulate = apple_silicon and not options.image
+            # official images are built for Intel/AMD only; an own image may be built for this Mac
+            emulate = apple_silicon and (not options.image or official_image_version(options.image) is not None)
             commands.append(docker_command(image, build.gpu, mounts, script, args, extra, user, emulate))
             if not options.print_only:
                 memory = docker_memory_gib()

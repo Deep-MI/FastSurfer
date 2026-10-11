@@ -83,6 +83,26 @@ def test_newest_version():
     assert launcher.newest_version(tags, "cpu") is None
 
 
+def test_official_image_version():
+    assert launcher.official_image_version("deepmi/fastsurfer:cu118-v2.2.0") == "2.2.0"
+    assert launcher.official_image_version("docker.io/deepmi/fastsurfer:cpu-v2.6.0") == "2.6.0"
+    assert launcher.official_image_version("/images/fastsurfer-cu118-v2.2.0.sif") == "2.2.0"
+    for image in ("deepmi/fastsurfer:latest", "my_fastsurfer:cu132-v2.6.0", "fastsurfer-myimage.sif",
+                  "deepmi/fastsurfer:cu132-v2.7.0-dev0"):
+        assert launcher.official_image_version(image) is None
+
+
+def test_age_note():
+    releases = [(2, 2, 0), (2, 3, 3), (2, 4, 2), (2, 5, 4), (2, 6, 0)]
+    assert launcher.age_note("2.6.0", releases, gpu_unsupported=True) is None
+    assert launcher.age_note("2.6.0", [], gpu_unsupported=True) is None  # Docker Hub unreachable
+    level, message = launcher.age_note("2.5.4", releases, gpu_unsupported=False)
+    assert level == "INFO" and "1 release older" in message
+    # an old GPU image instead of the newest release on the CPU: recommend against it
+    level, message = launcher.age_note("2.2.0", releases, gpu_unsupported=True, flag="--image")
+    assert level == "WARNING" and "4 releases older than the newest, 2.6.0" in message and "CPU" in message
+
+
 def test_local_tags_apptainer(tmp_path):
     for name in ("fastsurfer-cpu-v2.5.4.sif", "fastsurfer-cpu-v2.6.0.sif", "fastsurfer-myimage.sif", "other.sif"):
         (tmp_path / name).write_bytes(b"")

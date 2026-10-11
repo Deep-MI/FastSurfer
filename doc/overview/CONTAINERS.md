@@ -44,7 +44,10 @@ python3 fastsurfer_container.py \
 ```
 
 It runs the newest FastSurfer release and says which one. For reproducible results, keep a study on
-one version with `--image_version <version>`. Without internet, it uses the newest FastSurfer image
+one version with `--image_version <version>`; for an older version, it says how many releases it is
+behind. A GPU that the newest images no longer support runs them on the CPU. The image of an older
+release may still support that GPU, but the launcher recommends the newest release on the CPU, or a
+machine with a newer GPU, over an old version. Without internet, it uses the newest FastSurfer image
 already on the machine. With `--brun`, it runs `brun_fastsurfer.sh` for several
 subjects; the paths in a subjects list have to be absolute. `--print_only` prints the commands
 instead of running them, and `--help` lists all launcher options. The sections below explain the
