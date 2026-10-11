@@ -378,10 +378,15 @@ def main() -> int:
                 print(f"  same  {group}/{name}")
 
     # every name present in one directory and not in the other, whether or not there is a
-    # comparison for its format: a missing output matters even where the content cannot be read
+    # comparison for its format: a missing output matters even where the content cannot be read.
+    # Empty directories are left out, because archives and CI artifacts do not keep them.
+    def entries(directory: Path) -> set[str]:
+        if not directory.is_dir():
+            return set()
+        return {p.name for p in directory.glob("*") if not (p.is_dir() and not any(p.iterdir()))}
+
     for group, _, _ in GROUPS:
-        in_a = {p.name for p in (a_dir / group).glob("*")} if (a_dir / group).is_dir() else set()
-        in_b = {p.name for p in (b_dir / group).glob("*")} if (b_dir / group).is_dir() else set()
+        in_a, in_b = entries(a_dir / group), entries(b_dir / group)
         only_one_side.extend(f"{group}/{name} (only in A)" for name in sorted(in_a - in_b))
         only_one_side.extend(f"{group}/{name} (only in B)" for name in sorted(in_b - in_a))
 
