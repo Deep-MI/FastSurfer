@@ -15,7 +15,7 @@
 # IMPORTS
 
 import torch
-import yacs
+import yacs.config
 
 from FastSurferCNN.models.networks import FastSurferCNN, FastSurferVINN
 
