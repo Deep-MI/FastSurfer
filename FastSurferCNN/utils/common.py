@@ -213,7 +213,7 @@ def assert_no_root() -> bool:
     return True
 
 
-def handle_cuda_memory_exception(exception: BaseException) -> bool:
+def handle_cuda_memory_exception(exception: BaseException, batch_size: int | None = None) -> bool:
     """
     Handle CUDA out of memory exception and print a help text.
 
@@ -221,6 +221,8 @@ def handle_cuda_memory_exception(exception: BaseException) -> bool:
     ----------
     exception : builtins.BaseException
         Received exception.
+    batch_size : int, optional
+        The batch size of the failed run, a smaller batch size is only suggested if it is larger than 1 (or unknown).
 
     Returns
     -------
@@ -232,10 +234,18 @@ def handle_cuda_memory_exception(exception: BaseException) -> bool:
     message = exception.args[0]
     if message.startswith("CUDA out of memory. "):
         LOGGER.critical("ERROR - INSUFFICIENT GPU MEMORY")
-        LOGGER.info(
-            "The memory requirements exceeds the available GPU memory, try using a smaller batch size "
-            "(--batch_size <int>) and/or view aggregation on the cpu (--viewagg_device 'cpu')."
-        )
+        if batch_size is None or batch_size > 1:
+            hint = (
+                "The memory requirements exceed the available GPU memory. Try using a smaller batch size "
+                "(`--batch_size <int>`) and/or increasing the voxel size (`--vox_size <float>`) and/or performing "
+                "view aggregation on the CPU (`--viewagg_device 'cpu'`)."
+            )
+        else:
+            hint = (
+                "The memory requirements exceed the available GPU memory. Try increasing the voxel size "
+                "(`--vox_size <float>`) and/or performing view aggregation on the CPU (`--viewagg_device 'cpu'`)."
+            )
+        LOGGER.info(hint)
         LOGGER.info(
             "Note: View Aggregation on the GPU is particularly memory-hungry at "
             "approx. 5 GB for standard 256x256x256 images."

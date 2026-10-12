@@ -739,8 +739,9 @@ def main(
                     qc_file_handle.flush()
                 qc_failed_subject_count += 1
         except RuntimeError as e:
-            if not handle_cuda_memory_exception(e):
-                return e.args[0]
+            if handle_cuda_memory_exception(e, batch_size=batch_size):
+                return "Segmentation failed: insufficient GPU memory."
+            return e.args[0]
 
     if qc_file_handle is not None:
         qc_file_handle.close()
