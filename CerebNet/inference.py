@@ -228,7 +228,7 @@ class Inference:
         except RuntimeError as e:
             from FastSurferCNN.utils.common import handle_cuda_memory_exception
 
-            handle_cuda_memory_exception(e)
+            handle_cuda_memory_exception(e, batch_size=self.batch_size)
             raise e
         return prediction_logits
 

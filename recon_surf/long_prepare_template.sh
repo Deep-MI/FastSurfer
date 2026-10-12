@@ -141,7 +141,7 @@ Resource Options:
                             Equivalently, if you pass a different device, view
                             agg will be run on that device (no memory check will
                             be done).
-  --batch <batch_size>    Batch size for inference. Default: 1
+  --batch_size <int>      Batch size for inference. Default: 1
   --py <python_cmd>       Command for python, used in both pipelines.
                             Default: "$python"
                             (-s: do no search for packages in home directory)
@@ -177,7 +177,12 @@ case $key in
   # these flags are passed through to run_prediction.py
   --vox_size|--device|--viewagg_device|--conform_to_1mm_threshold) run_pred_flags+=("$key" "$1") ; shift ;;
   --threads|--threads_seg) threads="$1" ; shift ;;
-  --batch) run_pred_flags+=("--batch_size" "$1") ; shift ;;
+  --batch_size|--batch)
+    if [[ "$key" == "--batch" ]]
+    then
+      echo "WARNING: --batch <int> is deprecated and will be removed, use --batch_size <int>."
+    fi
+    run_pred_flags+=("--batch_size" "$1") ; shift ;;
   # these known arguments get ignored
   --aseg_name|--conformed_name|--asegdkt_segfile|--brainmask_name|--seg_log|--qc_log|--parallel|--threads_surf) shift ;;
   --norm_name|--reg_mode|--cereb_segfile) shift ;;

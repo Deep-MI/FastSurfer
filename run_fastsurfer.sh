@@ -338,7 +338,7 @@ Resource Options:
                             using two cores. No effect at 2 or more surface
                             threads, where the hemispheres already run at the
                             same time.
-  --batch <batch_size>    Batch size for inference (default: 1).
+  --batch_size <int>      Batch size for inference (default: 1).
   --py <python_cmd>       Command for python, used in both pipelines.
                             Default: "$python"
                             (-s: do no search for packages in home directory)
@@ -530,7 +530,12 @@ case $key in
   --keepgeom|--native_image) native_image="true" ; vox_size="keep" ;;
   --tal_reg) run_talairach_registration="true" ;;
   --device) device="$1" ; shift ;;
-  --batch) batch_size="$1" ; shift ;;
+  --batch_size|--batch)
+    if [[ "$key" == "--batch" ]]
+    then
+      echo "WARNING: --batch <int> is deprecated and will be removed, use --batch_size <int>."
+    fi
+    batch_size="$1" ; shift ;;
   --viewagg_device|--run_viewagg_on)
     if [[ "$key" == "--run_viewagg_on" ]]
     then
