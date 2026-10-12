@@ -179,14 +179,14 @@ def local_tags(runtime: str, image_dir: Path) -> list[str]:
     return out.stdout.split() if out.returncode == 0 else []
 
 
-def query_nvidia_gpu(index: int = 0) -> tuple[tuple[int, int] | None, int] | None:
+def query_nvidia_gpus() -> list[tuple[tuple[int, int] | None, int]]:
     """
-    The compute capability and the driver version of an NVIDIA GPU, from nvidia-smi.
+    The compute capability and the driver version of each NVIDIA GPU, from nvidia-smi, in index order.
 
-    Returns None without an NVIDIA GPU. The capability is None if this driver cannot report it.
+    Empty without an NVIDIA GPU. A capability is None if the driver cannot report it, e.g. as N/A.
     """
     if shutil.which("nvidia-smi") is None:
-        return None
+        return []
     for fields in ("compute_cap,driver_version", "driver_version"):
         try:
             out = subprocess.run(
@@ -195,70 +195,133 @@ def query_nvidia_gpu(index: int = 0) -> tuple[tuple[int, int] | None, int] | Non
             ).stdout.strip().splitlines()
         except (OSError, subprocess.SubprocessError):
             continue
-        if index >= len(out):
-            return None
-        values = [v.strip() for v in out[index].split(",")]
-        driver = int(values[-1].split(".")[0])
-        if len(values) == 1:
-            return None, driver
-        major, minor = values[0].split(".")
-        return (int(major), int(minor)), driver
-    return None
+        gpus = []
+        try:
+            for line in out:
+                values = [v.strip() for v in line.split(",")]
+                driver = int(values[-1].split(".")[0])
+                capability = None
+                if len(values) > 1 and re.fullmatch(r"\d+\.\d+", values[0]):
+                    major, minor = values[0].split(".")
+                    capability = (int(major), int(minor))
+                gpus.append((capability, driver))
+        except (ValueError, IndexError):
+            continue  # an unreadable driver version: try the next query
+        return gpus
+    return []
 
 
-def choose_build(gpu: tuple[tuple[int, int] | None, int] | None, device: str) -> Build:
+def choose_build(gpus: list[tuple[tuple[int, int] | None, int]], use: str) -> Build:
     """
-    The image that runs on this GPU and driver, preferring the default CUDA version.
+    The image that runs on all of these GPUs and their driver, preferring the default CUDA version.
 
     Parameters
     ----------
-    gpu : tuple, None
-        The compute capability (None if unknown) and the driver major version, or None without a GPU.
-    device : str
-        The value of FastSurfer's --device, "auto" if it was not given.
+    gpus : list[tuple]
+        The GPUs FastSurfer will use: compute capability (None if unknown) and driver major version.
+    use : str
+        "cuda" if a GPU was requested explicitly, "auto" if FastSurfer would use one if it can, and
+        "cpu" if it runs on the CPU only.
 
     Returns
     -------
     Build
         The tag prefix, whether to give the container the GPU, and notes for the user.
     """
-    if device == "cpu":
+    if use == "cpu":
         return Build("cpu", False)
-    if gpu is None:
-        if device.startswith("cuda"):
-            raise LauncherError(f"--device {device} needs an NVIDIA GPU, but nvidia-smi found none.")
+    if not gpus:
+        if use == "cuda":
+            raise LauncherError("A cuda device was requested, but nvidia-smi found no NVIDIA GPU.")
         return Build("cpu", False, ["No NVIDIA GPU found, so FastSurfer runs on the CPU."])
-    capability, driver = gpu
+    driver = min(d for _, d in gpus)
+    capabilities = [c for c, _ in gpus if c is not None]
 
     def runs(build: tuple[tuple[int, int], str]) -> bool:
         (cuda_major, _), prefix = build
         if driver < MIN_DRIVER[cuda_major]:
             return False
-        if capability is None:
-            return True
-        if prefix == LEGACY_BUILD[1] and capability > LEGACY_MAX_CAPABILITY:
-            return False
-        return capability >= MIN_CAPABILITY[prefix]
+        too_new = prefix == LEGACY_BUILD[1] and any(c > LEGACY_MAX_CAPABILITY for c in capabilities)
+        return not too_new and all(c >= MIN_CAPABILITY[prefix] for c in capabilities)
 
     if runs(NEWEST_BUILD):
         return Build(NEWEST_BUILD[1], True)
     newest_min_driver = MIN_DRIVER[NEWEST_BUILD[0][0]]
     if runs(LEGACY_BUILD):
         notes = []
-        if driver < newest_min_driver and (capability is None or capability >= MIN_CAPABILITY[NEWEST_BUILD[1]]):
+        if driver < newest_min_driver and all(c >= MIN_CAPABILITY[NEWEST_BUILD[1]] for c in capabilities):
             notes.append(
                 f"The NVIDIA driver {driver} is older than {newest_min_driver}, so this uses the image for "
                 f"CUDA {LEGACY_BUILD[0][0]}.{LEGACY_BUILD[0][1]}. Update the driver to use the default image."
             )
         return Build(LEGACY_BUILD[1], True, notes)
-    if capability is not None and capability < MIN_CAPABILITY[LEGACY_BUILD[1]]:
-        reason = f"The GPU (compute capability {capability[0]}.{capability[1]}) is too old for FastSurfer's images"
+    oldest = min(capabilities) if capabilities else None
+    newest = max(capabilities) if capabilities else None
+    if oldest is not None and oldest < MIN_CAPABILITY[LEGACY_BUILD[1]]:
+        reason = f"The GPU (compute capability {oldest[0]}.{oldest[1]}) is too old for FastSurfer's images"
+    elif (driver >= newest_min_driver and oldest < MIN_CAPABILITY[NEWEST_BUILD[1]]
+          and newest > LEGACY_MAX_CAPABILITY):
+        reason = (f"No FastSurfer image supports both GPUs of compute capability {oldest[0]}.{oldest[1]} "
+                  f"and {newest[0]}.{newest[1]}; select GPUs of one kind with --device cuda:<index>")
     else:
         reason = (f"The NVIDIA driver {driver} is too old for FastSurfer's images, update it to "
                   f"{newest_min_driver} or newer")
-    if device.startswith("cuda"):
+    if use == "cuda":
         raise LauncherError(f"{reason}.")
     return Build("cpu", False, [f"{reason}, so FastSurfer runs on the CPU."])
+
+
+def cuda_indices(value: str) -> list[int] | None:
+    """
+    The GPU indices a device value names, e.g. [0, 1, 2, 5] for cuda:0-2,5, and None if it names none.
+
+    Accepts the forms run_fastsurfer.sh and brun_fastsurfer.sh accept: cuda:<i>, lists and ranges.
+    """
+    if not value.startswith("cuda:"):
+        return None
+    indices = []
+    for part in value[len("cuda:"):].split(","):
+        match = re.fullmatch(r"(\d+)(?:-(\d+))?", part)
+        if match is None:
+            raise LauncherError(f"Cannot read the device {value}; use e.g. cuda:0, cuda:0,1 or cuda:0-3.")
+        first, last = int(match.group(1)), int(match.group(2) or match.group(1))
+        indices.extend(range(first, last + 1))
+    return indices
+
+
+def plan_gpus(args: list[str], gpus: list[tuple[tuple[int, int] | None, int]], brun: bool,
+              ) -> tuple[str, list[tuple[tuple[int, int] | None, int]]]:
+    """
+    Whether FastSurfer would use a GPU with these arguments, and which of the GPUs.
+
+    --device decides the segmentation, --viewagg_device the view aggregation, which runs on the CPU
+    with --device cpu unless it names cuda itself. Without an index, run_fastsurfer.sh uses the first
+    GPU and brun_fastsurfer.sh may use all of them.
+
+    Returns
+    -------
+    str
+        "cuda", "auto" or "cpu", as `use` of choose_build.
+    list[tuple]
+        The GPUs that will be used.
+    """
+    device = _last_value(args, "--device") or "auto"
+    viewagg = _last_value(args, "--viewagg_device") or "auto"
+    requested = [v for v in (device, viewagg) if v == "cuda" or v.startswith("cuda:")]
+    if requested:
+        use = "cuda"
+    elif device == "auto":
+        use = "auto"
+    else:
+        return "cpu", []
+    indices: set[int] = set()
+    for value in requested or [device]:
+        named = cuda_indices(value)
+        indices.update(named if named is not None else (range(len(gpus)) if brun else [0]))
+    missing = sorted(i for i in indices if i >= len(gpus))
+    if missing and gpus:
+        raise LauncherError(f"There is no GPU {missing[0]}, nvidia-smi found {len(gpus)}.")
+    return use, [gpus[i] for i in sorted(indices) if i < len(gpus)]
 
 
 def image_reference(prefix: str, version: str) -> str:
@@ -359,12 +422,14 @@ def _subjects_list_mounts(subjects_list: Path) -> list[Path]:
         _, _, t1 = tokens[0].partition("=")
         paths = [t1] + [tokens[k + 1] for k, tok in enumerate(tokens[1:-1], start=1) if tok in INPUT_FLAGS]
         for value in paths:
-            if not os.path.isabs(os.path.expanduser(value)):
+            # brun_fastsurfer.sh expands nothing in a subjects list, so ~ is not the home directory there
+            if not os.path.isabs(value):
                 raise LauncherError(
-                    f"{subjects_list}, line {number}: {value} is a relative path. Use absolute paths in a "
-                    f"subjects list, the container does not start in the current directory."
+                    f"{subjects_list}, line {number}: {value} is not an absolute path. Use absolute paths "
+                    f"in a subjects list, without ~: the container does not start in the current directory, "
+                    f"and nothing in the list is expanded."
                 )
-            mounts.append(_parent_of_file(Path(os.path.expanduser(value))))
+            mounts.append(_parent_of_file(Path(value)))
     return mounts
 
 
@@ -438,11 +503,12 @@ def docker_memory_gib() -> float:
     return int(out.stdout.strip()) / 2**30
 
 
-def _fastsurfer_device(args: list[str]) -> str:
-    for i in range(len(args) - 1):
-        if args[i] == "--device":
+def _last_value(args: list[str], flag: str) -> str | None:
+    """The value of the last `flag` in the arguments, as the scripts apply repeated flags in order."""
+    for i in range(len(args) - 2, -1, -1):
+        if args[i] == flag:
             return args[i + 1]
-    return "auto"
+    return None
 
 
 def _license_args(args: list[str], cwd: Path) -> list[str]:
@@ -505,7 +571,7 @@ def main(argv: list[str] | None = None) -> int:
         package_hint = (f"install the FastSurfer package for macOS instead, {MACOS_PACKAGE_URL} (see {MACOS_DOC_URL}). "
                         f"It runs natively and uses the Mac's GPU: in the console it opens, call run_fastsurfer.sh "
                         f"with the same flags.")
-        if apple_silicon and options.runtime == "auto":
+        if apple_silicon and options.runtime != "docker":
             raise LauncherError(f"On a Mac with Apple silicon, {package_hint} To run the Intel image in Docker "
                                 f"under emulation anyway, which is much slower, pass --runtime docker.")
         if apple_silicon:
@@ -525,18 +591,19 @@ def main(argv: list[str] | None = None) -> int:
         if "--fs_license" not in args and "--seg_only" not in args:
             info("No FreeSurfer license given (--fs_license or $FS_LICENSE); the surfaces need one.")
 
-        device = _fastsurfer_device(args)
-        index = int(device.split(":", 1)[1]) if device.startswith("cuda:") else 0
-        gpu = query_nvidia_gpu(index) if device != "cpu" else None
-        # whether the newest images can use this GPU; a GPU they do not support runs them on the CPU
-        gpu_unsupported = gpu is not None and not choose_build(gpu, "auto").gpu
+        if options.image and options.image.endswith(".sif") and runtime == "docker":
+            raise LauncherError("A .sif image needs Apptainer or Singularity: pass --runtime apptainer or "
+                                "--runtime singularity, or a Docker image with --image.")
+        use, gpus = plan_gpus(args, query_nvidia_gpus(), options.brun)
+        # whether the newest images can use these GPUs; GPUs they do not support run them on the CPU
+        gpu_unsupported = bool(gpus) and not choose_build(gpus, "auto").gpu
         if options.image:
             # an own or an older official image: give it the GPU unless the run is on the CPU
-            build = Build("custom", gpu is not None)
+            build = Build("custom", bool(gpus))
             image = options.image
             requested, flag = official_image_version(image), "--image"
         else:
-            build = choose_build(gpu, device)
+            build = choose_build(gpus, use)
             requested, flag = options.image_version, "--image_version"
             version = requested
             if version is None:

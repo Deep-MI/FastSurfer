@@ -41,14 +41,24 @@ _spec.loader.exec_module(launcher)
     ],
 )
 def test_choose_build_gpu(gpu, prefix):
-    build = launcher.choose_build(gpu, "auto")
+    build = launcher.choose_build([gpu], "auto")
     assert (build.prefix, build.gpu) == (prefix, True)
 
 
 def test_choose_build_explains_the_older_image():
-    build = launcher.choose_build(((8, 6), 550), "auto")
+    build = launcher.choose_build([((8, 6), 550)], "auto")
     assert build.notes and "550" in build.notes[0]
-    assert launcher.choose_build(((6, 1), 580), "auto").notes == []
+    assert launcher.choose_build([((6, 1), 580)], "auto").notes == []
+
+
+def test_choose_build_several_gpus():
+    # the image has to run on every GPU used: an Ampere and a Pascal need the CUDA 12.6 image
+    assert launcher.choose_build([((8, 6), 580), ((6, 1), 580)], "auto").prefix == "cu126"
+    # a Blackwell and a Pascal have no image in common
+    build = launcher.choose_build([((12, 0), 580), ((6, 1), 580)], "auto")
+    assert build.prefix == "cpu" and "both GPUs" in build.notes[0]
+    with pytest.raises(launcher.LauncherError):
+        launcher.choose_build([((12, 0), 580), ((6, 1), 580)], "cuda")
 
 
 @pytest.mark.parametrize(
@@ -60,18 +70,43 @@ def test_choose_build_explains_the_older_image():
     ],
 )
 def test_choose_build_falls_back_to_cpu(gpu):
-    build = launcher.choose_build(gpu, "auto")
+    build = launcher.choose_build([gpu], "auto")
     assert (build.prefix, build.gpu) == ("cpu", False)
     assert build.notes
     with pytest.raises(launcher.LauncherError):
-        launcher.choose_build(gpu, "cuda")
+        launcher.choose_build([gpu], "cuda")
 
 
 def test_choose_build_cpu():
-    assert launcher.choose_build(((8, 6), 580), "cpu").prefix == "cpu"
-    assert launcher.choose_build(None, "auto").prefix == "cpu"
+    assert launcher.choose_build([((8, 6), 580)], "cpu").prefix == "cpu"
+    assert launcher.choose_build([], "auto").prefix == "cpu"
     with pytest.raises(launcher.LauncherError):
-        launcher.choose_build(None, "cuda:0")
+        launcher.choose_build([], "cuda")
+
+
+def test_cuda_indices():
+    assert launcher.cuda_indices("cuda:1") == [1]
+    assert launcher.cuda_indices("cuda:0,1") == [0, 1]
+    assert launcher.cuda_indices("cuda:0-2,5") == [0, 1, 2, 5]
+    assert launcher.cuda_indices("cuda") is None and launcher.cuda_indices("auto") is None
+    with pytest.raises(launcher.LauncherError):
+        launcher.cuda_indices("cuda:first")
+
+
+def test_plan_gpus():
+    gpus = [((8, 6), 580), ((6, 1), 580), ((7, 5), 580)]
+    assert launcher.plan_gpus([], gpus, brun=False) == ("auto", [gpus[0]])
+    # brun_fastsurfer.sh may spread "auto" over every GPU
+    assert launcher.plan_gpus([], gpus, brun=True) == ("auto", gpus)
+    assert launcher.plan_gpus(["--device", "cuda:1-2"], gpus, brun=True) == ("cuda", gpus[1:])
+    assert launcher.plan_gpus(["--device", "cpu"], gpus, brun=False) == ("cpu", [])
+    # the view aggregation can need a GPU while the segmentation runs on the CPU
+    assert launcher.plan_gpus(["--device", "cpu", "--viewagg_device", "cuda:2"], gpus, False) == ("cuda", [gpus[2]])
+    # the last of repeated flags counts, as in the scripts
+    assert launcher.plan_gpus(["--device", "cpu", "--device", "cuda:1"], gpus, False) == ("cuda", [gpus[1]])
+    assert launcher.plan_gpus(["--device", "cuda:1", "--device", "cpu"], gpus, False) == ("cpu", [])
+    with pytest.raises(launcher.LauncherError):
+        launcher.plan_gpus(["--device", "cuda:3"], gpus, brun=False)
 
 
 def test_newest_version():
@@ -150,10 +185,12 @@ def test_plan_paths_brun(tmp_path):
     out, mounts = launcher.plan_paths(["--subjects", "sub1=a/t1.mgz", "--sd", "out"], tmp_path)
     assert out[:2] == ["--subjects", f"sub1={a / 't1.mgz'}"]
 
-    # relative paths in a list cannot be resolved inside the container
-    subjects.write_text("sub1=a/t1.mgz\n")
-    with pytest.raises(launcher.LauncherError):
-        launcher.plan_paths(["--subjects_list", str(subjects)], tmp_path)
+    # relative paths in a list cannot be resolved inside the container, and brun_fastsurfer.sh does not
+    # expand ~ in a list
+    for line in ("sub1=a/t1.mgz\n", "sub1=~/t1.mgz\n"):
+        subjects.write_text(line)
+        with pytest.raises(launcher.LauncherError):
+            launcher.plan_paths(["--subjects_list", str(subjects)], tmp_path)
 
 
 def test_commands(tmp_path):
