@@ -108,8 +108,10 @@ def test_cuda_indices():
     assert launcher.cuda_indices("cuda:0,1") == [0, 1]
     assert launcher.cuda_indices("cuda:0-2,5") == [0, 1, 2, 5]
     assert launcher.cuda_indices("cuda") is None and launcher.cuda_indices("auto") is None
-    with pytest.raises(launcher.LauncherError):
-        launcher.cuda_indices("cuda:first")
+    # an empty range would read as no GPU named, so a downward range is an error
+    for value in ("cuda:first", "cuda:3-0"):
+        with pytest.raises(launcher.LauncherError):
+            launcher.cuda_indices(value)
 
 
 def test_gpu_request():
@@ -211,6 +213,13 @@ def test_plan_paths_brun(tmp_path):
     subjects.write_text(f"# comment\n\nsub1={a / 't1.mgz'} --t2 '{b / 't2.nii.gz'}'\n")
     _, mounts = launcher.plan_paths(["--subjects_list", str(subjects), "--sd", str(tmp_path / "out")], tmp_path)
     assert set(launcher.minimal_mounts(mounts)) == {a, b, subjects.parent, tmp_path / "out"}
+
+    # subject-specific outputs, e.g. a subject's own --sd: created and shared like the general ones
+    own_sd, log = tmp_path / "other" / "sd", tmp_path / "logs" / "sub2.log"
+    subjects.write_text(f"sub2={a / 't1.mgz'} --sd {own_sd} --seg_log {log}\n")
+    _, mounts = launcher.plan_paths(["--subjects_list", str(subjects)], tmp_path)
+    assert {own_sd, log.parent} <= set(launcher.minimal_mounts(mounts))
+    assert own_sd.is_dir() and log.parent.is_dir()
 
     out, mounts = launcher.plan_paths(["--subjects", "sub1=a/t1.mgz", "--sd", "out"], tmp_path)
     assert out[:2] == ["--subjects", f"sub1={a / 't1.mgz'}"]

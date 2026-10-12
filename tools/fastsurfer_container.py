@@ -346,6 +346,9 @@ def cuda_indices(value: str) -> list[int] | None:
         if match is None:
             raise LauncherError(f"Cannot read the device {value}; use e.g. cuda:0, cuda:0,1 or cuda:0-3.")
         first, last = int(match.group(1)), int(match.group(2) or match.group(1))
+        if last < first:
+            # an empty range would read as no GPU named, and the launcher would choose one itself
+            raise LauncherError(f"Cannot read the device {value}; a range has to go upward, e.g. cuda:0-3.")
         indices.extend(range(first, last + 1))
     return indices
 
@@ -422,6 +425,16 @@ def _parent_of_file(path: Path) -> Path:
     return path if path.is_dir() else path.parent
 
 
+def _mount_for(flag: str, path: Path, create: bool) -> Path:
+    """The directory to share for a path flag; an output directory is created, as a mount needs it."""
+    if flag not in OUTPUT_FLAGS:
+        return _parent_of_file(path)
+    directory = path if flag == "--sd" else path.parent
+    if create:
+        directory.mkdir(parents=True, exist_ok=True)
+    return directory
+
+
 def plan_paths(args: list[str], cwd: Path, create: bool = True) -> tuple[list[str], list[Path]]:
     """
     Make the paths in FastSurfer's arguments absolute and find the directories to share.
@@ -451,17 +464,11 @@ def plan_paths(args: list[str], cwd: Path, create: bool = True) -> tuple[list[st
         i += 1
         if flag in INPUT_FLAGS | OUTPUT_FLAGS and i < len(args):
             path = _absolute(args[i], cwd)
-            if flag in INPUT_FLAGS:
-                if not path.exists():
-                    raise LauncherError(f"{flag} {args[i]}: no such file.")
-                mounts.append(_parent_of_file(path))
-                if flag in ("--subjects_list", "--subject_list"):
-                    mounts.extend(_subjects_list_mounts(path))
-            else:
-                directory = path if flag == "--sd" else path.parent
-                if create:
-                    directory.mkdir(parents=True, exist_ok=True)
-                mounts.append(directory)
+            if flag in INPUT_FLAGS and not path.exists():
+                raise LauncherError(f"{flag} {args[i]}: no such file.")
+            mounts.append(_mount_for(flag, path, create))
+            if flag in ("--subjects_list", "--subject_list"):
+                mounts.extend(_subjects_list_mounts(path, create))
             out.append(str(path))
             i += 1
         elif flag == "--subjects":
@@ -479,16 +486,22 @@ def plan_paths(args: list[str], cwd: Path, create: bool = True) -> tuple[list[st
     return out, mounts
 
 
-def _subjects_list_mounts(subjects_list: Path) -> list[Path]:
-    """The directories of the files a brun_fastsurfer.sh subjects list names, which must be absolute."""
+def _subjects_list_mounts(subjects_list: Path, create: bool = True) -> list[Path]:
+    """
+    The directories to share for a brun_fastsurfer.sh subjects list, whose paths must be absolute.
+
+    Covers the T1 of each subject and the paths in its subject-specific options, inputs and outputs
+    (e.g. its own --sd), and creates output directories like plan_paths.
+    """
     mounts = []
     for number, line in enumerate(subjects_list.read_text().splitlines(), start=1):
         tokens = shlex.split(line, comments=True)
         if not tokens:
             continue
         _, _, t1 = tokens[0].partition("=")
-        paths = [t1] + [tokens[k + 1] for k, tok in enumerate(tokens[1:-1], start=1) if tok in INPUT_FLAGS]
-        for value in paths:
+        paths = [("--t1", t1)] + [(tok, tokens[k + 1]) for k, tok in enumerate(tokens[1:-1], start=1)
+                                  if tok in INPUT_FLAGS | OUTPUT_FLAGS]
+        for flag, value in paths:
             # brun_fastsurfer.sh expands nothing in a subjects list, so ~ is not the home directory there
             if not os.path.isabs(value):
                 raise LauncherError(
@@ -496,7 +509,7 @@ def _subjects_list_mounts(subjects_list: Path) -> list[Path]:
                     f"in a subjects list, without ~: the container does not start in the current directory, "
                     f"and nothing in the list is expanded."
                 )
-            mounts.append(_parent_of_file(Path(value)))
+            mounts.append(_mount_for(flag, Path(value), create))
     return mounts
 
 
