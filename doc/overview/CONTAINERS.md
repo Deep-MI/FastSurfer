@@ -19,6 +19,59 @@ define access to data and hardware such as graphics cards, and the options of Fa
 the container passes on to `run_fastsurfer.sh`. It is useful to think of the image as a "hard drive" and the container
 as a "simulated computer inside the computer".
 
+The launcher
+------------
+`fastsurfer_container.py` writes and runs the container command for you. It takes the same flags as
+`run_fastsurfer.sh` and needs only Python 3.8 or newer, not FastSurfer itself. It
+
+- uses Apptainer, Singularity or Docker, whichever is installed (choose one with `--runtime`),
+- picks the image that runs on your NVIDIA GPU and driver, or the CPU image without one, see
+  [which image fits your GPU](install/LINUX.md#nvidia-gpus); with several GPUs and no
+  `--device cuda:<index>`, it uses the newest one with enough memory and says which,
+- downloads the image once (for Apptainer, into `$HOME/my_singularity_images`),
+- shares the files and directories the flags name with the container, at the same paths, so relative
+  paths work too,
+- passes the FreeSurfer license from `$FS_LICENSE` if `--fs_license` is not given, and runs the
+  container as you.
+
+Download it, and run FastSurfer:
+
+```bash
+curl -fsSLO https://raw.githubusercontent.com/Deep-MI/FastSurfer/stable/tools/fastsurfer_container.py
+python3 fastsurfer_container.py \
+    --t1 $HOME/my_mri_data/subjectX/t1_weighted.nii.gz \
+    --sid subjectX --sd $HOME/my_fastsurfer_analysis \
+    --3T --threads 4
+```
+
+The first run downloads the newest FastSurfer release. Later runs use the image already installed,
+also one of an earlier release or CUDA version, as long as it runs on the machine, and also when a
+newer release comes out: the launcher then says so, and `--update` switches to it. It
+says which image it runs, e.g. `cu132-v2.6.0`. To keep a study on exactly that image, pass it with
+`--image cu132-v2.6.0`: the image type matters as well as the version, because the CPU and the GPU
+images do not compute exactly the same numbers.
+
+`--image` also takes a version alone (`--image 2.6.0`, the image type is then chosen for the
+machine), your own Docker image, or an Apptainer `.sif` file. If several FastSurfer images are
+installed, the launcher asks which one to use. It stops if an installed image differs from the
+release of the same name, e.g. a local build; `--update` replaces it with the release. For an older
+version, it says how many releases it is behind. A GPU that the newest images no longer support runs
+them on the CPU. The image of an older release may still support that GPU, but the launcher
+recommends the newest release on the CPU, or a machine with a newer GPU, over an old version.
+
+With `--brun`, it runs `brun_fastsurfer.sh` for several subjects; the paths in a subjects list have
+to be absolute. `--print_only` prints the commands instead of running them, `--update_launcher`
+replaces the launcher with the current one, and `--help` lists all launcher options. The sections
+below explain the commands it runs.
+
+Before starting many runs at once, e.g. a SLURM array, run the launcher once (e.g. on one subject),
+so the image is downloaded and built only once rather than by every job.
+
+On a Mac with Apple silicon, use the [macOS package](install/MACOS.md) instead: the images are built for
+Intel and AMD processors, which such a Mac only emulates, much more slowly and without its GPU. The
+launcher therefore stops there and points to the package, unless you pass `--runtime docker`. With
+Docker, it also warns if Docker may use less memory than FastSurfer needs.
+
 Using Apptainer (or Singularity)
 --------------------------------
 [Apptainer](https://apptainer.org) is the open-source continuation of Singularity, and both run the same images.
