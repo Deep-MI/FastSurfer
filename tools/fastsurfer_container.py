@@ -59,7 +59,8 @@ MIN_DOCKER_MEMORY_GIB = 14
 # each supports and the newest the legacy one does. The test in test/lint keeps them in sync.
 NEWEST_BUILD = ((13, 2), "cu132")
 LEGACY_BUILD = ((12, 6), "cu126")
-MIN_DRIVER = {12: 525, 13: 580}
+# CUDA 11 for older releases, whose images can still be installed
+MIN_DRIVER = {11: 450, 12: 525, 13: 580}
 MIN_CAPABILITY = {"cu132": (7, 5), "cu126": (5, 0)}
 LEGACY_MAX_CAPABILITY = (9, 0)
 # the graphics memory FastSurfer needs at 0.8 mm, see the system requirements in the README
@@ -200,6 +201,24 @@ def _runs(build: tuple[tuple[int, int], str], gpus: list[Gpu]) -> bool:
 def _best_build(gpus: list[Gpu]) -> tuple[tuple[int, int], str] | None:
     """The newest CUDA build whose image runs on all of these GPUs, None if there is none."""
     return next((build for build in (NEWEST_BUILD, LEGACY_BUILD) if _runs(build, gpus)), None)
+
+
+def image_type_runs(image_type: str, gpus: list[Gpu]) -> bool:
+    """
+    Whether images of a type (cu132, cu118, cpu, ...) run on these GPUs, or, without GPUs, on the CPU.
+
+    The GPUs of the current CUDA types are known; for older ones, only the driver can be checked.
+    """
+    if not gpus:
+        return image_type == "cpu"
+    match = re.fullmatch(r"cu(\d+)(\d)", image_type)
+    if match is None:
+        return False
+    build = next((b for b in (NEWEST_BUILD, LEGACY_BUILD) if b[1] == image_type), None)
+    if build is not None:
+        return _runs(build, gpus)
+    major = int(match.group(1))
+    return major in MIN_DRIVER and min(gpu.driver for gpu in gpus) >= MIN_DRIVER[major]
 
 
 def describe(gpu: Gpu) -> str:
@@ -508,21 +527,22 @@ def _apptainer_runtime(runtime: str, installed: set[str]) -> str | None:
 def decide_image(kind: str, value: str, prefix: str, runtime: str, installed: set[str],
                  docker_images: dict[str, str] | None, sif_images: dict[str, str],
                  hub: dict[str, set[str]] | None, image_dir: Path, update: bool,
-                 local_id: str | None = None) -> ImagePlan:
+                 local_id: str | None = None, gpus: list[Gpu] | None = None) -> ImagePlan:
     """
     Which image to run, with which runtime, and whether it has to be downloaded or built first.
 
-    Without --image, the official release image of this machine's type (`prefix`) already installed is
-    used, wherever it is; several stop the launcher, none downloads the newest release. With --update,
-    the newest release (or the one named) is downloaded again. A release image whose content differs
-    from Docker Hub stops the launcher, unless it was named in full.
+    Without --image, an official release image already installed that runs on this machine is used,
+    wherever it is, also one of an older type than the newest images; several stop the launcher, none
+    downloads the newest release. With --update, the newest release (or the one named) is downloaded
+    again. A release image whose content differs from Docker Hub stops the launcher, unless it was
+    named in full.
 
     Parameters
     ----------
     kind, value : str
         What --image names, see parse_image_spec.
     prefix : str
-        The image type for this machine, e.g. cu132.
+        The image type of the newest images for this machine, e.g. cu132.
     runtime : str
         --runtime: auto, apptainer, singularity or docker.
     installed : set[str]
@@ -539,6 +559,9 @@ def decide_image(kind: str, value: str, prefix: str, runtime: str, installed: se
         --update: download or build the image again.
     local_id : str, None
         For a "docker" image, its ID in the local Docker, None if it is not there.
+    gpus : list[Gpu], None
+        The GPUs the run will use, to tell which installed images run here; empty for a run on the CPU.
+        None counts only images of type `prefix`.
     """
     apptainer = _apptainer_runtime(runtime, installed)
     docker_images = docker_images or {}
@@ -606,10 +629,13 @@ def decide_image(kind: str, value: str, prefix: str, runtime: str, installed: se
         release_exists(tag)
         return place_release(tag, checked=True)
 
-    # no --image: the installed release image of this type, or the newest release
+    # no --image: the installed release image that runs here, or the newest release
+    def runs_here(image_type: str) -> bool:
+        return image_type == prefix if gpus is None else image_type_runs(image_type, gpus)
+
     candidates = sorted({t for t in [*docker_images, *sif_images]
-                         if (m := RELEASE_TAG.fullmatch(t)) and m.group(1) == prefix},
-                        key=lambda t: parse_version(t.rsplit("-v", 1)[-1]))
+                         if (m := RELEASE_TAG.fullmatch(t)) and runs_here(m.group(1))},
+                        key=lambda t: (parse_version(t.rsplit("-v", 1)[-1]), t))
     newest = newest_version(list(hub), prefix) if hub is not None else None
     if update or not candidates:
         if newest is None:
@@ -637,8 +663,10 @@ def decide_image(kind: str, value: str, prefix: str, runtime: str, installed: se
             return " and ".join(s for s, has in (("Docker", t in docker_images), ("Apptainer", t in sif_images)) if has)
 
         where = [f"{t} ({stores(t)})" for t in candidates]
-        raise LauncherError(f"Several FastSurfer images are installed: {'; '.join(where)}. Choose one with "
-                            f"--image <tag>, e.g. --image {candidates[-1]}, or remove the others.")
+        update_hint = (f", or download the newest release ({prefix}-v{newest}) with --update" if newest is not None
+                       else "")
+        raise LauncherError(f"Several FastSurfer images that run here are installed: {'; '.join(where)}. Choose "
+                            f"one with --image <tag>, e.g. --image {candidates[-1]}{update_hint}.")
     plan.notes.insert(0, ("INFO", f"Running FastSurfer {plan.tag.rsplit('-v', 1)[-1]} ({plan.tag}). For a study, "
                                   f"keep this image with --image {plan.tag}."))
     return plan
@@ -1039,9 +1067,12 @@ def main(argv: list[str] | None = None) -> int:
                                     f"launcher does not know the images of the newest release. Update it with "
                                     f"--update_launcher, or download it again from {LAUNCHER_URL}.")
         local_id = local_docker_id(value) if kind == "docker" else None
+        # the GPUs this run uses, to tell which installed images run here; none for a run on the CPU
+        used = [g for g in gpus if build.devices is None or g.index in build.devices] if build.gpu else []
         plan = decide_image(kind, value, build.prefix, options.runtime, installed,
                             local_docker_images() if "docker" in installed else None,
-                            local_sif_images(options.image_dir), hub, options.image_dir, options.update, local_id)
+                            local_sif_images(options.image_dir), hub, options.image_dir, options.update, local_id,
+                            used)
         runtime = plan.runtime
         if hub is not None:
             stable = stable_launcher()

@@ -201,9 +201,9 @@ BOTH = {"apptainer", "docker"}
 
 
 def decide(tmp_path, kind="auto", value="", runtime="auto", installed=BOTH, docker=None, sif=None, hub=HUB,
-           update=False, local_id=None):
+           update=False, local_id=None, gpus=None):
     return launcher.decide_image(kind, value, "cu132", runtime, installed, docker, sif or {}, hub, tmp_path,
-                                 update, local_id)
+                                 update, local_id, gpus)
 
 
 def test_decide_image_nothing_installed(tmp_path):
@@ -229,6 +229,32 @@ def test_decide_image_one_installed(tmp_path):
     assert plan.runtime == "apptainer" and plan.build_from is None
     # images of another type do not count
     assert decide(tmp_path, docker={"cpu-v2.5.4": "sha256:x"}).tag == "cu132-v2.6.0"
+
+
+def test_image_type_runs():
+    turing = [gpu((7, 5), driver=580)]
+    assert launcher.image_type_runs("cu132", turing) and launcher.image_type_runs("cu126", turing)
+    # older CUDA types are judged by the driver alone
+    assert launcher.image_type_runs("cu128", turing) and launcher.image_type_runs("cu118", turing)
+    assert not launcher.image_type_runs("cu128", [gpu((7, 5), driver=470)])
+    assert not launcher.image_type_runs("cu132", [gpu((6, 1))])  # Pascal, dropped by CUDA 13
+    # the CPU image only for a run on the CPU, and no AMD or unknown types on an NVIDIA GPU
+    assert not launcher.image_type_runs("cpu", turing) and launcher.image_type_runs("cpu", [])
+    assert not launcher.image_type_runs("rocm7.2", turing) and not launcher.image_type_runs("gpu", turing)
+
+
+def test_decide_image_older_types(tmp_path):
+    # images of older types that run on this GPU count too, as on a machine with earlier releases
+    turing = [gpu((7, 5), driver=580)]
+    installed = {"cu128-v2.5.4": "sha256:1", "cu126-v2.5.4": "sha256:2", "cpu-v2.5.4": "sha256:3"}
+    hub = {**HUB, "cu128-v2.5.4": {"sha256:1"}, "cu126-v2.5.4": {"sha256:2"}, "cpu-v2.5.4": {"sha256:3"}}
+    with pytest.raises(launcher.LauncherError, match="cu126-v2.5.4.*cu128-v2.5.4.*--update"):
+        decide(tmp_path, docker=installed, hub=hub, gpus=turing)
+    # one of them alone is used, with a note about the newest release
+    plan = decide(tmp_path, docker={"cu128-v2.5.4": "sha256:1"}, hub=hub, gpus=turing)
+    assert plan.tag == "cu128-v2.5.4" and any("2.6.0 is available" in note for _, note in plan.notes)
+    # a run on the CPU only counts the CPU image
+    assert decide(tmp_path, docker=installed, hub=hub, gpus=[]).tag == "cpu-v2.5.4"
 
 
 def test_decide_image_several_installed(tmp_path):

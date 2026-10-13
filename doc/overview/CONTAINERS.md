@@ -45,7 +45,8 @@ python3 fastsurfer_container.py \
 ```
 
 The first run downloads the newest FastSurfer release. Later runs use the image already installed,
-also when a newer release comes out: the launcher then says so, and `--update` switches to it. It
+also one of an earlier release or CUDA version, as long as it runs on the machine, and also when a
+newer release comes out: the launcher then says so, and `--update` switches to it. It
 says which image it runs, e.g. `cu132-v2.6.0`. To keep a study on exactly that image, pass it with
 `--image cu132-v2.6.0`: the image type matters as well as the version, because the CPU and the GPU
 images do not compute exactly the same numbers.
