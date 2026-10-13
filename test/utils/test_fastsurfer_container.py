@@ -427,6 +427,13 @@ def test_build_image(tmp_path):
     failed = tmp_path / "images" / "fastsurfer-cu132-v2.6.0.sif"
     assert not launcher.build_image([sys.executable, str(builder), str(failed), "fail"])
     assert sorted(p.name for p in sif.parent.iterdir()) == [sif.name]
+    # anonymous: the build reads an empty login file, which is removed afterwards
+    reader = tmp_path / "reader.py"
+    reader.write_text("import sys\nassert sys.argv[1] == '--authfile'\n"
+                      "open(sys.argv[3], 'w').write(open(sys.argv[2]).read())\n")
+    assert launcher.build_image([sys.executable, str(reader), str(failed), "docker://image"], anonymous=True)
+    assert failed.read_text() == "{}\n"
+    assert sorted(p.name for p in sif.parent.iterdir()) == sorted([sif.name, failed.name])
 
 
 def test_commands(tmp_path):

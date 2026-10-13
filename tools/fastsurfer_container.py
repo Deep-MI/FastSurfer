@@ -953,24 +953,41 @@ def _license_args(args: list[str], cwd: Path) -> list[str]:
     return []
 
 
-def build_image(command: list[str]) -> bool:
+def supports_authfile(runtime: str) -> bool:
+    """Whether `<runtime> build` takes --authfile, which older versions do not."""
+    try:
+        return "--authfile" in subprocess.run([runtime, "build", "--help"], capture_output=True, text=True,
+                                              timeout=30).stdout
+    except (OSError, subprocess.SubprocessError):
+        return False
+
+
+def build_image(command: list[str], anonymous: bool = False) -> bool:
     """
     Run `<runtime> build <sif> <source>` into a temporary file, and move it in place when it is complete.
 
     Parallel runs, e.g. the jobs of a SLURM array, and an interrupted build then never leave a partial
     image at the path the next run uses. Of two parallel builds, the last one to finish replaces the other.
+    With `anonymous`, the build gets an empty login file (--authfile), so stored Docker Hub credentials,
+    e.g. the expired token of a browser login, cannot make the download of a public image fail.
     """
     sif = Path(command[2])
     sif.parent.mkdir(parents=True, exist_ok=True)
     partial = sif.with_name(f".{sif.stem}.{os.getpid()}.partial.sif")
+    no_login = sif.with_name(f".{sif.stem}.{os.getpid()}.no-login.json")
+    login = []
+    if anonymous:
+        no_login.write_text("{}\n")
+        login = ["--authfile", str(no_login)]
     try:
-        if subprocess.run(command[:2] + [str(partial)] + command[3:]).returncode != 0:
+        if subprocess.run(command[:2] + login + [str(partial)] + command[3:]).returncode != 0:
             return False
         os.replace(partial, sif)
         return True
     finally:
-        if partial.exists():
-            partial.unlink()
+        for temporary in (partial, no_login):
+            if temporary.exists():
+                temporary.unlink()
 
 
 def stable_launcher() -> bytes | None:
@@ -1184,7 +1201,9 @@ def main(argv: list[str] | None = None) -> int:
     for command in commands[:-1]:
         if command[1] == "build":
             info(f"Building the image once: {shlex.join(command)}")
-            if not build_image(command):
+            # the official images are public, so their download needs no login
+            anonymous = command[3].startswith(f"docker://{DOCKER_REPO}:") and supports_authfile(command[0])
+            if not build_image(command, anonymous):
                 print("ERROR: Building the image failed. If it reports 'unauthorized' for this public image, "
                       "Apptainer sent stored Docker Hub credentials that are wrong or expired, often the "
                       "short-lived token of a browser login in ~/.docker/config.json: log in again with "
