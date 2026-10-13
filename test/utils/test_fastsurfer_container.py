@@ -227,6 +227,11 @@ def test_decide_image_one_installed(tmp_path):
     # the same version in both places counts once, and runs with Apptainer
     plan = decide(tmp_path, docker={"cu132-v2.6.0": "sha256:a"}, sif={"cu132-v2.6.0": "sha256:a"})
     assert plan.runtime == "apptainer" and plan.build_from is None
+    # a release pulled into Docker is converted from there for Apptainer, not downloaded again
+    plan = decide(tmp_path, runtime="apptainer", docker={"cu132-v2.6.0": "sha256:a"})
+    assert plan.build_from == "docker-daemon://deepmi/fastsurfer:cu132-v2.6.0"
+    # but not a local build tagged like the release
+    assert decide(tmp_path, runtime="apptainer", docker={"cu132-v2.6.0": ""}).build_from.startswith("docker://")
     # images of another type do not count
     assert decide(tmp_path, docker={"cpu-v2.5.4": "sha256:x"}).tag == "cu132-v2.6.0"
 
@@ -402,17 +407,19 @@ def test_build_image(tmp_path):
 def test_commands(tmp_path):
     args = ["--t1", str(tmp_path / "t1.mgz"), "--sd", str(tmp_path)]
     docker = launcher.docker_command("img:tag", True, [tmp_path], "run_fastsurfer.sh", args, [], "1000:1000")
-    assert docker == ["docker", "run", "--rm", "--user", "1000:1000", "--gpus", "all",
-                      "--env", "CUDA_DEVICE_ORDER=PCI_BUS_ID", "-v", f"{tmp_path}:{tmp_path}", "img:tag"] + args
+    # --init, so Ctrl-C and a cancelled job reach FastSurfer
+    init = ["docker", "run", "--rm", "--init", "--env", "TINI_KILL_PROCESS_GROUP=1"]
+    assert docker == init + ["--user", "1000:1000", "--gpus", "all", "--env", "CUDA_DEVICE_ORDER=PCI_BUS_ID",
+                             "-v", f"{tmp_path}:{tmp_path}", "img:tag"] + args
     # selected GPUs, quoted so Docker does not split the list
     selected = launcher.docker_command("img:tag", True, [], "run_fastsurfer.sh", [], [], "1:1", devices=[1, 3])
-    assert selected[5:7] == ["--gpus", '"device=1,3"']
+    assert selected[8:10] == ["--gpus", '"device=1,3"']
     sif_gpu = launcher.apptainer_command("apptainer", tmp_path / "fs.sif", True, [], "run_fastsurfer.sh", [], [],
                                          devices=[2])
     assert sif_gpu[2:8] == ["--nv", "--env", "CUDA_DEVICE_ORDER=PCI_BUS_ID", "--env", "CUDA_VISIBLE_DEVICES=2",
                             "--no-mount"]
     emulated = launcher.docker_command("img:tag", False, [tmp_path], "run_fastsurfer.sh", args, [], "501:20", True)
-    assert emulated[:7] == ["docker", "run", "--rm", "--user", "501:20", "--platform", "linux/amd64"]
+    assert emulated[:10] == init + ["--user", "501:20", "--platform", "linux/amd64"]
     brun = launcher.docker_command("img:tag", False, [tmp_path], "brun_fastsurfer.sh", args, [], "1000:1000")
     assert brun[-len(args) - 4:-len(args)] == ["--entrypoint", "/fastsurfer/tools/Docker/entrypoint.sh", "img:tag",
                                                "/fastsurfer/brun_fastsurfer.sh"]

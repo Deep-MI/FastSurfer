@@ -593,9 +593,13 @@ def decide_image(kind: str, value: str, prefix: str, runtime: str, installed: se
             return ImagePlan("docker", f"{DOCKER_REPO}:{tag}", pull=forced, tag=tag)
         sif = sif_path(image_dir, tag)
         build = forced or not in_sif
-        record = sorted(known)[0] if known and build else None
-        return ImagePlan(chosen, str(sif), build_from=f"docker://{DOCKER_REPO}:{tag}" if build else None,
-                         record=record, tag=tag)
+        # the release pulled into the local Docker: build from there, without a second download (and
+        # without Docker Hub credentials, which Apptainer may send even for this public image)
+        pulled = docker_images.get(tag, "")
+        from_docker = "docker" in installed and pulled and (known is None or pulled in known)
+        source = f"docker-daemon://{DOCKER_REPO}:{tag}" if from_docker else f"docker://{DOCKER_REPO}:{tag}"
+        record = (sorted(known)[0] if known else pulled or None) if build else None
+        return ImagePlan(chosen, str(sif), build_from=source if build else None, record=record, tag=tag)
 
     def release_exists(tag: str) -> None:
         if hub is not None and tag not in hub and tag not in docker_images and tag not in sif_images:
@@ -841,7 +845,9 @@ def docker_command(image: str, gpu: bool, mounts: list[Path], script: str, args:
 
     `emulate` runs the Intel image on Apple silicon.
     """
-    cmd = ["docker", "run", "--rm", "--user", user]
+    # --init: the image's entrypoint is a shell, which as the first process ignores Ctrl-C and the
+    # signal a cancelled cluster job sends; tini passes them to all of FastSurfer's processes instead
+    cmd = ["docker", "run", "--rm", "--init", "--env", "TINI_KILL_PROCESS_GROUP=1", "--user", user]
     if gpu:
         # the quotes are part of the value: without them, Docker splits a list of devices at the comma
         selection = "all" if devices is None else f'"device={",".join(map(str, devices))}"'
@@ -1137,7 +1143,10 @@ def main(argv: list[str] | None = None) -> int:
         if command[1] == "build":
             info(f"Building the image once: {shlex.join(command)}")
             if not build_image(command):
-                print("ERROR: Building the image failed.", file=sys.stderr)
+                print("ERROR: Building the image failed. If it reports 'unauthorized' for this public image, "
+                      "Apptainer sent stored Docker Hub credentials that are wrong or expired: check "
+                      "~/.docker/config.json, `apptainer remote list` and $APPTAINER_DOCKER_USERNAME.",
+                      file=sys.stderr)
                 return 1
             record = Path(command[2]).with_name(Path(command[2]).name + ".digest")
             if plan.record:
