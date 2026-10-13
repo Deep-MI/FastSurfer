@@ -117,7 +117,13 @@ def test_cuda_indices():
 def test_gpu_request():
     assert launcher.gpu_request([]) == ("auto", None)
     assert launcher.gpu_request(["--device", "cuda"]) == ("cuda", None)
-    assert launcher.gpu_request(["--device", "cuda:0-2,5"]) == ("cuda", [0, 1, 2, 5])
+    assert launcher.gpu_request(["--device", "cuda:1"]) == ("cuda", [1])
+    # lists and ranges only with brun_fastsurfer.sh: run_fastsurfer.sh takes one GPU
+    assert launcher.gpu_request(["--device", "cuda:0-2,5"], brun=True) == ("cuda", [0, 1, 2, 5])
+    for value in ("cuda:0,1", "cuda:0-3"):
+        for flag in ("--device", "--viewagg_device"):
+            with pytest.raises(launcher.LauncherError, match="--brun"):
+                launcher.gpu_request([flag, value])
     assert launcher.gpu_request(["--device", "cpu"]) == ("cpu", None)
     # the view aggregation can need a GPU while the segmentation runs on the CPU
     assert launcher.gpu_request(["--device", "cpu", "--viewagg_device", "cuda:2"]) == ("cuda", [2])

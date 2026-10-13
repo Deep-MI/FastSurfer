@@ -353,12 +353,13 @@ def cuda_indices(value: str) -> list[int] | None:
     return indices
 
 
-def gpu_request(args: list[str]) -> tuple[str, list[int] | None]:
+def gpu_request(args: list[str], brun: bool = False) -> tuple[str, list[int] | None]:
     """
     Whether FastSurfer would use a GPU with these arguments, and the indices of the GPUs it names.
 
     --device decides the segmentation and --viewagg_device the view aggregation, which runs on the CPU
-    with --device cpu unless it names cuda itself.
+    with --device cpu unless it names cuda itself. Lists and ranges of GPUs (cuda:0,1, cuda:0-3) are
+    for brun_fastsurfer.sh only; run_fastsurfer.sh takes one GPU.
 
     Returns
     -------
@@ -369,6 +370,10 @@ def gpu_request(args: list[str]) -> tuple[str, list[int] | None]:
     """
     values = [_last_value(args, "--device") or "auto", _last_value(args, "--viewagg_device") or "auto"]
     cuda = [v for v in values if v == "cuda" or v.startswith("cuda:")]
+    several = [v for v in cuda if v.startswith("cuda:") and not re.fullmatch(r"cuda:\d+", v)]
+    if several and not brun:
+        raise LauncherError(f"{several[0]}: run_fastsurfer.sh uses one GPU, e.g. cuda:1. Lists and ranges of "
+                            f"GPUs are for processing several subjects with --brun.")
     named = [i for v in cuda for i in (cuda_indices(v) or [])]
     use = "cuda" if cuda else ("auto" if values[0] == "auto" else "cpu")
     return use, sorted(set(named)) if named else None
@@ -381,7 +386,7 @@ def plan_build(args: list[str], gpus: list[Gpu], brun: bool) -> Build:
     Named GPUs are used as they are, and explained in detail if no image supports them. Otherwise the
     best GPU an image supports is selected, and the CPU only used if there is none.
     """
-    use, named = gpu_request(args)
+    use, named = gpu_request(args, brun)
     if use == "cpu":
         return Build("cpu", False)
     if named is not None:
@@ -697,7 +702,7 @@ def main(argv: list[str] | None = None) -> int:
         gpu_unsupported = bool(gpus) and select_gpus(gpus, False) is None
         if options.image:
             # an own or an older official image: give it the GPUs unless the run is on the CPU
-            build = Build("custom", gpu_request(args)[0] != "cpu" and bool(gpus))
+            build = Build("custom", gpu_request(args, options.brun)[0] != "cpu" and bool(gpus))
             image = options.image
             requested, flag = official_image_version(image), "--image"
         else:
