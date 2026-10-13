@@ -496,6 +496,53 @@ which reduces the risk of both data theft and data encryption attacks. This stra
 define access to data and hardware such as graphics cards, and the options of FastSurfer (<code class="docutils literal notranslate"><span class="pre">&lt;fastsurfer_flags&gt;</span></code>), which
 the container passes on to <code class="docutils literal notranslate"><span class="pre">run_fastsurfer.sh</span></code>. It is useful to think of the image as a “hard drive” and the container
 as a “simulated computer inside the computer”.</p>
+<section id="the-launcher">
+<h2>The launcher<a class="headerlink" href="#the-launcher" title="Link to this heading">¶</a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">fastsurfer_container.py</span></code> writes and runs the container command for you. It takes the same flags as
+<code class="docutils literal notranslate"><span class="pre">run_fastsurfer.sh</span></code> and needs only Python 3.8 or newer, not FastSurfer itself. It</p>
+<ul class="simple">
+<li><p>uses Apptainer, Singularity or Docker, whichever is installed (choose one with <code class="docutils literal notranslate"><span class="pre">--runtime</span></code>),</p></li>
+<li><p>picks the image that runs on your NVIDIA GPU and driver, or the CPU image without one, see
+<a class="reference internal" href="install/LINUX.html#nvidia-gpus"><span class="std std-ref">which image fits your GPU</span></a>; with several GPUs and no
+<code class="docutils literal notranslate"><span class="pre">--device</span> <span class="pre">cuda:&lt;index&gt;</span></code>, it uses the newest one with enough memory and says which,</p></li>
+<li><p>downloads the image once (for Apptainer, into <code class="docutils literal notranslate"><span class="pre">$HOME/my_singularity_images</span></code>),</p></li>
+<li><p>shares the files and directories the flags name with the container, at the same paths, so relative
+paths work too,</p></li>
+<li><p>passes the FreeSurfer license from <code class="docutils literal notranslate"><span class="pre">$FS_LICENSE</span></code> if <code class="docutils literal notranslate"><span class="pre">--fs_license</span></code> is not given, and runs the
+container as you.</p></li>
+</ul>
+<p>Download it, and run FastSurfer:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>curl<span class="w"> </span>-fsSLO<span class="w"> </span>https://raw.githubusercontent.com/Deep-MI/FastSurfer/stable/tools/fastsurfer_container.py
+python3<span class="w"> </span>fastsurfer_container.py<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--t1<span class="w"> </span><span class="nv">$HOME</span>/my_mri_data/subjectX/t1_weighted.nii.gz<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--sid<span class="w"> </span>subjectX<span class="w"> </span>--sd<span class="w"> </span><span class="nv">$HOME</span>/my_fastsurfer_analysis<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--3T<span class="w"> </span>--threads<span class="w"> </span><span class="m">4</span>
+</pre></div>
+</div>
+<p>The first run downloads the newest FastSurfer release. Later runs use the image already installed,
+also one of an earlier release or CUDA version, as long as it runs on the machine, and also when a
+newer release comes out: the launcher then says so, and <code class="docutils literal notranslate"><span class="pre">--update</span></code> switches to it. It
+says which image it runs, e.g. <code class="docutils literal notranslate"><span class="pre">cu132-v2.6.0</span></code>. To keep a study on exactly that image, pass it with
+<code class="docutils literal notranslate"><span class="pre">--image</span> <span class="pre">cu132-v2.6.0</span></code>: the image type matters as well as the version, because the CPU and the GPU
+images do not compute exactly the same numbers.</p>
+<p><code class="docutils literal notranslate"><span class="pre">--image</span></code> also takes a version alone (<code class="docutils literal notranslate"><span class="pre">--image</span> <span class="pre">2.6.0</span></code>, the image type is then chosen for the
+machine), your own Docker image, or an Apptainer <code class="docutils literal notranslate"><span class="pre">.sif</span></code> file. If several FastSurfer images are
+installed, the launcher asks which one to use. It stops if an installed image differs from the
+release of the same name, e.g. a local build; <code class="docutils literal notranslate"><span class="pre">--update</span></code> replaces it with the release. For an older
+version, it says how many releases it is behind. A GPU that the newest images no longer support runs
+them on the CPU. The image of an older release may still support that GPU, but the launcher
+recommends the newest release on the CPU, or a machine with a newer GPU, over an old version.</p>
+<p>With <code class="docutils literal notranslate"><span class="pre">--brun</span></code>, it runs <code class="docutils literal notranslate"><span class="pre">brun_fastsurfer.sh</span></code> for several subjects; the paths in a subjects list have
+to be absolute. <code class="docutils literal notranslate"><span class="pre">--print_only</span></code> prints the commands instead of running them, <code class="docutils literal notranslate"><span class="pre">--update_launcher</span></code>
+replaces the launcher with the current one, and <code class="docutils literal notranslate"><span class="pre">--help</span></code> lists all launcher options. The sections
+below explain the commands it runs.</p>
+<p>Before starting many runs at once, e.g. a SLURM array, run the launcher once (e.g. on one subject),
+so the image is downloaded and built only once rather than by every job.</p>
+<p>On a Mac with Apple silicon, use the <a class="reference internal" href="install/MACOS.html"><span class="std std-doc">macOS package</span></a> instead: the images are built for
+Intel and AMD processors, which such a Mac only emulates, much more slowly and without its GPU. The
+launcher therefore stops there and points to the package, unless you pass <code class="docutils literal notranslate"><span class="pre">--runtime</span> <span class="pre">docker</span></code>. With
+Docker, it also warns if Docker may use less memory than FastSurfer needs.</p>
+</section>
 <section id="using-apptainer-or-singularity">
 <h2>Using Apptainer (or Singularity)<a class="headerlink" href="#using-apptainer-or-singularity" title="Link to this heading">¶</a></h2>
 <p><a class="reference external" href="https://apptainer.org">Apptainer</a> is the open-source continuation of Singularity, and both run the same images.
@@ -697,6 +744,7 @@ driver or use the image for an older CUDA version, see <a class="reference inter
           <div class="toc-tree">
             <ul>
 <li><a class="reference internal" href="#">Running FastSurfer in a container</a><ul>
+<li><a class="reference internal" href="#the-launcher">The launcher</a></li>
 <li><a class="reference internal" href="#using-apptainer-or-singularity">Using Apptainer (or Singularity)</a><ul>
 <li><a class="reference internal" href="#apptainer-flags">Apptainer flags</a></li>
 <li><a class="reference internal" href="#mounting-home-and-current-working-directory">Mounting Home and Current Working Directory</a></li>
