@@ -130,6 +130,8 @@ def test_gpu_request():
     # the last of repeated flags counts, as in the scripts
     assert launcher.gpu_request(["--device", "cpu", "--device", "cuda:1"]) == ("cuda", [1])
     assert launcher.gpu_request(["--device", "cuda:1", "--device", "cpu"]) == ("cpu", None)
+    # a GPU named only for the view aggregation: the segmentation runs on the first GPU, which counts too
+    assert launcher.gpu_request(["--viewagg_device", "cuda:2"]) == ("cuda", [0, 2])
 
 
 def test_plan_build():
@@ -236,6 +238,49 @@ def test_plan_paths_brun(tmp_path):
         subjects.write_text(line)
         with pytest.raises(launcher.LauncherError):
             launcher.plan_paths(["--subjects_list", str(subjects)], tmp_path)
+
+
+def test_link_directories(tmp_path):
+    # a chain of links, as in a DataLad dataset: the link, a relative link in another directory, the file
+    for name in ("data", "annex/key", "objects/abc"):
+        (tmp_path / name).mkdir(parents=True)
+    target = tmp_path / "objects" / "abc" / "t1.mgz"
+    target.write_bytes(b"")
+    (tmp_path / "annex" / "key" / "t1.mgz").symlink_to("../../objects/abc/t1.mgz")
+    (tmp_path / "data" / "t1.mgz").symlink_to(tmp_path / "annex" / "key" / "t1.mgz")
+    directories = launcher._link_directories(tmp_path / "data" / "t1.mgz")
+    real = Path(str(tmp_path)).resolve()
+    assert {Path(d).resolve() for d in directories} == {real / "data", real / "annex/key", real / "objects/abc"}
+    # every directory on the way is shared, not a common parent of them
+    _, mounts = launcher.plan_paths(["--t1", str(tmp_path / "data" / "t1.mgz")], tmp_path)
+    assert tmp_path not in launcher.minimal_mounts(mounts)
+
+
+@pytest.mark.parametrize(
+    ("text", "too_old"),
+    [
+        ("apptainer version 1.3.4", False),
+        ("singularity-ce version 3.11.4", False),
+        ("singularity version 3.7.4", False),
+        ("singularity version 3.5.3", True),
+        ("SingularityCE ...", False),  # unreadable: no judgement
+    ],
+)
+def test_runtime_too_old(text, too_old):
+    assert (launcher.runtime_too_old(text) is not None) == too_old
+
+
+def test_build_image(tmp_path):
+    # a stand-in for `apptainer build <target> <source>` that writes the target, or fails without writing
+    builder = tmp_path / "builder.py"
+    builder.write_text("import sys\nif sys.argv[2] == 'fail': sys.exit(1)\nopen(sys.argv[1], 'w').write('image')\n")
+    sif = tmp_path / "images" / "fastsurfer-cpu-v2.6.0.sif"
+    assert launcher.build_image([sys.executable, str(builder), str(sif), "docker://image"])
+    assert sif.read_text() == "image"
+    # a failed build leaves neither the image nor a partial file behind
+    failed = tmp_path / "images" / "fastsurfer-cu132-v2.6.0.sif"
+    assert not launcher.build_image([sys.executable, str(builder), str(failed), "fail"])
+    assert sorted(p.name for p in sif.parent.iterdir()) == [sif.name]
 
 
 def test_commands(tmp_path):

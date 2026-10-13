@@ -290,17 +290,21 @@ def choose_build(gpus: list[Gpu], use: str) -> Build:
                 f"CUDA {LEGACY_BUILD[0][0]}.{LEGACY_BUILD[0][1]}. Update the driver to use the default image."
             )
         return Build(LEGACY_BUILD[1], True, notes)
-    oldest = min(capabilities) if capabilities else None
-    newest = max(capabilities) if capabilities else None
-    if oldest is not None and oldest < MIN_CAPABILITY[LEGACY_BUILD[1]]:
+    driver_reason = (f"The NVIDIA driver {driver} is too old for FastSurfer's images, update it to "
+                     f"{newest_min_driver} or newer")
+    if not capabilities:
+        # with unknown capabilities, only the driver can rule the images out
+        reason = driver_reason
+    elif min(capabilities) < MIN_CAPABILITY[LEGACY_BUILD[1]]:
+        oldest = min(capabilities)
         reason = f"The GPU (compute capability {oldest[0]}.{oldest[1]}) is too old for FastSurfer's images"
-    elif (driver >= newest_min_driver and oldest < MIN_CAPABILITY[NEWEST_BUILD[1]]
-          and newest > LEGACY_MAX_CAPABILITY):
+    elif (driver >= newest_min_driver and min(capabilities) < MIN_CAPABILITY[NEWEST_BUILD[1]]
+          and max(capabilities) > LEGACY_MAX_CAPABILITY):
+        oldest, newest = min(capabilities), max(capabilities)
         reason = (f"No FastSurfer image supports both GPUs of compute capability {oldest[0]}.{oldest[1]} "
                   f"and {newest[0]}.{newest[1]}; select GPUs of one kind with --device cuda:<index>")
     else:
-        reason = (f"The NVIDIA driver {driver} is too old for FastSurfer's images, update it to "
-                  f"{newest_min_driver} or newer")
+        reason = driver_reason
     if use == "cuda":
         raise LauncherError(f"{reason}.")
     return Build("cpu", False, [f"{reason}, so FastSurfer runs on the CPU."])
@@ -375,6 +379,9 @@ def gpu_request(args: list[str], brun: bool = False) -> tuple[str, list[int] | N
         raise LauncherError(f"{several[0]}: run_fastsurfer.sh uses one GPU, e.g. cuda:1. Lists and ranges of "
                             f"GPUs are for processing several subjects with --brun.")
     named = [i for v in cuda for i in (cuda_indices(v) or [])]
+    if named and values[0] in ("auto", "cuda"):
+        # only the view aggregation names a GPU; the segmentation then runs on the first one
+        named.append(0)
     use = "cuda" if cuda else ("auto" if values[0] == "auto" else "cpu")
     return use, sorted(set(named)) if named else None
 
@@ -430,14 +437,29 @@ def _parent_of_file(path: Path) -> Path:
     return path if path.is_dir() else path.parent
 
 
-def _mount_for(flag: str, path: Path, create: bool) -> Path:
-    """The directory to share for a path flag; an output directory is created, as a mount needs it."""
+def _link_directories(path: Path) -> list[Path]:
+    """
+    The directories to share so that `path` can be read in the container: its own, and for a symbolic link
+    that of every link on the way to the file it finally names (e.g. a DataLad or git-annex dataset).
+    """
+    directories, seen = [], set()
+    while path.is_symlink() and path not in seen:
+        seen.add(path)
+        directories.append(path.parent)
+        # a relative target is relative to the real directory of the link
+        path = Path(os.path.normpath(Path(os.path.realpath(path.parent)) / os.readlink(path)))
+    directories.append(_parent_of_file(path))
+    return directories
+
+
+def _mount_for(flag: str, path: Path, create: bool) -> list[Path]:
+    """The directories to share for a path flag; an output directory is created, as a mount needs it."""
     if flag not in OUTPUT_FLAGS:
-        return _parent_of_file(path)
+        return _link_directories(path)
     directory = path if flag == "--sd" else path.parent
     if create:
         directory.mkdir(parents=True, exist_ok=True)
-    return directory
+    return [directory]
 
 
 def plan_paths(args: list[str], cwd: Path, create: bool = True) -> tuple[list[str], list[Path]]:
@@ -471,7 +493,7 @@ def plan_paths(args: list[str], cwd: Path, create: bool = True) -> tuple[list[st
             path = _absolute(args[i], cwd)
             if flag in INPUT_FLAGS and not path.exists():
                 raise LauncherError(f"{flag} {args[i]}: no such file.")
-            mounts.append(_mount_for(flag, path, create))
+            mounts.extend(_mount_for(flag, path, create))
             if flag in ("--subjects_list", "--subject_list"):
                 mounts.extend(_subjects_list_mounts(path, create))
             out.append(str(path))
@@ -485,7 +507,7 @@ def plan_paths(args: list[str], cwd: Path, create: bool = True) -> tuple[list[st
                 path = _absolute(t1, cwd)
                 if not path.exists():
                     raise LauncherError(f"--subjects {args[i]}: no such file {t1}.")
-                mounts.append(path.parent)
+                mounts.extend(_link_directories(path))
                 out.append(f"{subject}={path}")
                 i += 1
     return out, mounts
@@ -514,7 +536,9 @@ def _subjects_list_mounts(subjects_list: Path, create: bool = True) -> list[Path
                     f"in a subjects list, without ~: the container does not start in the current directory, "
                     f"and nothing in the list is expanded."
                 )
-            mounts.append(_mount_for(flag, Path(value), create))
+            if flag not in OUTPUT_FLAGS and not Path(value).exists():
+                raise LauncherError(f"{subjects_list}, line {number}: no such file {value}.")
+            mounts.extend(_mount_for(flag, Path(value), create))
     return mounts
 
 
@@ -525,6 +549,27 @@ def minimal_mounts(paths: list[Path]) -> list[Path]:
         if not any(path == k or k in path.parents for k in kept):
             kept.append(path)
     return sorted(kept)
+
+
+def runtime_too_old(version_text: str) -> str | None:
+    """
+    Why this Apptainer/Singularity is too old for the launcher's command, None if it is not.
+
+    The command needs --no-mount and --env, which Singularity has from 3.7; every Apptainer has them.
+
+    Parameters
+    ----------
+    version_text : str
+        The output of `<runtime> --version`, e.g. "singularity-ce version 3.11.4".
+    """
+    match = re.search(r"(apptainer|singularity)\S*\s+version\s+(\d+)\.(\d+)", version_text)
+    if match is None or match.group(1) == "apptainer":
+        return None
+    if (int(match.group(2)), int(match.group(3))) >= (3, 7):
+        return None
+    return (f"Singularity {match.group(2)}.{match.group(3)} is too old for this launcher, which needs "
+            f"Singularity 3.7 or newer, or Apptainer. Ask for a newer version on this machine, or write the "
+            f"container command yourself, see {DOC_URL}.")
 
 
 def find_runtime(requested: str) -> str:
@@ -627,6 +672,26 @@ def _license_args(args: list[str], cwd: Path) -> list[str]:
     return []
 
 
+def build_image(command: list[str]) -> bool:
+    """
+    Run `<runtime> build <sif> <source>` into a temporary file, and move it in place when it is complete.
+
+    Parallel runs, e.g. the jobs of a SLURM array, and an interrupted build then never leave a partial
+    image at the path the next run uses. Of two parallel builds, the last one to finish replaces the other.
+    """
+    sif = Path(command[2])
+    sif.parent.mkdir(parents=True, exist_ok=True)
+    partial = sif.with_name(f".{sif.stem}.{os.getpid()}.partial.sif")
+    try:
+        if subprocess.run(command[:2] + [str(partial)] + command[3:]).returncode != 0:
+            return False
+        os.replace(partial, sif)
+        return True
+    finally:
+        if partial.exists():
+            partial.unlink()
+
+
 def make_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="fastsurfer_container.py",
@@ -682,6 +747,18 @@ def main(argv: list[str] | None = None) -> int:
                  f"macOS package and cannot use the GPU. Better {package_hint}", level="WARNING")
         cwd = Path.cwd()
         runtime = find_runtime(options.runtime)
+        if runtime != "docker":
+            try:
+                version_text = subprocess.run([runtime, "--version"], capture_output=True, text=True,
+                                              timeout=30).stdout
+            except (OSError, subprocess.SubprocessError):
+                version_text = ""
+            problem = runtime_too_old(version_text)
+            if problem is not None:
+                raise LauncherError(problem)
+        if options.brun and not {"--subjects", "--subjects_list", "--subject_list"} & set(fastsurfer_args):
+            # brun_fastsurfer.sh would read the subjects from stdin, which the container does not get
+            raise LauncherError("--brun needs the subjects in --subjects_list <file> or --subjects <id>=<t1> ...")
         fastsurfer_args = fastsurfer_args + _license_args(fastsurfer_args, cwd)
         args, mounts = plan_paths(fastsurfer_args, cwd, create=not options.print_only)
         mounts = minimal_mounts(mounts)
@@ -769,8 +846,7 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     for command in commands[:-1]:
         info(f"Building the image once: {shlex.join(command)}")
-        Path(command[2]).parent.mkdir(parents=True, exist_ok=True)
-        if subprocess.run(command).returncode != 0:
+        if not build_image(command):
             print("ERROR: Building the image failed.", file=sys.stderr)
             return 1
     info(f"Running: {shlex.join(commands[-1])}")
