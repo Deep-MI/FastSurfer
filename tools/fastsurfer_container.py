@@ -1186,8 +1186,10 @@ def main(argv: list[str] | None = None) -> int:
             info(f"Building the image once: {shlex.join(command)}")
             if not build_image(command):
                 print("ERROR: Building the image failed. If it reports 'unauthorized' for this public image, "
-                      "Apptainer sent stored Docker Hub credentials that are wrong or expired: check "
-                      "~/.docker/config.json, `apptainer remote list` and $APPTAINER_DOCKER_USERNAME.",
+                      "Apptainer sent stored Docker Hub credentials that are wrong or expired, often the "
+                      "short-lived token of a browser login in ~/.docker/config.json: log in again with "
+                      "`docker login -u <user>` and an access token as the password, or check "
+                      "`apptainer registry list` and $APPTAINER_DOCKER_USERNAME.",
                       file=sys.stderr)
                 return 1
             record = Path(command[2]).with_name(Path(command[2]).name + ".digest")
