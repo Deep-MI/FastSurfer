@@ -316,7 +316,7 @@ def test_decide_image_named(tmp_path):
     # a version the type of this machine was not released in: the images of that version are listed
     with pytest.raises(launcher.LauncherError, match="cpu-v2.6.0"):
         decide(tmp_path, kind="version", value="2.6.0", hub={"cpu-v2.6.0": {"sha256:c"}})
-    with pytest.raises(launcher.LauncherError, match="not released"):
+    with pytest.raises(launcher.LauncherError, match="no Docker images of FastSurfer 9.9.9"):
         decide(tmp_path, kind="tag", value="cu132-v9.9.9")
     with pytest.raises(launcher.LauncherError, match="Docker"):
         decide(tmp_path, kind="sif", value="x.sif", runtime="docker")

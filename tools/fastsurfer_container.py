@@ -642,7 +642,7 @@ def decide_image(kind: str, value: str, prefix: str, runtime: str, installed: se
             images = sorted(t for t in hub if t.endswith(f"-v{version}"))
             raise LauncherError(f"There is no image {DOCKER_REPO}:{tag}. " + (
                 f"The images of FastSurfer {version} are {', '.join(images)}." if images
-                else f"FastSurfer {version} is not released."))
+                else f"There are no Docker images of FastSurfer {version}."))
 
     if kind == "sif":
         if runtime == "docker":
