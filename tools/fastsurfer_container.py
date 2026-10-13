@@ -21,8 +21,9 @@ official image with Apptainer, Singularity or Docker, whichever is installed:
 
     python3 fastsurfer_container.py --t1 data/t1.nii.gz --sd results --sid subject1
 
-It runs the newest FastSurfer release unless --image_version names another, picks the image that
-fits the NVIDIA GPU and driver (or the CPU image), downloads it once,
+It runs the FastSurfer release image installed on the machine (the newest release if there is none,
+or the image --image names), picks the image type that fits the NVIDIA GPU and driver (or the CPU
+image), downloads it once,
 shares every file and directory the flags name with the container at the same path, passes the
 FreeSurfer license from $FS_LICENSE if --fs_license is not given, and runs the container as the
 calling user.
@@ -46,6 +47,9 @@ from pathlib import Path
 
 DOCKER_REPO = "deepmi/fastsurfer"
 DOC_URL = "https://deep-mi.org/FastSurfer/stable/overview/CONTAINERS.html"
+LAUNCHER_URL = "https://raw.githubusercontent.com/Deep-MI/FastSurfer/stable/tools/fastsurfer_container.py"
+# seconds to wait for Docker Hub and GitHub, so a machine without internet is not held up
+HUB_TIMEOUT = 5
 MACOS_PACKAGE_URL = "https://github.com/Deep-MI/FastSurfer/releases/latest/download/FastSurfer-macos-darwin_arm64.pkg"
 MACOS_DOC_URL = "https://deep-mi.org/FastSurfer/stable/overview/install/MACOS.html"
 # the 15 GB the macOS page asks Docker to have, less what the kernel of Docker's VM keeps for itself
@@ -119,49 +123,18 @@ def newest_version(tags: list[str], prefix: str) -> str | None:
     return ".".join(str(v) for v in versions[-1]) if versions else None
 
 
-def published_tags(name: str) -> list[str] | None:
-    """The tags of the image on Docker Hub that contain `name`; None if Docker Hub cannot be reached."""
-    import json
-    import urllib.parse
-    import urllib.request
-
-    url = f"https://hub.docker.com/v2/repositories/{DOCKER_REPO}/tags?page_size=100&name={urllib.parse.quote(name)}"
-    tags: list[str] = []
-    try:
-        while url and len(tags) < 1000:
-            with urllib.request.urlopen(url, timeout=20) as response:
-                page = json.load(response)
-            tags += [result["name"] for result in page.get("results", [])]
-            url = page.get("next")
-    except (OSError, ValueError, KeyError):
-        return None
-    return tags
-
-
-def official_image_version(image: str) -> str | None:
-    """The FastSurfer version of an official image, e.g. 2.2.0 for deepmi/fastsurfer:cu118-v2.2.0, else None."""
-    name = Path(image).name if image.endswith(".sif") else image
-    pattern = (rf"{re.escape(DOCKER_REPO.rsplit('/', 1)[-1])}-[a-z0-9.]+-v(.+)\.sif" if image.endswith(".sif")
-               else rf"(?:docker\.io/)?{re.escape(DOCKER_REPO)}:[a-z0-9.]+-v(.+)")
-    match = re.fullmatch(pattern, name)
-    return match.group(1) if match and parse_version(match.group(1)) else None
-
-
-def age_note(version: str, releases: list[tuple[int, ...]], gpu_unsupported: bool,
-             flag: str = "--image_version") -> tuple[str, str] | None:
+def age_note(version: str, releases: list[tuple[int, ...]], gpu_unsupported: bool) -> tuple[str, str] | None:
     """
     A note for a run of an older release, as (level, message), None for the newest or an unknown version.
 
     Parameters
     ----------
     version : str
-        The requested version.
+        The version --image requested.
     releases : list[tuple[int, ...]]
         All releases, oldest first.
     gpu_unsupported : bool
         Whether the newest images do not support this GPU, so an old image is the only way to use it.
-    flag : str, default="--image_version"
-        The flag that requested the version.
     """
     requested = parse_version(version)
     if requested is None or not releases or requested >= releases[-1]:
@@ -172,24 +145,10 @@ def age_note(version: str, releases: list[tuple[int, ...]], gpu_unsupported: boo
     if gpu_unsupported:
         return "WARNING", (
             f"{message} The images of newer versions do not support this GPU, so they run on the CPU here. "
-            f"Running the newest release on the CPU (leave out --image and --image_version), or on a machine "
-            f"with a newer GPU, is recommended over this old version, which lacks the improvements and fixes "
-            f"since."
+            f"Running the newest release on the CPU (--update without --image), or on a machine with a newer "
+            f"GPU, is recommended over this old version, which lacks the improvements and fixes since."
         )
-    return "INFO", f"{message} Leave out {flag} to run the newest release."
-
-
-def local_tags(runtime: str, image_dir: Path) -> list[str]:
-    """The tags of the FastSurfer images already on this machine, for runs without internet."""
-    if runtime != "docker":
-        prefix = DOCKER_REPO.rsplit("/", 1)[-1] + "-"
-        return [p.name[len(prefix):-len(".sif")] for p in image_dir.glob(f"{prefix}*.sif")]
-    try:
-        out = subprocess.run(["docker", "image", "ls", DOCKER_REPO, "--format", "{{.Tag}}"],
-                             capture_output=True, text=True, timeout=60)
-    except (OSError, subprocess.SubprocessError):
-        return []
-    return out.stdout.split() if out.returncode == 0 else []
+    return "INFO", f"{message} --update without --image switches to the newest release."
 
 
 def query_nvidia_gpus() -> list[Gpu]:
@@ -411,22 +370,278 @@ def image_reference(prefix: str, version: str) -> str:
     return f"{DOCKER_REPO}:{prefix}-v{version}"
 
 
-def resolve_version(prefix: str, runtime: str, image_dir: Path) -> tuple[str, str]:
-    """
-    The newest released FastSurfer version for this image, and where that was found.
+RELEASE_TAG = re.compile(r"([a-z0-9.]+)-v(\d+\.\d+\.\d+)")
+# official Apptainer images are named fastsurfer-<tag>.sif, as in the documentation
+SIF_PREFIX = DOCKER_REPO.rsplit("/", 1)[-1] + "-"
 
-    Asks Docker Hub, and without internet looks at the images already on this machine.
+
+def hub_tags() -> dict[str, set[str]] | None:
     """
-    version = newest_version(published_tags(f"{prefix}-v") or [], prefix)
-    if version is not None:
-        return version, "the newest release"
-    version = newest_version(local_tags(runtime, image_dir), prefix)
-    if version is not None:
-        return version, "the newest image on this machine, Docker Hub could not be reached"
-    raise LauncherError(
-        "Could not find out the newest FastSurfer release, because Docker Hub cannot be reached and no "
-        "FastSurfer image is on this machine yet. Pass the version with --image_version, e.g. 2.6.0."
-    )
+    The release tags on Docker Hub and the digests each is known by, None if Docker Hub cannot be reached.
+
+    One request per run: every decision about versions comes from this list. A tag is known by the
+    digest of its index and those of its platform images, so a local copy matches whichever one Docker
+    recorded.
+    """
+    import json
+    import urllib.request
+
+    url = f"https://hub.docker.com/v2/repositories/{DOCKER_REPO}/tags?page_size=100&name=-v"
+    tags: dict[str, set[str]] = {}
+    try:
+        while url and len(tags) < 2000:
+            with urllib.request.urlopen(url, timeout=HUB_TIMEOUT) as response:
+                page = json.load(response)
+            for result in page.get("results", []):
+                digests = {result.get("digest")} | {image.get("digest") for image in result.get("images", [])}
+                tags[result["name"]] = {d for d in digests if d}
+            url = page.get("next")
+    except (OSError, ValueError, KeyError):
+        return None
+    return tags
+
+
+def local_docker_images() -> dict[str, str] | None:
+    """
+    The tags of the official images in the local Docker with the digest each was pulled with.
+
+    The digest is "" for an image not pulled from Docker Hub, e.g. a local build tagged like a release.
+    None if Docker is not installed or not running.
+    """
+    if shutil.which("docker") is None:
+        return None
+    try:
+        out = subprocess.run(["docker", "image", "ls", DOCKER_REPO, "--format", "{{.Tag}}\t{{.Digest}}"],
+                             capture_output=True, text=True, timeout=60)
+    except (OSError, subprocess.SubprocessError):
+        return None
+    if out.returncode != 0:
+        return None
+    images = {}
+    for line in out.stdout.splitlines():
+        tag, _, digest = line.partition("\t")
+        if tag and tag != "<none>":
+            images[tag] = "" if digest in ("", "<none>") else digest
+    return images
+
+
+def local_docker_id(reference: str) -> str | None:
+    """The ID of an image in the local Docker, None if it is not there."""
+    if shutil.which("docker") is None:
+        return None
+    try:
+        out = subprocess.run(["docker", "image", "inspect", "--format", "{{.Id}}", reference],
+                             capture_output=True, text=True, timeout=60)
+    except (OSError, subprocess.SubprocessError):
+        return None
+    return out.stdout.strip() or None if out.returncode == 0 else None
+
+
+def sif_path(image_dir: Path, tag: str) -> Path:
+    """Where the Apptainer image of a release tag is kept, e.g. fastsurfer-cu132-v2.6.0.sif."""
+    return image_dir / f"{SIF_PREFIX}{tag}.sif"
+
+
+def _recorded(sif: Path) -> str:
+    """What the launcher wrote next to an image it built: the digest or image ID of its source, or ""."""
+    record = sif.with_name(sif.name + ".digest")
+    return record.read_text().strip() if record.is_file() else ""
+
+
+def local_sif_images(image_dir: Path) -> dict[str, str]:
+    """The tags of the Apptainer images in image_dir, with the digest recorded when they were built ("")."""
+    if not image_dir.is_dir():
+        return {}
+    return {p.name[len(SIF_PREFIX):-len(".sif")]: _recorded(p) for p in image_dir.glob(f"{SIF_PREFIX}*.sif")}
+
+
+def parse_image_spec(spec: str | None) -> tuple[str, str]:
+    """
+    What --image names.
+
+    Returns
+    -------
+    tuple[str, str]
+        ("auto", "") without --image, ("version", "2.6.0"), ("tag", "cu132-v2.6.0") for a release tag,
+        ("release", "cu132-v2.6.0") for the full reference deepmi/fastsurfer:cu132-v2.6.0, ("sif", path)
+        for an Apptainer file and ("docker", reference) for any other Docker image.
+    """
+    if not spec:
+        return "auto", ""
+    if spec.endswith(".sif"):
+        return "sif", spec
+    if parse_version(spec):
+        return "version", spec
+    if RELEASE_TAG.fullmatch(spec):
+        return "tag", spec
+    official = re.fullmatch(rf"(?:docker\.io/)?{re.escape(DOCKER_REPO)}:(.+)", spec)
+    if official and RELEASE_TAG.fullmatch(official.group(1)):
+        return "release", official.group(1)
+    return "docker", spec
+
+
+@dataclass
+class ImagePlan:
+    """The image to run and how to get it."""
+
+    runtime: str
+    # the Docker reference, or the path of the .sif file for Apptainer
+    image: str
+    # the source to build the .sif file from, docker://... or docker-daemon://..., if it has to be built
+    build_from: str | None = None
+    # what to write next to a built .sif file, to recognise its source later
+    record: str | None = None
+    pull: bool = False
+    tag: str | None = None
+    notes: list[tuple[str, str]] = field(default_factory=list)
+
+
+def _apptainer_runtime(runtime: str, installed: set[str]) -> str | None:
+    """The Apptainer or Singularity to use, None if none is requested or installed."""
+    if runtime in ("apptainer", "singularity"):
+        return runtime
+    if runtime == "auto":
+        return next((name for name in ("apptainer", "singularity") if name in installed), None)
+    return None
+
+
+def decide_image(kind: str, value: str, prefix: str, runtime: str, installed: set[str],
+                 docker_images: dict[str, str] | None, sif_images: dict[str, str],
+                 hub: dict[str, set[str]] | None, image_dir: Path, update: bool,
+                 local_id: str | None = None) -> ImagePlan:
+    """
+    Which image to run, with which runtime, and whether it has to be downloaded or built first.
+
+    Without --image, the official release image of this machine's type (`prefix`) already installed is
+    used, wherever it is; several stop the launcher, none downloads the newest release. With --update,
+    the newest release (or the one named) is downloaded again. A release image whose content differs
+    from Docker Hub stops the launcher, unless it was named in full.
+
+    Parameters
+    ----------
+    kind, value : str
+        What --image names, see parse_image_spec.
+    prefix : str
+        The image type for this machine, e.g. cu132.
+    runtime : str
+        --runtime: auto, apptainer, singularity or docker.
+    installed : set[str]
+        The runtimes installed.
+    docker_images : dict[str, str], None
+        Tags and digests of the official images in the local Docker, None without Docker.
+    sif_images : dict[str, str]
+        Tags and recorded digests of the official images in `image_dir`.
+    hub : dict[str, set[str]], None
+        Release tags and digests on Docker Hub, None if it cannot be reached.
+    image_dir : Path
+        Where Apptainer images are kept.
+    update : bool
+        --update: download or build the image again.
+    local_id : str, None
+        For a "docker" image, its ID in the local Docker, None if it is not there.
+    """
+    apptainer = _apptainer_runtime(runtime, installed)
+    docker_images = docker_images or {}
+
+    def require(name: str) -> str:
+        if name not in installed:
+            raise LauncherError(f"{name} is not installed.")
+        return name
+
+    def place_release(tag: str, checked: bool, forced: bool = update) -> ImagePlan:
+        in_docker, in_sif = tag in docker_images, tag in sif_images
+        if runtime == "docker" or (runtime == "auto" and not (in_sif and apptainer)
+                                   and ((in_docker and "docker" in installed) or apptainer is None)):
+            chosen = require("docker")
+        else:
+            chosen = require(apptainer)
+        local = docker_images.get(tag) if chosen == "docker" else sif_images.get(tag)
+        known = hub.get(tag) if hub is not None else None
+        # a recorded digest of "" on a .sif file means it was not built by the launcher: nothing to compare
+        comparable = local is not None and (chosen == "docker" or local)
+        if checked and not forced and known and comparable and local not in known:
+            where = (f"Docker image {DOCKER_REPO}:{tag}" if chosen == "docker"
+                     else f"image {sif_path(image_dir, tag)}")
+            explicit = f"{DOCKER_REPO}:{tag}" if chosen == "docker" else str(sif_path(image_dir, tag))
+            raise LauncherError(f"The local {where} differs from the release on Docker Hub, e.g. a local build "
+                                f"or an image replaced since. --update replaces it with the release; "
+                                f"--image {explicit} runs the local one anyway.")
+        if chosen == "docker":
+            return ImagePlan("docker", f"{DOCKER_REPO}:{tag}", pull=forced, tag=tag)
+        sif = sif_path(image_dir, tag)
+        build = forced or not in_sif
+        record = sorted(known)[0] if known and build else None
+        return ImagePlan(chosen, str(sif), build_from=f"docker://{DOCKER_REPO}:{tag}" if build else None,
+                         record=record, tag=tag)
+
+    def release_exists(tag: str) -> None:
+        if hub is not None and tag not in hub and tag not in docker_images and tag not in sif_images:
+            version = tag.rsplit("-v", 1)[-1]
+            images = sorted(t for t in hub if t.endswith(f"-v{version}"))
+            raise LauncherError(f"There is no image {DOCKER_REPO}:{tag}. " + (
+                f"The images of FastSurfer {version} are {', '.join(images)}." if images
+                else f"FastSurfer {version} is not released."))
+
+    if kind == "sif":
+        if runtime == "docker":
+            raise LauncherError("A .sif image needs Apptainer or Singularity, not Docker.")
+        if apptainer is None:
+            raise LauncherError("A .sif image needs Apptainer or Singularity, and neither is installed.")
+        return ImagePlan(require(apptainer), value)
+    if kind == "docker":
+        if runtime == "docker" or (runtime == "auto" and (local_id is not None or apptainer is None)):
+            return ImagePlan(require("docker"), value, pull=update)
+        # Apptainer runs a Docker image as a .sif file, converted from the local Docker if it is there
+        sif = image_dir / (value.rsplit("/", 1)[-1].replace(":", "-") + ".sif")
+        source = f"docker-daemon://{value}" if local_id else f"docker://{value}"
+        stale = sif.is_file() and local_id is not None and _recorded(sif) != local_id
+        build = update or not sif.is_file() or stale
+        return ImagePlan(require(apptainer), str(sif), build_from=source if build else None,
+                         record=local_id if build else None)
+    if kind in ("tag", "release"):
+        release_exists(value)
+        return place_release(value, checked=kind == "tag")
+    if kind == "version":
+        tag = f"{prefix}-v{value}"
+        release_exists(tag)
+        return place_release(tag, checked=True)
+
+    # no --image: the installed release image of this type, or the newest release
+    candidates = sorted({t for t in [*docker_images, *sif_images]
+                         if (m := RELEASE_TAG.fullmatch(t)) and m.group(1) == prefix},
+                        key=lambda t: parse_version(t.rsplit("-v", 1)[-1]))
+    newest = newest_version(list(hub), prefix) if hub is not None else None
+    if update or not candidates:
+        if newest is None:
+            raise LauncherError("Docker Hub cannot be reached, so the newest FastSurfer release is not known "
+                                + ("and --update cannot download it." if update else
+                                   "and no FastSurfer image is on this machine yet. Pass the image with --image, "
+                                   "e.g. --image 2.6.0."))
+        tag = f"{prefix}-v{newest}"
+        plan = place_release(tag, checked=True, forced=update)
+        old = [t for t in candidates if t != tag]
+        if old:
+            removal = [f"docker image rm {DOCKER_REPO}:{t}" for t in old if t in docker_images]
+            removal += [f"rm {sif_path(image_dir, t)}" for t in old if t in sif_images]
+            plan.notes.append(("INFO", f"Older images are still installed ({', '.join(old)}), so the next run "
+                                       f"would ask which one to use. Remove them with: {'; '.join(removal)}"))
+    elif len(candidates) == 1:
+        tag = candidates[0]
+        plan = place_release(tag, checked=True)
+        version = tag.rsplit("-v", 1)[-1]
+        if newest is not None and parse_version(newest) > parse_version(version):
+            plan.notes.append(("INFO", f"FastSurfer {newest} is available ({prefix}-v{newest}); --update "
+                                       f"switches to it."))
+    else:
+        def stores(t: str) -> str:
+            return " and ".join(s for s, has in (("Docker", t in docker_images), ("Apptainer", t in sif_images)) if has)
+
+        where = [f"{t} ({stores(t)})" for t in candidates]
+        raise LauncherError(f"Several FastSurfer images are installed: {'; '.join(where)}. Choose one with "
+                            f"--image <tag>, e.g. --image {candidates[-1]}, or remove the others.")
+    plan.notes.insert(0, ("INFO", f"Running FastSurfer {plan.tag.rsplit('-v', 1)[-1]} ({plan.tag}). For a study, "
+                                  f"keep this image with --image {plan.tag}."))
+    return plan
 
 
 def _absolute(value: str, cwd: Path) -> Path:
@@ -572,17 +787,6 @@ def runtime_too_old(version_text: str) -> str | None:
             f"container command yourself, see {DOC_URL}.")
 
 
-def find_runtime(requested: str) -> str:
-    """The container runtime to use: Apptainer first, then Singularity, then Docker."""
-    names = ["apptainer", "singularity", "docker"] if requested == "auto" else [requested]
-    for name in names:
-        if shutil.which(name):
-            return name
-    if requested == "auto":
-        raise LauncherError(f"Neither Apptainer, Singularity nor Docker is installed, see {DOC_URL}.")
-    raise LauncherError(f"{requested} is not installed.")
-
-
 # CUDA numbers GPUs fastest first, nvidia-smi and the launcher by PCI bus; this makes them agree
 CUDA_ORDER = "CUDA_DEVICE_ORDER=PCI_BUS_ID"
 
@@ -692,6 +896,43 @@ def build_image(command: list[str]) -> bool:
             partial.unlink()
 
 
+def stable_launcher() -> bytes | None:
+    """The launcher on the stable branch, which knows the images of the newest release; None if unreachable."""
+    import urllib.request
+
+    try:
+        with urllib.request.urlopen(LAUNCHER_URL, timeout=HUB_TIMEOUT) as response:
+            return response.read()
+    except OSError:
+        return None
+
+
+def update_launcher() -> int:
+    """--update_launcher: replace this file with the launcher of the stable branch."""
+    me = Path(__file__).resolve()
+    if any((parent / ".git").exists() for parent in me.parents):
+        print(f"ERROR: {me} is part of a git checkout, update it with git pull instead.", file=sys.stderr)
+        return 1
+    new = stable_launcher()
+    if new is None:
+        print(f"ERROR: Could not download {LAUNCHER_URL}.", file=sys.stderr)
+        return 1
+    try:
+        compile(new, me.name, "exec")
+    except SyntaxError:
+        print(f"ERROR: {LAUNCHER_URL} is not a valid launcher, {me} is unchanged.", file=sys.stderr)
+        return 1
+    if new == me.read_bytes():
+        print(f"INFO: {me} is up to date.", file=sys.stderr)
+        return 0
+    partial = me.with_name(f".{me.name}.{os.getpid()}.new")
+    partial.write_bytes(new)
+    os.chmod(partial, me.stat().st_mode)
+    os.replace(partial, me)
+    print(f"INFO: Updated {me} from {LAUNCHER_URL}.", file=sys.stderr)
+    return 0
+
+
 def make_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="fastsurfer_container.py",
@@ -703,16 +944,22 @@ def make_parser() -> argparse.ArgumentParser:
         ),
         allow_abbrev=False,
     )
-    parser.add_argument("--runtime", choices=["auto", "apptainer", "singularity", "docker"], default="auto",
-                        help="the container runtime (default: auto, the first installed of these)")
-    parser.add_argument("--image_version",
-                        help="the FastSurfer version to run, e.g. 2.6.0 (default: the newest release)")
     parser.add_argument("--image",
-                        help="run this image instead: a Docker image (e.g. my_fastsurfer:cu132) or an Apptainer "
-                             ".sif file")
+                        help="the image to run: a release tag such as cu132-v2.6.0 (to keep a study on one "
+                             "image), a version such as 2.6.0 (the image type is chosen for this machine), a "
+                             "Docker image (e.g. my_fastsurfer:cu132) or an Apptainer .sif file. Default: the "
+                             "release image installed on this machine, or the newest release if there is none")
+    parser.add_argument("--update", action="store_true",
+                        help="download the newest release (or the one --image names) again, even if an image "
+                             "is installed, and run it")
+    parser.add_argument("--update_launcher", action="store_true",
+                        help="replace this launcher with the current one and stop")
+    parser.add_argument("--runtime", choices=["auto", "apptainer", "singularity", "docker"], default="auto",
+                        help="the container runtime (default: auto, the one that has the image, else Apptainer, "
+                             "Singularity, then Docker)")
     parser.add_argument("--image_dir", type=Path,
                         default=Path(os.environ.get("FASTSURFER_IMAGE_DIR", "~/my_singularity_images")).expanduser(),
-                        help="where Apptainer/Singularity images are stored (default: $FASTSURFER_IMAGE_DIR or "
+                        help="where Apptainer/Singularity images are kept (default: $FASTSURFER_IMAGE_DIR or "
                              "~/my_singularity_images)")
     parser.add_argument("--brun", action="store_true", help="run brun_fastsurfer.sh to process several subjects")
     parser.add_argument("--runtime_args", default="",
@@ -724,6 +971,8 @@ def make_parser() -> argparse.ArgumentParser:
 def main(argv: list[str] | None = None) -> int:
     parser = make_parser()
     options, fastsurfer_args = parser.parse_known_args(argv)
+    if options.update_launcher:
+        return update_launcher()
     if not fastsurfer_args:
         parser.print_help()
         return 1
@@ -745,20 +994,16 @@ def main(argv: list[str] | None = None) -> int:
         if apple_silicon:
             info(f"Docker on a Mac with Apple silicon emulates the Intel image, which is much slower than the "
                  f"macOS package and cannot use the GPU. Better {package_hint}", level="WARNING")
-        cwd = Path.cwd()
-        runtime = find_runtime(options.runtime)
-        if runtime != "docker":
-            try:
-                version_text = subprocess.run([runtime, "--version"], capture_output=True, text=True,
-                                              timeout=30).stdout
-            except (OSError, subprocess.SubprocessError):
-                version_text = ""
-            problem = runtime_too_old(version_text)
-            if problem is not None:
-                raise LauncherError(problem)
+        installed = {name for name in ("apptainer", "singularity", "docker") if shutil.which(name)}
+        if not installed:
+            raise LauncherError(f"Neither Apptainer, Singularity nor Docker is installed, see {DOC_URL}.")
+        if options.runtime != "auto" and options.runtime not in installed:
+            raise LauncherError(f"{options.runtime} is not installed.")
         if options.brun and not {"--subjects", "--subjects_list", "--subject_list"} & set(fastsurfer_args):
             # brun_fastsurfer.sh would read the subjects from stdin, which the container does not get
             raise LauncherError("--brun needs the subjects in --subjects_list <file> or --subjects <id>=<t1> ...")
+
+        cwd = Path.cwd()
         fastsurfer_args = fastsurfer_args + _license_args(fastsurfer_args, cwd)
         args, mounts = plan_paths(fastsurfer_args, cwd, create=not options.print_only)
         mounts = minimal_mounts(mounts)
@@ -771,42 +1016,56 @@ def main(argv: list[str] | None = None) -> int:
         if "--fs_license" not in args and "--seg_only" not in args:
             info("No FreeSurfer license given (--fs_license or $FS_LICENSE); the surfaces need one.")
 
-        if options.image and options.image.endswith(".sif") and runtime == "docker":
-            raise LauncherError("A .sif image needs Apptainer or Singularity: pass --runtime apptainer or "
-                                "--runtime singularity, or a Docker image with --image.")
+        # the GPUs and the image type
+        kind, value = parse_image_spec(options.image)
         gpus = query_nvidia_gpus()
         # whether the newest images support none of the GPUs, so they run on the CPU here
         gpu_unsupported = bool(gpus) and select_gpus(gpus, False) is None
-        if options.image:
-            # an own or an older official image: give it the GPUs unless the run is on the CPU
-            build = Build("custom", gpu_request(args, options.brun)[0] != "cpu" and bool(gpus))
-            image = options.image
-            requested, flag = official_image_version(image), "--image"
-        else:
+        wants_gpu = gpu_request(args, options.brun)[0] != "cpu" and bool(gpus)
+        if kind in ("auto", "version"):
             build = plan_build(args, gpus, options.brun)
-            requested, flag = options.image_version, "--image_version"
-            version = requested
-            if version is None:
-                version, source = resolve_version(build.prefix, runtime, options.image_dir)
-                info(f"Running FastSurfer {version}, {source}. Pass --image_version {version} to keep "
-                     f"using this version when newer ones are released.")
-            image = image_reference(build.prefix, version)
-            if requested is not None:
-                # an older version may have no image for this GPU, e.g. none for a newer CUDA version
-                available = published_tags(f"-v{requested}")
-                tag = image.rsplit(":", 1)[-1]
-                if available is not None and tag not in available:
-                    images = sorted(t for t in available if t.endswith(f"-v{requested}"))
-                    raise LauncherError(
-                        f"There is no image {image}. "
-                        + (f"The images of FastSurfer {requested} are {', '.join(images)}; pass one with "
-                           f"--image {DOCKER_REPO}:<tag>." if images else f"FastSurfer {requested} is not released.")
-                    )
-        if requested is not None:
-            note = age_note(requested, release_versions(published_tags("cpu-v") or [], "cpu"),
-                            gpu_unsupported and build.gpu, flag)
+        elif kind in ("tag", "release"):
+            prefix = RELEASE_TAG.fullmatch(value).group(1)
+            build = Build(prefix, prefix != "cpu" and wants_gpu)
+        else:
+            build = Build("custom", wants_gpu)
+
+        # the image: one request to Docker Hub decides about versions
+        hub = None if kind in ("sif", "docker") else hub_tags()
+        if hub is not None and kind in ("auto", "version") and build.prefix != "cpu":
+            newest_release = newest_version(list(hub), "cpu")
+            if newest_release and f"{build.prefix}-v{newest_release}" not in hub:
+                raise LauncherError(f"FastSurfer {newest_release} has no {build.prefix} image, which means this "
+                                    f"launcher does not know the images of the newest release. Update it with "
+                                    f"--update_launcher, or download it again from {LAUNCHER_URL}.")
+        local_id = local_docker_id(value) if kind == "docker" else None
+        plan = decide_image(kind, value, build.prefix, options.runtime, installed,
+                            local_docker_images() if "docker" in installed else None,
+                            local_sif_images(options.image_dir), hub, options.image_dir, options.update, local_id)
+        runtime = plan.runtime
+        if hub is not None:
+            stable = stable_launcher()
+            if stable is not None and stable != Path(__file__).resolve().read_bytes():
+                info("A newer launcher is available, update it with --update_launcher.")
+
+        if runtime != "docker":
+            try:
+                version_text = subprocess.run([runtime, "--version"], capture_output=True, text=True,
+                                              timeout=30).stdout
+            except (OSError, subprocess.SubprocessError):
+                version_text = ""
+            problem = runtime_too_old(version_text)
+            if problem is not None:
+                raise LauncherError(problem)
+
+        requested = value if kind == "version" else (plan.tag if kind in ("tag", "release") else None)
+        if requested is not None and hub is not None:
+            version = requested.rsplit("-v", 1)[-1]
+            note = age_note(version, release_versions(list(hub), "cpu"), gpu_unsupported and build.gpu)
             if note is not None:
                 info(note[1], level=note[0])
+        for level, note in plan.notes:
+            info(note, level=level)
         for note in build.notes:
             info(note)
 
@@ -816,8 +1075,10 @@ def main(argv: list[str] | None = None) -> int:
         if runtime == "docker":
             user = f"{os.getuid()}:{os.getgid()}"
             # official images are built for Intel/AMD only; an own image may be built for this Mac
-            emulate = apple_silicon and (not options.image or official_image_version(options.image) is not None)
-            commands.append(docker_command(image, build.gpu, mounts, script, args, extra, user, emulate,
+            emulate = apple_silicon and (kind != "docker" or value.startswith(DOCKER_REPO))
+            if plan.pull:
+                commands.append(["docker", "pull"] + (["--platform", "linux/amd64"] if emulate else []) + [plan.image])
+            commands.append(docker_command(plan.image, build.gpu, mounts, script, args, extra, user, emulate,
                                            build.devices))
             if not options.print_only:
                 memory = docker_memory_gib()
@@ -827,15 +1088,12 @@ def main(argv: list[str] | None = None) -> int:
                     info(f"Docker can use only {memory:.1f} GB of memory, and FastSurfer may fail with less than "
                          f"15 GB. Increase the memory {where}.", level="WARNING")
         else:
-            if image.endswith(".sif"):
-                sif = _absolute(image, cwd)
-                if not sif.is_file():
-                    raise LauncherError(f"--image {image}: no such file.")
-            else:
-                sif = options.image_dir / (image.rsplit("/", 1)[-1].replace(":", "-") + ".sif")
-                if not sif.is_file():
-                    commands.append([runtime, "build", str(sif), f"docker://{image}"])
-            commands.append(apptainer_command(runtime, sif, build.gpu, mounts, script, args, extra, build.devices))
+            if kind == "sif" and not Path(plan.image).is_file():
+                raise LauncherError(f"--image {value}: no such file.")
+            if plan.build_from is not None:
+                commands.append([runtime, "build", plan.image, plan.build_from])
+            commands.append(apptainer_command(runtime, Path(plan.image), build.gpu, mounts, script, args, extra,
+                                              build.devices))
     except LauncherError as error:
         print(f"ERROR: {error}", file=sys.stderr)
         return 1
@@ -845,9 +1103,18 @@ def main(argv: list[str] | None = None) -> int:
             print(shlex.join(command))
         return 0
     for command in commands[:-1]:
-        info(f"Building the image once: {shlex.join(command)}")
-        if not build_image(command):
-            print("ERROR: Building the image failed.", file=sys.stderr)
+        if command[1] == "build":
+            info(f"Building the image once: {shlex.join(command)}")
+            if not build_image(command):
+                print("ERROR: Building the image failed.", file=sys.stderr)
+                return 1
+            record = Path(command[2]).with_name(Path(command[2]).name + ".digest")
+            if plan.record:
+                record.write_text(plan.record + "\n")
+            elif record.exists():
+                record.unlink()
+        elif subprocess.run(command).returncode != 0:
+            print(f"ERROR: {shlex.join(command)} failed.", file=sys.stderr)
             return 1
     info(f"Running: {shlex.join(commands[-1])}")
     sys.stdout.flush()

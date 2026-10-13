@@ -158,15 +158,6 @@ def test_newest_version():
     assert launcher.newest_version(tags, "cpu") is None
 
 
-def test_official_image_version():
-    assert launcher.official_image_version("deepmi/fastsurfer:cu118-v2.2.0") == "2.2.0"
-    assert launcher.official_image_version("docker.io/deepmi/fastsurfer:cpu-v2.6.0") == "2.6.0"
-    assert launcher.official_image_version("/images/fastsurfer-cu118-v2.2.0.sif") == "2.2.0"
-    for image in ("deepmi/fastsurfer:latest", "my_fastsurfer:cu132-v2.6.0", "fastsurfer-myimage.sif",
-                  "deepmi/fastsurfer:cu132-v2.7.0-dev0"):
-        assert launcher.official_image_version(image) is None
-
-
 def test_age_note():
     releases = [(2, 2, 0), (2, 3, 3), (2, 4, 2), (2, 5, 4), (2, 6, 0)]
     assert launcher.age_note("2.6.0", releases, gpu_unsupported=True) is None
@@ -174,16 +165,115 @@ def test_age_note():
     level, message = launcher.age_note("2.5.4", releases, gpu_unsupported=False)
     assert level == "INFO" and "1 release older" in message
     # an old GPU image instead of the newest release on the CPU: recommend against it
-    level, message = launcher.age_note("2.2.0", releases, gpu_unsupported=True, flag="--image")
+    level, message = launcher.age_note("2.2.0", releases, gpu_unsupported=True)
     assert level == "WARNING" and "4 releases older than the newest, 2.6.0" in message and "CPU" in message
 
 
-def test_local_tags_apptainer(tmp_path):
-    for name in ("fastsurfer-cpu-v2.5.4.sif", "fastsurfer-cpu-v2.6.0.sif", "fastsurfer-myimage.sif", "other.sif"):
+@pytest.mark.parametrize(
+    ("spec", "parsed"),
+    [
+        (None, ("auto", "")),
+        ("2.6.0", ("version", "2.6.0")),
+        ("cu132-v2.6.0", ("tag", "cu132-v2.6.0")),
+        ("cu118-v2.4.2", ("tag", "cu118-v2.4.2")),
+        ("deepmi/fastsurfer:cu132-v2.6.0", ("release", "cu132-v2.6.0")),
+        ("docker.io/deepmi/fastsurfer:cpu-v2.6.0", ("release", "cpu-v2.6.0")),
+        ("deepmi/fastsurfer:latest", ("docker", "deepmi/fastsurfer:latest")),
+        ("my_fastsurfer:cu132-v2.6.0", ("docker", "my_fastsurfer:cu132-v2.6.0")),
+        ("/images/fastsurfer-cu132-v2.6.0.sif", ("sif", "/images/fastsurfer-cu132-v2.6.0.sif")),
+    ],
+)
+def test_parse_image_spec(spec, parsed):
+    assert launcher.parse_image_spec(spec) == parsed
+
+
+def test_local_sif_images(tmp_path):
+    for name in ("fastsurfer-cpu-v2.5.4.sif", "fastsurfer-cpu-v2.6.0.sif", "other.sif", ".fastsurfer-x.1.partial.sif"):
         (tmp_path / name).write_bytes(b"")
-    tags = launcher.local_tags("apptainer", tmp_path)
-    assert sorted(tags) == ["cpu-v2.5.4", "cpu-v2.6.0", "myimage"]
-    assert launcher.newest_version(tags, "cpu") == "2.6.0"
+    (tmp_path / "fastsurfer-cpu-v2.6.0.sif.digest").write_text("sha256:c\n")
+    assert launcher.local_sif_images(tmp_path) == {"cpu-v2.5.4": "", "cpu-v2.6.0": "sha256:c"}
+    assert launcher.local_sif_images(tmp_path / "missing") == {}
+
+
+HUB = {"cu132-v2.5.4": {"sha256:b"}, "cu132-v2.6.0": {"sha256:a", "sha256:a64"}, "cu126-v2.6.0": {"sha256:d"},
+       "cpu-v2.6.0": {"sha256:c"}}
+BOTH = {"apptainer", "docker"}
+
+
+def decide(tmp_path, kind="auto", value="", runtime="auto", installed=BOTH, docker=None, sif=None, hub=HUB,
+           update=False, local_id=None):
+    return launcher.decide_image(kind, value, "cu132", runtime, installed, docker, sif or {}, hub, tmp_path,
+                                 update, local_id)
+
+
+def test_decide_image_nothing_installed(tmp_path):
+    # the newest release, built for Apptainer, remembering its digest
+    plan = decide(tmp_path)
+    assert (plan.runtime, plan.image) == ("apptainer", str(tmp_path / "fastsurfer-cu132-v2.6.0.sif"))
+    assert plan.build_from == "docker://deepmi/fastsurfer:cu132-v2.6.0" and plan.record in HUB["cu132-v2.6.0"]
+    assert "--image cu132-v2.6.0" in plan.notes[0][1]
+    assert decide(tmp_path, installed={"docker"}).image == "deepmi/fastsurfer:cu132-v2.6.0"
+    with pytest.raises(launcher.LauncherError, match="cannot be reached"):
+        decide(tmp_path, hub=None)
+
+
+def test_decide_image_one_installed(tmp_path):
+    # the installed image, where it is, and a note about the newer release
+    plan = decide(tmp_path, docker={"cu132-v2.5.4": "sha256:b"})
+    assert (plan.runtime, plan.image, plan.pull) == ("docker", "deepmi/fastsurfer:cu132-v2.5.4", False)
+    assert any("2.6.0 is available" in note for _, note in plan.notes)
+    # offline, it is used all the same
+    assert decide(tmp_path, docker={"cu132-v2.5.4": "sha256:b"}, hub=None).image.endswith("cu132-v2.5.4")
+    # the same version in both places counts once, and runs with Apptainer
+    plan = decide(tmp_path, docker={"cu132-v2.6.0": "sha256:a"}, sif={"cu132-v2.6.0": "sha256:a"})
+    assert plan.runtime == "apptainer" and plan.build_from is None
+    # images of another type do not count
+    assert decide(tmp_path, docker={"cpu-v2.5.4": "sha256:x"}).tag == "cu132-v2.6.0"
+
+
+def test_decide_image_several_installed(tmp_path):
+    with pytest.raises(launcher.LauncherError, match="Several"):
+        decide(tmp_path, docker={"cu132-v2.5.4": "sha256:b"}, sif={"cu132-v2.6.0": ""})
+    # --update takes the newest, and lists the older ones with how to remove them
+    plan = decide(tmp_path, docker={"cu132-v2.5.4": "sha256:b"}, sif={"cu132-v2.6.0": ""}, update=True)
+    assert plan.build_from is not None and plan.tag == "cu132-v2.6.0"
+    assert any("docker image rm deepmi/fastsurfer:cu132-v2.5.4" in note for _, note in plan.notes)
+
+
+def test_decide_image_digest(tmp_path):
+    # a local build tagged like a release: stop, unless named in full or replaced with --update
+    local_build = {"cu132-v2.6.0": ""}
+    with pytest.raises(launcher.LauncherError, match="differs from the release"):
+        decide(tmp_path, docker=local_build)
+    with pytest.raises(launcher.LauncherError, match="differs from the release"):
+        decide(tmp_path, kind="tag", value="cu132-v2.6.0", docker=local_build)
+    assert decide(tmp_path, kind="release", value="cu132-v2.6.0", docker=local_build).runtime == "docker"
+    assert decide(tmp_path, docker=local_build, update=True).pull
+    # either digest of the release matches, and a .sif without a recorded digest is not judged
+    assert decide(tmp_path, docker={"cu132-v2.6.0": "sha256:a64"}).runtime == "docker"
+    assert decide(tmp_path, sif={"cu132-v2.6.0": ""}).build_from is None
+    with pytest.raises(launcher.LauncherError, match="differs from the release"):
+        decide(tmp_path, sif={"cu132-v2.6.0": "sha256:other"})
+
+
+def test_decide_image_named(tmp_path):
+    # a version the type of this machine was not released in: the images of that version are listed
+    with pytest.raises(launcher.LauncherError, match="cpu-v2.6.0"):
+        decide(tmp_path, kind="version", value="2.6.0", hub={"cpu-v2.6.0": {"sha256:c"}})
+    with pytest.raises(launcher.LauncherError, match="not released"):
+        decide(tmp_path, kind="tag", value="cu132-v9.9.9")
+    with pytest.raises(launcher.LauncherError, match="Docker"):
+        decide(tmp_path, kind="sif", value="x.sif", runtime="docker")
+    # an own Docker image runs with Docker, or with Apptainer when asked, converted from the local Docker
+    assert decide(tmp_path, kind="docker", value="my_fs:cu132", local_id="sha256:1").runtime == "docker"
+    plan = decide(tmp_path, kind="docker", value="my_fs:cu132", runtime="apptainer", local_id="sha256:1")
+    assert (plan.build_from, plan.record) == ("docker-daemon://my_fs:cu132", "sha256:1")
+    (tmp_path / "my_fs-cu132.sif").write_bytes(b"")
+    (tmp_path / "my_fs-cu132.sif.digest").write_text("sha256:1\n")
+    own = {"kind": "docker", "value": "my_fs:cu132", "runtime": "apptainer"}
+    assert decide(tmp_path, **own, local_id="sha256:1").build_from is None
+    # a changed local Docker image is converted again
+    assert decide(tmp_path, **own, local_id="sha256:2").build_from
 
 
 def test_plan_paths_run(tmp_path):

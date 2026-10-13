@@ -44,15 +44,24 @@ python3 fastsurfer_container.py \
     --3T --threads 4
 ```
 
-It runs the newest FastSurfer release and says which one. For reproducible results, keep a study on
-one version with `--image_version <version>`; for an older version, it says how many releases it is
-behind. A GPU that the newest images no longer support runs them on the CPU. The image of an older
-release may still support that GPU, but the launcher recommends the newest release on the CPU, or a
-machine with a newer GPU, over an old version. Without internet, it uses the newest FastSurfer image
-already on the machine. With `--brun`, it runs `brun_fastsurfer.sh` for several
-subjects; the paths in a subjects list have to be absolute. `--print_only` prints the commands
-instead of running them, and `--help` lists all launcher options. The sections below explain the
-commands it runs.
+The first run downloads the newest FastSurfer release. Later runs use the image already installed,
+also when a newer release comes out: the launcher then says so, and `--update` switches to it. It
+says which image it runs, e.g. `cu132-v2.6.0`. To keep a study on exactly that image, pass it with
+`--image cu132-v2.6.0`: the image type matters as well as the version, because the CPU and the GPU
+images do not compute exactly the same numbers.
+
+`--image` also takes a version alone (`--image 2.6.0`, the image type is then chosen for the
+machine), your own Docker image, or an Apptainer `.sif` file. If several FastSurfer images are
+installed, the launcher asks which one to use. It stops if an installed image differs from the
+release of the same name, e.g. a local build; `--update` replaces it with the release. For an older
+version, it says how many releases it is behind. A GPU that the newest images no longer support runs
+them on the CPU. The image of an older release may still support that GPU, but the launcher
+recommends the newest release on the CPU, or a machine with a newer GPU, over an old version.
+
+With `--brun`, it runs `brun_fastsurfer.sh` for several subjects; the paths in a subjects list have
+to be absolute. `--print_only` prints the commands instead of running them, `--update_launcher`
+replaces the launcher with the current one, and `--help` lists all launcher options. The sections
+below explain the commands it runs.
 
 Before starting many runs at once, e.g. a SLURM array, run the launcher once (e.g. on one subject),
 so the image is downloaded and built only once rather than by every job.
