@@ -150,6 +150,25 @@ def test_plan_build():
     assert launcher.plan_build([], [gpu((3, 7))], brun=False).prefix == "cpu"
 
 
+def test_plan_build_for_type():
+    pascal, blackwell = gpu((6, 1), index=0), gpu((12, 0), index=1)
+    # a pinned release image: the best GPU among those its type supports, shown alone
+    build = launcher.plan_build_for_type([], [pascal, blackwell], False, "cu132")
+    assert (build.gpu, build.devices) == (True, [1]) and build.notes[0].startswith("Using GPU 1")
+    assert launcher.plan_build_for_type([], [pascal, blackwell], False, "cu126").devices == [0]
+    # an older type is judged by the driver; with --brun, every GPU the type supports
+    assert launcher.plan_build_for_type([], [pascal, blackwell], True, "cu118").devices == [0, 1]
+    # a named GPU is used as named, or stops the launcher if the type does not support it
+    assert launcher.plan_build_for_type(["--device", "cuda:1"], [pascal, blackwell], False, "cu132").devices is None
+    with pytest.raises(launcher.LauncherError, match="do not support GPU 0"):
+        launcher.plan_build_for_type(["--device", "cuda:0"], [pascal, blackwell], False, "cu132")
+    # no supported GPU: the CPU, or a stop when a GPU was requested
+    assert launcher.plan_build_for_type([], [pascal], False, "cu132").gpu is False
+    with pytest.raises(launcher.LauncherError, match="support none"):
+        launcher.plan_build_for_type(["--device", "cuda"], [pascal], False, "cu132")
+    assert launcher.plan_build_for_type([], [pascal, blackwell], False, "cpu").gpu is False
+
+
 def test_newest_version():
     tags = ["cu132-v2.6.0", "cu132-v2.10.1", "cu132-v2.9.3", "cu126-v2.11.0", "cu132-v2.11.0-dev0", "latest",
             "cpu-latest", "cu132-v2.10.1_abc123"]

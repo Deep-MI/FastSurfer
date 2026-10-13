@@ -288,6 +288,14 @@ def choose_build(gpus: list[Gpu], use: str) -> Build:
     return Build("cpu", False, [f"{reason}, so FastSurfer runs on the CPU."])
 
 
+def _gpu_rank(gpu: Gpu) -> tuple:
+    """Sorts the better GPU for FastSurfer last: enough memory first, then the newest, else the most memory."""
+    memory = gpu.memory_gib or 0.0
+    if gpu.memory_gib is None or memory >= MIN_GPU_MEMORY_GIB:
+        return True, gpu.capability or (0, 0), memory
+    return False, (memory,), gpu.capability or (0, 0)
+
+
 def select_gpus(gpus: list[Gpu], brun: bool) -> Build | None:
     """
     The GPU to run on when none was named: one an image supports, with enough memory, the newest.
@@ -298,14 +306,7 @@ def select_gpus(gpus: list[Gpu], brun: bool) -> Build | None:
     supported = [gpu for gpu in gpus if _best_build([gpu]) is not None]
     if not supported:
         return None
-
-    def rank(gpu: Gpu) -> tuple:
-        memory = gpu.memory_gib or 0.0
-        if gpu.memory_gib is None or memory >= MIN_GPU_MEMORY_GIB:
-            return True, gpu.capability or (0, 0), memory
-        return False, (memory,), gpu.capability or (0, 0)
-
-    best = max(supported, key=rank)
+    best = max(supported, key=_gpu_rank)
     build_tuple = _best_build([best])
     chosen = [gpu for gpu in supported if _runs(build_tuple, [gpu])] if brun else [best]
     build = choose_build([best], "auto")
@@ -382,6 +383,40 @@ def plan_build(args: list[str], gpus: list[Gpu], brun: bool) -> Build:
         # the container sees all GPUs, so the named indices keep their meaning
         return choose_build([by_index[i] for i in named], "cuda")
     return select_gpus(gpus, brun) or choose_build(gpus, use)
+
+
+def plan_build_for_type(args: list[str], gpus: list[Gpu], brun: bool, image_type: str) -> Build:
+    """
+    The GPUs for a release image named with --image, e.g. cu132-v2.6.0.
+
+    As without --image, the best GPU is selected when none is named, but only among those this image
+    type supports; named GPUs are used as named, and stop the launcher if the type does not support them.
+    """
+    use, named = gpu_request(args, brun)
+    if use == "cpu" or image_type == "cpu":
+        return Build(image_type, False)
+    if named is not None:
+        by_index = {gpu.index: gpu for gpu in gpus}
+        missing = [i for i in named if i not in by_index]
+        if missing:
+            raise LauncherError(f"There is no GPU {missing[0]}, nvidia-smi found {len(gpus)}.")
+        unsupported = [by_index[i] for i in named if not image_type_runs(image_type, [by_index[i]])]
+        if unsupported:
+            raise LauncherError(f"The {image_type} images do not support {', '.join(map(describe, unsupported))}.")
+        # the container sees all GPUs, so the named indices keep their meaning
+        return Build(image_type, True)
+    supported = [gpu for gpu in gpus if image_type_runs(image_type, [gpu])]
+    if not supported:
+        if not gpus:
+            reason = "No NVIDIA GPU found"
+        else:
+            reason = f"The {image_type} images support none of the GPUs here ({', '.join(map(describe, gpus))})"
+        if use == "cuda":
+            raise LauncherError(f"{reason}.")
+        return Build(image_type, False, [f"{reason}, so FastSurfer runs on the CPU."])
+    chosen = supported if brun else [max(supported, key=_gpu_rank)]
+    return Build(image_type, True, ["Using " + ", ".join(map(describe, chosen)) + "."],
+                 devices=[gpu.index for gpu in chosen])
 
 
 def image_reference(prefix: str, version: str) -> str:
@@ -1067,8 +1102,7 @@ def main(argv: list[str] | None = None) -> int:
         if kind in ("auto", "version"):
             build = plan_build(args, gpus, options.brun)
         elif kind in ("tag", "release"):
-            prefix = RELEASE_TAG.fullmatch(value).group(1)
-            build = Build(prefix, prefix != "cpu" and wants_gpu)
+            build = plan_build_for_type(args, gpus, options.brun, RELEASE_TAG.fullmatch(value).group(1))
         else:
             build = Build("custom", wants_gpu)
 
