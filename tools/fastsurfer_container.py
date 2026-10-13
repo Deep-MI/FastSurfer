@@ -666,11 +666,16 @@ def decide_image(kind: str, value: str, prefix: str, runtime: str, installed: se
         def stores(t: str) -> str:
             return " and ".join(s for s, has in (("Docker", t in docker_images), ("Apptainer", t in sif_images)) if has)
 
-        where = [f"{t} ({stores(t)})" for t in candidates]
-        update_hint = (f", or download the newest release ({prefix}-v{newest}) with --update" if newest is not None
-                       else "")
+        where = [f"{t} ({stores(t)})" for t in reversed(candidates)]  # the newest first
+        newest_tag = f"{prefix}-v{newest}" if newest is not None else None
+        if newest_tag in candidates:
+            hint = f"e.g. --image {newest_tag}, the newest release"
+        elif newest_tag is not None:
+            hint = f"e.g. --image {candidates[-1]}, or download the newest release ({newest_tag}) with --update"
+        else:
+            hint = f"e.g. --image {candidates[-1]}"
         raise LauncherError(f"Several FastSurfer images that run here are installed: {'; '.join(where)}. Choose "
-                            f"one with --image <tag>, e.g. --image {candidates[-1]}{update_hint}.")
+                            f"one with --image <tag>, {hint}.")
     plan.notes.insert(0, ("INFO", f"Running FastSurfer {plan.tag.rsplit('-v', 1)[-1]} ({plan.tag}). For a study, "
                                   f"keep this image with --image {plan.tag}."))
     return plan
@@ -854,6 +859,9 @@ def docker_command(image: str, gpu: bool, mounts: list[Path], script: str, args:
         cmd += ["--gpus", selection, "--env", CUDA_ORDER]
     if emulate:
         cmd += ["--platform", "linux/amd64"]
+    if platform.system() == "Linux" and Path("/etc/localtime").exists():
+        # the host's time zone, so the logs show local times as with Apptainer, which shares this file itself
+        cmd += ["-v", "/etc/localtime:/etc/localtime:ro"]
     for mount in mounts:
         cmd += ["-v", f"{mount}:{mount}"]
     cmd += extra

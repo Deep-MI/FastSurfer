@@ -15,6 +15,7 @@
 """Test the image choice and the path handling of tools/fastsurfer_container.py."""
 
 import importlib.util
+import platform
 import sys
 from pathlib import Path
 
@@ -253,7 +254,8 @@ def test_decide_image_older_types(tmp_path):
     turing = [gpu((7, 5), driver=580)]
     installed = {"cu128-v2.5.4": "sha256:1", "cu126-v2.5.4": "sha256:2", "cpu-v2.5.4": "sha256:3"}
     hub = {**HUB, "cu128-v2.5.4": {"sha256:1"}, "cu126-v2.5.4": {"sha256:2"}, "cpu-v2.5.4": {"sha256:3"}}
-    with pytest.raises(launcher.LauncherError, match="cu126-v2.5.4.*cu128-v2.5.4.*--update"):
+    # listed newest first; the newest release is not installed, so --update is offered
+    with pytest.raises(launcher.LauncherError, match="cu128-v2.5.4.*cu126-v2.5.4.*--update"):
         decide(tmp_path, docker=installed, hub=hub, gpus=turing)
     # one of them alone is used, with a note about the newest release
     plan = decide(tmp_path, docker={"cu128-v2.5.4": "sha256:1"}, hub=hub, gpus=turing)
@@ -263,8 +265,12 @@ def test_decide_image_older_types(tmp_path):
 
 
 def test_decide_image_several_installed(tmp_path):
-    with pytest.raises(launcher.LauncherError, match="Several"):
+    # the newest release is among them: suggested first, and no --update, which would download it again
+    with pytest.raises(launcher.LauncherError, match="Several") as stop:
         decide(tmp_path, docker={"cu132-v2.5.4": "sha256:b"}, sif={"cu132-v2.6.0": ""})
+    message = str(stop.value)
+    assert message.index("cu132-v2.6.0") < message.index("cu132-v2.5.4")
+    assert "--image cu132-v2.6.0, the newest release" in message and "--update" not in message
     # --update takes the newest, and lists the older ones with how to remove them
     plan = decide(tmp_path, docker={"cu132-v2.5.4": "sha256:b"}, sif={"cu132-v2.6.0": ""}, update=True)
     assert plan.build_from is not None and plan.tag == "cu132-v2.6.0"
@@ -409,8 +415,11 @@ def test_commands(tmp_path):
     docker = launcher.docker_command("img:tag", True, [tmp_path], "run_fastsurfer.sh", args, [], "1000:1000")
     # --init, so Ctrl-C and a cancelled job reach FastSurfer
     init = ["docker", "run", "--rm", "--init", "--env", "TINI_KILL_PROCESS_GROUP=1"]
-    assert docker == init + ["--user", "1000:1000", "--gpus", "all", "--env", "CUDA_DEVICE_ORDER=PCI_BUS_ID",
-                             "-v", f"{tmp_path}:{tmp_path}", "img:tag"] + args
+    # the host's time zone, on Linux
+    zone = (["-v", "/etc/localtime:/etc/localtime:ro"]
+            if platform.system() == "Linux" and Path("/etc/localtime").exists() else [])
+    assert docker == init + ["--user", "1000:1000", "--gpus", "all", "--env", "CUDA_DEVICE_ORDER=PCI_BUS_ID"] + zone + [
+        "-v", f"{tmp_path}:{tmp_path}", "img:tag"] + args
     # selected GPUs, quoted so Docker does not split the list
     selected = launcher.docker_command("img:tag", True, [], "run_fastsurfer.sh", [], [], "1:1", devices=[1, 3])
     assert selected[8:10] == ["--gpus", '"device=1,3"']
