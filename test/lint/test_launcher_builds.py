@@ -48,6 +48,11 @@ def test_launcher_builds_match_gpu_support():
         assert launcher.MIN_DRIVER[major] == gpu_support.MIN_DRIVER[major]
 
 
+def test_launcher_capabilities_cover_builds():
+    # the GPU range of each build comes from its PyTorch, so a new build needs its entry checked by hand
+    assert set(launcher.MIN_CAPABILITY) == {launcher.NEWEST_BUILD[1], launcher.LEGACY_BUILD[1]}
+
+
 def test_launcher_default_build_matches_pyproject():
     with open(FASTSURFER_HOME / "pyproject.toml", "rb") as fp:
         cuda = tomllib.load(fp)["tool"]["cuda"]["version"]
