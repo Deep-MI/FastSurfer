@@ -60,8 +60,8 @@ echo
 echo "WARNING: The binary $0 is not included, your call is forwarded to not-here.sh"
 echo
 exit 1
-' > $ltrg
-chmod a+x $ltrg
+' > "$ltrg"
+chmod a+x "$ltrg"
 echo
 for file in "${link_files[@]}"
 do
