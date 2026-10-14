@@ -2,10 +2,16 @@
 
 # usage: link_fs.sh [<FREESURFER_HOME>]
 
-if [[ "$#" -gt 0 ]] && { [[ "${*/-h/}" != "$*" ]] || [[ "${*/--help/}" != "$*" ]] ; } ; then
-  echo "usage: $0 [<FREESURFER_HOME>]"
-  exit 0
-elif [[ "$#" == 1 ]]
+# whole arguments only, so a path containing -h is not taken for the flag
+for arg in "$@"
+do
+  if [[ "$arg" == "-h" ]] || [[ "$arg" == "--help" ]]
+  then
+    echo "usage: $0 [<FREESURFER_HOME>]"
+    exit 0
+  fi
+done
+if [[ "$#" == 1 ]]
 then
   FREESURFER_HOME="$1"
 fi
@@ -60,11 +66,10 @@ echo
 echo "WARNING: The binary $0 is not included, your call is forwarded to not-here.sh"
 echo
 exit 1
-' > "$ltrg"
-chmod a+x "$ltrg"
+' > "$ltrg" && chmod a+x "$ltrg" || { echo "ERROR: Could not create $ltrg!" ; exit 1 ; }
 echo
 for file in "${link_files[@]}"
 do
   echo "linking $file"
-  ln -sf "$ltrg" "$FREESURFER_HOME/$file"
+  ln -sf "$ltrg" "$FREESURFER_HOME/$file" || { echo "ERROR: Could not link $FREESURFER_HOME/$file!" ; exit 1 ; }
 done
