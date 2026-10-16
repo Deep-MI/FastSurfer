@@ -553,7 +553,8 @@ def plan_amd_build(args: list[str], gpus: list[AmdGpu], brun: bool, image_type: 
 
 def amd_device_groups(device: Path = KFD_DEVICE, dri: Path = Path("/dev/dri")) -> list[int]:
     """The groups that own the devices of AMD GPUs, which a Docker container running as the user needs."""
-    paths = [device] + (sorted(dri.glob("renderD*")) if dri.is_dir() else [])
+    # the render nodes of the GPUs
+    paths = [device] + (sorted(dri.glob("render*")) if dri.is_dir() else [])
     return sorted({path.stat().st_gid for path in paths if path.exists()})
 
 
