@@ -60,7 +60,20 @@ them on the CPU. The image of an older release may still support that GPU, but t
 recommends the newest release on the CPU, or a machine with a newer GPU, over an old version.
 
 With `--brun`, it runs `brun_fastsurfer.sh` for several subjects; the paths in a subjects list have
-to be absolute. `--print_only` prints the commands instead of running them, `--update_launcher`
+to be absolute. With `--long`, it runs `long_fastsurfer.sh` for the time points of one person (see
+[long_fastsurfer.sh](../scripts/long_fastsurfer.rst)).
+
+`--exec <program>` runs any other program of the image, for example to convert a segmentation to NIfTI:
+
+```bash
+python3 fastsurfer_container.py --exec nib-convert subjectX/mri/aparc.DKTatlas+aseg.deep.mgz aparc.nii.gz
+```
+
+It comes last, as all arguments after the program go to the program. The program runs in the current
+directory, which the launcher shares with the container, as it does the directories of absolute paths
+in the arguments. Relative paths therefore only work inside the current directory.
+
+`--print_only` prints the commands instead of running them, `--update_launcher`
 replaces the launcher with the current one, and `--help` lists all launcher options. The sections
 below explain the commands it runs.
 

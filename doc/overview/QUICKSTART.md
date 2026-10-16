@@ -14,6 +14,8 @@ a few minutes longer. You can use your own T1-weighted full head MRI (0.7 to 1 m
 `````{tab-set}
 
 ````{tab-item} Linux, Windows or Intel Mac
+:sync: container
+
 This needs a working installation of Apptainer, Singularity or Docker, which these commands do not set up: see
 [Linux](install/LINUX.md), [Windows](install/WINDOWS.md) (Docker in WSL2, run the commands there) or
 [Intel Macs](install/MACOS.md#docker-intel-macs). `docker run --rm hello-world` or `apptainer --version` checks it.
@@ -46,6 +48,8 @@ python3 fastsurfer_container.py \
 ````
 
 ````{tab-item} Mac with Apple silicon
+:sync: macos
+
 On a Mac with Apple silicon (M1 or newer), [install the macOS package](install/MACOS.md), open the FastSurfer app
 from your Applications folder, and run these commands in the Terminal window it opens:
 
@@ -75,31 +79,22 @@ We also switched off the bias field correction, which is used to compute partial
 Also if you need the estimated total intracranial volume for correcting the stats, you would either need to run the surface stream or switch on the Talairach registration with
 `--tal_reg` in the segmentation module. For the full surface stream, just remove the ```--seg_only```; you then need a [FreeSurfer license file](INSTALL.md#freesurfer-license): pass it with `--fs_license <path>`, or set the environment variable `FS_LICENSE` to its path (the launcher passes it on to the container).
 
-You will find the full brain segmentation in ```./subjectX/mri/aparc.DKTatlas+aseg.deep.mgz``` in FreeSurfer's MGZ file format. To convert it back to nifti (if you prefer), run `nib-convert`, which comes with FastSurfer, in the image the launcher used (it names the image when it starts, e.g. `{{ CUDA_STRING }}-v{{ FASTSURFER_VERSION }}`):
+You will find the full brain segmentation in ```./subjectX/mri/aparc.DKTatlas+aseg.deep.mgz``` in FreeSurfer's MGZ file format. To convert it back to nifti (if you prefer), run `nib-convert`, which comes with FastSurfer:
 
 `````{tab-set}
 
-````{tab-item} Apptainer / Singularity
+````{tab-item} Linux, Windows or Intel Mac
+:sync: container
 ```bash
-# Convert mgz to nifti
-singularity exec --no-mount home,cwd -e -B "$PWD" \
-    $HOME/my_singularity_images/fastsurfer-{{ CUDA_STRING }}-v{{ FASTSURFER_VERSION }}.sif \
-    nib-convert "$PWD/subjectX/mri/aparc.DKTatlas+aseg.deep.mgz" \
-                "$PWD/subjectX/mri/aparc.DKTatlas+aseg.deep.nii.gz"
-```
-````
-
-````{tab-item} Docker
-```bash
-# Convert mgz to nifti
-docker run --rm --user $(id -u):$(id -g) -v "$PWD:$PWD" --entrypoint nib-convert \
-    deepmi/fastsurfer:{{ CUDA_STRING }}-v{{ FASTSURFER_VERSION }} \
-    "$PWD/subjectX/mri/aparc.DKTatlas+aseg.deep.mgz" \
-    "$PWD/subjectX/mri/aparc.DKTatlas+aseg.deep.nii.gz"
+# Convert mgz to nifti, in the image the launcher used for FastSurfer
+python3 fastsurfer_container.py --exec nib-convert \
+    subjectX/mri/aparc.DKTatlas+aseg.deep.mgz \
+    subjectX/mri/aparc.DKTatlas+aseg.deep.nii.gz
 ```
 ````
 
 ````{tab-item} Mac with Apple silicon
+:sync: macos
 ```bash
 # Convert mgz to nifti, in the Terminal window of the FastSurfer app
 nib-convert subjectX/mri/aparc.DKTatlas+aseg.deep.mgz \

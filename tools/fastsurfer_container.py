@@ -16,10 +16,14 @@
 """
 Run FastSurfer in its container image, without writing the container command.
 
-Takes the flags of run_fastsurfer.sh (or, with --brun, of brun_fastsurfer.sh) and runs them in the
-official image with Apptainer, Singularity or Docker, whichever is installed:
+Takes the flags of run_fastsurfer.sh (or, with --brun, of brun_fastsurfer.sh, with --long, of
+long_fastsurfer.sh) and runs them in the official image with Apptainer, Singularity or Docker,
+whichever is installed:
 
     python3 fastsurfer_container.py --t1 data/t1.nii.gz --sd results --sid subject1
+
+--exec runs any other program of the image, e.g. --exec nib-convert in.mgz out.nii.gz, in the current
+directory.
 
 It runs the FastSurfer release image installed on the machine (the newest release if there is none,
 or the image --image names), picks the image type that fits the NVIDIA GPU and driver (or the CPU
@@ -68,13 +72,18 @@ MIN_GPU_MEMORY_GIB = 8
 
 # flags of run_fastsurfer.sh and brun_fastsurfer.sh whose value is a file that has to exist
 INPUT_FLAGS = {"--t1", "--t2", "--lesion_mask", "--fs_license", "--subjects_list", "--subject_list"}
+# flags of long_fastsurfer.sh followed by several files that have to exist, one per time point
+MULTI_INPUT_FLAGS = {"--t1s", "--t2s"}
 # flags whose value is a file or directory FastSurfer writes, so its directory is created if missing
 OUTPUT_FLAGS = {
     "--sd", "--seg_log", "--conformed_name", "--norm_name", "--norm_name_t2", "--seg",
     "--asegdkt_segfile", "--aparc_aseg_segfile", "--asegdkt_statsfile", "--aseg_statsfile",
     "--aseg_segfile", "--mask_name", "--cereb_segfile", "--cereb_statsfile", "--hypo_segfile",
-    "--hypo_statsfile", "--statusfile",
+    "--hypo_statsfile", "--statusfile", "--log",
 }
+# the FastSurfer scripts the launcher runs: the default, and those of --brun and --long
+RUN_SCRIPT = "/fastsurfer/run_fastsurfer.sh"
+SCRIPTS = {"brun": "/fastsurfer/brun_fastsurfer.sh", "long": "/fastsurfer/long_fastsurfer.sh"}
 
 
 class LauncherError(Exception):
@@ -429,6 +438,26 @@ RELEASE_TAG = re.compile(r"([a-z0-9.]+)-v(\d+\.\d+\.\d+)")
 SIF_PREFIX = DOCKER_REPO.rsplit("/", 1)[-1] + "-"
 
 
+# the root certificates macOS ships; Python from python.org has none of its own until its "Install
+# Certificates" script runs, and fails every HTTPS request until then
+SYSTEM_CA_FILE = "/etc/ssl/cert.pem"
+
+
+def open_url(url: str):
+    """urllib's urlopen, retried with the system's certificates if Python cannot verify the server."""
+    import ssl
+    import urllib.error
+    import urllib.request
+
+    try:
+        return urllib.request.urlopen(url, timeout=HUB_TIMEOUT)
+    except urllib.error.URLError as error:
+        if not isinstance(error.reason, ssl.SSLCertVerificationError) or not os.path.isfile(SYSTEM_CA_FILE):
+            raise
+    context = ssl.create_default_context(cafile=SYSTEM_CA_FILE)
+    return urllib.request.urlopen(url, timeout=HUB_TIMEOUT, context=context)
+
+
 def hub_tags() -> dict[str, set[str]] | None:
     """
     The release tags on Docker Hub and the digests each is known by, None if Docker Hub cannot be reached.
@@ -438,13 +467,12 @@ def hub_tags() -> dict[str, set[str]] | None:
     recorded.
     """
     import json
-    import urllib.request
 
     url = f"https://hub.docker.com/v2/repositories/{DOCKER_REPO}/tags?page_size=100&name=-v"
     tags: dict[str, set[str]] = {}
     try:
         while url and len(tags) < 2000:
-            with urllib.request.urlopen(url, timeout=HUB_TIMEOUT) as response:
+            with open_url(url) as response:
                 page = json.load(response)
             for result in page.get("results", []):
                 digests = {result.get("digest")} | {image.get("digest") for image in result.get("images", [])}
@@ -756,7 +784,7 @@ def plan_paths(args: list[str], cwd: Path, create: bool = True) -> tuple[list[st
     Parameters
     ----------
     args : list[str]
-        The arguments for run_fastsurfer.sh or brun_fastsurfer.sh.
+        The arguments for run_fastsurfer.sh, brun_fastsurfer.sh or long_fastsurfer.sh.
     cwd : Path
         The directory relative paths are relative to.
     create : bool, default=True
@@ -785,6 +813,15 @@ def plan_paths(args: list[str], cwd: Path, create: bool = True) -> tuple[list[st
                 mounts.extend(_subjects_list_mounts(path, create))
             out.append(str(path))
             i += 1
+        elif flag in MULTI_INPUT_FLAGS:
+            # long_fastsurfer.sh: one path per time point, until the next flag
+            while i < len(args) and not args[i].startswith("-"):
+                path = _absolute(args[i], cwd)
+                if not path.exists():
+                    raise LauncherError(f"{flag} {args[i]}: no such file.")
+                mounts.extend(_link_directories(path))
+                out.append(str(path))
+                i += 1
         elif flag == "--subjects":
             # brun_fastsurfer.sh: <subject_id>=<t1_path> ... until the next flag
             while i < len(args) and not args[i].startswith("--"):
@@ -798,6 +835,27 @@ def plan_paths(args: list[str], cwd: Path, create: bool = True) -> tuple[list[st
                 out.append(f"{subject}={path}")
                 i += 1
     return out, mounts
+
+
+def exec_mounts(args: list[str], cwd: Path) -> list[Path]:
+    """
+    The directories to share for any program: the current directory, where it runs, and those of its
+    absolute paths, also in `--flag=/path` form.
+
+    An absolute path that exists is shared like an input, one whose directory exists like an output;
+    any other argument is not taken for a path. Relative paths only work inside the current directory.
+    """
+    mounts = [cwd]
+    for arg in args:
+        value = arg.partition("=")[2] if arg.startswith("-") else arg
+        if not os.path.isabs(value):
+            continue
+        path = Path(os.path.normpath(value))
+        if path.exists():
+            mounts.extend(_link_directories(path))
+        elif path.parent.is_dir():
+            mounts.append(path.parent)
+    return mounts
 
 
 def _subjects_list_mounts(subjects_list: Path, create: bool = True) -> list[Path]:
@@ -863,9 +921,13 @@ def runtime_too_old(version_text: str) -> str | None:
 CUDA_ORDER = "CUDA_DEVICE_ORDER=PCI_BUS_ID"
 
 
-def apptainer_command(runtime: str, sif: Path, gpu: bool, mounts: list[Path], script: str,
-                      args: list[str], extra: list[str], devices: list[int] | None = None) -> list[str]:
-    """The Apptainer/Singularity command, showing only `devices` if given; the home directory is not mounted."""
+def apptainer_command(runtime: str, sif: Path, gpu: bool, mounts: list[Path], program: str,
+                      args: list[str], extra: list[str], devices: list[int] | None = None,
+                      workdir: Path | None = None) -> list[str]:
+    """
+    The Apptainer/Singularity command running `program`, showing only `devices` if given and starting in
+    `workdir` if given; the home directory is not mounted.
+    """
     cmd = [runtime, "exec"]
     if gpu:
         cmd += ["--nv", "--env", CUDA_ORDER]
@@ -874,20 +936,25 @@ def apptainer_command(runtime: str, sif: Path, gpu: bool, mounts: list[Path], sc
     cmd += ["--no-mount", "home,cwd", "-e"]
     for mount in mounts:
         cmd += ["-B", str(mount)]
-    return cmd + extra + [str(sif), f"/fastsurfer/{script}"] + args
+    if workdir is not None:
+        cmd += ["--pwd", str(workdir)]
+    return cmd + extra + [str(sif), program] + args
 
 
-def docker_command(image: str, gpu: bool, mounts: list[Path], script: str, args: list[str],
+def docker_command(image: str, gpu: bool, mounts: list[Path], program: str, args: list[str],
                    extra: list[str], user: str, emulate: bool = False, devices: list[int] | None = None,
-                   ) -> list[str]:
+                   workdir: Path | None = None, interactive: bool = False) -> list[str]:
     """
-    The Docker command, running as the calling user and showing only `devices` if given.
+    The Docker command running `program`, as the calling user, showing only `devices` if given and
+    starting in `workdir` if given.
 
-    `emulate` runs the Intel image on Apple silicon.
+    `emulate` runs the Intel image on Apple silicon; `interactive` connects the terminal, e.g. for a shell.
     """
     # --init: the image's entrypoint is a shell, which as the first process ignores Ctrl-C and the
     # signal a cancelled cluster job sends; tini passes them to all of FastSurfer's processes instead
     cmd = ["docker", "run", "--rm", "--init", "--env", "TINI_KILL_PROCESS_GROUP=1", "--user", user]
+    if interactive:
+        cmd += ["-it"]
     if gpu:
         # the quotes are part of the value: without them, Docker splits a list of devices at the comma
         selection = "all" if devices is None else f'"device={",".join(map(str, devices))}"'
@@ -899,10 +966,12 @@ def docker_command(image: str, gpu: bool, mounts: list[Path], script: str, args:
         cmd += ["-v", "/etc/localtime:/etc/localtime:ro"]
     for mount in mounts:
         cmd += ["-v", f"{mount}:{mount}"]
+    if workdir is not None:
+        cmd += ["-w", str(workdir)]
     cmd += extra
-    if script != "run_fastsurfer.sh":
-        # the image's entrypoint runs run_fastsurfer.sh; keep its environment setup for the other scripts
-        return cmd + ["--entrypoint", "/fastsurfer/tools/Docker/entrypoint.sh", image, f"/fastsurfer/{script}"] + args
+    if program != RUN_SCRIPT:
+        # the image's entrypoint runs run_fastsurfer.sh; keep its environment setup for other programs
+        return cmd + ["--entrypoint", "/fastsurfer/tools/Docker/entrypoint.sh", image, program] + args
     return cmd + [image] + args
 
 
@@ -992,10 +1061,8 @@ def build_image(command: list[str], anonymous: bool = False) -> bool:
 
 def stable_launcher() -> bytes | None:
     """The launcher on the stable branch, which knows the images of the newest release; None if unreachable."""
-    import urllib.request
-
     try:
-        with urllib.request.urlopen(LAUNCHER_URL, timeout=HUB_TIMEOUT) as response:
+        with open_url(LAUNCHER_URL) as response:
             return response.read()
     except OSError:
         return None
@@ -1032,8 +1099,8 @@ def make_parser() -> argparse.ArgumentParser:
         prog="fastsurfer_container.py",
         description=__doc__.split("\n\n")[0].strip(),
         epilog=(
-            "All other arguments are passed to run_fastsurfer.sh (or brun_fastsurfer.sh), see "
-            "https://deep-mi.org/FastSurfer/stable/scripts/RUN_FASTSURFER.html. Relative paths are "
+            "All other arguments are passed to run_fastsurfer.sh (or brun_fastsurfer.sh, long_fastsurfer.sh), "
+            "see https://deep-mi.org/FastSurfer/stable/scripts/RUN_FASTSURFER.html. Relative paths are "
             "relative to the current directory."
         ),
         allow_abbrev=False,
@@ -1055,19 +1122,43 @@ def make_parser() -> argparse.ArgumentParser:
                         default=Path(os.environ.get("FASTSURFER_IMAGE_DIR", "~/my_singularity_images")).expanduser(),
                         help="where Apptainer/Singularity images are kept (default: $FASTSURFER_IMAGE_DIR or "
                              "~/my_singularity_images)")
-    parser.add_argument("--brun", action="store_true", help="run brun_fastsurfer.sh to process several subjects")
+    script = parser.add_mutually_exclusive_group()
+    script.add_argument("--brun", action="store_true", help="run brun_fastsurfer.sh to process several subjects")
+    script.add_argument("--long", action="store_true",
+                        help="run long_fastsurfer.sh for the time points of one person (longitudinal processing)")
+    script.add_argument("--exec", metavar="PROGRAM",
+                        help="run another program of the image instead, e.g. --exec nib-convert in.mgz out.nii.gz. "
+                             "It comes last: all later arguments go to the program. It runs in the current "
+                             "directory, which is shared with the container, as are the directories of absolute "
+                             "paths in its arguments")
     parser.add_argument("--runtime_args", default="",
                         help="additional arguments for the container runtime, e.g. --runtime_args '--group-add 1001'")
     parser.add_argument("--print_only", action="store_true", help="print the commands instead of running them")
     return parser
 
 
+def split_exec(argv: list[str]) -> tuple[list[str], list[str] | None]:
+    """
+    The launcher's arguments up to `--exec <program>`, and the program's arguments after it (None without
+    --exec), so that its flags, e.g. --help, reach the program rather than the launcher.
+    """
+    if "--exec" not in argv:
+        return argv, None
+    k = argv.index("--exec")
+    return argv[:k + 2], argv[k + 2:]
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = make_parser()
+    argv, program_args = split_exec(sys.argv[1:] if argv is None else argv)
     options, fastsurfer_args = parser.parse_known_args(argv)
     if options.update_launcher:
         return update_launcher()
-    if not fastsurfer_args:
+    if options.exec is not None:
+        if fastsurfer_args:
+            parser.error(f"unrecognized arguments before --exec: {' '.join(fastsurfer_args)}")
+        fastsurfer_args = program_args
+    elif not fastsurfer_args:
         parser.print_help()
         return 1
 
@@ -1098,8 +1189,11 @@ def main(argv: list[str] | None = None) -> int:
             raise LauncherError("--brun needs the subjects in --subjects_list <file> or --subjects <id>=<t1> ...")
 
         cwd = Path.cwd()
-        fastsurfer_args = fastsurfer_args + _license_args(fastsurfer_args, cwd)
-        args, mounts = plan_paths(fastsurfer_args, cwd, create=not options.print_only)
+        if options.exec is not None:
+            args, mounts = fastsurfer_args, exec_mounts(fastsurfer_args, cwd)
+        else:
+            fastsurfer_args = fastsurfer_args + _license_args(fastsurfer_args, cwd)
+            args, mounts = plan_paths(fastsurfer_args, cwd, create=not options.print_only)
         mounts = minimal_mounts(mounts)
         if Path("/") in mounts:
             raise LauncherError("The paths would share the whole file system with the container, keep the "
@@ -1107,19 +1201,20 @@ def main(argv: list[str] | None = None) -> int:
         if Path.home() in mounts:
             info("This shares your home directory with the container. Settings in it may affect "
                  "FastSurfer, so keep the data in a subdirectory.")
-        if "--fs_license" not in args and "--seg_only" not in args:
+        if options.exec is None and "--fs_license" not in args and "--seg_only" not in args:
             info("No FreeSurfer license given (--fs_license or $FS_LICENSE); the surfaces need one.")
 
-        # the GPUs and the image type
+        # the GPUs and the image type; another program's flags say nothing about them
         kind, value = parse_image_spec(options.image)
         gpus = query_nvidia_gpus()
+        request = [] if options.exec is not None else args
         # whether the newest images support none of the GPUs, so they run on the CPU here
         gpu_unsupported = bool(gpus) and select_gpus(gpus, False) is None
-        wants_gpu = gpu_request(args, options.brun)[0] != "cpu" and bool(gpus)
+        wants_gpu = gpu_request(request, options.brun)[0] != "cpu" and bool(gpus)
         if kind in ("auto", "version"):
-            build = plan_build(args, gpus, options.brun)
+            build = plan_build(request, gpus, options.brun)
         elif kind in ("tag", "release"):
-            build = plan_build_for_type(args, gpus, options.brun, RELEASE_TAG.fullmatch(value).group(1))
+            build = plan_build_for_type(request, gpus, options.brun, RELEASE_TAG.fullmatch(value).group(1))
         else:
             build = Build("custom", wants_gpu)
 
@@ -1165,7 +1260,11 @@ def main(argv: list[str] | None = None) -> int:
         for note in build.notes:
             info(note)
 
-        script = "brun_fastsurfer.sh" if options.brun else "run_fastsurfer.sh"
+        if options.exec is not None:
+            program, workdir = options.exec, cwd
+        else:
+            program = SCRIPTS["brun"] if options.brun else SCRIPTS["long"] if options.long else RUN_SCRIPT
+            workdir = None
         extra = shlex.split(options.runtime_args)
         commands = []
         if runtime == "docker":
@@ -1174,8 +1273,10 @@ def main(argv: list[str] | None = None) -> int:
             emulate = apple_silicon and (kind != "docker" or value.startswith(DOCKER_REPO))
             if plan.pull:
                 commands.append(["docker", "pull"] + (["--platform", "linux/amd64"] if emulate else []) + [plan.image])
-            commands.append(docker_command(plan.image, build.gpu, mounts, script, args, extra, user, emulate,
-                                           build.devices))
+            # Apptainer passes the terminal on itself; Docker only when asked
+            interactive = options.exec is not None and sys.stdin.isatty() and sys.stdout.isatty()
+            commands.append(docker_command(plan.image, build.gpu, mounts, program, args, extra, user, emulate,
+                                           build.devices, workdir, interactive))
             if not options.print_only:
                 memory = docker_memory_gib()
                 if memory < MIN_DOCKER_MEMORY_GIB:
@@ -1188,8 +1289,8 @@ def main(argv: list[str] | None = None) -> int:
                 raise LauncherError(f"--image {value}: no such file.")
             if plan.build_from is not None:
                 commands.append([runtime, "build", plan.image, plan.build_from])
-            commands.append(apptainer_command(runtime, Path(plan.image), build.gpu, mounts, script, args, extra,
-                                              build.devices))
+            commands.append(apptainer_command(runtime, Path(plan.image), build.gpu, mounts, program, args, extra,
+                                              build.devices, workdir))
     except LauncherError as error:
         print(f"ERROR: {error}", file=sys.stderr)
         return 1

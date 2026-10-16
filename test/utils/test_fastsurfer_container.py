@@ -386,6 +386,45 @@ def test_plan_paths_brun(tmp_path):
             launcher.plan_paths(["--subjects_list", str(subjects)], tmp_path)
 
 
+def test_plan_paths_long(tmp_path):
+    # long_fastsurfer.sh: several T1s (and T2s) after one flag, one per time point
+    data = tmp_path / "data"
+    data.mkdir()
+    for name in ("tp1.mgz", "tp2.mgz", "t2_1.mgz", "t2_2.mgz"):
+        (data / name).write_bytes(b"")
+    args = ["--tid", "person", "--t1s", "data/tp1.mgz", str(data / "tp2.mgz"), "--tpids", "tp1", "tp2",
+            "--t2s", "data/t2_1.mgz", "data/t2_2.mgz", "--sd", "out", "--log", "logs/long.log"]
+    out, mounts = launcher.plan_paths(args, tmp_path)
+    assert out == ["--tid", "person", "--t1s", str(data / "tp1.mgz"), str(data / "tp2.mgz"), "--tpids", "tp1", "tp2",
+                   "--t2s", str(data / "t2_1.mgz"), str(data / "t2_2.mgz"), "--sd", str(tmp_path / "out"),
+                   "--log", str(tmp_path / "logs/long.log")]
+    assert set(launcher.minimal_mounts(mounts)) == {data, tmp_path / "out", tmp_path / "logs"}
+    # every time point has to exist, not only the first
+    with pytest.raises(launcher.LauncherError, match="tp3.mgz"):
+        launcher.plan_paths(["--t1s", "data/tp1.mgz", "data/tp3.mgz", "--sd", "out"], tmp_path)
+
+
+def test_exec_mounts(tmp_path):
+    work, data, results = tmp_path / "work", tmp_path / "data", tmp_path / "results"
+    for directory in (work, data, results):
+        directory.mkdir()
+    (data / "in.mgz").write_bytes(b"")
+    args = ["-v", str(data / "in.mgz"), f"--out={results / 'new.nii.gz'}", "relative.mgz", "2",
+            str(tmp_path / "missing" / "x.mgz")]
+    mounts = launcher.minimal_mounts(launcher.exec_mounts(args, work))
+    # the current directory, the directory of an input, and that of an output in --flag=path form; a path
+    # whose directory does not exist is not taken for one, and relative paths stay in the current directory
+    assert mounts == sorted([work, data, results])
+
+
+def test_split_exec():
+    argv, program_args = launcher.split_exec(["--runtime", "docker", "--exec", "mri_convert", "--help", "--image", "x"])
+    options, rest = launcher.make_parser().parse_known_args(argv)
+    # the program's own flags, even the launcher's --help and --image, reach the program
+    assert (options.runtime, options.exec, rest) == ("docker", "mri_convert", [])
+    assert program_args == ["--help", "--image", "x"]
+
+
 def test_link_directories(tmp_path):
     # a chain of links, as in a DataLad dataset: the link, a relative link in another directory, the file
     for name in ("data", "annex/key", "objects/abc"):
@@ -438,7 +477,8 @@ def test_build_image(tmp_path):
 
 def test_commands(tmp_path):
     args = ["--t1", str(tmp_path / "t1.mgz"), "--sd", str(tmp_path)]
-    docker = launcher.docker_command("img:tag", True, [tmp_path], "run_fastsurfer.sh", args, [], "1000:1000")
+    run = launcher.RUN_SCRIPT
+    docker = launcher.docker_command("img:tag", True, [tmp_path], run, args, [], "1000:1000")
     # --init, so Ctrl-C and a cancelled job reach FastSurfer
     init = ["docker", "run", "--rm", "--init", "--env", "TINI_KILL_PROCESS_GROUP=1"]
     # the host's time zone, on Linux
@@ -447,18 +487,28 @@ def test_commands(tmp_path):
     assert docker == init + ["--user", "1000:1000", "--gpus", "all", "--env", "CUDA_DEVICE_ORDER=PCI_BUS_ID"] + zone + [
         "-v", f"{tmp_path}:{tmp_path}", "img:tag"] + args
     # selected GPUs, quoted so Docker does not split the list
-    selected = launcher.docker_command("img:tag", True, [], "run_fastsurfer.sh", [], [], "1:1", devices=[1, 3])
+    selected = launcher.docker_command("img:tag", True, [], run, [], [], "1:1", devices=[1, 3])
     assert selected[8:10] == ["--gpus", '"device=1,3"']
-    sif_gpu = launcher.apptainer_command("apptainer", tmp_path / "fs.sif", True, [], "run_fastsurfer.sh", [], [],
-                                         devices=[2])
+    sif_gpu = launcher.apptainer_command("apptainer", tmp_path / "fs.sif", True, [], run, [], [], devices=[2])
     assert sif_gpu[2:8] == ["--nv", "--env", "CUDA_DEVICE_ORDER=PCI_BUS_ID", "--env", "CUDA_VISIBLE_DEVICES=2",
                             "--no-mount"]
-    emulated = launcher.docker_command("img:tag", False, [tmp_path], "run_fastsurfer.sh", args, [], "501:20", True)
+    emulated = launcher.docker_command("img:tag", False, [tmp_path], run, args, [], "501:20", True)
     assert emulated[:10] == init + ["--user", "501:20", "--platform", "linux/amd64"]
-    brun = launcher.docker_command("img:tag", False, [tmp_path], "brun_fastsurfer.sh", args, [], "1000:1000")
-    assert brun[-len(args) - 4:-len(args)] == ["--entrypoint", "/fastsurfer/tools/Docker/entrypoint.sh", "img:tag",
-                                               "/fastsurfer/brun_fastsurfer.sh"]
+    # the other scripts and programs run through the image's entrypoint, which sets up the environment
+    for program in (launcher.SCRIPTS["brun"], launcher.SCRIPTS["long"], "nib-convert"):
+        other = launcher.docker_command("img:tag", False, [tmp_path], program, args, [], "1000:1000")
+        assert other[-len(args) - 4:-len(args)] == ["--entrypoint", "/fastsurfer/tools/Docker/entrypoint.sh",
+                                                    "img:tag", program]
     sif = tmp_path / "fs.sif"
-    apptainer = launcher.apptainer_command("apptainer", sif, False, [tmp_path], "run_fastsurfer.sh", args, [])
+    apptainer = launcher.apptainer_command("apptainer", sif, False, [tmp_path], run, args, [])
     assert apptainer == ["apptainer", "exec", "--no-mount", "home,cwd", "-e", "-B", str(tmp_path), str(sif),
                          "/fastsurfer/run_fastsurfer.sh"] + args
+    # --exec: in the current directory, and with Docker attached to the terminal if there is one
+    exec_args = ["in.mgz", "out.nii.gz"]
+    in_dir = launcher.apptainer_command("apptainer", sif, False, [tmp_path], "nib-convert", exec_args, [],
+                                        workdir=tmp_path)
+    assert in_dir[-6:] == ["--pwd", str(tmp_path), str(sif), "nib-convert"] + exec_args
+    docker_exec = launcher.docker_command("img:tag", False, [tmp_path], "bash", [], [], "1:1", workdir=tmp_path,
+                                          interactive=True)
+    assert docker_exec[8] == "-it"
+    assert docker_exec[docker_exec.index("-w") + 1] == str(tmp_path)
