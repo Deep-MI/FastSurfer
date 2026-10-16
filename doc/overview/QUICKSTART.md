@@ -75,8 +75,11 @@ We also switched off the bias field correction, which is used to compute partial
 Also if you need the estimated total intracranial volume for correcting the stats, you would either need to run the surface stream or switch on the Talairach registration with
 `--tal_reg` in the segmentation module. For the full surface stream, just remove the ```--seg_only```; you then need a [FreeSurfer license file](INSTALL.md#freesurfer-license): pass it with `--fs_license <path>`, or set the environment variable `FS_LICENSE` to its path (the launcher passes it on to the container).
 
-You will find the full brain segmentation in ```./subjectX/mri/aparc.DKTatlas+aseg.deep.mgz``` in FreeSurfer's MGZ file format. To convert it back to nifti (if you prefer), run `nib-convert`, which comes with FastSurfer, in the image the launcher used (it names the image when it starts, e.g. `{{ CUDA_STRING }}-v{{ FASTSURFER_VERSION }}`). With Apptainer or Singularity:
+You will find the full brain segmentation in ```./subjectX/mri/aparc.DKTatlas+aseg.deep.mgz``` in FreeSurfer's MGZ file format. To convert it back to nifti (if you prefer), run `nib-convert`, which comes with FastSurfer, in the image the launcher used (it names the image when it starts, e.g. `{{ CUDA_STRING }}-v{{ FASTSURFER_VERSION }}`):
 
+`````{tab-set}
+
+````{tab-item} Apptainer / Singularity
 ```bash
 # Convert mgz to nifti
 singularity exec --no-mount home,cwd -e -B "$PWD" \
@@ -84,9 +87,9 @@ singularity exec --no-mount home,cwd -e -B "$PWD" \
     nib-convert "$PWD/subjectX/mri/aparc.DKTatlas+aseg.deep.mgz" \
                 "$PWD/subjectX/mri/aparc.DKTatlas+aseg.deep.nii.gz"
 ```
+````
 
-With Docker:
-
+````{tab-item} Docker
 ```bash
 # Convert mgz to nifti
 docker run --rm --user $(id -u):$(id -g) -v "$PWD:$PWD" --entrypoint nib-convert \
@@ -94,8 +97,17 @@ docker run --rm --user $(id -u):$(id -g) -v "$PWD:$PWD" --entrypoint nib-convert
     "$PWD/subjectX/mri/aparc.DKTatlas+aseg.deep.mgz" \
     "$PWD/subjectX/mri/aparc.DKTatlas+aseg.deep.nii.gz"
 ```
+````
 
-In the macOS console, call `nib-convert` directly with the same two paths.
+````{tab-item} Mac with Apple silicon
+```bash
+# Convert mgz to nifti, in the Terminal window of the FastSurfer app
+nib-convert subjectX/mri/aparc.DKTatlas+aseg.deep.mgz \
+            subjectX/mri/aparc.DKTatlas+aseg.deep.nii.gz
+```
+````
+
+`````
 
 Then find the segmentation in ```./subjectX/mri/aparc.DKTatlas+aseg.deep.nii.gz```. If you have FreeSurfer installed, just use FreeView to look at the result (or really any other image viewer):
 
