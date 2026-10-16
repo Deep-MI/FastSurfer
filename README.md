@@ -73,7 +73,7 @@ The images we provide on [Docker Hub](https://hub.docker.com/r/deepmi/fastsurfer
 ### Usage
 All installation methods use the `run_fastsurfer.sh` call interface (replace the placeholder `<fastsurfer_flags>` with [FastSurfer flags](doc/scripts/RUN_FASTSURFER.md#required-arguments)), which is the general starting point for FastSurfer. However, there are different ways to call this script depending on the installation, which we explain here:
 
-1. For container installations, the [launcher](doc/overview/CONTAINERS.md#the-launcher) is the easiest way: it takes the `<fastsurfer_flags>` and writes and runs the container command, with the image for your NVIDIA GPU (or the CPU):
+1. For container installations, the [launcher](doc/overview/CONTAINERS.md#the-launcher) is the easiest way: it takes the `<fastsurfer_flags>` and writes and runs the container command, with the image for your NVIDIA GPU (or AMD GPU, experimental, or the CPU):
 
    ```bash
    curl -fsSLO https://deep-mi.org/FastSurfer/stable/fastsurfer_container.py

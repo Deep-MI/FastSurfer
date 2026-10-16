@@ -485,6 +485,93 @@ def test_build_image(tmp_path):
     assert sorted(p.name for p in sif.parent.iterdir()) == sorted([sif.name, failed.name])
 
 
+def amd_topology(tmp_path, nodes):
+    """A stand-in for the kernel driver's /dev/kfd and topology: one node per (gfx_target_version, GiB)."""
+    device, topology = tmp_path / "kfd", tmp_path / "nodes"
+    device.write_text("")
+    for number, (target, gib) in enumerate(nodes):
+        node = topology / str(number)
+        (node / "mem_banks" / "0").mkdir(parents=True)
+        (node / "properties").write_text(f"cpu_cores_count 0\ngfx_target_version {target}\n")
+        (node / "mem_banks" / "0" / "properties").write_text(f"heap_type 1\nsize_in_bytes {gib * 2**30}\n")
+    return device, topology
+
+
+def test_query_amd_gpus(tmp_path):
+    # node 0 is the CPU, without a GPU architecture; the GPUs are numbered from 0 as ROCm does
+    device, topology = amd_topology(tmp_path, [(0, 64), (100302, 8), (110000, 24)])
+    gpus = launcher.query_amd_gpus(device, topology)
+    assert [(g.index, g.arch, g.memory_gib) for g in gpus] == [(0, "gfx1032", 8), (1, "gfx1100", 24)]
+    # without the kernel driver, no AMD GPU
+    assert launcher.query_amd_gpus(tmp_path / "missing", topology) == []
+
+
+@pytest.mark.parametrize(
+    ("version", "override"),
+    [
+        ((11, 0, 0), ""),  # gfx1100, in the image
+        ((9, 0, 10), ""),  # gfx90a, the stepping is hexadecimal
+        ((10, 3, 2), "10.3.0"),  # gfx1032 (Radeon Pro W6600), runs as gfx1030
+        ((9, 0, 12), "9.0.0"),  # gfx90c, an APU, runs as gfx900
+        ((8, 0, 3), None),  # gfx803, no image of its family
+    ],
+)
+def test_amd_override(version, override):
+    assert launcher.amd_override(launcher.AmdGpu(0, version)) == override
+
+
+def test_plan_amd_build():
+    w6600, rx7900 = launcher.AmdGpu(0, (10, 3, 2), 8), launcher.AmdGpu(1, (11, 0, 0), 24)
+    # the GPU with the most memory, shown alone to the container, without an override
+    build = launcher.plan_amd_build([], [w6600, rx7900], False)
+    assert (build.prefix, build.gpu, build.amd, build.devices, build.env) == ("rocm7.2", True, True, [1], [])
+    assert "experimental" in build.notes[0]
+    # a GPU of a supported family runs with the override, which says so
+    alone = launcher.plan_amd_build([], [w6600], False)
+    assert alone.env == ["HSA_OVERRIDE_GFX_VERSION=10.3.0"] and "gfx1030" in alone.notes[1]
+    # with --brun, only GPUs that run with the same override, as it applies to the whole container
+    assert launcher.plan_amd_build([], [w6600, rx7900], True).devices == [1]
+    # named GPUs as named; one that does not exist stops
+    assert launcher.plan_amd_build(["--device", "cuda:0"], [w6600, rx7900], False).devices is None
+    with pytest.raises(launcher.LauncherError, match="no AMD GPU 2"):
+        launcher.plan_amd_build(["--device", "cuda:2"], [w6600, rx7900], False)
+    # no supported GPU: the CPU, or an error if a GPU was requested
+    old = launcher.AmdGpu(0, (8, 0, 3), 4)
+    assert not launcher.plan_amd_build([], [old], False).gpu
+    with pytest.raises(launcher.LauncherError):
+        launcher.plan_amd_build(["--device", "cuda"], [old], False)
+
+
+def test_decide_image_rocm(tmp_path):
+    # for an AMD GPU only the ROCm image counts among the installed ones, else the newest ROCm release
+    hub = {**HUB, "rocm7.2-v2.6.0": {"sha256:r"}}
+    installed = {"rocm7.2-v2.6.0": "sha256:r", "cu132-v2.6.0": "sha256:a"}
+    plan = launcher.decide_image("auto", "", "rocm7.2", "docker", BOTH, installed, {}, hub, tmp_path, False)
+    assert plan.image == "deepmi/fastsurfer:rocm7.2-v2.6.0" and not plan.pull
+    plan = launcher.decide_image("auto", "", "rocm7.2", "docker", BOTH, {"cu132-v2.6.0": "sha256:a"}, {}, hub,
+                                 tmp_path, False)
+    assert plan.image == "deepmi/fastsurfer:rocm7.2-v2.6.0"
+
+
+def test_parse_image_spec_rocm():
+    assert launcher.parse_image_spec("rocm") == ("rocm", "")
+    assert launcher.parse_image_spec("rocm7.2-v2.6.0") == ("tag", "rocm7.2-v2.6.0")
+
+
+def test_amd_commands(tmp_path):
+    env = ["HSA_OVERRIDE_GFX_VERSION=10.3.0"]
+    docker = launcher.docker_command("img:tag", True, [], launcher.RUN_SCRIPT, [], [], "1000:1000", devices=[1],
+                                     amd=True, env=env, groups=[44, 109])
+    assert "--gpus" not in docker
+    start = docker.index("--device")
+    assert docker[start:start + 15] == ["--device", "/dev/kfd", "--device", "/dev/dri", "--ipc=host", "--shm-size",
+                                        "8G", "--group-add", "44", "--group-add", "109", "--env", env[0], "--env",
+                                        "HIP_VISIBLE_DEVICES=1"]
+    apptainer = launcher.apptainer_command("apptainer", tmp_path / "fs.sif", True, [], launcher.RUN_SCRIPT, [], [],
+                                           devices=[1], amd=True, env=env)
+    assert apptainer[2:7] == ["--rocm", "--env", env[0], "--env", "HIP_VISIBLE_DEVICES=1"]
+
+
 def test_commands(tmp_path):
     args = ["--t1", str(tmp_path / "t1.mgz"), "--sd", str(tmp_path)]
     run = launcher.RUN_SCRIPT

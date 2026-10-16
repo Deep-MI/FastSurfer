@@ -21,7 +21,8 @@ This needs a working installation of Apptainer, Singularity or Docker, which the
 [Intel Macs](install/MACOS.md#docker-intel-macs). `docker run --rm hello-world` or `apptainer --version` checks it.
 
 The [launcher](CONTAINERS.md#the-launcher) then writes the container command for you: it picks the image for your
-NVIDIA GPU (or the CPU), downloads it on the first run, and shares this directory with the container.
+NVIDIA GPU (or AMD GPU, experimental, or the CPU), downloads it on the first run, and shares this directory with the
+container.
 
 ```bash
 # 0. Create a directory for this test

@@ -55,5 +55,8 @@ def test_launcher_capabilities_cover_builds():
 
 def test_launcher_default_build_matches_pyproject():
     with open(FASTSURFER_HOME / "pyproject.toml", "rb") as fp:
-        cuda = tomllib.load(fp)["tool"]["cuda"]["version"]
-    assert launcher.NEWEST_BUILD[0] == tuple(int(v) for v in cuda.split("."))
+        tool = tomllib.load(fp)["tool"]
+    assert launcher.NEWEST_BUILD[0] == tuple(int(v) for v in tool["cuda"]["version"].split("."))
+    # the ROCm image; a new version also needs its architectures (ROCM_ARCHS) read from its PyTorch
+    rocm = tool["rocm"]["version"]
+    assert launcher.ROCM_BUILD == (tuple(int(v) for v in rocm.split(".")), f"rocm{rocm}")

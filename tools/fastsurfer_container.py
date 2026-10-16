@@ -26,8 +26,8 @@ whichever is installed:
 directory.
 
 It runs the FastSurfer release image installed on the machine (the newest release if there is none,
-or the image --image names), picks the image type that fits the NVIDIA GPU and driver (or the CPU
-image), downloads it once,
+or the image --image names), picks the image type that fits the NVIDIA GPU and driver (or, without
+one, the experimental ROCm image for an AMD GPU, or the CPU image), downloads it once,
 shares every file and directory the flags name with the container at the same path, passes the
 FreeSurfer license from $FS_LICENSE if --fs_license is not given, and runs the container as the
 calling user.
@@ -70,6 +70,15 @@ LEGACY_MAX_CAPABILITY = (9, 0)
 # the graphics memory FastSurfer needs at 0.8 mm, see the system requirements in the README
 MIN_GPU_MEMORY_GIB = 8
 
+# The ROCm images for AMD GPUs (experimental): (ROCm version as in tool.rocm of pyproject.toml, tag
+# prefix), and the GPU architectures their PyTorch is built for, from torch.cuda.get_arch_list() in it
+ROCM_BUILD = ((7, 2), "rocm7.2")
+ROCM_ARCHS = {"gfx900", "gfx906", "gfx908", "gfx90a", "gfx942", "gfx950", "gfx1030", "gfx1100", "gfx1101",
+              "gfx1102", "gfx1103", "gfx1150", "gfx1151", "gfx1200", "gfx1201"}
+# where AMD's kernel driver lists the GPUs, which the containers need, not ROCm on the host
+KFD_DEVICE = Path("/dev/kfd")
+KFD_TOPOLOGY = Path("/sys/class/kfd/kfd/topology/nodes")
+
 # flags of run_fastsurfer.sh and brun_fastsurfer.sh whose value is a file that has to exist
 INPUT_FLAGS = {"--t1", "--t2", "--lesion_mask", "--fs_license", "--subjects_list", "--subject_list"}
 # flags of long_fastsurfer.sh followed by several files that have to exist, one per time point
@@ -101,13 +110,34 @@ class Gpu:
 
 
 @dataclass
+class AmdGpu:
+    """An AMD GPU as the kernel driver lists it, numbered as ROCm numbers the GPUs."""
+
+    index: int
+    # the architecture as (major, minor, stepping), e.g. (10, 3, 2) for gfx1032
+    version: tuple[int, int, int]
+    memory_gib: float | None = None
+
+    @property
+    def arch(self) -> str:
+        major, minor, stepping = self.version
+        return f"gfx{major}{minor:x}{stepping:x}"
+
+
+@dataclass
 class Build:
-    """The image build to run, whether the container gets GPUs, and which (None for all)."""
+    """
+    The image build to run, whether the container gets GPUs, and which (None for all).
+
+    `amd` marks the GPUs as AMD GPUs, and `env` holds the variables the container needs for them.
+    """
 
     prefix: str
     gpu: bool
     notes: list[str] = field(default_factory=list)
     devices: list[int] | None = None
+    amd: bool = False
+    env: list[str] = field(default_factory=list)
 
 
 def parse_version(version: str) -> tuple[int, ...] | None:
@@ -428,6 +458,105 @@ def plan_build_for_type(args: list[str], gpus: list[Gpu], brun: bool, image_type
                  devices=[gpu.index for gpu in chosen])
 
 
+def _properties(path: Path) -> dict[str, str]:
+    """A properties file of the kernel driver's topology, lines of "<name> <value>"."""
+    return dict(line.split()[:2] for line in path.read_text().splitlines() if len(line.split()) >= 2)
+
+
+def query_amd_gpus(device: Path = KFD_DEVICE, topology: Path = KFD_TOPOLOGY) -> list[AmdGpu]:
+    """
+    The AMD GPUs, from the kernel driver's topology, in the order ROCm numbers them; empty without the
+    driver. The topology also lists the CPUs, as nodes without a GPU architecture.
+    """
+    if not device.exists() or not topology.is_dir():
+        return []
+    gpus = []
+    for node in sorted((n for n in topology.iterdir() if n.name.isdigit()), key=lambda n: int(n.name)):
+        try:
+            target = int(_properties(node / "properties").get("gfx_target_version", "0"))
+            banks = sorted((node / "mem_banks").iterdir()) if (node / "mem_banks").is_dir() else []
+            sizes = [int(_properties(bank / "properties").get("size_in_bytes", "0")) for bank in banks]
+        except (OSError, ValueError):
+            continue
+        if target:
+            # e.g. 100302 for gfx1032
+            version = (target // 10000, target // 100 % 100, target % 100)
+            gpus.append(AmdGpu(len(gpus), version, sum(sizes) / 2**30 if sizes else None))
+    return gpus
+
+
+def amd_override(gpu: AmdGpu) -> str | None:
+    """
+    The HSA_OVERRIDE_GFX_VERSION that makes the ROCm image run on this GPU: "" if it needs none, the version
+    of the first architecture of its family if the image supports that one (e.g. 10.3.0 for gfx1032), and
+    None if the image does not support the GPU.
+    """
+    if gpu.arch in ROCM_ARCHS:
+        return ""
+    major, minor, _ = gpu.version
+    if AmdGpu(gpu.index, (major, minor, 0)).arch in ROCM_ARCHS:
+        return f"{major}.{minor}.0"
+    return None
+
+
+def describe_amd(gpu: AmdGpu) -> str:
+    """E.g. "GPU 0 (gfx1100, 24 GB)"."""
+    memory = f", {gpu.memory_gib:.0f} GB" if gpu.memory_gib is not None else ""
+    return f"GPU {gpu.index} ({gpu.arch}{memory})"
+
+
+def plan_amd_build(args: list[str], gpus: list[AmdGpu], brun: bool, image_type: str = ROCM_BUILD[1]) -> Build:
+    """
+    The ROCm image and the AMD GPUs for these arguments (experimental).
+
+    As for NVIDIA GPUs, named GPUs are used as named, and otherwise the one with the most memory; with
+    brun_fastsurfer.sh, every GPU that runs with the same HSA_OVERRIDE_GFX_VERSION, as it applies to all.
+    """
+    use, named = gpu_request(args, brun)
+    if use == "cpu":
+        return Build(image_type, False)
+    if named is not None:
+        by_index = {gpu.index: gpu for gpu in gpus}
+        missing = [i for i in named if i not in by_index]
+        if missing:
+            raise LauncherError(f"There is no AMD GPU {missing[0]}, the driver lists {len(gpus)}.")
+        chosen = [by_index[i] for i in named]
+        unsupported = [gpu for gpu in chosen if amd_override(gpu) is None]
+        if unsupported:
+            raise LauncherError(f"The ROCm image does not support the AMD {describe_amd(unsupported[0])}.")
+        if len({amd_override(gpu) for gpu in chosen}) > 1:
+            raise LauncherError("The named AMD GPUs are of different kinds, which cannot run together; name GPUs "
+                                "of one kind.")
+        devices = None
+    else:
+        supported = [gpu for gpu in gpus if amd_override(gpu) is not None]
+        if not supported:
+            reason = ("No AMD GPU found" if not gpus else
+                      f"The ROCm image supports none of the AMD GPUs here ({', '.join(map(describe_amd, gpus))})")
+            if use == "cuda":
+                raise LauncherError(f"{reason}.")
+            return Build(image_type, False, [f"{reason}, so FastSurfer runs on the CPU."])
+        best = max(supported, key=lambda gpu: ((gpu.memory_gib or 0) >= MIN_GPU_MEMORY_GIB, gpu.memory_gib or 0))
+        chosen = [gpu for gpu in supported if amd_override(gpu) == amd_override(best)] if brun else [best]
+        devices = [gpu.index for gpu in chosen]
+    override = amd_override(chosen[0])
+    notes = [f"Using the AMD {', '.join(map(describe_amd, chosen))} with the ROCm image, which is experimental; "
+             f"--device cpu runs on the CPU instead."]
+    env = []
+    if override:
+        env.append(f"HSA_OVERRIDE_GFX_VERSION={override}")
+        family = AmdGpu(0, chosen[0].version[:2] + (0,)).arch
+        notes.append(f"The ROCm image is not built for {chosen[0].arch}, so it runs the GPU as {family} "
+                     f"(HSA_OVERRIDE_GFX_VERSION={override}), which works for many GPUs of this family.")
+    return Build(image_type, True, notes, devices, amd=True, env=env)
+
+
+def amd_device_groups(device: Path = KFD_DEVICE, dri: Path = Path("/dev/dri")) -> list[int]:
+    """The groups that own the devices of AMD GPUs, which a Docker container running as the user needs."""
+    paths = [device] + (sorted(dri.glob("renderD*")) if dri.is_dir() else [])
+    return sorted({path.stat().st_gid for path in paths if path.exists()})
+
+
 def image_reference(prefix: str, version: str) -> str:
     """The Docker image to run, e.g. deepmi/fastsurfer:cu132-v2.6.0."""
     return f"{DOCKER_REPO}:{prefix}-v{version}"
@@ -544,12 +673,15 @@ def parse_image_spec(spec: str | None) -> tuple[str, str]:
     Returns
     -------
     tuple[str, str]
-        ("auto", "") without --image, ("version", "2.6.0"), ("tag", "cu132-v2.6.0") for a release tag,
-        ("release", "cu132-v2.6.0") for the full reference deepmi/fastsurfer:cu132-v2.6.0, ("sif", path)
-        for an Apptainer file and ("docker", reference) for any other Docker image.
+        ("auto", "") without --image, ("rocm", "") for the newest ROCm image, ("version", "2.6.0"),
+        ("tag", "cu132-v2.6.0") for a release tag, ("release", "cu132-v2.6.0") for the full reference
+        deepmi/fastsurfer:cu132-v2.6.0, ("sif", path) for an Apptainer file and ("docker", reference) for
+        any other Docker image.
     """
     if not spec:
         return "auto", ""
+    if spec == "rocm":
+        return "rocm", ""
     if spec.endswith(".sif"):
         return "sif", spec
     if parse_version(spec):
@@ -935,18 +1067,25 @@ def runtime_too_old(version_text: str) -> str | None:
 CUDA_ORDER = "CUDA_DEVICE_ORDER=PCI_BUS_ID"
 
 
+def _gpu_env(amd: bool, devices: list[int] | None, env: list[str] | None) -> list[str]:
+    """The environment variables that select the GPUs in the container, for NVIDIA or AMD GPUs."""
+    variables = list(env or []) if amd else [CUDA_ORDER]
+    if devices is not None:
+        variables.append(f"{'HIP' if amd else 'CUDA'}_VISIBLE_DEVICES={','.join(map(str, devices))}")
+    return [arg for variable in variables for arg in ("--env", variable)]
+
+
 def apptainer_command(runtime: str, sif: Path, gpu: bool, mounts: list[Path], program: str,
                       args: list[str], extra: list[str], devices: list[int] | None = None,
-                      workdir: Path | None = None) -> list[str]:
+                      workdir: Path | None = None, amd: bool = False, env: list[str] | None = None) -> list[str]:
     """
     The Apptainer/Singularity command running `program`, showing only `devices` if given and starting in
-    `workdir` if given; the home directory is not mounted.
+    `workdir` if given; the home directory is not mounted. `amd` gives it AMD GPUs instead of NVIDIA ones,
+    with the variables in `env`.
     """
     cmd = [runtime, "exec"]
     if gpu:
-        cmd += ["--nv", "--env", CUDA_ORDER]
-        if devices is not None:
-            cmd += ["--env", f"CUDA_VISIBLE_DEVICES={','.join(map(str, devices))}"]
+        cmd += ["--rocm" if amd else "--nv"] + _gpu_env(amd, devices, env)
     cmd += ["--no-mount", "home,cwd", "-e"]
     for mount in mounts:
         cmd += ["-B", str(mount)]
@@ -957,22 +1096,31 @@ def apptainer_command(runtime: str, sif: Path, gpu: bool, mounts: list[Path], pr
 
 def docker_command(image: str, gpu: bool, mounts: list[Path], program: str, args: list[str],
                    extra: list[str], user: str, emulate: bool = False, devices: list[int] | None = None,
-                   workdir: Path | None = None, interactive: bool = False) -> list[str]:
+                   workdir: Path | None = None, interactive: bool = False, amd: bool = False,
+                   env: list[str] | None = None, groups: list[int] | None = None) -> list[str]:
     """
     The Docker command running `program`, as the calling user, showing only `devices` if given and
     starting in `workdir` if given.
 
     `emulate` runs the Intel image on Apple silicon; `interactive` connects the terminal, e.g. for a shell.
+    `amd` gives it AMD GPUs instead of NVIDIA ones, with the variables in `env` and the user in `groups`,
+    the groups that own the GPU devices.
     """
     # --init: the image's entrypoint is a shell, which as the first process ignores Ctrl-C and the
     # signal a cancelled cluster job sends; tini passes them to all of FastSurfer's processes instead
     cmd = ["docker", "run", "--rm", "--init", "--env", "TINI_KILL_PROCESS_GROUP=1", "--user", user]
     if interactive:
         cmd += ["-it"]
-    if gpu:
+    if gpu and amd:
+        # the devices of the kernel driver, and the shared memory settings of AMD's documented PyTorch command
+        cmd += ["--device", "/dev/kfd", "--device", "/dev/dri", "--ipc=host", "--shm-size", "8G"]
+        for group in groups or []:
+            cmd += ["--group-add", str(group)]
+        cmd += _gpu_env(True, devices, env)
+    elif gpu:
         # the quotes are part of the value: without them, Docker splits a list of devices at the comma
         selection = "all" if devices is None else f'"device={",".join(map(str, devices))}"'
-        cmd += ["--gpus", selection, "--env", CUDA_ORDER]
+        cmd += ["--gpus", selection] + _gpu_env(False, None, None)
     if emulate:
         cmd += ["--platform", "linux/amd64"]
     if platform.system() == "Linux" and Path("/etc/localtime").exists():
@@ -1121,9 +1269,11 @@ def make_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--image",
                         help="the image to run: a release tag such as cu132-v2.6.0 (to keep a study on one "
-                             "image), a version such as 2.6.0 (the image type is chosen for this machine), a "
-                             "Docker image (e.g. my_fastsurfer:cu132) or an Apptainer .sif file. Default: the "
-                             "release image installed on this machine, or the newest release if there is none")
+                             "image), a version such as 2.6.0 (the image type is chosen for this machine), rocm "
+                             "for the ROCm image on an AMD GPU (experimental; used without --image when there is "
+                             "no NVIDIA GPU), a Docker image (e.g. my_fastsurfer:cu132) or an Apptainer .sif file. "
+                             "Default: the release image installed on this machine, or the newest release if "
+                             "there is none")
     parser.add_argument("--update", action="store_true",
                         help="download the newest release (or the one --image names) again, even if an image "
                              "is installed, and run it")
@@ -1221,16 +1371,39 @@ def main(argv: list[str] | None = None) -> int:
         # the GPUs and the image type; another program's flags say nothing about them
         kind, value = parse_image_spec(options.image)
         gpus = query_nvidia_gpus()
+        amd_gpus = query_amd_gpus()
         request = [] if options.exec is not None else args
         # whether the newest images support none of the GPUs, so they run on the CPU here
         gpu_unsupported = bool(gpus) and select_gpus(gpus, False) is None
         wants_gpu = gpu_request(request, options.brun)[0] != "cpu" and bool(gpus)
-        if kind in ("auto", "version"):
+        image_type = RELEASE_TAG.fullmatch(value).group(1) if kind in ("tag", "release") else None
+        # AMD GPUs (experimental): when named with --image, or when there is no NVIDIA GPU
+        amd_runs = any(amd_override(gpu) is not None for gpu in amd_gpus)
+        rocm = (kind == "rocm" or (image_type or "").startswith("rocm")
+                or (kind in ("sif", "docker") and "rocm" in value.lower()))
+        if rocm and not amd_gpus:
+            raise LauncherError(f"The ROCm images are for AMD GPUs, and AMD's kernel driver lists none here "
+                                f"({KFD_DEVICE} is missing), see {DOC_URL}.")
+        if rocm:
+            build = plan_amd_build(request, amd_gpus, options.brun, image_type or ROCM_BUILD[1])
+            if kind in ("sif", "docker"):
+                build.prefix = "custom"
+        elif kind in ("auto", "version") and not gpus and amd_runs and gpu_request(request)[0] != "cpu":
+            build = plan_amd_build(request, amd_gpus, options.brun)
+        elif kind in ("auto", "version"):
             build = plan_build(request, gpus, options.brun)
+            if gpus and amd_runs:
+                build.notes.append("This machine also has an AMD GPU; --image rocm runs FastSurfer on it instead "
+                                   "(experimental).")
+            elif amd_gpus and not amd_runs:
+                build.notes.append(f"The ROCm image supports none of the AMD GPUs here "
+                                   f"({', '.join(map(describe_amd, amd_gpus))}).")
         elif kind in ("tag", "release"):
-            build = plan_build_for_type(request, gpus, options.brun, RELEASE_TAG.fullmatch(value).group(1))
+            build = plan_build_for_type(request, gpus, options.brun, image_type)
         else:
             build = Build("custom", wants_gpu)
+        if kind == "rocm":
+            kind = "auto"
 
         # the image: one request to Docker Hub decides about versions
         hub = None if kind in ("sif", "docker") else hub_tags()
@@ -1241,8 +1414,11 @@ def main(argv: list[str] | None = None) -> int:
                                     f"launcher does not know the images of the newest release. Update it with "
                                     f"--update_launcher, or download it again from {LAUNCHER_URL}.")
         local_id = local_docker_id(value) if kind == "docker" else None
-        # the GPUs this run uses, to tell which installed images run here; none for a run on the CPU
+        # the GPUs this run uses, to tell which installed images run here; none for a run on the CPU, and
+        # for AMD GPUs only the ROCm image of this launcher counts
         used = [g for g in gpus if build.devices is None or g.index in build.devices] if build.gpu else []
+        if build.amd or build.prefix.startswith("rocm"):
+            used = None
         plan = decide_image(kind, value, build.prefix, options.runtime, installed,
                             local_docker_images() if "docker" in installed else None,
                             local_sif_images(options.image_dir), hub, options.image_dir, options.update, local_id,
@@ -1290,7 +1466,8 @@ def main(argv: list[str] | None = None) -> int:
             # Apptainer passes the terminal on itself; Docker only when asked
             interactive = options.exec is not None and sys.stdin.isatty() and sys.stdout.isatty()
             commands.append(docker_command(plan.image, build.gpu, mounts, program, args, extra, user, emulate,
-                                           build.devices, workdir, interactive))
+                                           build.devices, workdir, interactive, build.amd, build.env,
+                                           amd_device_groups() if build.amd else None))
             if not options.print_only:
                 memory = docker_memory_gib()
                 if memory < MIN_DOCKER_MEMORY_GIB:
@@ -1304,7 +1481,7 @@ def main(argv: list[str] | None = None) -> int:
             if plan.build_from is not None:
                 commands.append([runtime, "build", plan.image, plan.build_from])
             commands.append(apptainer_command(runtime, Path(plan.image), build.gpu, mounts, program, args, extra,
-                                              build.devices, workdir))
+                                              build.devices, workdir, build.amd, build.env))
     except LauncherError as error:
         print(f"ERROR: {error}", file=sys.stderr)
         return 1

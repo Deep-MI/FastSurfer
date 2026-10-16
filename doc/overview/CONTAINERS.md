@@ -28,6 +28,8 @@ The launcher
 - picks the image that runs on your NVIDIA GPU and driver, or the CPU image without one, see
   [which image fits your GPU](install/LINUX.md#nvidia-gpus); with several GPUs and no
   `--device cuda:<index>`, it uses the newest one with enough memory and says which,
+- runs the [ROCm image](install/LINUX.md#amd-gpus-experimental) on an AMD GPU (experimental) if there
+  is no NVIDIA GPU, or with `--image rocm`,
 - downloads the image once (for Apptainer, into `$HOME/my_singularity_images`),
 - shares the files and directories the flags name with the container, at the same paths, so relative
   paths work too,
