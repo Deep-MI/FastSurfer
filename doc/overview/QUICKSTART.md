@@ -1,8 +1,9 @@
 Quick Start
 ===========
-This example segments one brain MRI in a few minutes. Choose how you run FastSurfer: in a container on Linux
-(Apptainer, Singularity or Docker), with the [macOS package](install/MACOS.md), or without installing anything in
-[Google Colab](#google-colab). Other systems are covered in the [installation guide](INSTALL.md).
+This example segments one brain MRI in a few minutes. Choose how you run FastSurfer: on a Mac with Apple silicon
+(M1 or newer) with the [macOS package](install/MACOS.md), on Linux, Windows or a Mac with an Intel CPU in a container
+(Apptainer, Singularity or Docker), or without installing anything in [Google Colab](#google-colab). The
+[installation guide](INSTALL.md) helps to choose.
 
 Segment an example image
 ------------------------
@@ -12,10 +13,13 @@ a few minutes longer. You can use your own T1-weighted full head MRI (0.7 to 1 m
 
 `````{tab-set}
 
-````{tab-item} Apptainer, Singularity or Docker
-With [Apptainer, Singularity or Docker](install/LINUX.md) installed, the [launcher](CONTAINERS.md#the-launcher)
-writes the container command for you: it picks the image for your NVIDIA GPU (or the CPU), downloads it on the first run,
-and shares this directory with the container.
+````{tab-item} Linux, Windows or Intel Mac
+This needs a working installation of Apptainer, Singularity or Docker, which these commands do not set up: see
+[Linux](install/LINUX.md), [Windows](install/WINDOWS.md) (Docker in WSL2, run the commands there) or
+[Intel Macs](install/MACOS.md#docker-intel-macs). `docker run --rm hello-world` or `apptainer --version` checks it.
+
+The [launcher](CONTAINERS.md#the-launcher) then writes the container command for you: it picks the image for your
+NVIDIA GPU (or the CPU), downloads it on the first run, and shares this directory with the container.
 
 ```bash
 # 0. Create a directory for this test
@@ -41,9 +45,9 @@ python3 fastsurfer_container.py \
 [Running FastSurfer in a container](CONTAINERS.md) shows the `singularity` and `docker` commands the launcher runs.
 ````
 
-````{tab-item} macOS package
-[Install the package](install/MACOS.md), open the FastSurfer app from your Applications folder, and run these
-commands in the Terminal window it opens:
+````{tab-item} Mac with Apple silicon
+On a Mac with Apple silicon (M1 or newer), [install the macOS package](install/MACOS.md), open the FastSurfer app
+from your Applications folder, and run these commands in the Terminal window it opens:
 
 ```bash
 # 0. Create a directory for this test
