@@ -590,7 +590,8 @@ def _apptainer_runtime(runtime: str, installed: set[str]) -> str | None:
 def decide_image(kind: str, value: str, prefix: str, runtime: str, installed: set[str],
                  docker_images: dict[str, str] | None, sif_images: dict[str, str],
                  hub: dict[str, set[str]] | None, image_dir: Path, update: bool,
-                 local_id: str | None = None, gpus: list[Gpu] | None = None) -> ImagePlan:
+                 local_id: str | None = None, gpus: list[Gpu] | None = None,
+                 newest_of_several: bool = False) -> ImagePlan:
     """
     Which image to run, with which runtime, and whether it has to be downloaded or built first.
 
@@ -625,6 +626,9 @@ def decide_image(kind: str, value: str, prefix: str, runtime: str, installed: se
     gpus : list[Gpu], None
         The GPUs the run will use, to tell which installed images run here; empty for a run on the CPU.
         None counts only images of type `prefix`.
+    newest_of_several : bool, default=False
+        Use the newest of several installed images instead of stopping, for a program other than
+        FastSurfer, whose results do not depend on the image.
     """
     apptainer = _apptainer_runtime(runtime, installed)
     docker_images = docker_images or {}
@@ -703,6 +707,10 @@ def decide_image(kind: str, value: str, prefix: str, runtime: str, installed: se
     candidates = sorted({t for t in [*docker_images, *sif_images]
                          if (m := RELEASE_TAG.fullmatch(t)) and runs_here(m.group(1))},
                         key=lambda t: (parse_version(t.rsplit("-v", 1)[-1]), t))
+    # a runtime named with --runtime counts its own images, and the others only if it has none
+    own_store = {"docker": docker_images, "apptainer": sif_images, "singularity": sif_images}.get(runtime)
+    if own_store is not None and any(t in own_store for t in candidates):
+        candidates = [t for t in candidates if t in own_store]
     newest = newest_version(list(hub), prefix) if hub is not None else None
     if update or not candidates:
         if newest is None:
@@ -725,6 +733,11 @@ def decide_image(kind: str, value: str, prefix: str, runtime: str, installed: se
         if newest is not None and parse_version(newest) > parse_version(version):
             plan.notes.append(("INFO", f"FastSurfer {newest} is available ({prefix}-v{newest}); --update "
                                        f"switches to it."))
+    elif newest_of_several:
+        tag = candidates[-1]
+        plan = place_release(tag, checked=True)
+        plan.notes.append(("INFO", f"Several FastSurfer images are installed, this uses the newest, {tag}; "
+                                   f"choose another with --image <tag>."))
     else:
         def stores(t: str) -> str:
             return " and ".join(s for s, has in (("Docker", t in docker_images), ("Apptainer", t in sif_images)) if has)
@@ -1232,7 +1245,7 @@ def main(argv: list[str] | None = None) -> int:
         plan = decide_image(kind, value, build.prefix, options.runtime, installed,
                             local_docker_images() if "docker" in installed else None,
                             local_sif_images(options.image_dir), hub, options.image_dir, options.update, local_id,
-                            used)
+                            used, newest_of_several=options.exec is not None)
         runtime = plan.runtime
         if hub is not None:
             stable = stable_launcher()

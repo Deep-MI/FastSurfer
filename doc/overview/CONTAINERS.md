@@ -71,7 +71,8 @@ python3 fastsurfer_container.py --exec nib-convert subjectX/mri/aparc.DKTatlas+a
 
 It comes last, as all arguments after the program go to the program. The program runs in the current
 directory, which the launcher shares with the container, as it does the directories of absolute paths
-in the arguments. Relative paths therefore only work inside the current directory.
+in the arguments. Relative paths therefore only work inside the current directory. If several FastSurfer
+images are installed, `--exec` uses the newest instead of asking.
 
 `--print_only` prints the commands instead of running them, `--update_launcher`
 replaces the launcher with the current one, and `--help` lists all launcher options. The sections

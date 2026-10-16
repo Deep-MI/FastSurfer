@@ -294,6 +294,15 @@ def test_decide_image_several_installed(tmp_path):
     plan = decide(tmp_path, docker={"cu132-v2.5.4": "sha256:b"}, sif={"cu132-v2.6.0": ""}, update=True)
     assert plan.build_from is not None and plan.tag == "cu132-v2.6.0"
     assert any("docker image rm deepmi/fastsurfer:cu132-v2.5.4" in note for _, note in plan.notes)
+    # a runtime named with --runtime counts only its own images while it has one
+    assert decide(tmp_path, runtime="apptainer", docker={"cu132-v2.5.4": "sha256:b"},
+                  sif={"cu132-v2.6.0": ""}).tag == "cu132-v2.6.0"
+    assert decide(tmp_path, runtime="docker", docker={"cu132-v2.5.4": "sha256:b"},
+                  sif={"cu132-v2.6.0": ""}).tag == "cu132-v2.5.4"
+    # a program other than FastSurfer (--exec) takes the newest instead of stopping
+    plan = launcher.decide_image("auto", "", "cu132", "auto", BOTH, {"cu132-v2.5.4": "sha256:b"}, {"cu132-v2.6.0": ""},
+                                 HUB, tmp_path, False, newest_of_several=True)
+    assert plan.tag == "cu132-v2.6.0" and any("uses the newest" in note for _, note in plan.notes)
 
 
 def test_decide_image_digest(tmp_path):
