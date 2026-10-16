@@ -12,17 +12,18 @@ a few minutes longer. You can use your own T1-weighted full head MRI (0.7 to 1 m
 
 `````{tab-set}
 
-````{tab-item} Apptainer / Singularity
+````{tab-item} Apptainer, Singularity or Docker
+With [Apptainer, Singularity or Docker](install/LINUX.md) installed, the [launcher](CONTAINERS.md#the-launcher)
+writes the container command for you: it picks the image for your NVIDIA GPU (or the CPU), downloads it on the first run,
+and shares this directory with the container.
+
 ```bash
 # 0. Create a directory for this test
 mkdir fastsurfer_test
 cd fastsurfer_test
 
-# 1. Build the Apptainer image from our Docker image (only the first time)
-mkdir -p $HOME/my_singularity_images
-singularity build \
-    $HOME/my_singularity_images/fastsurfer-{{ CUDA_STRING }}-v{{ FASTSURFER_VERSION }}.sif \
-    docker://deepmi/fastsurfer:{{ CUDA_STRING }}-v{{ FASTSURFER_VERSION }}
+# 1. Download the launcher (only the first time)
+curl -fsSLO https://deep-mi.org/FastSurfer/stable/fastsurfer_container.py
 
 # 2. Download an example brain MRI (if you don't have your own)
 #    If you have your own, copy it to this directory and adjust
@@ -32,38 +33,12 @@ curl -k \
     -o "./140_orig.mgz"
 
 # 3. Run FastSurfer (full brain segmentation only)
-singularity exec --nv \
-                 --no-mount home,cwd -e \
-                 -B "$PWD" \
-                 $HOME/my_singularity_images/fastsurfer-{{ CUDA_STRING }}-v{{ FASTSURFER_VERSION }}.sif \
-                 /fastsurfer/run_fastsurfer.sh \
-                 --t1 "$PWD/140_orig.mgz" \
-                 --sid subjectX --sd "$PWD" \
-                 --seg_only --no_biasfield --no_cereb --no_hypothal
+python3 fastsurfer_container.py \
+    --t1 140_orig.mgz --sid subjectX --sd . \
+    --seg_only --no_biasfield --no_cereb --no_hypothal
 ```
-````
 
-````{tab-item} Docker
-```bash
-# 0. Create a directory for this test
-mkdir fastsurfer_test
-cd fastsurfer_test
-
-# 1. Download an example brain MRI (if you don't have your own)
-#    If you have your own, copy it to this directory and adjust
-#    the filename after --t1 below.
-curl -k \
-    https://surfer.nmr.mgh.harvard.edu/pub/data/tutorial_data/buckner_data/tutorial_subjs/140/mri/orig.mgz \
-    -o "./140_orig.mgz"
-
-# 2. Run FastSurfer (full brain segmentation only)
-docker run --gpus all -v "$PWD:$PWD" \
-                      --rm --user $(id -u):$(id -g) \
-                      deepmi/fastsurfer:{{ CUDA_STRING }}-v{{ FASTSURFER_VERSION }} \
-                      --t1 "$PWD/140_orig.mgz" \
-                      --sid subjectX --sd "$PWD" \
-                      --seg_only --no_biasfield --no_cereb --no_hypothal
-```
+[Running FastSurfer in a container](CONTAINERS.md) shows the `singularity` and `docker` commands the launcher runs.
 ````
 
 ````{tab-item} macOS package
@@ -94,21 +69,31 @@ run_fastsurfer.sh --t1 "$PWD/140_orig.mgz" \
 That's it, it will run the full brain segmentation. For speed, we switched off the cerebellum and hypothalamic sub-segmentation (would add a couple minutes).
 We also switched off the bias field correction, which is used to compute partial volume estimates for the statsfiles, so you might want to switch it on again if you want the volume statistics text file (under ```subjectX/stats```).
 Also if you need the estimated total intracranial volume for correcting the stats, you would either need to run the surface stream or switch on the Talairach registration with
-`--tal_reg` in the segmentation module. For the full surface stream, just remove the ```--seg_only```; you then need a [FreeSurfer license file](INSTALL.md#freesurfer-license) and pass it into the container, see [Running FastSurfer in a container](CONTAINERS.md).
+`--tal_reg` in the segmentation module. For the full surface stream, just remove the ```--seg_only```; you then need a [FreeSurfer license file](INSTALL.md#freesurfer-license): pass it with `--fs_license <path>`, or set the environment variable `FS_LICENSE` to its path (the launcher passes it on to the container).
 
-You will find the full brain segmentation in ```./subjectX/mri/aparc.DKTatlas+aseg.deep.mgz``` in FreeSurfer's MGZ file format. To convert it back to nifti (if you prefer), run `nib-convert`, which comes with FastSurfer, for example with the Singularity image (in the macOS console, call `nib-convert` directly):
+You will find the full brain segmentation in ```./subjectX/mri/aparc.DKTatlas+aseg.deep.mgz``` in FreeSurfer's MGZ file format. To convert it back to nifti (if you prefer), run `nib-convert`, which comes with FastSurfer, in the image the launcher used (it names the image when it starts, e.g. `{{ CUDA_STRING }}-v{{ FASTSURFER_VERSION }}`). With Apptainer or Singularity:
 
 ```bash
 # Convert mgz to nifti
-singularity exec --nv \
-                 --no-mount home -e \
-                 -B "$PWD" \
-                 $HOME/my_singularity_images/fastsurfer-{{ CUDA_STRING }}-v{{ FASTSURFER_VERSION }}.sif \
-                 nib-convert "$PWD/subjectX/mri/aparc.DKTatlas+aseg.deep.mgz" \
-                             "$PWD/subjectX/mri/aparc.DKTatlas+aseg.deep.nii.gz"
+singularity exec --no-mount home,cwd -e -B "$PWD" \
+    $HOME/my_singularity_images/fastsurfer-{{ CUDA_STRING }}-v{{ FASTSURFER_VERSION }}.sif \
+    nib-convert "$PWD/subjectX/mri/aparc.DKTatlas+aseg.deep.mgz" \
+                "$PWD/subjectX/mri/aparc.DKTatlas+aseg.deep.nii.gz"
 ```
 
-and find the segmentation in ```./subjectX/mri/aparc.DKTatlas+aseg.deep.nii.gz```. If you have FreeSurfer installed, just use FreeView to look at the result (or really any other image viewer):
+With Docker:
+
+```bash
+# Convert mgz to nifti
+docker run --rm --user $(id -u):$(id -g) -v "$PWD:$PWD" --entrypoint nib-convert \
+    deepmi/fastsurfer:{{ CUDA_STRING }}-v{{ FASTSURFER_VERSION }} \
+    "$PWD/subjectX/mri/aparc.DKTatlas+aseg.deep.mgz" \
+    "$PWD/subjectX/mri/aparc.DKTatlas+aseg.deep.nii.gz"
+```
+
+In the macOS console, call `nib-convert` directly with the same two paths.
+
+Then find the segmentation in ```./subjectX/mri/aparc.DKTatlas+aseg.deep.nii.gz```. If you have FreeSurfer installed, just use FreeView to look at the result (or really any other image viewer):
 
 ```bash
 # FreeView

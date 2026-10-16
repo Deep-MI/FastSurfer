@@ -37,7 +37,7 @@ The launcher
 Download it, and run FastSurfer:
 
 ```bash
-curl -fsSLO https://raw.githubusercontent.com/Deep-MI/FastSurfer/stable/tools/fastsurfer_container.py
+curl -fsSLO https://deep-mi.org/FastSurfer/stable/fastsurfer_container.py
 python3 fastsurfer_container.py \
     --t1 $HOME/my_mri_data/subjectX/t1_weighted.nii.gz \
     --sid subjectX --sd $HOME/my_fastsurfer_analysis \

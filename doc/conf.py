@@ -239,6 +239,8 @@ default_role = "py:obj"
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 html_theme = "furo"
 html_static_path = ["_static"]
+# served next to the pages, so the launcher downloads from deep-mi.org/FastSurfer/<stable|dev>/
+html_extra_path = ["../tools/fastsurfer_container.py"]
 html_js_files = ["doc-version-link.js"]  # points the announcement bar at the sibling doc tree
 html_title = project
 html_show_sphinx = False
