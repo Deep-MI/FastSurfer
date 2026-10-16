@@ -591,7 +591,7 @@ def decide_image(kind: str, value: str, prefix: str, runtime: str, installed: se
                  docker_images: dict[str, str] | None, sif_images: dict[str, str],
                  hub: dict[str, set[str]] | None, image_dir: Path, update: bool,
                  local_id: str | None = None, gpus: list[Gpu] | None = None,
-                 newest_of_several: bool = False) -> ImagePlan:
+                 other_program: bool = False) -> ImagePlan:
     """
     Which image to run, with which runtime, and whether it has to be downloaded or built first.
 
@@ -626,9 +626,9 @@ def decide_image(kind: str, value: str, prefix: str, runtime: str, installed: se
     gpus : list[Gpu], None
         The GPUs the run will use, to tell which installed images run here; empty for a run on the CPU.
         None counts only images of type `prefix`.
-    newest_of_several : bool, default=False
-        Use the newest of several installed images instead of stopping, for a program other than
-        FastSurfer, whose results do not depend on the image.
+    other_program : bool, default=False
+        For a program other than FastSurfer (--exec), whose results do not depend on the image: use the
+        newest of several installed images instead of stopping, and give no advice on keeping the image.
     """
     apptainer = _apptainer_runtime(runtime, installed)
     docker_images = docker_images or {}
@@ -733,7 +733,7 @@ def decide_image(kind: str, value: str, prefix: str, runtime: str, installed: se
         if newest is not None and parse_version(newest) > parse_version(version):
             plan.notes.append(("INFO", f"FastSurfer {newest} is available ({prefix}-v{newest}); --update "
                                        f"switches to it."))
-    elif newest_of_several:
+    elif other_program:
         tag = candidates[-1]
         plan = place_release(tag, checked=True)
         plan.notes.append(("INFO", f"Several FastSurfer images are installed, this uses the newest, {tag}; "
@@ -752,8 +752,9 @@ def decide_image(kind: str, value: str, prefix: str, runtime: str, installed: se
             hint = f"e.g. --image {candidates[-1]}"
         raise LauncherError(f"Several FastSurfer images that run here are installed: {'; '.join(where)}. Choose "
                             f"one with --image <tag>, {hint}.")
-    plan.notes.insert(0, ("INFO", f"Running FastSurfer {plan.tag.rsplit('-v', 1)[-1]} ({plan.tag}). For a study, "
-                                  f"keep this image with --image {plan.tag}."))
+    if not other_program:
+        plan.notes.insert(0, ("INFO", f"Running FastSurfer {plan.tag.rsplit('-v', 1)[-1]} ({plan.tag}). For a "
+                                      f"study, keep this image with --image {plan.tag}."))
     return plan
 
 
@@ -1245,7 +1246,7 @@ def main(argv: list[str] | None = None) -> int:
         plan = decide_image(kind, value, build.prefix, options.runtime, installed,
                             local_docker_images() if "docker" in installed else None,
                             local_sif_images(options.image_dir), hub, options.image_dir, options.update, local_id,
-                            used, newest_of_several=options.exec is not None)
+                            used, other_program=options.exec is not None)
         runtime = plan.runtime
         if hub is not None:
             stable = stable_launcher()
