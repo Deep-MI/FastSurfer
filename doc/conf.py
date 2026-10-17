@@ -209,6 +209,8 @@ myst_substitutions = {
     "PYTHON_VERSION": version_python,
     "UBUNTU_VERSION": version_ubuntu,
     "FREESURFER_VERSION": version_freesurfer,
+    # the launcher published next to this tree's pages (html_extra_path), so each tree links to its own copy
+    "LAUNCHER_URL": f"https://deep-mi.org/FastSurfer/{'stable' if documents_a_release else 'dev'}/fastsurfer",
 }
 
 templates_path = ["_templates"]

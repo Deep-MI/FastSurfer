@@ -39,7 +39,7 @@ The launcher `fastsurfer` writes and runs the container command for you. It take
 Download it, and run FastSurfer:
 
 ```bash
-curl -fsSLO https://deep-mi.org/FastSurfer/stable/fastsurfer && chmod +x fastsurfer
+curl -fsSLO {{ LAUNCHER_URL }} && chmod +x fastsurfer
 ./fastsurfer \
     --t1 $HOME/my_mri_data/subjectX/t1_weighted.nii.gz \
     --sid subjectX --sd $HOME/my_fastsurfer_analysis \

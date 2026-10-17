@@ -14,7 +14,7 @@ picks the image for your NVIDIA GPU and driver (or for an AMD GPU, experimental,
 and runs FastSurfer with the flags of `run_fastsurfer.sh`:
 
 ```bash
-curl -fsSLO https://deep-mi.org/FastSurfer/stable/fastsurfer && chmod +x fastsurfer
+curl -fsSLO {{ LAUNCHER_URL }} && chmod +x fastsurfer
 ./fastsurfer --t1 <t1_image> --sid <subject_id> --sd <output_directory>
 ```
 
