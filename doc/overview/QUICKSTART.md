@@ -1,9 +1,8 @@
 Quick Start
 ===========
-This example segments one brain MRI in a few minutes. Choose how you run FastSurfer: on a Mac with Apple silicon
-(M1 or newer) with the [macOS package](install/MACOS.md), on Linux, Windows or a Mac with an Intel CPU in a container
-(Apptainer, Singularity or Docker), or without installing anything in [Google Colab](#google-colab). The
-[installation guide](INSTALL.md) helps to choose.
+This example segments one brain MRI in a few minutes, with the same commands on Linux, Windows and macOS. You can
+also run it without installing anything in [Google Colab](#google-colab). The [installation guide](INSTALL.md)
+explains the options in more detail.
 
 Segment an example image
 ------------------------
@@ -11,18 +10,32 @@ With a GPU (8 GB of graphics memory) this takes well under a minute; without one
 a few minutes longer. You can use your own T1-weighted full head MRI (0.7 to 1 mm voxel sizes, no preprocessing,
 `.nii`, `.nii.gz` or `.mgz`), or the example image the commands download.
 
+First, install what runs FastSurfer on your system:
+
 `````{tab-set}
 
 ````{tab-item} Linux, Windows or Intel Mac
 :sync: container
 
-This needs a working installation of Apptainer, Singularity or Docker, which these commands do not set up: see
+A working installation of Apptainer, Singularity or Docker, which the commands below do not set up: see
 [Linux](install/LINUX.md), [Windows](install/WINDOWS.md) (Docker in WSL2, run the commands there) or
 [Intel Macs](install/MACOS.md#docker-intel-macs). `docker run --rm hello-world` or `apptainer --version` checks it.
+The launcher then picks the image for your NVIDIA GPU (or AMD GPU, experimental, or the CPU), downloads it on the
+first run, and shares this directory with the container; [Running FastSurfer in a container](CONTAINERS.md) shows
+the commands it runs.
+````
 
-The [launcher](CONTAINERS.md#the-launcher) then writes the container command for you: it picks the image for your
-NVIDIA GPU (or AMD GPU, experimental, or the CPU), downloads it on the first run, and shares this directory with the
-container.
+````{tab-item} Mac with Apple silicon
+:sync: macos
+
+The [macOS package](install/MACOS.md) (Macs with M1 or newer), which runs natively and uses the Mac's GPU. Once
+you have downloaded the launcher (step 1 below), `./fastsurfer --update` downloads the package and opens the macOS
+Installer. The launcher then runs the installed package.
+````
+
+`````
+
+Then download the launcher and run FastSurfer:
 
 ```bash
 # 0. Create a directory for this test
@@ -30,7 +43,7 @@ mkdir fastsurfer_test
 cd fastsurfer_test
 
 # 1. Download the launcher (only the first time)
-curl -fsSLO https://deep-mi.org/FastSurfer/stable/fastsurfer_container.py
+curl -fsSLO https://deep-mi.org/FastSurfer/stable/fastsurfer && chmod +x fastsurfer
 
 # 2. Download an example brain MRI (if you don't have your own)
 #    If you have your own, copy it to this directory and adjust
@@ -40,70 +53,26 @@ curl -k \
     -o "./140_orig.mgz"
 
 # 3. Run FastSurfer (full brain segmentation only)
-python3 fastsurfer_container.py \
-    --t1 140_orig.mgz --sid subjectX --sd . \
+./fastsurfer --t1 140_orig.mgz --sid subjectX --sd . \
     --seg_only --no_biasfield --no_cereb --no_hypothal
 ```
 
-[Running FastSurfer in a container](CONTAINERS.md) shows the `singularity` and `docker` commands the launcher runs.
-````
-
-````{tab-item} Mac with Apple silicon
-:sync: macos
-
-On a Mac with Apple silicon (M1 or newer), [install the macOS package](install/MACOS.md), open the FastSurfer app
-from your Applications folder, and run these commands in the Terminal window it opens:
-
-```bash
-# 0. Create a directory for this test
-mkdir fastsurfer_test
-cd fastsurfer_test
-
-# 1. Download an example brain MRI (if you don't have your own)
-#    If you have your own, copy it to this directory and adjust
-#    the filename after --t1 below.
-curl -k \
-    https://surfer.nmr.mgh.harvard.edu/pub/data/tutorial_data/buckner_data/tutorial_subjs/140/mri/orig.mgz \
-    -o "./140_orig.mgz"
-
-# 2. Run FastSurfer (full brain segmentation only)
-run_fastsurfer.sh --t1 "$PWD/140_orig.mgz" \
-    --sid subjectX --sd "$PWD" \
-    --seg_only --no_biasfield --no_cereb --no_hypothal
-```
-````
-
-`````
+The [launcher](CONTAINERS.md#the-launcher) takes the flags of `run_fastsurfer.sh`, which you can also call
+directly in the Terminal window of the FastSurfer app on a Mac.
 
 That's it, it will run the full brain segmentation. For speed, we switched off the cerebellum and hypothalamic sub-segmentation (would add a couple minutes).
 We also switched off the bias field correction, which is used to compute partial volume estimates for the statsfiles, so you might want to switch it on again if you want the volume statistics text file (under ```subjectX/stats```).
 Also if you need the estimated total intracranial volume for correcting the stats, you would either need to run the surface stream or switch on the Talairach registration with
-`--tal_reg` in the segmentation module. For the full surface stream, just remove the ```--seg_only```; you then need a [FreeSurfer license file](INSTALL.md#freesurfer-license): pass it with `--fs_license <path>`, or set the environment variable `FS_LICENSE` to its path (the launcher passes it on to the container).
+`--tal_reg` in the segmentation module. For the full surface stream, just remove the ```--seg_only```; you then need a [FreeSurfer license file](INSTALL.md#freesurfer-license): pass it with `--fs_license <path>`, or set the environment variable `FS_LICENSE` to its path, which the launcher passes on.
 
 You will find the full brain segmentation in ```./subjectX/mri/aparc.DKTatlas+aseg.deep.mgz``` in FreeSurfer's MGZ file format. To convert it back to nifti (if you prefer), run `nib-convert`, which comes with FastSurfer:
 
-`````{tab-set}
-
-````{tab-item} Linux, Windows or Intel Mac
-:sync: container
 ```bash
-# Convert mgz to nifti, in the image the launcher used for FastSurfer
-python3 fastsurfer_container.py --exec nib-convert \
+# Convert mgz to nifti
+./fastsurfer --exec nib-convert \
     subjectX/mri/aparc.DKTatlas+aseg.deep.mgz \
     subjectX/mri/aparc.DKTatlas+aseg.deep.nii.gz
 ```
-````
-
-````{tab-item} Mac with Apple silicon
-:sync: macos
-```bash
-# Convert mgz to nifti, in the Terminal window of the FastSurfer app
-nib-convert subjectX/mri/aparc.DKTatlas+aseg.deep.mgz \
-            subjectX/mri/aparc.DKTatlas+aseg.deep.nii.gz
-```
-````
-
-`````
 
 Then find the segmentation in ```./subjectX/mri/aparc.DKTatlas+aseg.deep.nii.gz```. If you have FreeSurfer installed, just use FreeView to look at the result (or really any other image viewer):
 

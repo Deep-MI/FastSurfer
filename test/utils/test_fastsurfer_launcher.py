@@ -12,19 +12,22 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Test the image choice and the path handling of tools/fastsurfer_container.py."""
+"""Test the image choice and the path handling of the launcher, tools/fastsurfer."""
 
+import importlib.machinery
 import importlib.util
 import platform
+import subprocess
 import sys
 from pathlib import Path
 
 import pytest
 
-# a script rather than a module of FastSurfer, so it is loaded from its path; dataclasses need it
-# registered in sys.modules
-_SCRIPT = Path(__file__).parent.parent.parent / "tools" / "fastsurfer_container.py"
-_spec = importlib.util.spec_from_file_location("fastsurfer_container", _SCRIPT)
+# a command rather than a module of FastSurfer, without the .py suffix, so it is loaded from its path with
+# an explicit loader; dataclasses need it registered in sys.modules
+_SCRIPT = str(Path(__file__).parent.parent.parent / "tools" / "fastsurfer")
+_spec = importlib.util.spec_from_file_location(
+    "fastsurfer_launcher", _SCRIPT, loader=importlib.machinery.SourceFileLoader("fastsurfer_launcher", _SCRIPT))
 launcher = sys.modules.setdefault(_spec.name, importlib.util.module_from_spec(_spec))
 _spec.loader.exec_module(launcher)
 
@@ -584,6 +587,57 @@ def test_amd_commands(tmp_path):
     apptainer = launcher.apptainer_command("apptainer", tmp_path / "fs.sif", True, [], launcher.RUN_SCRIPT, [], [],
                                            devices=[1], amd=True, env=env)
     assert apptainer[2:7] == ["--rocm", "--env", env[0], "--env", "HIP_VISIBLE_DEVICES=1"]
+
+
+def macos_applications(tmp_path, names):
+    """A stand-in for /Applications with FastSurfer packages, each a folder with the setup script."""
+    for name in names:
+        (tmp_path / name).mkdir()
+        (tmp_path / name / launcher.MACOS_SETUP).write_text("")
+    return tmp_path
+
+
+def test_macos_packages(tmp_path):
+    # releases by version; the app that opens the console and a development build do not count
+    apps = macos_applications(tmp_path, ["FastSurfer2.5.4", "FastSurfer2.6.0", "FastSurfer2.7.0-dev0"])
+    (tmp_path / "FastSurfer2.6.0.app").mkdir()
+    assert launcher.macos_packages(apps) == {"2.5.4": apps / "FastSurfer2.5.4", "2.6.0": apps / "FastSurfer2.6.0"}
+    # --image with the folder of a package names it directly
+    dev = apps / "FastSurfer2.7.0-dev0"
+    assert launcher.parse_image_spec(str(dev)) == ("macos", str(dev.resolve()))
+
+
+def test_decide_macos_package(tmp_path):
+    packages = {"2.5.4": tmp_path / "FastSurfer2.5.4", "2.6.0": tmp_path / "FastSurfer2.6.0"}
+    # the same rules as for images: several installed stop the launcher, newest first
+    with pytest.raises(launcher.LauncherError, match="2.6.0, 2.5.4.*--image 2.6.0"):
+        launcher.decide_macos_package("auto", "", packages, "2.6.0")
+    home, notes = launcher.decide_macos_package("version", "2.5.4", packages, "2.6.0")
+    assert home == packages["2.5.4"] and "--image 2.5.4" in notes[0][1]
+    # one installed runs, with a note on a newer release
+    home, notes = launcher.decide_macos_package("auto", "", {"2.5.4": packages["2.5.4"]}, "2.6.0")
+    assert home == packages["2.5.4"] and any("2.6.0 is available" in note for _, note in notes)
+    # another program takes the newest, without study advice
+    home, notes = launcher.decide_macos_package("auto", "", packages, "2.6.0", other_program=True)
+    assert home == packages["2.6.0"] and not any("For a study" in note for _, note in notes)
+    # none installed, a version not installed, and a container image: what to do instead
+    with pytest.raises(launcher.LauncherError, match="--update"):
+        launcher.decide_macos_package("auto", "", {}, "2.6.0")
+    with pytest.raises(launcher.LauncherError, match="--update"):
+        launcher.decide_macos_package("version", "2.4.2", packages, "2.6.0")
+    with pytest.raises(launcher.LauncherError, match="--runtime docker"):
+        launcher.decide_macos_package("tag", "cu132-v2.6.0", packages, "2.6.0")
+
+
+def test_macos_command(tmp_path):
+    # the package's setup script, then the program with its arguments unchanged, as bash runs it
+    command = launcher.macos_command(tmp_path, "nib-convert", ["a b.mgz", "out.nii.gz"])
+    setup = tmp_path / launcher.MACOS_SETUP
+    setup.write_text("export STAND_IN=1\n")
+    probe = launcher.macos_command(tmp_path, sys.executable, ["-c", "import os,sys; print(os.environ['STAND_IN'], "
+                                                                    "sys.argv[1:])", "a b.mgz"])
+    assert command[-3:] == ["nib-convert", "a b.mgz", "out.nii.gz"]
+    assert subprocess.run(probe, capture_output=True, text=True).stdout == "1 ['a b.mgz']\n"
 
 
 def test_commands(tmp_path):

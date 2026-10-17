@@ -21,7 +21,7 @@ as a "simulated computer inside the computer".
 
 The launcher
 ------------
-`fastsurfer_container.py` writes and runs the container command for you. It takes the same flags as
+The launcher `fastsurfer` writes and runs the container command for you. It takes the same flags as
 `run_fastsurfer.sh` and needs only Python 3.8 or newer, not FastSurfer itself. It
 
 - uses Apptainer, Singularity or Docker, whichever is installed (choose one with `--runtime`),
@@ -39,8 +39,8 @@ The launcher
 Download it, and run FastSurfer:
 
 ```bash
-curl -fsSLO https://deep-mi.org/FastSurfer/stable/fastsurfer_container.py
-python3 fastsurfer_container.py \
+curl -fsSLO https://deep-mi.org/FastSurfer/stable/fastsurfer && chmod +x fastsurfer
+./fastsurfer \
     --t1 $HOME/my_mri_data/subjectX/t1_weighted.nii.gz \
     --sid subjectX --sd $HOME/my_fastsurfer_analysis \
     --3T --threads 4
@@ -67,9 +67,9 @@ and are handled like `run_fastsurfer.sh`:
 
 ```bash
 # several subjects; the paths in a subjects list have to be absolute
-python3 fastsurfer_container.py --exec brun_fastsurfer.sh --subjects_list subjects.txt --sd results
+./fastsurfer --exec brun_fastsurfer.sh --subjects_list subjects.txt --sd results
 # the time points of one person (longitudinal processing)
-python3 fastsurfer_container.py --exec long_fastsurfer.sh --tid person --t1s tp1.nii.gz tp2.nii.gz \
+./fastsurfer --exec long_fastsurfer.sh --tid person --t1s tp1.nii.gz tp2.nii.gz \
     --tpids tp1 tp2 --sd results
 ```
 
@@ -77,7 +77,7 @@ python3 fastsurfer_container.py --exec long_fastsurfer.sh --tid person --t1s tp1
 program runs in the current directory, for example to convert a segmentation to NIfTI:
 
 ```bash
-python3 fastsurfer_container.py --exec nib-convert subjectX/mri/aparc.DKTatlas+aseg.deep.mgz aparc.nii.gz
+./fastsurfer --exec nib-convert subjectX/mri/aparc.DKTatlas+aseg.deep.mgz aparc.nii.gz
 ```
 
 The launcher shares the current directory with the container, as it does the directories of absolute
@@ -91,10 +91,12 @@ below explain the commands it runs.
 Before starting many runs at once, e.g. a SLURM array, run the launcher once (e.g. on one subject),
 so the image is downloaded and built only once rather than by every job.
 
-On a Mac with Apple silicon, use the [macOS package](install/MACOS.md) instead: the images are built for
-Intel and AMD processors, which such a Mac only emulates, much more slowly and without its GPU. The
-launcher therefore stops there and points to the package, unless you pass `--runtime docker`. With
-Docker, it also warns if Docker may use less memory than FastSurfer needs.
+On a Mac with Apple silicon, the launcher runs the installed [macOS package](install/MACOS.md) instead,
+with the same flags and `--exec`: the images are built for Intel and AMD processors, which such a Mac
+only emulates, much more slowly and without its GPU. It chooses among installed package versions as
+among images, and `--image 2.6.0` keeps a study on one version. Without a package, `--update`
+downloads it and opens the macOS Installer. To run an image in Docker anyway, pass `--runtime docker`.
+With Docker, the launcher also warns if Docker may use less memory than FastSurfer needs.
 
 Using Apptainer (or Singularity)
 --------------------------------

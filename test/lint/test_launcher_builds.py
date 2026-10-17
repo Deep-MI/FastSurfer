@@ -13,13 +13,14 @@
 # limitations under the License.
 
 """
-Guard the copy of the CUDA images in tools/fastsurfer_container.py.
+Guard the copy of the CUDA images in the launcher, tools/fastsurfer.
 
 The launcher runs with any system Python and without FastSurfer installed, so it cannot import
 FastSurferCNN/gpu_support.py and keeps its own copy of the CUDA builds and their minimum drivers.
 A copy left behind when the CUDA versions change makes it pick an image that is not released.
 """
 
+import importlib.machinery
 import importlib.util
 import sys
 import tomllib
@@ -29,15 +30,16 @@ FASTSURFER_HOME = Path(__file__).parent.parent.parent
 
 
 def _load(name: str, path: Path):
-    # from the path, because the lint job installs nothing but pytest; registered in sys.modules,
-    # which dataclasses need
-    spec = importlib.util.spec_from_file_location(name, path)
+    # from the path, because the lint job installs nothing but pytest, with an explicit loader for the
+    # launcher, which has no .py suffix; registered in sys.modules, which dataclasses need
+    loader = importlib.machinery.SourceFileLoader(name, str(path))
+    spec = importlib.util.spec_from_file_location(name, path, loader=loader)
     module = sys.modules.setdefault(name, importlib.util.module_from_spec(spec))
     spec.loader.exec_module(module)
     return module
 
 
-launcher = _load("fastsurfer_container", FASTSURFER_HOME / "tools" / "fastsurfer_container.py")
+launcher = _load("fastsurfer_launcher_for_lint", FASTSURFER_HOME / "tools" / "fastsurfer")
 gpu_support = _load("gpu_support_for_lint", FASTSURFER_HOME / "FastSurferCNN" / "gpu_support.py")
 
 
