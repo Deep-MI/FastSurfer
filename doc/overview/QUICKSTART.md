@@ -1,8 +1,15 @@
 Quick Start
 ===========
-This example segments one brain MRI in a few minutes, with the same commands on Linux, Windows and macOS. You can
-also run it without installing anything in [Google Colab](#google-colab). The [installation guide](INSTALL.md)
-explains the options in more detail.
+This example segments one brain MRI in a few minutes with `fastsurfer`, a launcher that runs FastSurfer with the
+same commands on Linux, Windows and macOS. It takes the flags of `run_fastsurfer.sh` and sets up the rest: on Linux,
+Windows and Intel Macs, it picks, downloads and runs the right container image; on a Mac with Apple silicon, it runs
+the installed macOS package. You can also try FastSurfer without installing anything in
+[Google Colab](#google-colab).
+
+The launcher is meant for getting started and for single images. For larger projects, such as whole datasets or
+runs on an HPC cluster, we recommend running FastSurfer directly, which gives full control over images, paths and
+resources: see the [installation guide](INSTALL.md), [Running FastSurfer in a container](CONTAINERS.md), and the
+scripts for [many subjects](../scripts/BATCH.md) and for [SLURM clusters](../scripts/SLURM.md).
 
 Segment an example image
 ------------------------
@@ -10,30 +17,15 @@ With a GPU (8 GB of graphics memory) this takes well under a minute; without one
 a few minutes longer. You can use your own T1-weighted full head MRI (0.7 to 1 mm voxel sizes, no preprocessing,
 `.nii`, `.nii.gz` or `.mgz`), or the example image the commands download.
 
-First, install what runs FastSurfer on your system:
+First, install what the launcher runs FastSurfer with:
 
-`````{tab-set}
-
-````{tab-item} Linux, Windows or Intel Mac
-:sync: container
-
-A working installation of Apptainer, Singularity or Docker, which the commands below do not set up: see
-[Linux](install/LINUX.md), [Windows](install/WINDOWS.md) (Docker in WSL2, run the commands there) or
-[Intel Macs](install/MACOS.md#docker-intel-macs). `docker run --rm hello-world` or `apptainer --version` checks it.
-The launcher then picks the image for your NVIDIA GPU (or AMD GPU, experimental, or the CPU), downloads it on the
-first run, and shares this directory with the container; [Running FastSurfer in a container](CONTAINERS.md) shows
-the commands it runs.
-````
-
-````{tab-item} Mac with Apple silicon
-:sync: macos
-
-The [macOS package](install/MACOS.md) (Macs with M1 or newer), which runs natively and uses the Mac's GPU. Once
-you have downloaded the launcher (step 1 below), `./fastsurfer --update` downloads the package and opens the macOS
-Installer. The launcher then runs the installed package.
-````
-
-`````
+- **Linux, Windows or Intel Mac:** Apptainer, Singularity or Docker, see [Linux](install/LINUX.md),
+  [Windows](install/WINDOWS.md) (Docker in WSL2, run the commands below there) or
+  [Intel Macs](install/MACOS.md#docker-intel-macs). `docker run --rm hello-world` or `apptainer --version` checks
+  it. The launcher picks the image for your NVIDIA GPU (or AMD GPU, experimental, or the CPU) and downloads it on
+  the first run.
+- **Mac with Apple silicon (M1 or newer):** the [macOS package](install/MACOS.md), which runs natively and uses the
+  Mac's GPU. After step 1 below, `./fastsurfer --update` downloads it and opens the macOS Installer.
 
 Then download the launcher and run FastSurfer:
 
@@ -56,9 +48,6 @@ curl -k \
 ./fastsurfer --t1 140_orig.mgz --sid subjectX --sd . \
     --seg_only --no_biasfield --no_cereb --no_hypothal
 ```
-
-The [launcher](CONTAINERS.md#the-launcher) takes the flags of `run_fastsurfer.sh`, which you can also call
-directly in the Terminal window of the FastSurfer app on a Mac.
 
 That's it, it will run the full brain segmentation. For speed, we switched off the cerebellum and hypothalamic sub-segmentation (would add a couple minutes).
 We also switched off the bias field correction, which is used to compute partial volume estimates for the statsfiles, so you might want to switch it on again if you want the volume statistics text file (under ```subjectX/stats```).
