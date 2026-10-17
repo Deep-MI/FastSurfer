@@ -9,6 +9,19 @@ and for the CPU only, on [Docker Hub](https://hub.docker.com/r/deepmi/fastsurfer
 A GPU with enough memory makes the segmentation much faster, see the
 [system requirements](../intro.rst#system-requirements). Without a GPU, use the [CPU image](#cpu-only).
 
+With Apptainer, Singularity or Docker installed, the [launcher](../CONTAINERS.md#the-launcher) does the rest: it
+picks the image for your NVIDIA GPU and driver (or for an AMD GPU, experimental, or the CPU image), downloads it,
+and runs FastSurfer with the flags of `run_fastsurfer.sh`:
+
+```bash
+curl -fsSLO {{ LAUNCHER_URL }}
+chmod +x fastsurfer
+./fastsurfer --t1 $HOME/my_mri_data/subjectX/t1_weighted.nii.gz \
+    --sid subjectX --sd $HOME/my_fastsurfer_analysis
+```
+
+The sections below explain the images and how to download them by hand.
+
 The images are tagged `deepmi/fastsurfer:<device>-v<version>`, where `<device>` is `cu<cuda_version>` for NVIDIA GPUs
 (see [below](#nvidia-gpus)), `rocm<rocm_version>` for AMD GPUs (experimental), or `cpu` without GPU support (smaller
 and thus faster to download), and `<version>` is the FastSurfer version. `latest` points to the newest NVIDIA image,
@@ -110,7 +123,12 @@ semi-supported) GPU and the right kernel version. Install the AMD kernel modules
 [ROCm installation instructions](https://rocm.docs.amd.com/projects/install-on-linux/en/latest/), and add your user
 to the groups they name.
 
-Then download our image for ROCm {{ ROCM_VERSION }}:
+The [launcher](../CONTAINERS.md#the-launcher) uses the ROCm image when the machine has an AMD GPU and no NVIDIA GPU,
+or when you pass `--image rocm`. It runs with Docker or Apptainer and adds the flags below. Its image supports
+several AMD architectures; for another GPU of the same family, such as the W6600 (gfx1032, family gfx1030), it sets
+`HSA_OVERRIDE_GFX_VERSION` and says so.
+
+Without the launcher, download our image for ROCm {{ ROCM_VERSION }}:
 
 ```bash
 docker pull deepmi/fastsurfer:{{ ROCM_STRING }}-v{{ FASTSURFER_VERSION }}

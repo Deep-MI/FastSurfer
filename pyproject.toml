@@ -225,9 +225,9 @@ add_ignore = 'D100,D104,D107'
 [tool.ruff]
 line-length = 120
 target-version = "py312"
-# recon_surf/fs_time is python, but carries no .py suffix because the pipeline invokes it as a
-# command; without this ruff would skip it
-extend-include = ["recon_surf/fs_time"]
+# recon_surf/fs_time and the launcher tools/fastsurfer are python, but carry no .py suffix because they
+# are invoked as commands; without this ruff would skip them
+extend-include = ["recon_surf/fs_time", "tools/fastsurfer"]
 extend-exclude = [
     "build",
     "checkpoints",

@@ -72,6 +72,19 @@ run_fastsurfer.sh --sd $HOME/my_fastsurfer_analysis --sid subjectX \
 
 FastSurfer uses the Apple GPU (`mps`) automatically, so no `--device` flag is needed.
 
+Without opening the console, the [launcher](../CONTAINERS.md#the-launcher) `fastsurfer` runs the installed package
+from any Terminal window, with the same flags and the same commands as on Linux:
+
+```bash
+curl -fsSLO {{ LAUNCHER_URL }}
+chmod +x fastsurfer
+./fastsurfer --seg_only --sd $HOME/my_fastsurfer_analysis --sid subjectX \
+    --t1 $HOME/my_mri_data/subjectX/t1_weighted.nii.gz
+```
+
+If several versions are installed, it asks for one, e.g. `--image 2.6.0`. `./fastsurfer --update` downloads the
+newest package and opens the installer.
+
 FreeSurfer license
 ------------------
 On macOS, FastSurfer cannot find the [FreeSurfer license](../INSTALL.md#freesurfer-license) inside the bundled

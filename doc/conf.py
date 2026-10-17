@@ -209,6 +209,8 @@ myst_substitutions = {
     "PYTHON_VERSION": version_python,
     "UBUNTU_VERSION": version_ubuntu,
     "FREESURFER_VERSION": version_freesurfer,
+    # the launcher published next to this tree's pages (html_extra_path), so each tree links to its own copy
+    "LAUNCHER_URL": f"https://deep-mi.org/FastSurfer/{'stable' if documents_a_release else 'dev'}/fastsurfer",
 }
 
 templates_path = ["_templates"]
@@ -239,6 +241,8 @@ default_role = "py:obj"
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 html_theme = "furo"
 html_static_path = ["_static"]
+# served next to the pages, so the launcher downloads from deep-mi.org/FastSurfer/<stable|dev>/
+html_extra_path = ["../tools/fastsurfer"]
 html_js_files = ["doc-version-link.js"]  # points the announcement bar at the sibling doc tree
 html_title = project
 html_show_sphinx = False

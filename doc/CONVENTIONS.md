@@ -157,7 +157,9 @@ supported versions.
 `doc/conf.py`), with a separate text for `{{ FASTSURFER_VERSION }}`, `{{ CUDA_STRING }}` and both: that the commands
 use the latest release (in the development documentation), and that images for other CUDA versions are available on
 Docker Hub. Do not add such notes by hand. Where the version is not about an image, such as the folder of the macOS
-package, use `{{ PACKAGE_VERSION }}`, the same version without the note.
+package, use `{{ PACKAGE_VERSION }}`, the same version without the note. The download of the launcher uses
+`{{ LAUNCHER_URL }}`, the copy published next to the pages of the same tree (`stable` or `dev`). `README.md` is
+shown on GitHub, where nothing is substituted, so it names the `stable` copy.
 
 What this tree builds comes from this tree, not from that release: `{{ CUDA_DEFAULT_STRING }}` and
 `{{ ROCM_DEFAULT_STRING }}` (with `{{ CUDA_DEFAULT_VERSION }}` and `{{ ROCM_DEFAULT_VERSION }}`) are the default CUDA

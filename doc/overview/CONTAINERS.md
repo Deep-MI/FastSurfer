@@ -21,13 +21,15 @@ as a "simulated computer inside the computer".
 
 The launcher
 ------------
-`fastsurfer_container.py` writes and runs the container command for you. It takes the same flags as
+The launcher `fastsurfer` writes and runs the container command for you. It takes the same flags as
 `run_fastsurfer.sh` and needs only Python 3.8 or newer, not FastSurfer itself. It
 
 - uses Apptainer, Singularity or Docker, whichever is installed (choose one with `--runtime`),
 - picks the image that runs on your NVIDIA GPU and driver, or the CPU image without one, see
   [which image fits your GPU](install/LINUX.md#nvidia-gpus); with several GPUs and no
   `--device cuda:<index>`, it uses the newest one with enough memory and says which,
+- runs the [ROCm image](install/LINUX.md#amd-gpus-experimental) on an AMD GPU (experimental) if there
+  is no NVIDIA GPU, or with `--image rocm`,
 - downloads the image once (for Apptainer, into `$HOME/my_singularity_images`),
 - shares the files and directories the flags name with the container, at the same paths, so relative
   paths work too,
@@ -37,8 +39,9 @@ The launcher
 Download it, and run FastSurfer:
 
 ```bash
-curl -fsSLO https://raw.githubusercontent.com/Deep-MI/FastSurfer/stable/tools/fastsurfer_container.py
-python3 fastsurfer_container.py \
+curl -fsSLO {{ LAUNCHER_URL }}
+chmod +x fastsurfer
+./fastsurfer \
     --t1 $HOME/my_mri_data/subjectX/t1_weighted.nii.gz \
     --sid subjectX --sd $HOME/my_fastsurfer_analysis \
     --3T --threads 4
@@ -59,18 +62,48 @@ version, it says how many releases it is behind. A GPU that the newest images no
 them on the CPU. The image of an older release may still support that GPU, but the launcher
 recommends the newest release on the CPU, or a machine with a newer GPU, over an old version.
 
-With `--brun`, it runs `brun_fastsurfer.sh` for several subjects; the paths in a subjects list have
-to be absolute. `--print_only` prints the commands instead of running them, `--update_launcher`
+`--exec <program>` runs another program of the image instead of `run_fastsurfer.sh`. It comes last, as
+all arguments after the program go to the program. The other FastSurfer scripts take FastSurfer's flags
+and are handled like `run_fastsurfer.sh`:
+
+```bash
+# several subjects; the paths in a subjects list have to be absolute
+./fastsurfer --exec brun_fastsurfer.sh \
+    --subjects_list $HOME/my_mri_data/subjects_list.txt \
+    --sd $HOME/my_fastsurfer_analysis
+# the time points of one person (longitudinal processing)
+./fastsurfer --exec long_fastsurfer.sh --tid subjectX \
+    --t1s $HOME/my_mri_data/subjectX/t1_weighted_20210315.nii.gz \
+          $HOME/my_mri_data/subjectX/t1_weighted_20230920.nii.gz \
+    --tpids subjectX_20210315 subjectX_20230920 \
+    --sd $HOME/my_fastsurfer_analysis
+```
+
+([long_fastsurfer.sh](../scripts/long_fastsurfer.rst) explains longitudinal processing.) Any other
+program runs in the current directory, for example to convert a segmentation to NIfTI:
+
+```bash
+./fastsurfer --exec nib-convert \
+    subjectX/mri/aparc.DKTatlas+aseg.deep.mgz aparc.nii.gz
+```
+
+The launcher shares the current directory with the container, as it does the directories of absolute
+paths in the arguments, so relative paths only work inside the current directory. If several FastSurfer
+images are installed, such a program uses the newest instead of asking.
+
+`--print_only` prints the commands instead of running them, `--update_launcher`
 replaces the launcher with the current one, and `--help` lists all launcher options. The sections
 below explain the commands it runs.
 
 Before starting many runs at once, e.g. a SLURM array, run the launcher once (e.g. on one subject),
 so the image is downloaded and built only once rather than by every job.
 
-On a Mac with Apple silicon, use the [macOS package](install/MACOS.md) instead: the images are built for
-Intel and AMD processors, which such a Mac only emulates, much more slowly and without its GPU. The
-launcher therefore stops there and points to the package, unless you pass `--runtime docker`. With
-Docker, it also warns if Docker may use less memory than FastSurfer needs.
+On a Mac with Apple silicon, the launcher runs the installed [macOS package](install/MACOS.md) instead,
+with the same flags and `--exec`: the images are built for Intel and AMD processors, which such a Mac
+only emulates, much more slowly and without its GPU. It chooses among installed package versions as
+among images, and `--image 2.6.0` keeps a study on one version. Without a package, `--update`
+downloads it and opens the macOS Installer. To run an image in Docker anyway, pass `--runtime docker`.
+With Docker, the launcher also warns if Docker may use less memory than FastSurfer needs.
 
 Using Apptainer (or Singularity)
 --------------------------------

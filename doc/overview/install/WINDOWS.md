@@ -9,7 +9,25 @@ Make sure that these are installed and running:
 * [WSL2](https://learn.microsoft.com/en-us/windows/wsl/install)
 * [Docker Desktop](https://docs.docker.com/desktop/install/windows-install/)
 
-Then choose the image for your hardware. Run the commands in Windows PowerShell.
+For a GPU, the requirements in the NVIDIA GPU tab below apply as well.
+
+The [launcher](../CONTAINERS.md#the-launcher) writes the Docker command for you. Run it in the terminal of your
+WSL2 Linux distribution (for example Ubuntu, from the Start menu), not in PowerShell. Docker Desktop's `docker`
+command is available there once you switch on the WSL integration for that distribution (Docker Desktop:
+**Settings > Resources > WSL integration**). For example:
+
+```bash
+curl -fsSLO {{ LAUNCHER_URL }}
+chmod +x fastsurfer
+./fastsurfer --seg_only --sd $HOME/my_fastsurfer_analysis --sid subjectX \
+    --t1 $HOME/my_mri_data/subjectX/t1_weighted.nii.gz
+```
+
+It picks the image for your NVIDIA GPU (or the CPU image), downloads it, shares the folders with the container and
+runs it as your WSL user. Keep the data in your WSL home folder: Windows folders are available below `/mnt/c/`, but
+reading them from WSL is slower.
+
+Without the launcher, choose the image for your hardware and run the commands in Windows PowerShell.
 
 `````{tab-set}
 
@@ -79,3 +97,4 @@ Linux user IDs anyway, so pass a fixed user ID instead, for example `1000:1000`.
 Docker Desktop reserves only part of your memory for WSL2. FastSurfer needs at least the memory in the
 [system requirements](../intro.rst#system-requirements); if it fails, check
 [how much memory your WSL2 distribution has](https://www.aleksandrhovhannisyan.com/blog/limiting-memory-usage-in-wsl-2/).
+The launcher warns if Docker has less, and the limit is set in `%UserProfile%\.wslconfig`.
