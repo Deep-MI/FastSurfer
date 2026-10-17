@@ -61,20 +61,28 @@ version, it says how many releases it is behind. A GPU that the newest images no
 them on the CPU. The image of an older release may still support that GPU, but the launcher
 recommends the newest release on the CPU, or a machine with a newer GPU, over an old version.
 
-With `--brun`, it runs `brun_fastsurfer.sh` for several subjects; the paths in a subjects list have
-to be absolute. With `--long`, it runs `long_fastsurfer.sh` for the time points of one person (see
-[long_fastsurfer.sh](../scripts/long_fastsurfer.rst)).
+`--exec <program>` runs another program of the image instead of `run_fastsurfer.sh`. It comes last, as
+all arguments after the program go to the program. The other FastSurfer scripts take FastSurfer's flags
+and are handled like `run_fastsurfer.sh`:
 
-`--exec <program>` runs any other program of the image, for example to convert a segmentation to NIfTI:
+```bash
+# several subjects; the paths in a subjects list have to be absolute
+python3 fastsurfer_container.py --exec brun_fastsurfer.sh --subjects_list subjects.txt --sd results
+# the time points of one person (longitudinal processing)
+python3 fastsurfer_container.py --exec long_fastsurfer.sh --tid person --t1s tp1.nii.gz tp2.nii.gz \
+    --tpids tp1 tp2 --sd results
+```
+
+([long_fastsurfer.sh](../scripts/long_fastsurfer.rst) explains longitudinal processing.) Any other
+program runs in the current directory, for example to convert a segmentation to NIfTI:
 
 ```bash
 python3 fastsurfer_container.py --exec nib-convert subjectX/mri/aparc.DKTatlas+aseg.deep.mgz aparc.nii.gz
 ```
 
-It comes last, as all arguments after the program go to the program. The program runs in the current
-directory, which the launcher shares with the container, as it does the directories of absolute paths
-in the arguments. Relative paths therefore only work inside the current directory. If several FastSurfer
-images are installed, `--exec` uses the newest instead of asking.
+The launcher shares the current directory with the container, as it does the directories of absolute
+paths in the arguments, so relative paths only work inside the current directory. If several FastSurfer
+images are installed, such a program uses the newest instead of asking.
 
 `--print_only` prints the commands instead of running them, `--update_launcher`
 replaces the launcher with the current one, and `--help` lists all launcher options. The sections

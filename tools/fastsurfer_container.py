@@ -16,14 +16,14 @@
 """
 Run FastSurfer in its container image, without writing the container command.
 
-Takes the flags of run_fastsurfer.sh (or, with --brun, of brun_fastsurfer.sh, with --long, of
-long_fastsurfer.sh) and runs them in the official image with Apptainer, Singularity or Docker,
-whichever is installed:
+Takes the flags of run_fastsurfer.sh and runs them in the official image with Apptainer, Singularity
+or Docker, whichever is installed:
 
     python3 fastsurfer_container.py --t1 data/t1.nii.gz --sd results --sid subject1
 
---exec runs any other program of the image, e.g. --exec nib-convert in.mgz out.nii.gz, in the current
-directory.
+--exec runs another program of the image with the arguments after it: brun_fastsurfer.sh and
+long_fastsurfer.sh as FastSurfer itself, and any other program, e.g. --exec nib-convert in.mgz
+out.nii.gz, in the current directory.
 
 It runs the FastSurfer release image installed on the machine (the newest release if there is none,
 or the image --image names), picks the image type that fits the NVIDIA GPU and driver (or, without
@@ -90,9 +90,10 @@ OUTPUT_FLAGS = {
     "--aseg_segfile", "--mask_name", "--cereb_segfile", "--cereb_statsfile", "--hypo_segfile",
     "--hypo_statsfile", "--statusfile", "--log",
 }
-# the FastSurfer scripts the launcher runs: the default, and those of --brun and --long
+# the FastSurfer scripts in the image: run_fastsurfer.sh by default, the others with --exec
 RUN_SCRIPT = "/fastsurfer/run_fastsurfer.sh"
-SCRIPTS = {"brun": "/fastsurfer/brun_fastsurfer.sh", "long": "/fastsurfer/long_fastsurfer.sh"}
+BRUN_SCRIPT = "/fastsurfer/brun_fastsurfer.sh"
+SCRIPTS = {script.rsplit("/", 1)[-1]: script for script in (RUN_SCRIPT, BRUN_SCRIPT, "/fastsurfer/long_fastsurfer.sh")}
 
 
 class LauncherError(Exception):
@@ -395,7 +396,7 @@ def gpu_request(args: list[str], brun: bool = False) -> tuple[str, list[int] | N
     several = [v for v in cuda if v.startswith("cuda:") and not re.fullmatch(r"cuda:\d+", v)]
     if several and not brun:
         raise LauncherError(f"{several[0]}: run_fastsurfer.sh uses one GPU, e.g. cuda:1. Lists and ranges of "
-                            f"GPUs are for processing several subjects with --brun.")
+                            f"GPUs are for processing several subjects with --exec brun_fastsurfer.sh.")
     named = [i for v in cuda for i in (cuda_indices(v) or [])]
     if named and values[0] in ("auto", "cuda"):
         # only the view aggregation names a GPU; the segmentation then runs on the first one
@@ -1098,20 +1099,20 @@ def apptainer_command(runtime: str, sif: Path, gpu: bool, mounts: list[Path], pr
 def docker_command(image: str, gpu: bool, mounts: list[Path], program: str, args: list[str],
                    extra: list[str], user: str, emulate: bool = False, devices: list[int] | None = None,
                    workdir: Path | None = None, interactive: bool = False, amd: bool = False,
-                   env: list[str] | None = None, groups: list[int] | None = None) -> list[str]:
+                   env: list[str] | None = None, groups: list[int] | None = None, tty: bool = False) -> list[str]:
     """
     The Docker command running `program`, as the calling user, showing only `devices` if given and
     starting in `workdir` if given.
 
-    `emulate` runs the Intel image on Apple silicon; `interactive` connects the terminal, e.g. for a shell.
-    `amd` gives it AMD GPUs instead of NVIDIA ones, with the variables in `env` and the user in `groups`,
-    the groups that own the GPU devices.
+    `emulate` runs the Intel image on Apple silicon; `interactive` passes the input on (-i), and `tty`
+    gives the program a terminal (-t), e.g. for a shell. `amd` gives it AMD GPUs instead of NVIDIA ones,
+    with the variables in `env` and the user in `groups`, the groups that own the GPU devices.
     """
     # --init: the image's entrypoint is a shell, which as the first process ignores Ctrl-C and the
     # signal a cancelled cluster job sends; tini passes them to all of FastSurfer's processes instead
     cmd = ["docker", "run", "--rm", "--init", "--env", "TINI_KILL_PROCESS_GROUP=1", "--user", user]
-    if interactive:
-        cmd += ["-it"]
+    if interactive or tty:
+        cmd += ["-i" + ("t" if tty else "")]
     if gpu and amd:
         # the devices of the kernel driver, and the shared memory settings of AMD's documented PyTorch command
         cmd += ["--device", "/dev/kfd", "--device", "/dev/dri", "--ipc=host", "--shm-size", "8G"]
@@ -1287,15 +1288,13 @@ def make_parser() -> argparse.ArgumentParser:
                         default=Path(os.environ.get("FASTSURFER_IMAGE_DIR", "~/my_singularity_images")).expanduser(),
                         help="where Apptainer/Singularity images are kept (default: $FASTSURFER_IMAGE_DIR or "
                              "~/my_singularity_images)")
-    script = parser.add_mutually_exclusive_group()
-    script.add_argument("--brun", action="store_true", help="run brun_fastsurfer.sh to process several subjects")
-    script.add_argument("--long", action="store_true",
-                        help="run long_fastsurfer.sh for the time points of one person (longitudinal processing)")
-    script.add_argument("--exec", metavar="PROGRAM",
-                        help="run another program of the image instead, e.g. --exec nib-convert in.mgz out.nii.gz. "
-                             "It comes last: all later arguments go to the program. It runs in the current "
-                             "directory, which is shared with the container, as are the directories of absolute "
-                             "paths in its arguments")
+    parser.add_argument("--exec", metavar="PROGRAM",
+                        help="run another program of the image instead of run_fastsurfer.sh. It comes last: all "
+                             "later arguments go to the program. brun_fastsurfer.sh (several subjects) and "
+                             "long_fastsurfer.sh (longitudinal processing) take FastSurfer's flags, as "
+                             "run_fastsurfer.sh does. Any other program, e.g. --exec nib-convert in.mgz out.nii.gz, "
+                             "runs in the current directory, which is shared with the container, as are the "
+                             "directories of absolute paths in its arguments")
     parser.add_argument("--runtime_args", default="",
                         help="additional arguments for the container runtime, e.g. --runtime_args '--group-add 1001'")
     parser.add_argument("--print_only", action="store_true", help="print the commands instead of running them")
@@ -1304,13 +1303,22 @@ def make_parser() -> argparse.ArgumentParser:
 
 def split_exec(argv: list[str]) -> tuple[list[str], list[str] | None]:
     """
-    The launcher's arguments up to `--exec <program>`, and the program's arguments after it (None without
-    --exec), so that its flags, e.g. --help, reach the program rather than the launcher.
+    The launcher's arguments up to `--exec <program>` (or `--exec=<program>`), and the program's arguments
+    after it (None without --exec), so that its flags, e.g. --help, reach the program rather than the launcher.
     """
-    if "--exec" not in argv:
-        return argv, None
-    k = argv.index("--exec")
-    return argv[:k + 2], argv[k + 2:]
+    for k, arg in enumerate(argv):
+        if arg == "--exec":
+            return argv[:k + 2], argv[k + 2:]
+        if arg.startswith("--exec="):
+            return argv[:k + 1], argv[k + 1:]
+    return argv, None
+
+
+def fastsurfer_script(program: str) -> str | None:
+    """The path in the image of a FastSurfer script --exec names, by name or path; None for other programs."""
+    name = program.rsplit("/", 1)[-1]
+    script = SCRIPTS.get(name)
+    return script if script is not None and program in (name, script) else None
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -1322,10 +1330,14 @@ def main(argv: list[str] | None = None) -> int:
     if options.exec is not None:
         if fastsurfer_args:
             parser.error(f"unrecognized arguments before --exec: {' '.join(fastsurfer_args)}")
-        fastsurfer_args = program_args
+        fastsurfer_args = program_args or []
     elif not fastsurfer_args:
         parser.print_help()
         return 1
+    # the FastSurfer script to run, None for another program, which has its own flags
+    script = RUN_SCRIPT if options.exec is None else fastsurfer_script(options.exec)
+    other = script is None
+    brun = script == BRUN_SCRIPT
 
     def info(message: str, level: str = "INFO") -> None:
         print(f"{level}: {message}", file=sys.stderr)
@@ -1349,12 +1361,13 @@ def main(argv: list[str] | None = None) -> int:
             raise LauncherError(f"Neither Apptainer, Singularity nor Docker is installed, see {DOC_URL}.")
         if options.runtime != "auto" and options.runtime not in installed:
             raise LauncherError(f"{options.runtime} is not installed.")
-        if options.brun and not {"--subjects", "--subjects_list", "--subject_list"} & set(fastsurfer_args):
+        if brun and not {"--subjects", "--subjects_list", "--subject_list"} & set(fastsurfer_args):
             # brun_fastsurfer.sh would read the subjects from stdin, which the container does not get
-            raise LauncherError("--brun needs the subjects in --subjects_list <file> or --subjects <id>=<t1> ...")
+            raise LauncherError("brun_fastsurfer.sh needs the subjects in --subjects_list <file> or "
+                                "--subjects <id>=<t1> ...")
 
         cwd = Path.cwd()
-        if options.exec is not None:
+        if other:
             args, mounts = fastsurfer_args, exec_mounts(fastsurfer_args, cwd)
         else:
             fastsurfer_args = fastsurfer_args + _license_args(fastsurfer_args, cwd)
@@ -1366,17 +1379,17 @@ def main(argv: list[str] | None = None) -> int:
         if Path.home() in mounts:
             info("This shares your home directory with the container. Settings in it may affect "
                  "FastSurfer, so keep the data in a subdirectory.")
-        if options.exec is None and "--fs_license" not in args and "--seg_only" not in args:
+        if not other and "--fs_license" not in args and "--seg_only" not in args:
             info("No FreeSurfer license given (--fs_license or $FS_LICENSE); the surfaces need one.")
 
         # the GPUs and the image type; another program's flags say nothing about them
         kind, value = parse_image_spec(options.image)
         gpus = query_nvidia_gpus()
         amd_gpus = query_amd_gpus()
-        request = [] if options.exec is not None else args
+        request = [] if other else args
         # whether the newest images support none of the GPUs, so they run on the CPU here
         gpu_unsupported = bool(gpus) and select_gpus(gpus, False) is None
-        wants_gpu = gpu_request(request, options.brun)[0] != "cpu" and bool(gpus)
+        wants_gpu = gpu_request(request, brun)[0] != "cpu" and bool(gpus)
         image_type = RELEASE_TAG.fullmatch(value).group(1) if kind in ("tag", "release") else None
         # AMD GPUs (experimental): when named with --image, or when there is no NVIDIA GPU
         amd_runs = any(amd_override(gpu) is not None for gpu in amd_gpus)
@@ -1386,13 +1399,13 @@ def main(argv: list[str] | None = None) -> int:
             raise LauncherError(f"The ROCm images are for AMD GPUs, and AMD's kernel driver lists none here "
                                 f"({KFD_DEVICE} is missing), see {DOC_URL}.")
         if rocm:
-            build = plan_amd_build(request, amd_gpus, options.brun, image_type or ROCM_BUILD[1])
+            build = plan_amd_build(request, amd_gpus, brun, image_type or ROCM_BUILD[1])
             if kind in ("sif", "docker"):
                 build.prefix = "custom"
-        elif kind in ("auto", "version") and not gpus and amd_runs and gpu_request(request)[0] != "cpu":
-            build = plan_amd_build(request, amd_gpus, options.brun)
+        elif kind in ("auto", "version") and not gpus and amd_runs and gpu_request(request, brun)[0] != "cpu":
+            build = plan_amd_build(request, amd_gpus, brun)
         elif kind in ("auto", "version"):
-            build = plan_build(request, gpus, options.brun)
+            build = plan_build(request, gpus, brun)
             if gpus and amd_runs:
                 build.notes.append("This machine also has an AMD GPU; --image rocm runs FastSurfer on it instead "
                                    "(experimental).")
@@ -1400,7 +1413,7 @@ def main(argv: list[str] | None = None) -> int:
                 build.notes.append(f"The ROCm image supports none of the AMD GPUs here "
                                    f"({', '.join(map(describe_amd, amd_gpus))}).")
         elif kind in ("tag", "release"):
-            build = plan_build_for_type(request, gpus, options.brun, image_type)
+            build = plan_build_for_type(request, gpus, brun, image_type)
         else:
             build = Build("custom", wants_gpu)
         if kind == "rocm":
@@ -1423,7 +1436,7 @@ def main(argv: list[str] | None = None) -> int:
         plan = decide_image(kind, value, build.prefix, options.runtime, installed,
                             local_docker_images() if "docker" in installed else None,
                             local_sif_images(options.image_dir), hub, options.image_dir, options.update, local_id,
-                            used, other_program=options.exec is not None)
+                            used, other_program=other)
         runtime = plan.runtime
         if hub is not None:
             stable = stable_launcher()
@@ -1451,11 +1464,8 @@ def main(argv: list[str] | None = None) -> int:
         for note in build.notes:
             info(note)
 
-        if options.exec is not None:
-            program, workdir = options.exec, cwd
-        else:
-            program = SCRIPTS["brun"] if options.brun else SCRIPTS["long"] if options.long else RUN_SCRIPT
-            workdir = None
+        # another program runs in the current directory; FastSurfer's paths are absolute already
+        program, workdir = (options.exec, cwd) if other else (script, None)
         extra = shlex.split(options.runtime_args)
         commands = []
         if runtime == "docker":
@@ -1464,11 +1474,15 @@ def main(argv: list[str] | None = None) -> int:
             emulate = apple_silicon and (kind != "docker" or value.startswith(DOCKER_REPO))
             if plan.pull:
                 commands.append(["docker", "pull"] + (["--platform", "linux/amd64"] if emulate else []) + [plan.image])
-            # Apptainer passes the terminal on itself; Docker only when asked
-            interactive = options.exec is not None and sys.stdin.isatty() and sys.stdout.isatty()
+            # Apptainer passes input and terminal on itself, Docker only when asked: another program gets the
+            # input when it comes from a pipe or file, and the terminal when it runs in one. Input from a
+            # terminal without one, e.g. a job started in the background, would stop the job.
+            stdin_tty = sys.stdin is not None and sys.stdin.isatty()
+            interactive = other and not stdin_tty
+            tty = other and stdin_tty and sys.stdout.isatty()
             commands.append(docker_command(plan.image, build.gpu, mounts, program, args, extra, user, emulate,
                                            build.devices, workdir, interactive, build.amd, build.env,
-                                           amd_device_groups() if build.amd else None))
+                                           amd_device_groups() if build.amd else None, tty))
             if not options.print_only:
                 memory = docker_memory_gib()
                 if memory < MIN_DOCKER_MEMORY_GIB:

@@ -123,7 +123,7 @@ def test_gpu_request():
     assert launcher.gpu_request(["--device", "cuda:0-2,5"], brun=True) == ("cuda", [0, 1, 2, 5])
     for value in ("cuda:0,1", "cuda:0-3"):
         for flag in ("--device", "--viewagg_device"):
-            with pytest.raises(launcher.LauncherError, match="--brun"):
+            with pytest.raises(launcher.LauncherError, match="brun_fastsurfer.sh"):
                 launcher.gpu_request([flag, value])
     assert launcher.gpu_request(["--device", "cpu"]) == ("cpu", None)
     # the view aggregation can need a GPU while the segmentation runs on the CPU
@@ -433,6 +433,20 @@ def test_split_exec():
     # the program's own flags, even the launcher's --help and --image, reach the program
     assert (options.runtime, options.exec, rest) == ("docker", "mri_convert", [])
     assert program_args == ["--help", "--image", "x"]
+    # the same with --exec=<program>, also without arguments for it
+    argv, program_args = launcher.split_exec(["--exec=nib-convert", "in.mgz", "out.nii.gz"])
+    assert (launcher.make_parser().parse_known_args(argv)[0].exec, program_args) == ("nib-convert",
+                                                                                   ["in.mgz", "out.nii.gz"])
+    assert launcher.split_exec(["--exec=bash"]) == (["--exec=bash"], [])
+
+
+def test_fastsurfer_script():
+    # the FastSurfer scripts by name or by their path in the image; anything else is another program
+    assert launcher.fastsurfer_script("brun_fastsurfer.sh") == launcher.BRUN_SCRIPT
+    assert launcher.fastsurfer_script("/fastsurfer/long_fastsurfer.sh") == "/fastsurfer/long_fastsurfer.sh"
+    assert launcher.fastsurfer_script("run_fastsurfer.sh") == launcher.RUN_SCRIPT
+    for other in ("nib-convert", "/somewhere/else/brun_fastsurfer.sh", "recon-surf.sh"):
+        assert launcher.fastsurfer_script(other) is None
 
 
 def test_link_directories(tmp_path):
@@ -592,7 +606,7 @@ def test_commands(tmp_path):
     emulated = launcher.docker_command("img:tag", False, [tmp_path], run, args, [], "501:20", True)
     assert emulated[:10] == init + ["--user", "501:20", "--platform", "linux/amd64"]
     # the other scripts and programs run through the image's entrypoint, which sets up the environment
-    for program in (launcher.SCRIPTS["brun"], launcher.SCRIPTS["long"], "nib-convert"):
+    for program in (launcher.BRUN_SCRIPT, launcher.SCRIPTS["long_fastsurfer.sh"], "nib-convert"):
         other = launcher.docker_command("img:tag", False, [tmp_path], program, args, [], "1000:1000")
         assert other[-len(args) - 4:-len(args)] == ["--entrypoint", "/fastsurfer/tools/Docker/entrypoint.sh",
                                                     "img:tag", program]
@@ -606,6 +620,9 @@ def test_commands(tmp_path):
                                         workdir=tmp_path)
     assert in_dir[-6:] == ["--pwd", str(tmp_path), str(sif), "nib-convert"] + exec_args
     docker_exec = launcher.docker_command("img:tag", False, [tmp_path], "bash", [], [], "1:1", workdir=tmp_path,
-                                          interactive=True)
+                                          tty=True)
     assert docker_exec[8] == "-it"
     assert docker_exec[docker_exec.index("-w") + 1] == str(tmp_path)
+    # input from a pipe or file is passed on without a terminal, which Docker refuses for such input
+    piped = launcher.docker_command("img:tag", False, [tmp_path], "bash", [], [], "1:1", interactive=True)
+    assert piped[8] == "-i"
