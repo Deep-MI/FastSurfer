@@ -39,7 +39,8 @@ The launcher `fastsurfer` writes and runs the container command for you. It take
 Download it, and run FastSurfer:
 
 ```bash
-curl -fsSLO {{ LAUNCHER_URL }} && chmod +x fastsurfer
+curl -fsSLO {{ LAUNCHER_URL }}
+chmod +x fastsurfer
 ./fastsurfer \
     --t1 $HOME/my_mri_data/subjectX/t1_weighted.nii.gz \
     --sid subjectX --sd $HOME/my_fastsurfer_analysis \
@@ -67,17 +68,23 @@ and are handled like `run_fastsurfer.sh`:
 
 ```bash
 # several subjects; the paths in a subjects list have to be absolute
-./fastsurfer --exec brun_fastsurfer.sh --subjects_list subjects.txt --sd results
+./fastsurfer --exec brun_fastsurfer.sh \
+    --subjects_list $HOME/my_mri_data/subjects_list.txt \
+    --sd $HOME/my_fastsurfer_analysis
 # the time points of one person (longitudinal processing)
-./fastsurfer --exec long_fastsurfer.sh --tid person --t1s tp1.nii.gz tp2.nii.gz \
-    --tpids tp1 tp2 --sd results
+./fastsurfer --exec long_fastsurfer.sh --tid subjectX \
+    --t1s $HOME/my_mri_data/subjectX/t1_weighted_20210315.nii.gz \
+          $HOME/my_mri_data/subjectX/t1_weighted_20230920.nii.gz \
+    --tpids subjectX_20210315 subjectX_20230920 \
+    --sd $HOME/my_fastsurfer_analysis
 ```
 
 ([long_fastsurfer.sh](../scripts/long_fastsurfer.rst) explains longitudinal processing.) Any other
 program runs in the current directory, for example to convert a segmentation to NIfTI:
 
 ```bash
-./fastsurfer --exec nib-convert subjectX/mri/aparc.DKTatlas+aseg.deep.mgz aparc.nii.gz
+./fastsurfer --exec nib-convert \
+    subjectX/mri/aparc.DKTatlas+aseg.deep.mgz aparc.nii.gz
 ```
 
 The launcher shares the current directory with the container, as it does the directories of absolute

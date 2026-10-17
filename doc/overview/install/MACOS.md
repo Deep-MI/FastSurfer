@@ -76,7 +76,8 @@ Without opening the console, the [launcher](../CONTAINERS.md#the-launcher) `fast
 from any Terminal window, with the same flags and the same commands as on Linux:
 
 ```bash
-curl -fsSLO {{ LAUNCHER_URL }} && chmod +x fastsurfer
+curl -fsSLO {{ LAUNCHER_URL }}
+chmod +x fastsurfer
 ./fastsurfer --seg_only --sd $HOME/my_fastsurfer_analysis --sid subjectX \
     --t1 $HOME/my_mri_data/subjectX/t1_weighted.nii.gz
 ```

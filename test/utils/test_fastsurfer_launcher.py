@@ -574,10 +574,20 @@ def test_plan_image_build_custom():
     build = launcher.plan_image_build("docker", "my_fastsurfer:dev", [], nvidia, amd, False)
     assert (build.gpu, build.amd) == (True, False)
     assert launcher.plan_image_build("docker", "my_fastsurfer:rocm-dev", [], nvidia, amd, False).amd
-    # a ROCm image without an AMD GPU stops, and --device cpu gives the container no GPU
-    with pytest.raises(launcher.LauncherError, match="AMD"):
-        launcher.plan_image_build("docker", "my_fastsurfer:rocm-dev", [], nvidia, [], False)
+    # --device cpu gives the container no GPU
     assert not launcher.plan_image_build("docker", "my_fastsurfer:dev", ["--device", "cpu"], [], amd, False).gpu
+
+
+def test_plan_image_build_rocm_on_cpu():
+    # an installed ROCm image also runs on the CPU, without an AMD GPU, with a note unless the CPU was asked for
+    for kind, value in (("rocm", ""), ("tag", "rocm7.2-v2.6.0")):
+        build = launcher.plan_image_build(kind, value, [], [gpu((8, 6))], [], False)
+        assert (build.prefix, build.gpu, build.amd) == ("rocm7.2", False, False) and "CPU" in build.notes[0]
+        build = launcher.plan_image_build(kind, value, ["--device", "cpu"], [], [], False)
+        assert (build.prefix, build.gpu, build.notes) == ("rocm7.2", False, [])
+    # a GPU requested for it without an AMD GPU stops
+    with pytest.raises(launcher.LauncherError, match="No AMD GPU"):
+        launcher.plan_image_build("rocm", "", ["--device", "cuda"], [], [], False)
 
 
 def test_decide_image_rocm(tmp_path):

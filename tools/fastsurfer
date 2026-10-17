@@ -566,17 +566,15 @@ def plan_image_build(kind: str, value: str, request: list[str], gpus: list[Gpu],
     The image type and the GPUs for what --image names (see parse_image_spec) and these arguments.
 
     AMD GPUs (experimental) are used for a ROCm image, named with --image, and when there is no NVIDIA GPU.
-    An own image (a Docker image or .sif file) gets the GPUs of this machine: the AMD ones if its name says
-    ROCm or there is no NVIDIA GPU, else the NVIDIA ones.
+    A ROCm image without a usable AMD GPU runs on the CPU, unless a GPU is requested. An own image (a Docker
+    image or .sif file) gets the GPUs of this machine: the AMD ones if its name says ROCm or there is no
+    NVIDIA GPU, else the NVIDIA ones.
     """
     custom = kind in ("sif", "docker")
     image_type = RELEASE_TAG.fullmatch(value).group(1) if kind in ("tag", "release") else None
     wants_gpu = gpu_request(request, brun)[0] != "cpu"
     amd_runs = any(amd_override(gpu) is not None for gpu in amd_gpus)
     rocm = kind == "rocm" or (image_type or "").startswith("rocm") or (custom and "rocm" in value.lower())
-    if rocm and not amd_gpus:
-        raise LauncherError(f"The ROCm images are for AMD GPUs, and AMD's kernel driver lists none here "
-                            f"({KFD_DEVICE} is missing), see {DOC_URL}.")
     if rocm or (custom and amd_gpus and not gpus and wants_gpu):
         build = plan_amd_build(request, amd_gpus, brun, image_type or ROCM_BUILD[1])
         if custom:
@@ -1504,6 +1502,8 @@ def container_commands(options: argparse.Namespace, script: str | None, other: b
     to record next to an Apptainer image they build (None if they build none).
     """
     brun = script == BRUN_SCRIPT
+    # --update without FastSurfer's flags only downloads (or builds) the image
+    download_only = options.update and not other and not fastsurfer_args
     installed = {name for name in ("apptainer", "singularity", "docker") if shutil.which(name)}
     if not installed:
         raise LauncherError(f"Neither Apptainer, Singularity nor Docker is installed, see {DOC_URL}.")
@@ -1527,7 +1527,7 @@ def container_commands(options: argparse.Namespace, script: str | None, other: b
     if Path.home() in mounts:
         info("This shares your home directory with the container. Settings in it may affect "
              "FastSurfer, so keep the data in a subdirectory.")
-    if not other and "--fs_license" not in args and "--seg_only" not in args:
+    if not other and not download_only and "--fs_license" not in args and "--seg_only" not in args:
         info("No FreeSurfer license given (--fs_license or $FS_LICENSE); the surfaces need one.")
 
     # the GPUs and the image type; another program's flags say nothing about them
@@ -1560,7 +1560,7 @@ def container_commands(options: argparse.Namespace, script: str | None, other: b
     plan = decide_image(kind, value, build.prefix, options.runtime, installed,
                         local_docker_images() if "docker" in installed else None,
                         local_sif_images(options.image_dir), hub, options.image_dir, options.update, local_id,
-                        used, other_program=other)
+                        used, other_program=other or download_only)
     runtime = plan.runtime
     if hub is not None:
         stable = stable_launcher()
@@ -1607,11 +1607,18 @@ def container_commands(options: argparse.Namespace, script: str | None, other: b
         commands.append(docker_command(plan.image, build.gpu, mounts, program, args, extra, user, emulate,
                                        build.devices, workdir, interactive, build.amd, build.env,
                                        amd_device_groups() if build.amd else None, tty))
-        if not options.print_only:
+        if not options.print_only and not download_only:
             memory = docker_memory_gib()
             if memory < MIN_DOCKER_MEMORY_GIB:
-                where = ("in Docker's settings (Docker Desktop: Settings > Resources; Colima: colima start "
-                         "--memory 16)") if platform.system() == "Darwin" else "for Docker"
+                if platform.system() == "Darwin":
+                    where = ("in Docker's settings (Docker Desktop: Settings > Resources; Colima: colima start "
+                             "--memory 16)")
+                elif "microsoft" in platform.release().lower():
+                    # Docker Desktop on WSL2 runs in the memory WSL2 has
+                    where = ("of WSL2 in %UserProfile%\\.wslconfig (memory=16GB in the [wsl2] section), then run "
+                             "wsl --shutdown")
+                else:
+                    where = "for Docker"
                 info(f"Docker can use only {memory:.1f} GB of memory, and FastSurfer may fail with less than "
                      f"15 GB. Increase the memory {where}.", level="WARNING")
     else:
@@ -1621,6 +1628,10 @@ def container_commands(options: argparse.Namespace, script: str | None, other: b
             commands.append([runtime, "build", plan.image, plan.build_from])
         commands.append(apptainer_command(runtime, Path(plan.image), build.gpu, mounts, program, args, extra,
                                           build.devices, workdir, build.amd, build.env))
+    if download_only:
+        commands = commands[:-1]
+        if not commands:
+            raise LauncherError(f"--update has nothing to download for {plan.image}.")
     return commands, plan.record
 
 
@@ -1669,7 +1680,9 @@ def main(argv: list[str] | None = None) -> int:
         for command in commands:
             print(shlex.join(command))
         return 0
-    for command in commands[:-1]:
+    # --update alone runs only the download steps, otherwise the last command is FastSurfer (or --exec)
+    download_only = options.update and options.exec is None and not fastsurfer_args
+    for command in commands if download_only else commands[:-1]:
         if command[1] == "build":
             info(f"Building the image once: {shlex.join(command)}")
             # the official images are public, so their download needs no login
@@ -1690,6 +1703,9 @@ def main(argv: list[str] | None = None) -> int:
         elif subprocess.run(command).returncode != 0:
             print(f"ERROR: {shlex.join(command)} failed.", file=sys.stderr)
             return 1
+    if download_only:
+        info("Done. Run FastSurfer with the same command and its flags, without --update.")
+        return 0
     info(f"Running: {shlex.join(commands[-1])}")
     sys.stdout.flush()
     sys.stderr.flush()

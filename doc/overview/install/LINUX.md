@@ -14,8 +14,10 @@ picks the image for your NVIDIA GPU and driver (or for an AMD GPU, experimental,
 and runs FastSurfer with the flags of `run_fastsurfer.sh`:
 
 ```bash
-curl -fsSLO {{ LAUNCHER_URL }} && chmod +x fastsurfer
-./fastsurfer --t1 <t1_image> --sid <subject_id> --sd <output_directory>
+curl -fsSLO {{ LAUNCHER_URL }}
+chmod +x fastsurfer
+./fastsurfer --t1 $HOME/my_mri_data/subjectX/t1_weighted.nii.gz \
+    --sid subjectX --sd $HOME/my_fastsurfer_analysis
 ```
 
 The sections below explain the images and how to download them by hand.

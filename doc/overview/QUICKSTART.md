@@ -35,7 +35,8 @@ mkdir fastsurfer_test
 cd fastsurfer_test
 
 # 1. Download the launcher (only the first time)
-curl -fsSLO {{ LAUNCHER_URL }} && chmod +x fastsurfer
+curl -fsSLO {{ LAUNCHER_URL }}
+chmod +x fastsurfer
 
 # 2. Download an example brain MRI (if you don't have your own)
 #    If you have your own, copy it to this directory and adjust

@@ -76,7 +76,8 @@ All installation methods use the `run_fastsurfer.sh` call interface (replace the
 1. For container installations, the [launcher](doc/overview/CONTAINERS.md#the-launcher) is the easiest way: it takes the `<fastsurfer_flags>` and writes and runs the container command, with the image for your NVIDIA GPU (or AMD GPU, experimental, or the CPU):
 
    ```bash
-   curl -fsSLO https://deep-mi.org/FastSurfer/stable/fastsurfer && chmod +x fastsurfer
+   curl -fsSLO https://deep-mi.org/FastSurfer/stable/fastsurfer
+   chmod +x fastsurfer
    ./fastsurfer <fastsurfer_flags>
    ```
 
