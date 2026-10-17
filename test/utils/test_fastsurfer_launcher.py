@@ -337,12 +337,17 @@ def test_decide_image_named(tmp_path):
     assert decide(tmp_path, kind="docker", value="my_fs:cu132", local_id="sha256:1").runtime == "docker"
     plan = decide(tmp_path, kind="docker", value="my_fs:cu132", runtime="apptainer", local_id="sha256:1")
     assert (plan.build_from, plan.record) == ("docker-daemon://my_fs:cu132", "sha256:1")
-    (tmp_path / "my_fs-cu132.sif").write_bytes(b"")
-    (tmp_path / "my_fs-cu132.sif.digest").write_text("sha256:1\n")
+    assert plan.image == str(tmp_path / "docker-my_fs-cu132.sif")
+    (tmp_path / "docker-my_fs-cu132.sif").write_bytes(b"")
+    (tmp_path / "docker-my_fs-cu132.sif.digest").write_text("sha256:1\n")
     own = {"kind": "docker", "value": "my_fs:cu132", "runtime": "apptainer"}
     assert decide(tmp_path, **own, local_id="sha256:1").build_from is None
     # a changed local Docker image is converted again
     assert decide(tmp_path, **own, local_id="sha256:2").build_from
+    # one whose name ends like a release is not taken for the installed release image, nor replaces it
+    (tmp_path / "fastsurfer-cu132-v2.6.0.sif").write_bytes(b"")
+    plan = decide(tmp_path, kind="docker", value="myrepo/fastsurfer:cu132-v2.6.0", runtime="apptainer")
+    assert plan.image == str(tmp_path / "docker-myrepo_fastsurfer-cu132-v2.6.0.sif") and plan.build_from
 
 
 def test_plan_paths_run(tmp_path):
@@ -557,6 +562,22 @@ def test_plan_amd_build():
     assert not launcher.plan_amd_build([], [old], False).gpu
     with pytest.raises(launcher.LauncherError):
         launcher.plan_amd_build(["--device", "cuda"], [old], False)
+
+
+def test_plan_image_build_custom():
+    nvidia, amd = [gpu((8, 6))], [launcher.AmdGpu(0, (11, 0, 0), 24)]
+    # an own image on a machine with only AMD GPUs gets them, whatever its name
+    build = launcher.plan_image_build("docker", "my_fastsurfer:dev", [], [], amd, False)
+    assert (build.prefix, build.gpu, build.amd) == ("custom", True, True)
+    assert launcher.plan_image_build("sif", "/images/own.sif", [], [], amd, False).amd
+    # with an NVIDIA GPU, the NVIDIA one, unless the name says ROCm
+    build = launcher.plan_image_build("docker", "my_fastsurfer:dev", [], nvidia, amd, False)
+    assert (build.gpu, build.amd) == (True, False)
+    assert launcher.plan_image_build("docker", "my_fastsurfer:rocm-dev", [], nvidia, amd, False).amd
+    # a ROCm image without an AMD GPU stops, and --device cpu gives the container no GPU
+    with pytest.raises(launcher.LauncherError, match="AMD"):
+        launcher.plan_image_build("docker", "my_fastsurfer:rocm-dev", [], nvidia, [], False)
+    assert not launcher.plan_image_build("docker", "my_fastsurfer:dev", ["--device", "cpu"], [], amd, False).gpu
 
 
 def test_decide_image_rocm(tmp_path):
