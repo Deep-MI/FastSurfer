@@ -487,12 +487,43 @@ before your first full run. We provide images for NVIDIA GPUs (CUDA), for AMD GP
 and for the CPU only, on <a class="reference external" href="https://hub.docker.com/r/deepmi/fastsurfer">Docker Hub</a>.</p>
 <p>A GPU with enough memory makes the segmentation much faster, see the
 <a class="reference internal" href="../intro.html#system-requirements"><span class="std std-ref">system requirements</span></a>. Without a GPU, use the <a class="reference internal" href="#cpu-only"><span class="std std-ref">CPU image</span></a>.</p>
+<section id="set-up">
+<h2>Set up<a class="headerlink" href="#set-up" title="Link to this heading">¶</a></h2>
+<p>FastSurfer runs in a container, with Apptainer (or its predecessor Singularity) or Docker. Check whether one of them
+works, for example:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Apptainer (with Singularity: singularity --version)</span>
+apptainer<span class="w"> </span>--version
+<span class="c1"># Docker</span>
+docker<span class="w"> </span>run<span class="w"> </span>--rm<span class="w"> </span>hello-world
+</pre></div>
+</div>
+<p>Clusters usually provide Apptainer, often as a module (<code class="docutils literal notranslate"><span class="pre">module</span> <span class="pre">load</span> <span class="pre">apptainer</span></code>, see your cluster’s documentation).
+Installing Apptainer or Docker needs administrator rights, so if neither works, ask your administrator to install
+<a class="reference external" href="https://apptainer.org/docs/admin/main/installation.html">Apptainer</a> or
+<a class="reference external" href="https://docs.docker.com/engine/install/">Docker</a>. Docker also needs:</p>
+<ul class="simple">
+<li><p>your user in the <code class="docutils literal notranslate"><span class="pre">docker</span></code> group, to run containers without <code class="docutils literal notranslate"><span class="pre">sudo</span></code> (log out and back in once you were added),</p></li>
+<li><p>for NVIDIA GPUs, the
+<a class="reference external" href="https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html">NVIDIA Container Toolkit</a>.
+Apptainer needs only the NVIDIA driver.</p></li>
+</ul>
+<p>Then the <a class="reference internal" href="../CONTAINERS.html#the-launcher"><span class="std std-ref">launcher</span></a> does the rest: it picks the image for your NVIDIA GPU and driver
+(or for an AMD GPU, experimental, or the CPU image), downloads it, and runs FastSurfer with the flags of
+<code class="docutils literal notranslate"><span class="pre">run_fastsurfer.sh</span></code>:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>curl<span class="w"> </span>-fsSLO<span class="w"> </span>https://deep-mi.org/FastSurfer/dev/fastsurfer
+chmod<span class="w"> </span>+x<span class="w"> </span>fastsurfer
+./fastsurfer<span class="w"> </span>--t1<span class="w"> </span><span class="nv">$HOME</span>/my_mri_data/subjectX/t1_weighted.nii.gz<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--sid<span class="w"> </span>subjectX<span class="w"> </span>--sd<span class="w"> </span><span class="nv">$HOME</span>/my_fastsurfer_analysis
+</pre></div>
+</div>
+<p>The sections below explain the images and how to download them by hand.</p>
 <p>The images are tagged <code class="docutils literal notranslate"><span class="pre">deepmi/fastsurfer:&lt;device&gt;-v&lt;version&gt;</span></code>, where <code class="docutils literal notranslate"><span class="pre">&lt;device&gt;</span></code> is <code class="docutils literal notranslate"><span class="pre">cu&lt;cuda_version&gt;</span></code> for NVIDIA GPUs
 (see <a class="reference internal" href="#nvidia-gpus"><span class="std std-ref">below</span></a>), <code class="docutils literal notranslate"><span class="pre">rocm&lt;rocm_version&gt;</span></code> for AMD GPUs (experimental), or <code class="docutils literal notranslate"><span class="pre">cpu</span></code> without GPU support (smaller
 and thus faster to download), and <code class="docutils literal notranslate"><span class="pre">&lt;version&gt;</span></code> is the FastSurfer version. <code class="docutils literal notranslate"><span class="pre">latest</span></code> points to the newest NVIDIA image,
 with the default CUDA version of that release, and <code class="docutils literal notranslate"><span class="pre">cpu-latest</span></code> to the newest CPU image.
 <a class="reference external" href="https://hub.docker.com/r/deepmi/fastsurfer/tags">Docker Hub</a> lists all tags. For reproducible results, use a
 versioned tag.</p>
+</section>
 <section id="nvidia-gpus">
 <h2>NVIDIA GPUs<a class="headerlink" href="#nvidia-gpus" title="Link to this heading">¶</a></h2>
 <p>We build the images for two CUDA versions, because newer CUDA versions drop old GPUs and older ones lack the newest:</p>
@@ -601,7 +632,11 @@ Singularity) or <code class="docutils literal notranslate"><span class="pre">--g
 semi-supported) GPU and the right kernel version. Install the AMD kernel modules on the host as described in the
 <a class="reference external" href="https://rocm.docs.amd.com/projects/install-on-linux/en/latest/">ROCm installation instructions</a>, and add your user
 to the groups they name.</p>
-<p>Then download our image for ROCm 7.2:</p>
+<p>The <a class="reference internal" href="../CONTAINERS.html#the-launcher"><span class="std std-ref">launcher</span></a> uses the ROCm image when the machine has an AMD GPU and no NVIDIA GPU,
+or when you pass <code class="docutils literal notranslate"><span class="pre">--image</span> <span class="pre">rocm</span></code>. It runs with Docker or Apptainer and adds the flags below. Its image supports
+several AMD architectures; for another GPU of the same family, such as the W6600 (gfx1032, family gfx1030), it sets
+<code class="docutils literal notranslate"><span class="pre">HSA_OVERRIDE_GFX_VERSION</span></code> and says so.</p>
+<p>Without the launcher, download our image for ROCm 7.2:</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>This documents the development version 2.7.0.dev0. Official Docker images only exist for releases, so the commands below use the latest release, 2.6.0. To run the development version, <a class="reference internal" href="../../developer/docker.html"><span class="doc">build your own image</span></a>.</p>
@@ -695,6 +730,7 @@ results. Check them visually.</p>
           <div class="toc-tree">
             <ul>
 <li><a class="reference internal" href="#">Linux</a><ul>
+<li><a class="reference internal" href="#set-up">Set up</a></li>
 <li><a class="reference internal" href="#nvidia-gpus">NVIDIA GPUs</a></li>
 <li><a class="reference internal" href="#apptainer-or-singularity">Apptainer or Singularity</a></li>
 <li><a class="reference internal" href="#docker">Docker</a></li>

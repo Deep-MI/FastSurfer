@@ -540,6 +540,16 @@ run_fastsurfer.sh<span class="w"> </span>--sd<span class="w"> </span><span class
 </pre></div>
 </div>
 <p>FastSurfer uses the Apple GPU (<code class="docutils literal notranslate"><span class="pre">mps</span></code>) automatically, so no <code class="docutils literal notranslate"><span class="pre">--device</span></code> flag is needed.</p>
+<p>Without opening the console, the <a class="reference internal" href="../CONTAINERS.html#the-launcher"><span class="std std-ref">launcher</span></a> <code class="docutils literal notranslate"><span class="pre">fastsurfer</span></code> runs the installed package
+from any Terminal window, with the same flags and the same commands as on Linux:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>curl<span class="w"> </span>-fsSLO<span class="w"> </span>https://deep-mi.org/FastSurfer/dev/fastsurfer
+chmod<span class="w"> </span>+x<span class="w"> </span>fastsurfer
+./fastsurfer<span class="w"> </span>--seg_only<span class="w"> </span>--sd<span class="w"> </span><span class="nv">$HOME</span>/my_fastsurfer_analysis<span class="w"> </span>--sid<span class="w"> </span>subjectX<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--t1<span class="w"> </span><span class="nv">$HOME</span>/my_mri_data/subjectX/t1_weighted.nii.gz
+</pre></div>
+</div>
+<p>If several versions are installed, it asks for one, e.g. <code class="docutils literal notranslate"><span class="pre">--image</span> <span class="pre">2.6.0</span></code>. <code class="docutils literal notranslate"><span class="pre">./fastsurfer</span> <span class="pre">--update</span></code> downloads the
+newest package and opens the installer.</p>
 </section>
 <section id="freesurfer-license">
 <h2>FreeSurfer license<a class="headerlink" href="#freesurfer-license" title="Link to this heading">¶</a></h2>
@@ -616,9 +626,16 @@ independent and stay as they are.</p>
 <p>The package does not run on Intel Macs, but Docker does, with the full pipeline on the CPU (2 to 4 times slower
 than on Apple silicon).</p>
 <ol class="arabic">
-<li><p>Install <a class="reference external" href="https://docs.docker.com/get-docker/">Docker Desktop for Mac</a>, start it, and under
-<strong>Settings &gt; Resources</strong> set the memory to 15 GB (or the most you have; with less than that, it may fail).</p></li>
-<li><p>Download the CPU image. Open a Terminal window and run:</p>
+<li><p>Install <a class="reference external" href="https://docs.docker.com/get-docker/">Docker Desktop for Mac</a>, start it, and under <strong>Settings &gt; Resources</strong>
+set the memory to 15 GB (or the most you have; with less than that, it may fail).</p></li>
+<li><p>Check Docker in a Terminal window, for example:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>docker<span class="w"> </span>run<span class="w"> </span>--rm<span class="w"> </span>hello-world
+</pre></div>
+</div>
+</li>
+</ol>
+<p>Then run FastSurfer with the <a class="reference internal" href="../CONTAINERS.html#the-launcher"><span class="std std-ref">launcher</span></a>, as in the <a class="reference internal" href="../QUICKSTART.html"><span class="std std-doc">quick start</span></a>.
+Without it, download the CPU image:</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>This documents the development version 2.7.0.dev0. Official Docker images only exist for releases, so the commands below use the latest release, 2.6.0. To run the development version, <a class="reference internal" href="../../developer/docker.html"><span class="doc">build your own image</span></a>.</p>
@@ -626,10 +643,8 @@ than on Apple silicon).</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>docker<span class="w"> </span>pull<span class="w"> </span>deepmi/fastsurfer:cpu-v2.6.0
 </pre></div>
 </div>
-</li>
-<li><p>Run FastSurfer as in <a class="reference internal" href="../EXAMPLES.html#example-2-fastsurfer-docker"><span class="std std-ref">Example 2</span></a>, with the CPU image and without
-<code class="docutils literal notranslate"><span class="pre">--gpus</span> <span class="pre">all</span></code>.</p></li>
-</ol>
+<p>and run FastSurfer as in <a class="reference internal" href="../EXAMPLES.html#example-2-fastsurfer-docker"><span class="std std-ref">Example 2</span></a>, with the CPU image and without
+<code class="docutils literal notranslate"><span class="pre">--gpus</span> <span class="pre">all</span></code>.</p>
 </section>
 </section>
 

@@ -178,7 +178,7 @@
           <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
         </button>
       </div>
-      <label class="toc-overlay-icon toc-header-icon no-toc" for="__toc">
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
         <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
       </label>
     </div>
@@ -473,7 +473,7 @@
               <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
             </button>
           </div>
-          <label class="toc-overlay-icon toc-content-icon no-toc" for="__toc">
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
             <span class="icon"><svg><use href="#svg-toc"></use></svg></span>
           </label>
         </div>
@@ -484,12 +484,40 @@
 (segmentation and surface reconstruction) and all software it needs. The surface reconstruction also needs a
 <a class="reference internal" href="../INSTALL.html#freesurfer-license"><span class="std std-ref">FreeSurfer license</span></a>, which is free but not included: get it from FreeSurfer
 before your first full run.</p>
-<p>Make sure that these are installed and running:</p>
-<ul class="simple">
-<li><p><a class="reference external" href="https://learn.microsoft.com/en-us/windows/wsl/install">WSL2</a></p></li>
-<li><p><a class="reference external" href="https://docs.docker.com/desktop/install/windows-install/">Docker Desktop</a></p></li>
-</ul>
-<p>Then choose the image for your hardware. Run the commands in Windows PowerShell.</p>
+<section id="set-up">
+<h2>Set up<a class="headerlink" href="#set-up" title="Link to this heading">¶</a></h2>
+<p>FastSurfer runs in Docker, inside WSL2, the Linux environment of Windows:</p>
+<ol class="arabic">
+<li><p>Install WSL2: open PowerShell as administrator, run <code class="docutils literal notranslate"><span class="pre">wsl</span> <span class="pre">--install</span></code>, and restart Windows. This also installs
+Ubuntu.</p></li>
+<li><p>Install <a class="reference external" href="https://docs.docker.com/desktop/install/windows-install/">Docker Desktop</a>, start it, and switch on the
+WSL integration for Ubuntu under <strong>Settings &gt; Resources &gt; WSL integration</strong>.</p></li>
+<li><p>For an NVIDIA GPU, install the latest <a class="reference external" href="https://developer.nvidia.com/cuda/wsl">NVIDIA driver for WSL</a> in Windows.</p></li>
+<li><p>Open <strong>Ubuntu</strong> from the Start menu. Run the FastSurfer commands in this terminal, not in PowerShell. Check
+Docker there, for example:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>docker<span class="w"> </span>run<span class="w"> </span>--rm<span class="w"> </span>hello-world
+</pre></div>
+</div>
+</li>
+</ol>
+<p>WSL2 gets only part of the computer’s memory; the <a class="reference internal" href="../intro.html#system-requirements"><span class="std std-ref">system requirements</span></a> say how
+much FastSurfer needs, and the launcher warns if Docker has less.</p>
+<p>For a GPU, the requirements in the NVIDIA GPU tab below apply as well.</p>
+<p>Then the <a class="reference internal" href="../CONTAINERS.html#the-launcher"><span class="std std-ref">launcher</span></a> writes the Docker command for you. In the Ubuntu terminal, for
+example:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>curl<span class="w"> </span>-fsSLO<span class="w"> </span>https://deep-mi.org/FastSurfer/dev/fastsurfer
+chmod<span class="w"> </span>+x<span class="w"> </span>fastsurfer
+./fastsurfer<span class="w"> </span>--seg_only<span class="w"> </span>--sd<span class="w"> </span><span class="nv">$HOME</span>/my_fastsurfer_analysis<span class="w"> </span>--sid<span class="w"> </span>subjectX<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>--t1<span class="w"> </span><span class="nv">$HOME</span>/my_mri_data/subjectX/t1_weighted.nii.gz
+</pre></div>
+</div>
+<p>It picks the image for your NVIDIA GPU (or the CPU image), downloads it, shares the folders with the container and
+runs it as your WSL user. Keep the data in your WSL home folder: Windows folders are available below <code class="docutils literal notranslate"><span class="pre">/mnt/c/</span></code>, but
+reading them from WSL is slower.</p>
+</section>
+<section id="without-the-launcher">
+<h2>Without the launcher<a class="headerlink" href="#without-the-launcher" title="Link to this heading">¶</a></h2>
+<p>Choose the image for your hardware and run the commands in Windows PowerShell.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>This documents the development version 2.7.0.dev0. Official Docker images only exist for releases, so the commands below use the latest release, 2.6.0, for its default CUDA version, 13.2. Images of 2.6.0 for other CUDA versions, ROCm and CPU are available on <a class="reference external" href="https://hub.docker.com/r/deepmi/fastsurfer/tags?name=v2.6.0">Docker Hub</a>. To run the development version, <a class="reference internal" href="../../developer/docker.html"><span class="doc">build your own image</span></a>.</p>
@@ -554,7 +582,9 @@ that is your own user (<code class="docutils literal notranslate"><span class="p
 Linux user IDs anyway, so pass a fixed user ID instead, for example <code class="docutils literal notranslate"><span class="pre">1000:1000</span></code>.</p>
 <p>Docker Desktop reserves only part of your memory for WSL2. FastSurfer needs at least the memory in the
 <a class="reference internal" href="../intro.html#system-requirements"><span class="std std-ref">system requirements</span></a>; if it fails, check
-<a class="reference external" href="https://www.aleksandrhovhannisyan.com/blog/limiting-memory-usage-in-wsl-2/">how much memory your WSL2 distribution has</a>.</p>
+<a class="reference external" href="https://www.aleksandrhovhannisyan.com/blog/limiting-memory-usage-in-wsl-2/">how much memory your WSL2 distribution has</a>.
+The launcher warns if Docker has less, and the limit is set in <code class="docutils literal notranslate"><span class="pre">%UserProfile%\.wslconfig</span></code>.</p>
+</section>
 </section>
 
         </article>
@@ -606,8 +636,28 @@ Linux user IDs anyway, so pass a fixed user ID instead, for example <code class=
         
       </footer>
     </div>
-    <aside class="toc-drawer no-toc">
+    <aside class="toc-drawer">
       
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">Windows</a><ul>
+<li><a class="reference internal" href="#set-up">Set up</a></li>
+<li><a class="reference internal" href="#without-the-launcher">Without the launcher</a></li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
       
       
     </aside>

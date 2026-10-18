@@ -480,31 +480,102 @@
         <article role="main" id="furo-main-content">
           <section id="quick-start">
 <h1>Quick Start<a class="headerlink" href="#quick-start" title="Link to this heading">¶</a></h1>
-<p>This example segments one brain MRI in a few minutes. Choose how you run FastSurfer: in a container on Linux
-(Apptainer, Singularity or Docker), with the <a class="reference internal" href="install/MACOS.html"><span class="std std-doc">macOS package</span></a>, or without installing anything in
-<a class="reference internal" href="#google-colab"><span class="std std-ref">Google Colab</span></a>. Other systems are covered in the <a class="reference internal" href="INSTALL.html"><span class="std std-doc">installation guide</span></a>.</p>
+<p>This example segments one brain MRI in a few minutes with <code class="docutils literal notranslate"><span class="pre">fastsurfer</span></code>, a launcher that runs FastSurfer with the
+same commands on Linux, Windows and macOS. It takes the flags of <code class="docutils literal notranslate"><span class="pre">run_fastsurfer.sh</span></code> and sets up the rest: on Linux,
+Windows and Intel Macs, it picks, downloads and runs the right container image; on a Mac with Apple silicon, it runs
+the installed macOS package. You can also try FastSurfer without installing anything in
+<a class="reference internal" href="#google-colab"><span class="std std-ref">Google Colab</span></a>.</p>
+<p>The launcher is meant for getting started and for single images. For larger projects, such as whole datasets or
+runs on an HPC cluster, we recommend running FastSurfer directly, which gives full control over images, paths and
+resources: see the <a class="reference internal" href="INSTALL.html"><span class="std std-doc">installation guide</span></a>, <a class="reference internal" href="CONTAINERS.html"><span class="std std-doc">Running FastSurfer in a container</span></a>, and the
+scripts for <a class="reference internal" href="../scripts/BATCH.html"><span class="std std-doc">many subjects</span></a> and for <a class="reference internal" href="../scripts/SLURM.html"><span class="std std-doc">SLURM clusters</span></a>.</p>
+<section id="set-up-your-computer">
+<h2>Set up your computer<a class="headerlink" href="#set-up-your-computer" title="Link to this heading">¶</a></h2>
+<p>Once, set up what the launcher runs FastSurfer with:</p>
+<div class="sd-tab-set docutils">
+<input checked="checked" id="sd-tab-item-0" name="sd-tab-set-0" type="radio">
+<label class="sd-tab-label" data-sync-group="tab" data-sync-id="linux" for="sd-tab-item-0">
+Linux</label><div class="sd-tab-content docutils">
+<p>FastSurfer runs in a container, with Apptainer (or its predecessor Singularity) or Docker. Check whether one of them
+works, for example:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Apptainer (with Singularity: singularity --version)</span>
+apptainer<span class="w"> </span>--version
+<span class="c1"># Docker</span>
+docker<span class="w"> </span>run<span class="w"> </span>--rm<span class="w"> </span>hello-world
+</pre></div>
+</div>
+<p>Clusters usually provide Apptainer, often as a module (<code class="docutils literal notranslate"><span class="pre">module</span> <span class="pre">load</span> <span class="pre">apptainer</span></code>, see your cluster’s documentation).
+Installing Apptainer or Docker needs administrator rights, so if neither works, ask your administrator to install
+<a class="reference external" href="https://apptainer.org/docs/admin/main/installation.html">Apptainer</a> or
+<a class="reference external" href="https://docs.docker.com/engine/install/">Docker</a>. Docker also needs:</p>
+<ul class="simple">
+<li><p>your user in the <code class="docutils literal notranslate"><span class="pre">docker</span></code> group, to run containers without <code class="docutils literal notranslate"><span class="pre">sudo</span></code> (log out and back in once you were added),</p></li>
+<li><p>for NVIDIA GPUs, the
+<a class="reference external" href="https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html">NVIDIA Container Toolkit</a>.
+Apptainer needs only the NVIDIA driver.</p></li>
+</ul>
+<p>The launcher picks the image for your NVIDIA GPU (or AMD GPU, experimental, or the CPU) and downloads it on the
+first run. <a class="reference internal" href="install/LINUX.html"><span class="std std-doc">Linux</span></a> explains the images.</p>
+</div>
+<input id="sd-tab-item-1" name="sd-tab-set-0" type="radio">
+<label class="sd-tab-label" data-sync-group="tab" data-sync-id="windows" for="sd-tab-item-1">
+Windows</label><div class="sd-tab-content docutils">
+<p>FastSurfer runs in Docker, inside WSL2, the Linux environment of Windows:</p>
+<ol class="arabic">
+<li><p>Install WSL2: open PowerShell as administrator, run <code class="docutils literal notranslate"><span class="pre">wsl</span> <span class="pre">--install</span></code>, and restart Windows. This also installs
+Ubuntu.</p></li>
+<li><p>Install <a class="reference external" href="https://docs.docker.com/desktop/install/windows-install/">Docker Desktop</a>, start it, and switch on the
+WSL integration for Ubuntu under <strong>Settings &gt; Resources &gt; WSL integration</strong>.</p></li>
+<li><p>For an NVIDIA GPU, install the latest <a class="reference external" href="https://developer.nvidia.com/cuda/wsl">NVIDIA driver for WSL</a> in Windows.</p></li>
+<li><p>Open <strong>Ubuntu</strong> from the Start menu. Run the FastSurfer commands in this terminal, not in PowerShell. Check
+Docker there, for example:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>docker<span class="w"> </span>run<span class="w"> </span>--rm<span class="w"> </span>hello-world
+</pre></div>
+</div>
+</li>
+</ol>
+<p>WSL2 gets only part of the computer’s memory; the <a class="reference internal" href="intro.html#system-requirements"><span class="std std-ref">system requirements</span></a> say how
+much FastSurfer needs, and the launcher warns if Docker has less.</p>
+<p><a class="reference internal" href="install/WINDOWS.html"><span class="std std-doc">Windows</span></a> has more details.</p>
+</div>
+<input id="sd-tab-item-2" name="sd-tab-set-0" type="radio">
+<label class="sd-tab-label" data-sync-group="tab" data-sync-id="macos" for="sd-tab-item-2">
+Mac with Apple silicon</label><div class="sd-tab-content docutils">
+<p>FastSurfer runs natively with the <a class="reference internal" href="install/MACOS.html"><span class="std std-doc">macOS package</span></a>, which uses the Mac’s GPU (M1 or newer).
+Download and install it with the button on that page, or let the launcher do it: after step 1 below,
+<code class="docutils literal notranslate"><span class="pre">./fastsurfer</span> <span class="pre">--update</span></code> downloads the package and opens the macOS Installer. macOS may block the installer, because
+it is not signed by Apple yet; <a class="reference internal" href="install/MACOS.html#install"><span class="std std-ref">Install</span></a> explains how to allow it.</p>
+</div>
+<input id="sd-tab-item-3" name="sd-tab-set-0" type="radio">
+<label class="sd-tab-label" data-sync-group="tab" data-sync-id="macos-intel" for="sd-tab-item-3">
+Intel Mac</label><div class="sd-tab-content docutils">
+<p>FastSurfer runs in Docker, on the CPU (the macOS package needs Apple silicon):</p>
+<ol class="arabic">
+<li><p>Install <a class="reference external" href="https://docs.docker.com/get-docker/">Docker Desktop for Mac</a>, start it, and under <strong>Settings &gt; Resources</strong>
+set the memory to 15 GB (or the most you have; with less than that, it may fail).</p></li>
+<li><p>Check Docker in a Terminal window, for example:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>docker<span class="w"> </span>run<span class="w"> </span>--rm<span class="w"> </span>hello-world
+</pre></div>
+</div>
+</li>
+</ol>
+</div>
+</div>
+<p>If the launcher still cannot run FastSurfer, it says what is missing and how to fix it.</p>
+</section>
 <section id="segment-an-example-image">
 <h2>Segment an example image<a class="headerlink" href="#segment-an-example-image" title="Link to this heading">¶</a></h2>
 <p>With a GPU (8 GB of graphics memory) this takes well under a minute; without one, FastSurfer uses the CPU and takes
 a few minutes longer. You can use your own T1-weighted full head MRI (0.7 to 1 mm voxel sizes, no preprocessing,
-<code class="docutils literal notranslate"><span class="pre">.nii</span></code>, <code class="docutils literal notranslate"><span class="pre">.nii.gz</span></code> or <code class="docutils literal notranslate"><span class="pre">.mgz</span></code>), or the example image the commands download.</p>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>This documents the development version 2.7.0.dev0. Official Docker images only exist for releases, so the commands below use the latest release, 2.6.0, for its default CUDA version, 13.2. Images of 2.6.0 for other CUDA versions, ROCm and CPU are available on <a class="reference external" href="https://hub.docker.com/r/deepmi/fastsurfer/tags?name=v2.6.0">Docker Hub</a>. To run the development version, <a class="reference internal" href="../developer/docker.html"><span class="doc">build your own image</span></a>.</p>
-</div>
-<div class="sd-tab-set docutils">
-<input checked="checked" id="sd-tab-item-0" name="sd-tab-set-0" type="radio">
-<label class="sd-tab-label" for="sd-tab-item-0">
-Apptainer / Singularity</label><div class="sd-tab-content docutils">
+<code class="docutils literal notranslate"><span class="pre">.nii</span></code>, <code class="docutils literal notranslate"><span class="pre">.nii.gz</span></code> or <code class="docutils literal notranslate"><span class="pre">.mgz</span></code>), or the example image the commands download. On Windows, run the commands in the
+Ubuntu terminal.</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># 0. Create a directory for this test</span>
 mkdir<span class="w"> </span>fastsurfer_test
 <span class="nb">cd</span><span class="w"> </span>fastsurfer_test
 
-<span class="c1"># 1. Build the Apptainer image from our Docker image (only the first time)</span>
-mkdir<span class="w"> </span>-p<span class="w"> </span><span class="nv">$HOME</span>/my_singularity_images
-singularity<span class="w"> </span>build<span class="w"> </span><span class="se">\</span>
-<span class="w">    </span><span class="nv">$HOME</span>/my_singularity_images/fastsurfer-cu132-v2.6.0.sif<span class="w"> </span><span class="se">\</span>
-<span class="w">    </span>docker://deepmi/fastsurfer:cu132-v2.6.0
+<span class="c1"># 1. Download the launcher (only the first time)</span>
+curl<span class="w"> </span>-fsSLO<span class="w"> </span>https://deep-mi.org/FastSurfer/dev/fastsurfer
+chmod<span class="w"> </span>+x<span class="w"> </span>fastsurfer
 
 <span class="c1"># 2. Download an example brain MRI (if you don't have your own)</span>
 <span class="c1">#    If you have your own, copy it to this directory and adjust</span>
@@ -514,84 +585,22 @@ curl<span class="w"> </span>-k<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>-o<span class="w"> </span><span class="s2">"./140_orig.mgz"</span>
 
 <span class="c1"># 3. Run FastSurfer (full brain segmentation only)</span>
-singularity<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>--nv<span class="w"> </span><span class="se">\</span>
-<span class="w">                 </span>--no-mount<span class="w"> </span>home,cwd<span class="w"> </span>-e<span class="w"> </span><span class="se">\</span>
-<span class="w">                 </span>-B<span class="w"> </span><span class="s2">"</span><span class="nv">$PWD</span><span class="s2">"</span><span class="w"> </span><span class="se">\</span>
-<span class="w">                 </span><span class="nv">$HOME</span>/my_singularity_images/fastsurfer-cu132-v2.6.0.sif<span class="w"> </span><span class="se">\</span>
-<span class="w">                 </span>/fastsurfer/run_fastsurfer.sh<span class="w"> </span><span class="se">\</span>
-<span class="w">                 </span>--t1<span class="w"> </span><span class="s2">"</span><span class="nv">$PWD</span><span class="s2">/140_orig.mgz"</span><span class="w"> </span><span class="se">\</span>
-<span class="w">                 </span>--sid<span class="w"> </span>subjectX<span class="w"> </span>--sd<span class="w"> </span><span class="s2">"</span><span class="nv">$PWD</span><span class="s2">"</span><span class="w"> </span><span class="se">\</span>
-<span class="w">                 </span>--seg_only<span class="w"> </span>--no_biasfield<span class="w"> </span>--no_cereb<span class="w"> </span>--no_hypothal
-</pre></div>
-</div>
-</div>
-<input id="sd-tab-item-1" name="sd-tab-set-0" type="radio">
-<label class="sd-tab-label" for="sd-tab-item-1">
-Docker</label><div class="sd-tab-content docutils">
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># 0. Create a directory for this test</span>
-mkdir<span class="w"> </span>fastsurfer_test
-<span class="nb">cd</span><span class="w"> </span>fastsurfer_test
-
-<span class="c1"># 1. Download an example brain MRI (if you don't have your own)</span>
-<span class="c1">#    If you have your own, copy it to this directory and adjust</span>
-<span class="c1">#    the filename after --t1 below.</span>
-curl<span class="w"> </span>-k<span class="w"> </span><span class="se">\</span>
-<span class="w">    </span>https://surfer.nmr.mgh.harvard.edu/pub/data/tutorial_data/buckner_data/tutorial_subjs/140/mri/orig.mgz<span class="w"> </span><span class="se">\</span>
-<span class="w">    </span>-o<span class="w"> </span><span class="s2">"./140_orig.mgz"</span>
-
-<span class="c1"># 2. Run FastSurfer (full brain segmentation only)</span>
-docker<span class="w"> </span>run<span class="w"> </span>--gpus<span class="w"> </span>all<span class="w"> </span>-v<span class="w"> </span><span class="s2">"</span><span class="nv">$PWD</span><span class="s2">:</span><span class="nv">$PWD</span><span class="s2">"</span><span class="w"> </span><span class="se">\</span>
-<span class="w">                      </span>--rm<span class="w"> </span>--user<span class="w"> </span><span class="k">$(</span>id<span class="w"> </span>-u<span class="k">)</span>:<span class="k">$(</span>id<span class="w"> </span>-g<span class="k">)</span><span class="w"> </span><span class="se">\</span>
-<span class="w">                      </span>deepmi/fastsurfer:cu132-v2.6.0<span class="w"> </span><span class="se">\</span>
-<span class="w">                      </span>--t1<span class="w"> </span><span class="s2">"</span><span class="nv">$PWD</span><span class="s2">/140_orig.mgz"</span><span class="w"> </span><span class="se">\</span>
-<span class="w">                      </span>--sid<span class="w"> </span>subjectX<span class="w"> </span>--sd<span class="w"> </span><span class="s2">"</span><span class="nv">$PWD</span><span class="s2">"</span><span class="w"> </span><span class="se">\</span>
-<span class="w">                      </span>--seg_only<span class="w"> </span>--no_biasfield<span class="w"> </span>--no_cereb<span class="w"> </span>--no_hypothal
-</pre></div>
-</div>
-</div>
-<input id="sd-tab-item-2" name="sd-tab-set-0" type="radio">
-<label class="sd-tab-label" for="sd-tab-item-2">
-macOS package</label><div class="sd-tab-content docutils">
-<p><a class="reference internal" href="install/MACOS.html"><span class="std std-doc">Install the package</span></a>, open the FastSurfer app from your Applications folder, and run these
-commands in the Terminal window it opens:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># 0. Create a directory for this test</span>
-mkdir<span class="w"> </span>fastsurfer_test
-<span class="nb">cd</span><span class="w"> </span>fastsurfer_test
-
-<span class="c1"># 1. Download an example brain MRI (if you don't have your own)</span>
-<span class="c1">#    If you have your own, copy it to this directory and adjust</span>
-<span class="c1">#    the filename after --t1 below.</span>
-curl<span class="w"> </span>-k<span class="w"> </span><span class="se">\</span>
-<span class="w">    </span>https://surfer.nmr.mgh.harvard.edu/pub/data/tutorial_data/buckner_data/tutorial_subjs/140/mri/orig.mgz<span class="w"> </span><span class="se">\</span>
-<span class="w">    </span>-o<span class="w"> </span><span class="s2">"./140_orig.mgz"</span>
-
-<span class="c1"># 2. Run FastSurfer (full brain segmentation only)</span>
-run_fastsurfer.sh<span class="w"> </span>--t1<span class="w"> </span><span class="s2">"</span><span class="nv">$PWD</span><span class="s2">/140_orig.mgz"</span><span class="w"> </span><span class="se">\</span>
-<span class="w">    </span>--sid<span class="w"> </span>subjectX<span class="w"> </span>--sd<span class="w"> </span><span class="s2">"</span><span class="nv">$PWD</span><span class="s2">"</span><span class="w"> </span><span class="se">\</span>
+./fastsurfer<span class="w"> </span>--t1<span class="w"> </span>140_orig.mgz<span class="w"> </span>--sid<span class="w"> </span>subjectX<span class="w"> </span>--sd<span class="w"> </span>.<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--seg_only<span class="w"> </span>--no_biasfield<span class="w"> </span>--no_cereb<span class="w"> </span>--no_hypothal
 </pre></div>
-</div>
-</div>
 </div>
 <p>That’s it, it will run the full brain segmentation. For speed, we switched off the cerebellum and hypothalamic sub-segmentation (would add a couple minutes).
 We also switched off the bias field correction, which is used to compute partial volume estimates for the statsfiles, so you might want to switch it on again if you want the volume statistics text file (under <code class="docutils literal notranslate"><span class="pre">subjectX/stats</span></code>).
 Also if you need the estimated total intracranial volume for correcting the stats, you would either need to run the surface stream or switch on the Talairach registration with
-<code class="docutils literal notranslate"><span class="pre">--tal_reg</span></code> in the segmentation module. For the full surface stream, just remove the <code class="docutils literal notranslate"><span class="pre">--seg_only</span></code>; you then need a <a class="reference internal" href="INSTALL.html#freesurfer-license"><span class="std std-ref">FreeSurfer license file</span></a> and pass it into the container, see <a class="reference internal" href="CONTAINERS.html"><span class="std std-doc">Running FastSurfer in a container</span></a>.</p>
-<p>You will find the full brain segmentation in <code class="docutils literal notranslate"><span class="pre">./subjectX/mri/aparc.DKTatlas+aseg.deep.mgz</span></code> in FreeSurfer’s MGZ file format. To convert it back to nifti (if you prefer), run <code class="docutils literal notranslate"><span class="pre">nib-convert</span></code>, which comes with FastSurfer, for example with the Singularity image (in the macOS console, call <code class="docutils literal notranslate"><span class="pre">nib-convert</span></code> directly):</p>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>This documents the development version 2.7.0.dev0. Official Docker images only exist for releases, so the commands below use the latest release, 2.6.0, for its default CUDA version, 13.2. Images of 2.6.0 for other CUDA versions, ROCm and CPU are available on <a class="reference external" href="https://hub.docker.com/r/deepmi/fastsurfer/tags?name=v2.6.0">Docker Hub</a>. To run the development version, <a class="reference internal" href="../developer/docker.html"><span class="doc">build your own image</span></a>.</p>
-</div>
+<code class="docutils literal notranslate"><span class="pre">--tal_reg</span></code> in the segmentation module. For the full surface stream, just remove the <code class="docutils literal notranslate"><span class="pre">--seg_only</span></code>; you then need a <a class="reference internal" href="INSTALL.html#freesurfer-license"><span class="std std-ref">FreeSurfer license file</span></a>: pass it with <code class="docutils literal notranslate"><span class="pre">--fs_license</span> <span class="pre">&lt;path&gt;</span></code>, or set the environment variable <code class="docutils literal notranslate"><span class="pre">FS_LICENSE</span></code> to its path, which the launcher passes on.</p>
+<p>You will find the full brain segmentation in <code class="docutils literal notranslate"><span class="pre">./subjectX/mri/aparc.DKTatlas+aseg.deep.mgz</span></code> in FreeSurfer’s MGZ file format. To convert it back to nifti (if you prefer), run <code class="docutils literal notranslate"><span class="pre">nib-convert</span></code>, which comes with FastSurfer:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Convert mgz to nifti</span>
-singularity<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>--nv<span class="w"> </span><span class="se">\</span>
-<span class="w">                 </span>--no-mount<span class="w"> </span>home<span class="w"> </span>-e<span class="w"> </span><span class="se">\</span>
-<span class="w">                 </span>-B<span class="w"> </span><span class="s2">"</span><span class="nv">$PWD</span><span class="s2">"</span><span class="w"> </span><span class="se">\</span>
-<span class="w">                 </span><span class="nv">$HOME</span>/my_singularity_images/fastsurfer-cu132-v2.6.0.sif<span class="w"> </span><span class="se">\</span>
-<span class="w">                 </span>nib-convert<span class="w"> </span><span class="s2">"</span><span class="nv">$PWD</span><span class="s2">/subjectX/mri/aparc.DKTatlas+aseg.deep.mgz"</span><span class="w"> </span><span class="se">\</span>
-<span class="w">                             </span><span class="s2">"</span><span class="nv">$PWD</span><span class="s2">/subjectX/mri/aparc.DKTatlas+aseg.deep.nii.gz"</span>
+./fastsurfer<span class="w"> </span>--exec<span class="w"> </span>nib-convert<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>subjectX/mri/aparc.DKTatlas+aseg.deep.mgz<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>subjectX/mri/aparc.DKTatlas+aseg.deep.nii.gz
 </pre></div>
 </div>
-<p>and find the segmentation in <code class="docutils literal notranslate"><span class="pre">./subjectX/mri/aparc.DKTatlas+aseg.deep.nii.gz</span></code>. If you have FreeSurfer installed, just use FreeView to look at the result (or really any other image viewer):</p>
+<p>Then find the segmentation in <code class="docutils literal notranslate"><span class="pre">./subjectX/mri/aparc.DKTatlas+aseg.deep.nii.gz</span></code>. If you have FreeSurfer installed, just use FreeView to look at the result (or really any other image viewer):</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># FreeView</span>
 freeview<span class="w"> </span>-v<span class="w"> </span>140_orig.mgz<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>subjectX/mri/aparc.DKTatlas+aseg.deep.mgz:colormap<span class="o">=</span>lut:opacity<span class="o">=</span><span class="m">0</span>.2
@@ -683,6 +692,7 @@ freeview<span class="w"> </span>-v<span class="w"> </span>140_orig.mgz<span clas
           <div class="toc-tree">
             <ul>
 <li><a class="reference internal" href="#">Quick Start</a><ul>
+<li><a class="reference internal" href="#set-up-your-computer">Set up your computer</a></li>
 <li><a class="reference internal" href="#segment-an-example-image">Segment an example image</a></li>
 <li><a class="reference internal" href="#google-colab">Google Colab</a><ul>
 <li><a class="reference internal" href="#notebook-1-quick-and-easy-fastsurfer-segmentation-with-three-clicks">Notebook 1 - Quick and Easy - FastSurfer Segmentation with three clicks</a></li>

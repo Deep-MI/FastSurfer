@@ -72,6 +72,19 @@ run_fastsurfer.sh --sd $HOME/my_fastsurfer_analysis --sid subjectX \
 
 FastSurfer uses the Apple GPU (`mps`) automatically, so no `--device` flag is needed.
 
+Without opening the console, the [launcher](../CONTAINERS.md#the-launcher) `fastsurfer` runs the installed package
+from any Terminal window, with the same flags and the same commands as on Linux:
+
+```bash
+curl -fsSLO {{ LAUNCHER_URL }}
+chmod +x fastsurfer
+./fastsurfer --seg_only --sd $HOME/my_fastsurfer_analysis --sid subjectX \
+    --t1 $HOME/my_mri_data/subjectX/t1_weighted.nii.gz
+```
+
+If several versions are installed, it asks for one, e.g. `--image 2.6.0`. `./fastsurfer --update` downloads the
+newest package and opens the installer.
+
 FreeSurfer license
 ------------------
 On macOS, FastSurfer cannot find the [FreeSurfer license](../INSTALL.md#freesurfer-license) inside the bundled
@@ -147,13 +160,16 @@ Docker (Intel Macs)
 The package does not run on Intel Macs, but Docker does, with the full pipeline on the CPU (2 to 4 times slower
 than on Apple silicon).
 
-1. Install [Docker Desktop for Mac](https://docs.docker.com/get-docker/), start it, and under
-   **Settings > Resources** set the memory to 15 GB (or the most you have; with less than that, it may fail).
-2. Download the CPU image. Open a Terminal window and run:
+```{include} setup/macos_intel.md
+:relative-docs: .
+```
 
-   ```bash
-   docker pull deepmi/fastsurfer:cpu-v{{ FASTSURFER_VERSION }}
-   ```
+Then run FastSurfer with the [launcher](../CONTAINERS.md#the-launcher), as in the [quick start](../QUICKSTART.md).
+Without it, download the CPU image:
 
-3. Run FastSurfer as in [Example 2](../EXAMPLES.md#example-2-fastsurfer-docker), with the CPU image and without
-   `--gpus all`.
+```bash
+docker pull deepmi/fastsurfer:cpu-v{{ FASTSURFER_VERSION }}
+```
+
+and run FastSurfer as in [Example 2](../EXAMPLES.md#example-2-fastsurfer-docker), with the CPU image and without
+`--gpus all`.
