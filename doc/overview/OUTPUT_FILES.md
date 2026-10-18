@@ -1,4 +1,4 @@
-Output files
+Output Files
 ============
 Segmentation module
 -------------------
