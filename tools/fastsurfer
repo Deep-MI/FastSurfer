@@ -14,22 +14,29 @@
 # limitations under the License.
 
 """
-Run FastSurfer in its container image, without writing the container command.
+Run FastSurfer with one command on every system: in its container image, or on a Mac with Apple silicon
+with the macOS package.
 
-Takes the flags of run_fastsurfer.sh (or, with --brun, of brun_fastsurfer.sh) and runs them in the
-official image with Apptainer, Singularity or Docker, whichever is installed:
+Takes the flags of run_fastsurfer.sh and runs them in the official image with Apptainer, Singularity
+or Docker, whichever is installed:
 
-    python3 fastsurfer_container.py --t1 data/t1.nii.gz --sd results --sid subject1
+    ./fastsurfer --t1 data/t1.nii.gz --sd results --sid subject1
+
+--exec runs another program of the image with the arguments after it: brun_fastsurfer.sh and
+long_fastsurfer.sh as FastSurfer itself, and any other program, e.g. --exec nib-convert in.mgz
+out.nii.gz, in the current directory.
 
 It runs the FastSurfer release image installed on the machine (the newest release if there is none,
-or the image --image names), picks the image type that fits the NVIDIA GPU and driver (or the CPU
-image), downloads it once,
+or the image --image names), picks the image type that fits the NVIDIA GPU and driver (or, without
+one, the experimental ROCm image for an AMD GPU, or the CPU image), downloads it once,
 shares every file and directory the flags name with the container at the same path, passes the
 FreeSurfer license from $FS_LICENSE if --fs_license is not given, and runs the container as the
-calling user.
+calling user. On a Mac with Apple silicon, it runs the installed macOS package instead, with the
+same choice among installed versions.
 
 Only the Python standard library is used, so this runs with the system Python of a cluster,
-without FastSurfer installed.
+without FastSurfer installed. It has no .py suffix, so a copy next to other Python code cannot
+shadow the package fastsurfer.
 """
 
 from __future__ import annotations
@@ -47,11 +54,18 @@ from pathlib import Path
 
 DOCKER_REPO = "deepmi/fastsurfer"
 DOC_URL = "https://deep-mi.org/FastSurfer/stable/overview/CONTAINERS.html"
-LAUNCHER_URL = "https://raw.githubusercontent.com/Deep-MI/FastSurfer/stable/tools/fastsurfer_container.py"
+# what to install on each system, for the messages about a missing or unusable container runtime
+SETUP_URL = "https://deep-mi.org/FastSurfer/stable/overview/QUICKSTART.html#set-up-your-computer"
+LAUNCHER_URL = "https://raw.githubusercontent.com/Deep-MI/FastSurfer/stable/tools/fastsurfer"
 # seconds to wait for Docker Hub and GitHub, so a machine without internet is not held up
 HUB_TIMEOUT = 5
 MACOS_PACKAGE_URL = "https://github.com/Deep-MI/FastSurfer/releases/latest/download/FastSurfer-macos-darwin_arm64.pkg"
 MACOS_DOC_URL = "https://deep-mi.org/FastSurfer/stable/overview/install/MACOS.html"
+# the macOS package installs into /Applications/FastSurfer<version>, with a script that sets up its
+# Python, FreeSurfer and PATH, as the console it opens does
+MACOS_APPLICATIONS = Path("/Applications")
+MACOS_SETUP = "macos_setup_fastsurfer.sh"
+GITHUB_RELEASES = "https://api.github.com/repos/Deep-MI/FastSurfer/releases"
 # the 15 GB the macOS page asks Docker to have, less what the kernel of Docker's VM keeps for itself
 MIN_DOCKER_MEMORY_GIB = 14
 
@@ -66,15 +80,30 @@ LEGACY_MAX_CAPABILITY = (9, 0)
 # the graphics memory FastSurfer needs at 0.8 mm, see the system requirements in the README
 MIN_GPU_MEMORY_GIB = 8
 
+# The ROCm images for AMD GPUs (experimental): (ROCm version as in tool.rocm of pyproject.toml, tag
+# prefix), and the GPU architectures their PyTorch is built for, from torch.cuda.get_arch_list() in it
+ROCM_BUILD = ((7, 2), "rocm7.2")
+ROCM_ARCHS = {"gfx900", "gfx906", "gfx908", "gfx90a", "gfx942", "gfx950", "gfx1030", "gfx1100", "gfx1101",
+              "gfx1102", "gfx1103", "gfx1150", "gfx1151", "gfx1200", "gfx1201"}
+# where AMD's kernel driver lists the GPUs, which the containers need, not ROCm on the host
+KFD_DEVICE = Path("/dev/kfd")
+KFD_TOPOLOGY = Path("/sys/class/kfd/kfd/topology/nodes")
+
 # flags of run_fastsurfer.sh and brun_fastsurfer.sh whose value is a file that has to exist
 INPUT_FLAGS = {"--t1", "--t2", "--lesion_mask", "--fs_license", "--subjects_list", "--subject_list"}
+# flags of long_fastsurfer.sh followed by several files that have to exist, one per time point
+MULTI_INPUT_FLAGS = {"--t1s", "--t2s"}
 # flags whose value is a file or directory FastSurfer writes, so its directory is created if missing
 OUTPUT_FLAGS = {
     "--sd", "--seg_log", "--conformed_name", "--norm_name", "--norm_name_t2", "--seg",
     "--asegdkt_segfile", "--aparc_aseg_segfile", "--asegdkt_statsfile", "--aseg_statsfile",
     "--aseg_segfile", "--mask_name", "--cereb_segfile", "--cereb_statsfile", "--hypo_segfile",
-    "--hypo_statsfile", "--statusfile",
+    "--hypo_statsfile", "--statusfile", "--log",
 }
+# the FastSurfer scripts in the image: run_fastsurfer.sh by default, the others with --exec
+RUN_SCRIPT = "/fastsurfer/run_fastsurfer.sh"
+BRUN_SCRIPT = "/fastsurfer/brun_fastsurfer.sh"
+SCRIPTS = {script.rsplit("/", 1)[-1]: script for script in (RUN_SCRIPT, BRUN_SCRIPT, "/fastsurfer/long_fastsurfer.sh")}
 
 
 class LauncherError(Exception):
@@ -92,13 +121,34 @@ class Gpu:
 
 
 @dataclass
+class AmdGpu:
+    """An AMD GPU as the kernel driver lists it, numbered as ROCm numbers the GPUs."""
+
+    index: int
+    # the architecture as (major, minor, stepping), e.g. (10, 3, 2) for gfx1032
+    version: tuple[int, int, int]
+    memory_gib: float | None = None
+
+    @property
+    def arch(self) -> str:
+        major, minor, stepping = self.version
+        return f"gfx{major}{minor:x}{stepping:x}"
+
+
+@dataclass
 class Build:
-    """The image build to run, whether the container gets GPUs, and which (None for all)."""
+    """
+    The image build to run, whether the container gets GPUs, and which (None for all).
+
+    `amd` marks the GPUs as AMD GPUs, and `env` holds the variables the container needs for them.
+    """
 
     prefix: str
     gpu: bool
     notes: list[str] = field(default_factory=list)
     devices: list[int] | None = None
+    amd: bool = False
+    env: list[str] = field(default_factory=list)
 
 
 def parse_version(version: str) -> tuple[int, ...] | None:
@@ -356,7 +406,7 @@ def gpu_request(args: list[str], brun: bool = False) -> tuple[str, list[int] | N
     several = [v for v in cuda if v.startswith("cuda:") and not re.fullmatch(r"cuda:\d+", v)]
     if several and not brun:
         raise LauncherError(f"{several[0]}: run_fastsurfer.sh uses one GPU, e.g. cuda:1. Lists and ranges of "
-                            f"GPUs are for processing several subjects with --brun.")
+                            f"GPUs are for processing several subjects with --exec brun_fastsurfer.sh.")
     named = [i for v in cuda for i in (cuda_indices(v) or [])]
     if named and values[0] in ("auto", "cuda"):
         # only the view aggregation names a GPU; the segmentation then runs on the first one
@@ -419,6 +469,142 @@ def plan_build_for_type(args: list[str], gpus: list[Gpu], brun: bool, image_type
                  devices=[gpu.index for gpu in chosen])
 
 
+def _properties(path: Path) -> dict[str, str]:
+    """A properties file of the kernel driver's topology, lines of "<name> <value>"."""
+    return dict(line.split()[:2] for line in path.read_text().splitlines() if len(line.split()) >= 2)
+
+
+def query_amd_gpus(device: Path = KFD_DEVICE, topology: Path = KFD_TOPOLOGY) -> list[AmdGpu]:
+    """
+    The AMD GPUs, from the kernel driver's topology, in the order ROCm numbers them; empty without the
+    driver. The topology also lists the CPUs, as nodes without a GPU architecture.
+    """
+    if not device.exists() or not topology.is_dir():
+        return []
+    gpus = []
+    for node in sorted((n for n in topology.iterdir() if n.name.isdigit()), key=lambda n: int(n.name)):
+        try:
+            target = int(_properties(node / "properties").get("gfx_target_version", "0"))
+            banks = sorted((node / "mem_banks").iterdir()) if (node / "mem_banks").is_dir() else []
+            sizes = [int(_properties(bank / "properties").get("size_in_bytes", "0")) for bank in banks]
+        except (OSError, ValueError):
+            continue
+        if target:
+            # e.g. 100302 for gfx1032
+            version = (target // 10000, target // 100 % 100, target % 100)
+            gpus.append(AmdGpu(len(gpus), version, sum(sizes) / 2**30 if sizes else None))
+    return gpus
+
+
+def amd_override(gpu: AmdGpu) -> str | None:
+    """
+    The HSA_OVERRIDE_GFX_VERSION that makes the ROCm image run on this GPU: "" if it needs none, the version
+    of the first architecture of its family if the image supports that one (e.g. 10.3.0 for gfx1032), and
+    None if the image does not support the GPU.
+    """
+    if gpu.arch in ROCM_ARCHS:
+        return ""
+    major, minor, _ = gpu.version
+    if AmdGpu(gpu.index, (major, minor, 0)).arch in ROCM_ARCHS:
+        return f"{major}.{minor}.0"
+    return None
+
+
+def describe_amd(gpu: AmdGpu) -> str:
+    """E.g. "GPU 0 (gfx1100, 24 GB)"."""
+    memory = f", {gpu.memory_gib:.0f} GB" if gpu.memory_gib is not None else ""
+    return f"GPU {gpu.index} ({gpu.arch}{memory})"
+
+
+def plan_amd_build(args: list[str], gpus: list[AmdGpu], brun: bool, image_type: str = ROCM_BUILD[1]) -> Build:
+    """
+    The ROCm image and the AMD GPUs for these arguments (experimental).
+
+    As for NVIDIA GPUs, named GPUs are used as named, and otherwise the one with the most memory; with
+    brun_fastsurfer.sh, every GPU that runs with the same HSA_OVERRIDE_GFX_VERSION, as it applies to all.
+    """
+    use, named = gpu_request(args, brun)
+    if use == "cpu":
+        return Build(image_type, False)
+    if named is not None:
+        by_index = {gpu.index: gpu for gpu in gpus}
+        missing = [i for i in named if i not in by_index]
+        if missing:
+            raise LauncherError(f"There is no AMD GPU {missing[0]}, the driver lists {len(gpus)}.")
+        chosen = [by_index[i] for i in named]
+        unsupported = [gpu for gpu in chosen if amd_override(gpu) is None]
+        if unsupported:
+            raise LauncherError(f"The ROCm image does not support the AMD {describe_amd(unsupported[0])}.")
+        if len({amd_override(gpu) for gpu in chosen}) > 1:
+            raise LauncherError("The named AMD GPUs are of different kinds, which cannot run together; name GPUs "
+                                "of one kind.")
+        devices = None
+    else:
+        supported = [gpu for gpu in gpus if amd_override(gpu) is not None]
+        if not supported:
+            reason = ("No AMD GPU found" if not gpus else
+                      f"The ROCm image supports none of the AMD GPUs here ({', '.join(map(describe_amd, gpus))})")
+            if use == "cuda":
+                raise LauncherError(f"{reason}.")
+            return Build(image_type, False, [f"{reason}, so FastSurfer runs on the CPU."])
+        best = max(supported, key=lambda gpu: ((gpu.memory_gib or 0) >= MIN_GPU_MEMORY_GIB, gpu.memory_gib or 0))
+        chosen = [gpu for gpu in supported if amd_override(gpu) == amd_override(best)] if brun else [best]
+        devices = [gpu.index for gpu in chosen]
+    override = amd_override(chosen[0])
+    notes = [f"Using the AMD {', '.join(map(describe_amd, chosen))} with the ROCm image, which is experimental; "
+             f"--device cpu runs on the CPU instead."]
+    env = []
+    if override:
+        env.append(f"HSA_OVERRIDE_GFX_VERSION={override}")
+        family = AmdGpu(0, chosen[0].version[:2] + (0,)).arch
+        notes.append(f"The ROCm image is not built for {chosen[0].arch}, so it runs the GPU as {family} "
+                     f"(HSA_OVERRIDE_GFX_VERSION={override}), which works for many GPUs of this family.")
+    return Build(image_type, True, notes, devices, amd=True, env=env)
+
+
+def plan_image_build(kind: str, value: str, request: list[str], gpus: list[Gpu], amd_gpus: list[AmdGpu],
+                     brun: bool) -> Build:
+    """
+    The image type and the GPUs for what --image names (see parse_image_spec) and these arguments.
+
+    AMD GPUs (experimental) are used for a ROCm image, named with --image, and when there is no NVIDIA GPU.
+    A ROCm image without a usable AMD GPU runs on the CPU, unless a GPU is requested. An own image (a Docker
+    image or .sif file) gets the GPUs of this machine: the AMD ones if its name says ROCm or there is no
+    NVIDIA GPU, else the NVIDIA ones.
+    """
+    custom = kind in ("sif", "docker")
+    image_type = RELEASE_TAG.fullmatch(value).group(1) if kind in ("tag", "release") else None
+    wants_gpu = gpu_request(request, brun)[0] != "cpu"
+    amd_runs = any(amd_override(gpu) is not None for gpu in amd_gpus)
+    rocm = kind == "rocm" or (image_type or "").startswith("rocm") or (custom and "rocm" in value.lower())
+    if rocm or (custom and amd_gpus and not gpus and wants_gpu):
+        build = plan_amd_build(request, amd_gpus, brun, image_type or ROCM_BUILD[1])
+        if custom:
+            build.prefix = "custom"
+        return build
+    if custom:
+        return Build("custom", wants_gpu and bool(gpus))
+    if kind in ("tag", "release"):
+        return plan_build_for_type(request, gpus, brun, image_type)
+    if not gpus and amd_runs and wants_gpu:
+        return plan_amd_build(request, amd_gpus, brun)
+    build = plan_build(request, gpus, brun)
+    if gpus and amd_runs:
+        build.notes.append("This machine also has an AMD GPU; --image rocm runs FastSurfer on it instead "
+                           "(experimental).")
+    elif amd_gpus and not amd_runs:
+        build.notes.append(f"The ROCm image supports none of the AMD GPUs here "
+                           f"({', '.join(map(describe_amd, amd_gpus))}).")
+    return build
+
+
+def amd_device_groups(device: Path = KFD_DEVICE, dri: Path = Path("/dev/dri")) -> list[int]:
+    """The groups that own the devices of AMD GPUs, which a Docker container running as the user needs."""
+    # the render nodes of the GPUs
+    paths = [device] + (sorted(dri.glob("render*")) if dri.is_dir() else [])
+    return sorted({path.stat().st_gid for path in paths if path.exists()})
+
+
 def image_reference(prefix: str, version: str) -> str:
     """The Docker image to run, e.g. deepmi/fastsurfer:cu132-v2.6.0."""
     return f"{DOCKER_REPO}:{prefix}-v{version}"
@@ -427,6 +613,26 @@ def image_reference(prefix: str, version: str) -> str:
 RELEASE_TAG = re.compile(r"([a-z0-9.]+)-v(\d+\.\d+\.\d+)")
 # official Apptainer images are named fastsurfer-<tag>.sif, as in the documentation
 SIF_PREFIX = DOCKER_REPO.rsplit("/", 1)[-1] + "-"
+
+
+# the root certificates macOS ships; Python from python.org has none of its own until its "Install
+# Certificates" script runs, and fails every HTTPS request until then
+SYSTEM_CA_FILE = "/etc/ssl/cert.pem"
+
+
+def open_url(url: str):
+    """urllib's urlopen, retried with the system's certificates if Python cannot verify the server."""
+    import ssl
+    import urllib.error
+    import urllib.request
+
+    try:
+        return urllib.request.urlopen(url, timeout=HUB_TIMEOUT)
+    except urllib.error.URLError as error:
+        if not isinstance(error.reason, ssl.SSLCertVerificationError) or not os.path.isfile(SYSTEM_CA_FILE):
+            raise
+    context = ssl.create_default_context(cafile=SYSTEM_CA_FILE)
+    return urllib.request.urlopen(url, timeout=HUB_TIMEOUT, context=context)
 
 
 def hub_tags() -> dict[str, set[str]] | None:
@@ -438,13 +644,12 @@ def hub_tags() -> dict[str, set[str]] | None:
     recorded.
     """
     import json
-    import urllib.request
 
     url = f"https://hub.docker.com/v2/repositories/{DOCKER_REPO}/tags?page_size=100&name=-v"
     tags: dict[str, set[str]] = {}
     try:
         while url and len(tags) < 2000:
-            with urllib.request.urlopen(url, timeout=HUB_TIMEOUT) as response:
+            with open_url(url) as response:
                 page = json.load(response)
             for result in page.get("results", []):
                 digests = {result.get("digest")} | {image.get("digest") for image in result.get("images", [])}
@@ -496,6 +701,14 @@ def sif_path(image_dir: Path, tag: str) -> Path:
     return image_dir / f"{SIF_PREFIX}{tag}.sif"
 
 
+def converted_sif(image_dir: Path, reference: str) -> Path:
+    """
+    Where the Apptainer image converted from another Docker image is kept, named after its full reference,
+    e.g. docker-myrepo_fastsurfer-cu132.sif, so it cannot take the place of an official release image.
+    """
+    return image_dir / f"docker-{re.sub(r'[/:@]', lambda m: '_' if m.group() == '/' else '-', reference)}.sif"
+
+
 def _recorded(sif: Path) -> str:
     """What the launcher wrote next to an image it built: the digest or image ID of its source, or ""."""
     record = sif.with_name(sif.name + ".digest")
@@ -516,12 +729,17 @@ def parse_image_spec(spec: str | None) -> tuple[str, str]:
     Returns
     -------
     tuple[str, str]
-        ("auto", "") without --image, ("version", "2.6.0"), ("tag", "cu132-v2.6.0") for a release tag,
-        ("release", "cu132-v2.6.0") for the full reference deepmi/fastsurfer:cu132-v2.6.0, ("sif", path)
-        for an Apptainer file and ("docker", reference) for any other Docker image.
+        ("auto", "") without --image, ("rocm", "") for the newest ROCm image, ("version", "2.6.0"),
+        ("tag", "cu132-v2.6.0") for a release tag, ("release", "cu132-v2.6.0") for the full reference
+        deepmi/fastsurfer:cu132-v2.6.0, ("sif", path) for an Apptainer file, ("macos", folder) for a macOS
+        package and ("docker", reference) for any other Docker image.
     """
     if not spec:
         return "auto", ""
+    if spec == "rocm":
+        return "rocm", ""
+    if (Path(spec).expanduser() / MACOS_SETUP).is_file():
+        return "macos", str(Path(spec).expanduser().resolve())
     if spec.endswith(".sif"):
         return "sif", spec
     if parse_version(spec):
@@ -562,7 +780,8 @@ def _apptainer_runtime(runtime: str, installed: set[str]) -> str | None:
 def decide_image(kind: str, value: str, prefix: str, runtime: str, installed: set[str],
                  docker_images: dict[str, str] | None, sif_images: dict[str, str],
                  hub: dict[str, set[str]] | None, image_dir: Path, update: bool,
-                 local_id: str | None = None, gpus: list[Gpu] | None = None) -> ImagePlan:
+                 local_id: str | None = None, gpus: list[Gpu] | None = None,
+                 other_program: bool = False) -> ImagePlan:
     """
     Which image to run, with which runtime, and whether it has to be downloaded or built first.
 
@@ -597,6 +816,9 @@ def decide_image(kind: str, value: str, prefix: str, runtime: str, installed: se
     gpus : list[Gpu], None
         The GPUs the run will use, to tell which installed images run here; empty for a run on the CPU.
         None counts only images of type `prefix`.
+    other_program : bool, default=False
+        For a program other than FastSurfer (--exec), whose results do not depend on the image: use the
+        newest of several installed images instead of stopping, and give no advice on keeping the image.
     """
     apptainer = _apptainer_runtime(runtime, installed)
     docker_images = docker_images or {}
@@ -654,7 +876,7 @@ def decide_image(kind: str, value: str, prefix: str, runtime: str, installed: se
         if runtime == "docker" or (runtime == "auto" and (local_id is not None or apptainer is None)):
             return ImagePlan(require("docker"), value, pull=update)
         # Apptainer runs a Docker image as a .sif file, converted from the local Docker if it is there
-        sif = image_dir / (value.rsplit("/", 1)[-1].replace(":", "-") + ".sif")
+        sif = converted_sif(image_dir, value)
         source = f"docker-daemon://{value}" if local_id else f"docker://{value}"
         stale = sif.is_file() and local_id is not None and _recorded(sif) != local_id
         build = update or not sif.is_file() or stale
@@ -675,6 +897,10 @@ def decide_image(kind: str, value: str, prefix: str, runtime: str, installed: se
     candidates = sorted({t for t in [*docker_images, *sif_images]
                          if (m := RELEASE_TAG.fullmatch(t)) and runs_here(m.group(1))},
                         key=lambda t: (parse_version(t.rsplit("-v", 1)[-1]), t))
+    # a runtime named with --runtime counts its own images, and the others only if it has none
+    own_store = {"docker": docker_images, "apptainer": sif_images, "singularity": sif_images}.get(runtime)
+    if own_store is not None and any(t in own_store for t in candidates):
+        candidates = [t for t in candidates if t in own_store]
     newest = newest_version(list(hub), prefix) if hub is not None else None
     if update or not candidates:
         if newest is None:
@@ -697,6 +923,11 @@ def decide_image(kind: str, value: str, prefix: str, runtime: str, installed: se
         if newest is not None and parse_version(newest) > parse_version(version):
             plan.notes.append(("INFO", f"FastSurfer {newest} is available ({prefix}-v{newest}); --update "
                                        f"switches to it."))
+    elif other_program:
+        tag = candidates[-1]
+        plan = place_release(tag, checked=True)
+        plan.notes.append(("INFO", f"Several FastSurfer images are installed, this uses the newest, {tag}; "
+                                   f"choose another with --image <tag>."))
     else:
         def stores(t: str) -> str:
             return " and ".join(s for s, has in (("Docker", t in docker_images), ("Apptainer", t in sif_images)) if has)
@@ -711,8 +942,9 @@ def decide_image(kind: str, value: str, prefix: str, runtime: str, installed: se
             hint = f"e.g. --image {candidates[-1]}"
         raise LauncherError(f"Several FastSurfer images that run here are installed: {'; '.join(where)}. Choose "
                             f"one with --image <tag>, {hint}.")
-    plan.notes.insert(0, ("INFO", f"Running FastSurfer {plan.tag.rsplit('-v', 1)[-1]} ({plan.tag}). For a study, "
-                                  f"keep this image with --image {plan.tag}."))
+    if not other_program:
+        plan.notes.insert(0, ("INFO", f"Running FastSurfer {plan.tag.rsplit('-v', 1)[-1]} ({plan.tag}). For a "
+                                      f"study, keep this image with --image {plan.tag}."))
     return plan
 
 
@@ -756,7 +988,7 @@ def plan_paths(args: list[str], cwd: Path, create: bool = True) -> tuple[list[st
     Parameters
     ----------
     args : list[str]
-        The arguments for run_fastsurfer.sh or brun_fastsurfer.sh.
+        The arguments for run_fastsurfer.sh, brun_fastsurfer.sh or long_fastsurfer.sh.
     cwd : Path
         The directory relative paths are relative to.
     create : bool, default=True
@@ -785,6 +1017,15 @@ def plan_paths(args: list[str], cwd: Path, create: bool = True) -> tuple[list[st
                 mounts.extend(_subjects_list_mounts(path, create))
             out.append(str(path))
             i += 1
+        elif flag in MULTI_INPUT_FLAGS:
+            # long_fastsurfer.sh: one path per time point, until the next flag
+            while i < len(args) and not args[i].startswith("-"):
+                path = _absolute(args[i], cwd)
+                if not path.exists():
+                    raise LauncherError(f"{flag} {args[i]}: no such file.")
+                mounts.extend(_link_directories(path))
+                out.append(str(path))
+                i += 1
         elif flag == "--subjects":
             # brun_fastsurfer.sh: <subject_id>=<t1_path> ... until the next flag
             while i < len(args) and not args[i].startswith("--"):
@@ -798,6 +1039,27 @@ def plan_paths(args: list[str], cwd: Path, create: bool = True) -> tuple[list[st
                 out.append(f"{subject}={path}")
                 i += 1
     return out, mounts
+
+
+def exec_mounts(args: list[str], cwd: Path) -> list[Path]:
+    """
+    The directories to share for any program: the current directory, where it runs, and those of its
+    absolute paths, also in `--flag=/path` form.
+
+    An absolute path that exists is shared like an input, one whose directory exists like an output;
+    any other argument is not taken for a path. Relative paths only work inside the current directory.
+    """
+    mounts = [cwd]
+    for arg in args:
+        value = arg.partition("=")[2] if arg.startswith("-") else arg
+        if not os.path.isabs(value):
+            continue
+        path = Path(os.path.normpath(value))
+        if path.exists():
+            mounts.extend(_link_directories(path))
+        elif path.parent.is_dir():
+            mounts.append(path.parent)
+    return mounts
 
 
 def _subjects_list_mounts(subjects_list: Path, create: bool = True) -> list[Path]:
@@ -863,35 +1125,60 @@ def runtime_too_old(version_text: str) -> str | None:
 CUDA_ORDER = "CUDA_DEVICE_ORDER=PCI_BUS_ID"
 
 
-def apptainer_command(runtime: str, sif: Path, gpu: bool, mounts: list[Path], script: str,
-                      args: list[str], extra: list[str], devices: list[int] | None = None) -> list[str]:
-    """The Apptainer/Singularity command, showing only `devices` if given; the home directory is not mounted."""
+def _gpu_env(amd: bool, devices: list[int] | None, env: list[str] | None) -> list[str]:
+    """The environment variables that select the GPUs in the container, for NVIDIA or AMD GPUs."""
+    variables = list(env or []) if amd else [CUDA_ORDER]
+    if devices is not None:
+        variables.append(f"{'HIP' if amd else 'CUDA'}_VISIBLE_DEVICES={','.join(map(str, devices))}")
+    return [arg for variable in variables for arg in ("--env", variable)]
+
+
+def apptainer_command(runtime: str, sif: Path, gpu: bool, mounts: list[Path], program: str,
+                      args: list[str], extra: list[str], devices: list[int] | None = None,
+                      workdir: Path | None = None, amd: bool = False, env: list[str] | None = None) -> list[str]:
+    """
+    The Apptainer/Singularity command running `program`, showing only `devices` if given and starting in
+    `workdir` if given; the home directory is not mounted. `amd` gives it AMD GPUs instead of NVIDIA ones,
+    with the variables in `env`.
+    """
     cmd = [runtime, "exec"]
     if gpu:
-        cmd += ["--nv", "--env", CUDA_ORDER]
-        if devices is not None:
-            cmd += ["--env", f"CUDA_VISIBLE_DEVICES={','.join(map(str, devices))}"]
+        cmd += ["--rocm" if amd else "--nv"] + _gpu_env(amd, devices, env)
     cmd += ["--no-mount", "home,cwd", "-e"]
     for mount in mounts:
         cmd += ["-B", str(mount)]
-    return cmd + extra + [str(sif), f"/fastsurfer/{script}"] + args
+    if workdir is not None:
+        cmd += ["--pwd", str(workdir)]
+    return cmd + extra + [str(sif), program] + args
 
 
-def docker_command(image: str, gpu: bool, mounts: list[Path], script: str, args: list[str],
+def docker_command(image: str, gpu: bool, mounts: list[Path], program: str, args: list[str],
                    extra: list[str], user: str, emulate: bool = False, devices: list[int] | None = None,
-                   ) -> list[str]:
+                   workdir: Path | None = None, interactive: bool = False, amd: bool = False,
+                   env: list[str] | None = None, groups: list[int] | None = None, tty: bool = False) -> list[str]:
     """
-    The Docker command, running as the calling user and showing only `devices` if given.
+    The Docker command running `program`, as the calling user, showing only `devices` if given and
+    starting in `workdir` if given.
 
-    `emulate` runs the Intel image on Apple silicon.
+    `emulate` runs the Intel image on Apple silicon; `interactive` passes the input on (-i), and `tty`
+    gives the program a terminal (-t), e.g. for a shell. `amd` gives it AMD GPUs instead of NVIDIA ones,
+    with the variables in `env` and the user in `groups`, the groups that own the GPU devices.
     """
     # --init: the image's entrypoint is a shell, which as the first process ignores Ctrl-C and the
     # signal a cancelled cluster job sends; tini passes them to all of FastSurfer's processes instead
     cmd = ["docker", "run", "--rm", "--init", "--env", "TINI_KILL_PROCESS_GROUP=1", "--user", user]
-    if gpu:
+    if interactive or tty:
+        cmd += ["-i" + ("t" if tty else "")]
+    if gpu and amd:
+        # the devices of the kernel driver, and the shared memory settings of AMD's documented PyTorch command
+        cmd += ["--device", "/dev/kfd", "--device", "/dev/dri", "--ipc=host", "--shm-size", "8G"]
+        for group in groups or []:
+            cmd += ["--group-add", str(group)]
+        cmd += _gpu_env(True, devices, env)
+    elif gpu:
         # the quotes are part of the value: without them, Docker splits a list of devices at the comma
         selection = "all" if devices is None else f'"device={",".join(map(str, devices))}"'
-        cmd += ["--gpus", selection, "--env", CUDA_ORDER]
+        cmd += ["--gpus", selection] + _gpu_env(False, None, None)
     if emulate:
         cmd += ["--platform", "linux/amd64"]
     if platform.system() == "Linux" and Path("/etc/localtime").exists():
@@ -899,11 +1186,98 @@ def docker_command(image: str, gpu: bool, mounts: list[Path], script: str, args:
         cmd += ["-v", "/etc/localtime:/etc/localtime:ro"]
     for mount in mounts:
         cmd += ["-v", f"{mount}:{mount}"]
+    if workdir is not None:
+        cmd += ["-w", str(workdir)]
     cmd += extra
-    if script != "run_fastsurfer.sh":
-        # the image's entrypoint runs run_fastsurfer.sh; keep its environment setup for the other scripts
-        return cmd + ["--entrypoint", "/fastsurfer/tools/Docker/entrypoint.sh", image, f"/fastsurfer/{script}"] + args
+    if program != RUN_SCRIPT:
+        # the image's entrypoint runs run_fastsurfer.sh; keep its environment setup for other programs
+        return cmd + ["--entrypoint", "/fastsurfer/tools/Docker/entrypoint.sh", image, program] + args
     return cmd + [image] + args
+
+
+def macos_packages(applications: Path = MACOS_APPLICATIONS) -> dict[str, Path]:
+    """The installed macOS packages of FastSurfer releases, by version: {"2.6.0": /Applications/FastSurfer2.6.0}."""
+    packages = {}
+    for setup in applications.glob(f"FastSurfer*/{MACOS_SETUP}"):
+        version = setup.parent.name[len("FastSurfer"):]
+        if parse_version(version) is not None:
+            packages[version] = setup.parent
+    return packages
+
+
+def decide_macos_package(kind: str, value: str, packages: dict[str, Path], newest: str | None,
+                         other_program: bool = False) -> tuple[Path, list[tuple[str, str]]]:
+    """
+    The macOS package to run, and notes for the user, with the rules for container images: one installed
+    release runs, several stop the launcher (a program other than FastSurfer takes the newest), --image
+    <version> chooses one, and --image <folder> names a package directly.
+
+    Parameters
+    ----------
+    kind, value : str
+        What --image names, see parse_image_spec.
+    packages : dict[str, Path]
+        The installed packages, see macos_packages.
+    newest : str, None
+        The newest release, None if Docker Hub cannot be reached.
+    other_program : bool, default=False
+        For a program other than FastSurfer (--exec), whose results do not depend on the version.
+    """
+    install = "--update downloads it and opens the macOS Installer"
+    if kind == "macos":
+        return Path(value), []
+    if kind not in ("auto", "version"):
+        raise LauncherError(f"--image {value or kind} names a container image, but on a Mac with Apple silicon "
+                            f"FastSurfer runs from the macOS package, and --image <version> chooses an installed one. "
+                            f"To run the image in Docker under emulation, which is much slower, pass --runtime docker.")
+    notes = []
+    if kind == "version":
+        if value not in packages:
+            raise LauncherError(f"FastSurfer {value} is not installed as a macOS package; {install}.")
+        version = value
+    else:
+        versions = sorted(packages, key=parse_version)
+        if not versions:
+            raise LauncherError(f"FastSurfer is not installed. On a Mac with Apple silicon, it runs from the macOS "
+                                f"package: {install}, or download it from {MACOS_PACKAGE_URL} (see {MACOS_DOC_URL}).")
+        version = versions[-1]
+        if len(versions) > 1 and not other_program:
+            raise LauncherError(f"Several FastSurfer macOS packages are installed: {', '.join(reversed(versions))}. "
+                                f"Choose one with --image <version>, e.g. --image {version}, the newest installed.")
+        if len(versions) > 1:
+            notes.append(("INFO", f"Several FastSurfer macOS packages are installed, this uses the newest, {version}; "
+                                  f"choose another with --image <version>."))
+        if newest is not None and parse_version(newest) > parse_version(version):
+            notes.append(("INFO", f"FastSurfer {newest} is available; {install}."))
+    if not other_program:
+        notes.insert(0, ("INFO", f"Running FastSurfer {version} (the macOS package in {packages[version]}). For a "
+                                 f"study, keep this version with --image {version}."))
+    return packages[version], notes
+
+
+def macos_package_download(version: str | None) -> tuple[str, str, str]:
+    """The version, download URL and file name of the macOS package of a release (the newest if None)."""
+    import json
+
+    url = f"{GITHUB_RELEASES}/tags/v{version}" if version else f"{GITHUB_RELEASES}/latest"
+    try:
+        with open_url(url) as response:
+            release = json.load(response)
+    except (OSError, ValueError) as error:
+        raise LauncherError(f"Could not find the macOS package{f' of FastSurfer {version}' if version else ''} on "
+                            f"GitHub: {error}") from error
+    # the file name differs between releases, e.g. FastSurfer254-macos-darwin_arm64.pkg
+    assets = [asset for asset in release.get("assets", [])
+              if re.fullmatch(r"FastSurfer\w*-macos-darwin_arm64\.pkg", asset.get("name", ""))]
+    if not assets:
+        raise LauncherError(f"FastSurfer {release.get('tag_name', version)} has no macOS package.")
+    return release["tag_name"].lstrip("v"), assets[0]["browser_download_url"], assets[0]["name"]
+
+
+def macos_command(home: Path, program: str, args: list[str]) -> list[str]:
+    """The command running `program` with the macOS package in `home`, set up as in the console it opens."""
+    setup = 'source "$1" > /dev/null; shift; exec "$@"'
+    return ["/bin/bash", "-c", setup, "bash", str(home / MACOS_SETUP), program] + args
 
 
 def is_apple_silicon() -> bool:
@@ -919,17 +1293,60 @@ def is_apple_silicon() -> bool:
     return out.stdout.strip() == "1"
 
 
-def docker_memory_gib() -> float:
-    """The memory Docker's containers can use; on macOS and Windows, that of Docker's VM."""
+def is_wsl() -> bool:
+    """Whether this is Linux in WSL2 on Windows, whose kernel names Microsoft."""
+    return platform.system() == "Linux" and "microsoft" in platform.release().lower()
+
+
+def no_runtime_message(system: str, wsl: bool) -> str:
+    """What to install when neither Apptainer, Singularity nor Docker is, on this system."""
+    if system == "Darwin":
+        return f"Docker is not installed. On an Intel Mac, FastSurfer runs in Docker Desktop, see {SETUP_URL}."
+    if wsl:
+        return (f"Docker is not available in this WSL distribution. Install Docker Desktop in Windows and switch on "
+                f"its WSL integration for this distribution (Settings > Resources > WSL integration), see {SETUP_URL}.")
+    return (f"Neither Apptainer, Singularity nor Docker is installed. On a cluster, Apptainer is often a module "
+            f"(module load apptainer); otherwise an administrator installs Apptainer or Docker, see {SETUP_URL}.")
+
+
+def docker_problem(error: str, system: str, wsl: bool) -> str:
+    """What to do when `docker info` fails with this error, on this system."""
+    lowered = error.lower()
+    desktop = system == "Darwin" or wsl
+    if "could not be found in this wsl" in lowered:
+        return (f"Docker Desktop's WSL integration is off for this distribution: switch it on under Settings > "
+                f"Resources > WSL integration, see {SETUP_URL}.")
+    if "permission denied" in lowered and not desktop:
+        return (f"Docker is installed, but this user may not use it: an administrator adds you to the docker group, "
+                f"then log out and back in, see {SETUP_URL}.")
+    if "cannot connect to the docker daemon" in lowered or "is the docker daemon running" in lowered:
+        if desktop:
+            return "Docker is installed, but not running: start Docker Desktop."
+        return "Docker is installed, but its service is not running: an administrator starts it."
+    reason = (error.strip().splitlines() or ["docker info failed"])[-1]
+    return f"Docker is installed, but does not work: {reason}"
+
+
+def docker_info() -> tuple[float, set[str]]:
+    """
+    The memory Docker's containers can use (on macOS and Windows, that of Docker's VM) and the runtimes Docker
+    knows, e.g. nvidia with the NVIDIA Container Toolkit; stops with what to do if Docker cannot be used.
+    """
+    import json
+
     try:
-        out = subprocess.run(["docker", "info", "--format", "{{.MemTotal}}"],
+        out = subprocess.run(["docker", "info", "--format", "{{.MemTotal}} {{json .Runtimes}}"],
                              capture_output=True, text=True, timeout=60)
     except (OSError, subprocess.SubprocessError) as error:
         raise LauncherError(f"Could not ask Docker for its settings: {error}") from error
     if out.returncode != 0:
-        reason = (out.stderr.strip().splitlines() or ["docker info failed"])[-1]
-        raise LauncherError(f"Docker is installed, but not running: {reason}")
-    return int(out.stdout.strip()) / 2**30
+        raise LauncherError(docker_problem(out.stderr or out.stdout, platform.system(), is_wsl()))
+    memory, _, runtimes = out.stdout.strip().partition(" ")
+    try:
+        names = set(json.loads(runtimes or "{}"))
+    except ValueError:
+        names = set()
+    return int(memory) / 2**30, names
 
 
 def _last_value(args: list[str], flag: str) -> str | None:
@@ -992,10 +1409,8 @@ def build_image(command: list[str], anonymous: bool = False) -> bool:
 
 def stable_launcher() -> bytes | None:
     """The launcher on the stable branch, which knows the images of the newest release; None if unreachable."""
-    import urllib.request
-
     try:
-        with urllib.request.urlopen(LAUNCHER_URL, timeout=HUB_TIMEOUT) as response:
+        with open_url(LAUNCHER_URL) as response:
             return response.read()
     except OSError:
         return None
@@ -1029,47 +1444,267 @@ def update_launcher() -> int:
 
 def make_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        prog="fastsurfer_container.py",
+        prog="fastsurfer",
         description=__doc__.split("\n\n")[0].strip(),
         epilog=(
-            "All other arguments are passed to run_fastsurfer.sh (or brun_fastsurfer.sh), see "
-            "https://deep-mi.org/FastSurfer/stable/scripts/RUN_FASTSURFER.html. Relative paths are "
+            "All other arguments are passed to run_fastsurfer.sh (or brun_fastsurfer.sh, long_fastsurfer.sh), "
+            "see https://deep-mi.org/FastSurfer/stable/scripts/RUN_FASTSURFER.html. Relative paths are "
             "relative to the current directory."
         ),
         allow_abbrev=False,
     )
     parser.add_argument("--image",
                         help="the image to run: a release tag such as cu132-v2.6.0 (to keep a study on one "
-                             "image), a version such as 2.6.0 (the image type is chosen for this machine), a "
-                             "Docker image (e.g. my_fastsurfer:cu132) or an Apptainer .sif file. Default: the "
-                             "release image installed on this machine, or the newest release if there is none")
+                             "image), a version such as 2.6.0 (the image type is chosen for this machine), rocm "
+                             "for the ROCm image on an AMD GPU (experimental; used without --image when there is "
+                             "no NVIDIA GPU), a Docker image (e.g. my_fastsurfer:cu132) or an Apptainer .sif file. "
+                             "On a Mac with Apple silicon, the version of the macOS package (e.g. 2.6.0) or its "
+                             "folder. Default: the release installed on this machine, or the newest release if "
+                             "there is none")
     parser.add_argument("--update", action="store_true",
                         help="download the newest release (or the one --image names) again, even if an image "
-                             "is installed, and run it")
+                             "is installed, and run it. On a Mac with Apple silicon, download the macOS package and "
+                             "open the macOS Installer")
     parser.add_argument("--update_launcher", action="store_true",
                         help="replace this launcher with the current one and stop")
-    parser.add_argument("--runtime", choices=["auto", "apptainer", "singularity", "docker"], default="auto",
-                        help="the container runtime (default: auto, the one that has the image, else Apptainer, "
-                             "Singularity, then Docker)")
+    parser.add_argument("--runtime", choices=["auto", "apptainer", "singularity", "docker", "macos"], default="auto",
+                        help="what runs FastSurfer (default: auto, on a Mac with Apple silicon the macOS package, "
+                             "else the container runtime that has the image, else Apptainer, Singularity, then "
+                             "Docker)")
     parser.add_argument("--image_dir", type=Path,
                         default=Path(os.environ.get("FASTSURFER_IMAGE_DIR", "~/my_singularity_images")).expanduser(),
                         help="where Apptainer/Singularity images are kept (default: $FASTSURFER_IMAGE_DIR or "
                              "~/my_singularity_images)")
-    parser.add_argument("--brun", action="store_true", help="run brun_fastsurfer.sh to process several subjects")
+    parser.add_argument("--exec", metavar="PROGRAM",
+                        help="run another program of the image instead of run_fastsurfer.sh. It comes last: all "
+                             "later arguments go to the program. brun_fastsurfer.sh (several subjects) and "
+                             "long_fastsurfer.sh (longitudinal processing) take FastSurfer's flags, as "
+                             "run_fastsurfer.sh does. Any other program, e.g. --exec nib-convert in.mgz out.nii.gz, "
+                             "runs in the current directory, which is shared with the container, as are the "
+                             "directories of absolute paths in its arguments")
     parser.add_argument("--runtime_args", default="",
                         help="additional arguments for the container runtime, e.g. --runtime_args '--group-add 1001'")
     parser.add_argument("--print_only", action="store_true", help="print the commands instead of running them")
     return parser
 
 
+def split_exec(argv: list[str]) -> tuple[list[str], list[str] | None]:
+    """
+    The launcher's arguments up to `--exec <program>` (or `--exec=<program>`), and the program's arguments
+    after it (None without --exec), so that its flags, e.g. --help, reach the program rather than the launcher.
+    """
+    for k, arg in enumerate(argv):
+        if arg == "--exec":
+            return argv[:k + 2], argv[k + 2:]
+        if arg.startswith("--exec="):
+            return argv[:k + 1], argv[k + 1:]
+    return argv, None
+
+
+def fastsurfer_script(program: str) -> str | None:
+    """The path in the image of a FastSurfer script --exec names, by name or path; None for other programs."""
+    name = program.rsplit("/", 1)[-1]
+    script = SCRIPTS.get(name)
+    return script if script is not None and program in (name, script) else None
+
+
+def macos_commands(options: argparse.Namespace, script: str | None, other: bool, fastsurfer_args: list[str],
+                   info) -> list[list[str]]:
+    """
+    The commands that run FastSurfer, or the program --exec names, with the macOS package on a Mac with
+    Apple silicon. With --update, they download the package and open the macOS Installer instead.
+    """
+    kind, value = parse_image_spec(options.image)
+    hub = hub_tags() if kind in ("auto", "version") else None
+    if options.update:
+        version, url, name = macos_package_download(value if kind == "version" else None)
+        target = Path.home() / "Downloads" / name
+        info(f"Downloading the macOS package of FastSurfer {version} to {target}; the macOS Installer opens next. "
+             f"Once it is installed, run the same command again without --update.")
+        return [["curl", "-fL", "--progress-bar", "-o", str(target), url], ["open", str(target)]]
+    home, notes = decide_macos_package(kind, value, macos_packages(), newest_version(list(hub or []), "cpu"),
+                                       other)
+    if hub is not None:
+        stable = stable_launcher()
+        if stable is not None and stable != Path(__file__).resolve().read_bytes():
+            info("A newer launcher is available, update it with --update_launcher.")
+    for level, note in notes:
+        info(note, level=level)
+    if other:
+        # it runs natively, in the current directory, so its paths need no care
+        return [macos_command(home, options.exec, fastsurfer_args)]
+    cwd = Path.cwd()
+    args, _ = plan_paths(fastsurfer_args + _license_args(fastsurfer_args, cwd), cwd, create=not options.print_only)
+    if "--fs_license" not in args and "--seg_only" not in args:
+        info("No FreeSurfer license given (--fs_license or $FS_LICENSE); the surfaces need one.")
+    return [macos_command(home, str(home / script.rsplit("/", 1)[-1]), args)]
+
+
+def container_commands(options: argparse.Namespace, script: str | None, other: bool, fastsurfer_args: list[str],
+                       apple_silicon: bool, info) -> tuple[list[list[str]], str | None]:
+    """
+    The commands that run FastSurfer, or the program --exec names, in its container image, and the digest
+    to record next to an Apptainer image they build (None if they build none).
+    """
+    brun = script == BRUN_SCRIPT
+    # --update without FastSurfer's flags only downloads (or builds) the image
+    download_only = options.update and not other and not fastsurfer_args
+    installed = {name for name in ("apptainer", "singularity", "docker") if shutil.which(name)}
+    if not installed:
+        raise LauncherError(no_runtime_message(platform.system(), is_wsl()))
+    if options.runtime != "auto" and options.runtime not in installed:
+        raise LauncherError(f"{options.runtime} is not installed.")
+    if brun and not {"--subjects", "--subjects_list", "--subject_list", "--help"} & set(fastsurfer_args):
+        # brun_fastsurfer.sh would read the subjects from stdin, which the container does not get
+        raise LauncherError("brun_fastsurfer.sh needs the subjects in --subjects_list <file> or "
+                            "--subjects <id>=<t1> ...")
+
+    cwd = Path.cwd()
+    if other:
+        args, mounts = fastsurfer_args, exec_mounts(fastsurfer_args, cwd)
+    else:
+        fastsurfer_args = fastsurfer_args + _license_args(fastsurfer_args, cwd)
+        args, mounts = plan_paths(fastsurfer_args, cwd, create=not options.print_only)
+    mounts = minimal_mounts(mounts)
+    if Path("/") in mounts:
+        raise LauncherError("The paths would share the whole file system with the container, keep the "
+                            "data in a directory below /.")
+    if Path.home() in mounts:
+        info("This shares your home directory with the container. Settings in it may affect "
+             "FastSurfer, so keep the data in a subdirectory.")
+    if not other and not download_only and "--fs_license" not in args and "--seg_only" not in args:
+        info("No FreeSurfer license given (--fs_license or $FS_LICENSE); the surfaces need one.")
+
+    # the GPUs and the image type; another program's flags say nothing about them
+    kind, value = parse_image_spec(options.image)
+    if kind == "macos":
+        raise LauncherError(f"--image {value} is a macOS package, which runs only on a Mac with Apple silicon, "
+                            f"without --runtime docker.")
+    gpus = query_nvidia_gpus()
+    request = [] if other else args
+    # whether the newest images support none of the GPUs, so they run on the CPU here
+    gpu_unsupported = bool(gpus) and select_gpus(gpus, False) is None
+    build = plan_image_build(kind, value, request, gpus, query_amd_gpus(), brun)
+    if kind == "rocm":
+        kind = "auto"
+
+    # the image: one request to Docker Hub decides about versions
+    hub = None if kind in ("sif", "docker") else hub_tags()
+    if hub is not None and kind in ("auto", "version") and build.prefix != "cpu":
+        newest_release = newest_version(list(hub), "cpu")
+        if newest_release and f"{build.prefix}-v{newest_release}" not in hub:
+            raise LauncherError(f"FastSurfer {newest_release} has no {build.prefix} image, which means this "
+                                f"launcher does not know the images of the newest release. Update it with "
+                                f"--update_launcher, or download it again from {LAUNCHER_URL}.")
+    local_id = local_docker_id(value) if kind == "docker" else None
+    # the GPUs this run uses, to tell which installed images run here; none for a run on the CPU, and
+    # for AMD GPUs only the ROCm image of this launcher counts
+    used = [g for g in gpus if build.devices is None or g.index in build.devices] if build.gpu else []
+    if build.amd or build.prefix.startswith("rocm"):
+        used = None
+    plan = decide_image(kind, value, build.prefix, options.runtime, installed,
+                        local_docker_images() if "docker" in installed else None,
+                        local_sif_images(options.image_dir), hub, options.image_dir, options.update, local_id,
+                        used, other_program=other or download_only)
+    runtime = plan.runtime
+    if hub is not None:
+        stable = stable_launcher()
+        if stable is not None and stable != Path(__file__).resolve().read_bytes():
+            info("A newer launcher is available, update it with --update_launcher.")
+
+    if runtime != "docker":
+        try:
+            version_text = subprocess.run([runtime, "--version"], capture_output=True, text=True,
+                                          timeout=30).stdout
+        except (OSError, subprocess.SubprocessError):
+            version_text = ""
+        problem = runtime_too_old(version_text)
+        if problem is not None:
+            raise LauncherError(problem)
+
+    requested = value if kind == "version" else (plan.tag if kind in ("tag", "release") else None)
+    if requested is not None and hub is not None:
+        version = requested.rsplit("-v", 1)[-1]
+        note = age_note(version, release_versions(list(hub), "cpu"), gpu_unsupported and build.gpu)
+        if note is not None:
+            info(note[1], level=note[0])
+    for level, note in plan.notes:
+        info(note, level=level)
+    for note in build.notes:
+        info(note)
+
+    # another program runs in the current directory; FastSurfer's paths are absolute already
+    program, workdir = (options.exec, cwd) if other else (script, None)
+    extra = shlex.split(options.runtime_args)
+    commands = []
+    if runtime == "docker":
+        user = f"{os.getuid()}:{os.getgid()}"
+        # official images are built for Intel/AMD only; an own image may be built for this Mac
+        emulate = apple_silicon and (kind != "docker" or value.startswith(DOCKER_REPO))
+        if plan.pull:
+            commands.append(["docker", "pull"] + (["--platform", "linux/amd64"] if emulate else []) + [plan.image])
+        # Apptainer passes input and terminal on itself, Docker only when asked: another program gets the
+        # input when it comes from a pipe or file, and the terminal when it runs in one. Input from a
+        # terminal without one, e.g. a job started in the background, would stop the job.
+        stdin_tty = sys.stdin is not None and sys.stdin.isatty()
+        interactive = other and not stdin_tty
+        tty = other and stdin_tty and sys.stdout.isatty()
+        commands.append(docker_command(plan.image, build.gpu, mounts, program, args, extra, user, emulate,
+                                       build.devices, workdir, interactive, build.amd, build.env,
+                                       amd_device_groups() if build.amd else None, tty))
+        if not options.print_only:
+            memory, runtimes = docker_info()
+            if memory < MIN_DOCKER_MEMORY_GIB and not download_only:
+                if platform.system() == "Darwin":
+                    where = ("in Docker's settings (Docker Desktop: Settings > Resources; Colima: colima start "
+                             "--memory 16)")
+                elif is_wsl():
+                    # Docker Desktop on WSL2 runs in the memory WSL2 has
+                    where = ("of WSL2 in %UserProfile%\\.wslconfig (memory=16GB in the [wsl2] section), then run "
+                             "wsl --shutdown")
+                else:
+                    where = "for Docker"
+                info(f"Docker can use only {memory:.1f} GB of memory, and FastSurfer may fail with less than "
+                     f"15 GB. Increase the memory {where}.", level="WARNING")
+            # Docker on Linux reaches NVIDIA GPUs through the NVIDIA Container Toolkit, which Docker Desktop has
+            # built in; it registers the nvidia runtime or, in newer versions, only installs its hook
+            toolkit = "nvidia" in runtimes or any(shutil.which(name) for name in ("nvidia-container-runtime-hook",
+                                                                                  "nvidia-ctk"))
+            if build.gpu and not build.amd and platform.system() == "Linux" and not is_wsl() and not toolkit:
+                info(f"Docker seems to lack the NVIDIA Container Toolkit, which it needs for the GPU. If Docker "
+                     f"stops with 'could not select device driver', an administrator installs it (see {SETUP_URL}), "
+                     f"or --device cpu runs FastSurfer on the CPU.", level="WARNING")
+    else:
+        if kind == "sif" and not Path(plan.image).is_file():
+            raise LauncherError(f"--image {value}: no such file.")
+        if plan.build_from is not None:
+            commands.append([runtime, "build", plan.image, plan.build_from])
+        commands.append(apptainer_command(runtime, Path(plan.image), build.gpu, mounts, program, args, extra,
+                                          build.devices, workdir, build.amd, build.env))
+    if download_only:
+        commands = commands[:-1]
+        if not commands:
+            raise LauncherError(f"--update has nothing to download for {plan.image}.")
+    return commands, plan.record
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = make_parser()
+    argv, program_args = split_exec(sys.argv[1:] if argv is None else argv)
     options, fastsurfer_args = parser.parse_known_args(argv)
     if options.update_launcher:
         return update_launcher()
-    if not fastsurfer_args:
+    if options.exec is not None:
+        if fastsurfer_args:
+            parser.error(f"unrecognized arguments before --exec: {' '.join(fastsurfer_args)}")
+        fastsurfer_args = program_args or []
+    elif not fastsurfer_args and not options.update:
+        # --update alone downloads (and on a Mac with Apple silicon installs) the newest release
         parser.print_help()
         return 1
+    # the FastSurfer script to run, None for another program, which has its own flags
+    script = RUN_SCRIPT if options.exec is None else fastsurfer_script(options.exec)
+    other = script is None
 
     def info(message: str, level: str = "INFO") -> None:
         print(f"{level}: {message}", file=sys.stderr)
@@ -1077,119 +1712,19 @@ def main(argv: list[str] | None = None) -> int:
     try:
         if os.name != "posix":
             raise LauncherError("Run this in WSL on Windows, where Docker's paths are Linux paths.")
-        # the images are built for Intel/AMD processors, which a Mac with Apple silicon only emulates
+        # the images are built for Intel/AMD processors, which a Mac with Apple silicon only emulates, so
+        # it runs the macOS package instead, unless Docker is asked for
         apple_silicon = is_apple_silicon()
-        package_hint = (f"install the FastSurfer package for macOS instead, {MACOS_PACKAGE_URL} (see {MACOS_DOC_URL}). "
-                        f"It runs natively and uses the Mac's GPU: in the console it opens, call run_fastsurfer.sh "
-                        f"with the same flags.")
-        if apple_silicon and options.runtime != "docker":
-            raise LauncherError(f"On a Mac with Apple silicon, {package_hint} To run the Intel image in Docker "
-                                f"under emulation anyway, which is much slower, pass --runtime docker.")
-        if apple_silicon:
-            info(f"Docker on a Mac with Apple silicon emulates the Intel image, which is much slower than the "
-                 f"macOS package and cannot use the GPU. Better {package_hint}", level="WARNING")
-        installed = {name for name in ("apptainer", "singularity", "docker") if shutil.which(name)}
-        if not installed:
-            raise LauncherError(f"Neither Apptainer, Singularity nor Docker is installed, see {DOC_URL}.")
-        if options.runtime != "auto" and options.runtime not in installed:
-            raise LauncherError(f"{options.runtime} is not installed.")
-        if options.brun and not {"--subjects", "--subjects_list", "--subject_list"} & set(fastsurfer_args):
-            # brun_fastsurfer.sh would read the subjects from stdin, which the container does not get
-            raise LauncherError("--brun needs the subjects in --subjects_list <file> or --subjects <id>=<t1> ...")
-
-        cwd = Path.cwd()
-        fastsurfer_args = fastsurfer_args + _license_args(fastsurfer_args, cwd)
-        args, mounts = plan_paths(fastsurfer_args, cwd, create=not options.print_only)
-        mounts = minimal_mounts(mounts)
-        if Path("/") in mounts:
-            raise LauncherError("The paths would share the whole file system with the container, keep the "
-                                "data in a directory below /.")
-        if Path.home() in mounts:
-            info("This shares your home directory with the container. Settings in it may affect "
-                 "FastSurfer, so keep the data in a subdirectory.")
-        if "--fs_license" not in args and "--seg_only" not in args:
-            info("No FreeSurfer license given (--fs_license or $FS_LICENSE); the surfaces need one.")
-
-        # the GPUs and the image type
-        kind, value = parse_image_spec(options.image)
-        gpus = query_nvidia_gpus()
-        # whether the newest images support none of the GPUs, so they run on the CPU here
-        gpu_unsupported = bool(gpus) and select_gpus(gpus, False) is None
-        wants_gpu = gpu_request(args, options.brun)[0] != "cpu" and bool(gpus)
-        if kind in ("auto", "version"):
-            build = plan_build(args, gpus, options.brun)
-        elif kind in ("tag", "release"):
-            build = plan_build_for_type(args, gpus, options.brun, RELEASE_TAG.fullmatch(value).group(1))
+        if options.runtime == "macos" and not apple_silicon:
+            raise LauncherError("The macOS package of FastSurfer is for Macs with Apple silicon.")
+        if apple_silicon and options.runtime in ("auto", "macos"):
+            commands, record = macos_commands(options, script, other, fastsurfer_args, info), None
         else:
-            build = Build("custom", wants_gpu)
-
-        # the image: one request to Docker Hub decides about versions
-        hub = None if kind in ("sif", "docker") else hub_tags()
-        if hub is not None and kind in ("auto", "version") and build.prefix != "cpu":
-            newest_release = newest_version(list(hub), "cpu")
-            if newest_release and f"{build.prefix}-v{newest_release}" not in hub:
-                raise LauncherError(f"FastSurfer {newest_release} has no {build.prefix} image, which means this "
-                                    f"launcher does not know the images of the newest release. Update it with "
-                                    f"--update_launcher, or download it again from {LAUNCHER_URL}.")
-        local_id = local_docker_id(value) if kind == "docker" else None
-        # the GPUs this run uses, to tell which installed images run here; none for a run on the CPU
-        used = [g for g in gpus if build.devices is None or g.index in build.devices] if build.gpu else []
-        plan = decide_image(kind, value, build.prefix, options.runtime, installed,
-                            local_docker_images() if "docker" in installed else None,
-                            local_sif_images(options.image_dir), hub, options.image_dir, options.update, local_id,
-                            used)
-        runtime = plan.runtime
-        if hub is not None:
-            stable = stable_launcher()
-            if stable is not None and stable != Path(__file__).resolve().read_bytes():
-                info("A newer launcher is available, update it with --update_launcher.")
-
-        if runtime != "docker":
-            try:
-                version_text = subprocess.run([runtime, "--version"], capture_output=True, text=True,
-                                              timeout=30).stdout
-            except (OSError, subprocess.SubprocessError):
-                version_text = ""
-            problem = runtime_too_old(version_text)
-            if problem is not None:
-                raise LauncherError(problem)
-
-        requested = value if kind == "version" else (plan.tag if kind in ("tag", "release") else None)
-        if requested is not None and hub is not None:
-            version = requested.rsplit("-v", 1)[-1]
-            note = age_note(version, release_versions(list(hub), "cpu"), gpu_unsupported and build.gpu)
-            if note is not None:
-                info(note[1], level=note[0])
-        for level, note in plan.notes:
-            info(note, level=level)
-        for note in build.notes:
-            info(note)
-
-        script = "brun_fastsurfer.sh" if options.brun else "run_fastsurfer.sh"
-        extra = shlex.split(options.runtime_args)
-        commands = []
-        if runtime == "docker":
-            user = f"{os.getuid()}:{os.getgid()}"
-            # official images are built for Intel/AMD only; an own image may be built for this Mac
-            emulate = apple_silicon and (kind != "docker" or value.startswith(DOCKER_REPO))
-            if plan.pull:
-                commands.append(["docker", "pull"] + (["--platform", "linux/amd64"] if emulate else []) + [plan.image])
-            commands.append(docker_command(plan.image, build.gpu, mounts, script, args, extra, user, emulate,
-                                           build.devices))
-            if not options.print_only:
-                memory = docker_memory_gib()
-                if memory < MIN_DOCKER_MEMORY_GIB:
-                    where = ("in Docker's settings (Docker Desktop: Settings > Resources; Colima: colima start "
-                             "--memory 16)") if platform.system() == "Darwin" else "for Docker"
-                    info(f"Docker can use only {memory:.1f} GB of memory, and FastSurfer may fail with less than "
-                         f"15 GB. Increase the memory {where}.", level="WARNING")
-        else:
-            if kind == "sif" and not Path(plan.image).is_file():
-                raise LauncherError(f"--image {value}: no such file.")
-            if plan.build_from is not None:
-                commands.append([runtime, "build", plan.image, plan.build_from])
-            commands.append(apptainer_command(runtime, Path(plan.image), build.gpu, mounts, script, args, extra,
-                                              build.devices))
+            if apple_silicon:
+                info("Docker on a Mac with Apple silicon emulates the Intel image, which is much slower than the "
+                     "macOS package and cannot use the GPU. Without --runtime docker, the launcher runs the package.",
+                     level="WARNING")
+            commands, record = container_commands(options, script, other, fastsurfer_args, apple_silicon, info)
     except LauncherError as error:
         print(f"ERROR: {error}", file=sys.stderr)
         return 1
@@ -1198,7 +1733,9 @@ def main(argv: list[str] | None = None) -> int:
         for command in commands:
             print(shlex.join(command))
         return 0
-    for command in commands[:-1]:
+    # --update alone runs only the download steps, otherwise the last command is FastSurfer (or --exec)
+    download_only = options.update and options.exec is None and not fastsurfer_args
+    for command in commands if download_only else commands[:-1]:
         if command[1] == "build":
             info(f"Building the image once: {shlex.join(command)}")
             # the official images are public, so their download needs no login
@@ -1211,14 +1748,17 @@ def main(argv: list[str] | None = None) -> int:
                       "`apptainer registry list` and $APPTAINER_DOCKER_USERNAME.",
                       file=sys.stderr)
                 return 1
-            record = Path(command[2]).with_name(Path(command[2]).name + ".digest")
-            if plan.record:
-                record.write_text(plan.record + "\n")
-            elif record.exists():
-                record.unlink()
+            digest_file = Path(command[2]).with_name(Path(command[2]).name + ".digest")
+            if record:
+                digest_file.write_text(record + "\n")
+            elif digest_file.exists():
+                digest_file.unlink()
         elif subprocess.run(command).returncode != 0:
             print(f"ERROR: {shlex.join(command)} failed.", file=sys.stderr)
             return 1
+    if download_only:
+        info("Done. Run FastSurfer with the same command and its flags, without --update.")
+        return 0
     info(f"Running: {shlex.join(commands[-1])}")
     sys.stdout.flush()
     sys.stderr.flush()
