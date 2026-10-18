@@ -1,4 +1,4 @@
-Surface registration: recon-surfreg.sh
+Surface Registration: recon-surfreg.sh
 ======================================
 
 ``recon-surfreg.sh`` adds the spherical registration (``?h.sphere`` and ``?h.sphere.reg``) to a subject that was

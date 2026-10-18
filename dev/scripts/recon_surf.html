@@ -3,10 +3,10 @@
   <head><meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
-<link rel="index" title="Index" href="../genindex.html"><link rel="search" title="Search" href="../search.html"><link rel="next" title="Surface registration: recon-surfreg.sh" href="recon_surfreg.html"><link rel="prev" title="CorpusCallosum: fastsurfer_cc.py" href="fastsurfer_cc.html">
+<link rel="index" title="Index" href="../genindex.html"><link rel="search" title="Search" href="../search.html"><link rel="next" title="Surface Registration: recon-surfreg.sh" href="recon_surfreg.html"><link rel="prev" title="CorpusCallosum: fastsurfer_cc.py" href="fastsurfer_cc.html">
 
     <!-- Generated with Sphinx 7.4.7 and Furo 2025.12.19 -->
-        <title>Surface pipeline: recon-surf.sh - FastSurfer</title>
+        <title>Surface Pipeline: recon-surf.sh - FastSurfer dev</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
@@ -167,7 +167,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../index.html"><div class="brand">FastSurfer</div></a>
+      <a href="../index.html"><div class="brand">FastSurfer dev</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -188,7 +188,7 @@
       
       <div class="sidebar-sticky"><a class="sidebar-brand" href="../index.html">
   
-  <span class="sidebar-brand-text">FastSurfer</span>
+  <span class="sidebar-brand-text">FastSurfer dev</span>
   
 </a><form class="sidebar-search-container" method="get" action="../search.html" role="search">
   <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
@@ -204,12 +204,12 @@
 <li class="toctree-l3"><a class="reference internal" href="../overview/install/MACOS.html">macOS</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../overview/install/LINUX.html">Linux</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../overview/install/WINDOWS.html">Windows</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../overview/install/NATIVE.html">Installing from source</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../overview/install/NATIVE.html">Installing from Source</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="../overview/CONTAINERS.html">Running FastSurfer in a container</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../overview/CONTAINERS.html">Containers</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../overview/EXAMPLES.html">Examples</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../overview/OUTPUT_FILES.html">Output files</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../overview/OUTPUT_FILES.html">Output Files</a></li>
 <li class="toctree-l2 has-children"><a class="reference internal" href="../overview/modules/index.html">Modules</a><input aria-label="Toggle navigation of Modules" class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" role="switch" type="checkbox"/><label for="toctree-checkbox-3"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l3"><a class="reference internal" href="../overview/modules/ASEGDKT.html">Whole-Brain Segmentation (FastSurferVINN)</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../overview/modules/CC.html">Corpus Callosum Pipeline</a></li>
@@ -227,18 +227,19 @@
 </ul>
 </li>
 <li class="toctree-l1 current has-children"><a class="reference internal" href="index.html">Command Reference</a><input aria-label="Toggle navigation of Command Reference" checked="" class="toctree-checkbox" id="toctree-checkbox-4" name="toctree-checkbox-4" role="switch" type="checkbox"/><label for="toctree-checkbox-4"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="LAUNCHER.html">fastsurfer (launcher)</a></li>
 <li class="toctree-l2"><a class="reference internal" href="RUN_FASTSURFER.html">run_fastsurfer.sh</a></li>
 <li class="toctree-l2"><a class="reference internal" href="long_fastsurfer.html">long_fastsurfer.sh</a></li>
 <li class="toctree-l2"><a class="reference internal" href="BATCH.html">brun_fastsurfer.sh</a></li>
 <li class="toctree-l2"><a class="reference internal" href="SLURM.html">srun_fastsurfer.sh</a></li>
 <li class="toctree-l2"><a class="reference internal" href="BIDS.html">bids_fastsurfer.py</a></li>
-<li class="toctree-l2 current has-children"><a class="reference internal" href="advanced.html">Running modules directly</a><input aria-label="Toggle navigation of Running modules directly" checked="" class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul class="current">
+<li class="toctree-l2 current has-children"><a class="reference internal" href="advanced.html">Running Modules Directly</a><input aria-label="Toggle navigation of Running Modules Directly" checked="" class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" role="switch" type="checkbox"/><label for="toctree-checkbox-5"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul class="current">
 <li class="toctree-l3"><a class="reference internal" href="fastsurfercnn.html">FastSurferCNN: run_prediction.py</a></li>
 <li class="toctree-l3"><a class="reference internal" href="cerebnet.html">CerebNet: run_prediction.py</a></li>
 <li class="toctree-l3"><a class="reference internal" href="hypvinn.html">HypVINN: run_prediction.py</a></li>
 <li class="toctree-l3"><a class="reference internal" href="fastsurfer_cc.html">CorpusCallosum: fastsurfer_cc.py</a></li>
-<li class="toctree-l3 current current-page"><a class="current reference internal" href="#">Surface pipeline: recon-surf.sh</a></li>
-<li class="toctree-l3"><a class="reference internal" href="recon_surfreg.html">Surface registration: recon-surfreg.sh</a></li>
+<li class="toctree-l3 current current-page"><a class="current reference internal" href="#">Surface Pipeline: recon-surf.sh</a></li>
+<li class="toctree-l3"><a class="reference internal" href="recon_surfreg.html">Surface Registration: recon-surfreg.sh</a></li>
 </ul>
 </li>
 <li class="toctree-l2 has-children"><a class="reference internal" href="util.html">Utilities</a><input aria-label="Toggle navigation of Utilities" class="toctree-checkbox" id="toctree-checkbox-6" name="toctree-checkbox-6" role="switch" type="checkbox"/><label for="toctree-checkbox-6"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
@@ -259,8 +260,8 @@
 </li>
 <li class="toctree-l1 has-children"><a class="reference internal" href="../developer/index.html">Developer Guide</a><input aria-label="Toggle navigation of Developer Guide" class="toctree-checkbox" id="toctree-checkbox-8" name="toctree-checkbox-8" role="switch" type="checkbox"/><label for="toctree-checkbox-8"><span class="icon"><svg><use href="#svg-arrow-right"></use></svg></span></label><ul>
 <li class="toctree-l2"><a class="reference internal" href="../developer/contributing.html">Contribution Guide</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../developer/GIT-HOOKS.html">Git hooks</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../developer/docker.html">Building Docker images</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../developer/GIT-HOOKS.html">Git Hooks</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../developer/docker.html">Building Docker Images</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../developer/code_of_conduct.html">Code of Conduct</a></li>
 </ul>
 </li>
@@ -479,7 +480,7 @@
         </div>
         <article role="main" id="furo-main-content">
           <section id="surface-pipeline-recon-surf-sh">
-<h1>Surface pipeline: recon-surf.sh<a class="headerlink" href="#surface-pipeline-recon-surf-sh" title="Link to this heading">¶</a></h1>
+<h1>Surface Pipeline: recon-surf.sh<a class="headerlink" href="#surface-pipeline-recon-surf-sh" title="Link to this heading">¶</a></h1>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>We recommend running the surface pipeline with the standard <code class="xref py py-obj docutils literal notranslate"><span class="pre">run_fastsurfer.sh</span></code> interface!</p>
@@ -617,10 +618,6 @@ Henschel L*, Kuegler D*, Reuter M. (*co-first). FastSurferVINN: Building
 <p>Docker can be used to simplify the installation (no FreeSurfer on system required).
 Given you already ran the segmentation pipeline, and want to just run the surface pipeline on top of it
 (i.e. on a different cluster), the following command can be used:</p>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>This documents the development version 2.7.0.dev0. Official Docker images only exist for releases, so the commands below use the latest release, 2.6.0. To run the development version, <a class="reference internal" href="../developer/docker.html"><span class="doc">build your own image</span></a>.</p>
-</div>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">freesurfer_license</span><span class="o">=</span><span class="si">${</span><span class="nv">freesurfer_license</span><span class="k">:-</span><span class="p">/path/to/your/freesurfer/license_file</span><span class="si">}</span>
 <span class="c1"># Run command</span>
 docker<span class="w"> </span>run<span class="w"> </span>-v<span class="w"> </span><span class="nv">$HOME</span>/my_fastsurfer_analysis:<span class="nv">$HOME</span>/my_fastsurfer_analysis<span class="w"> </span><span class="se">\</span>
@@ -650,10 +647,6 @@ entrypoint to <code class="docutils literal notranslate"><span class="pre">recon
 default, so this is for expert users who may want to try out specific flags that are not passed to the wrapper.
 Given you already ran the segmentation pipeline, and want to just run
 the surface pipeline on top of it (i.e. on a different cluster), the following command can be used:</p>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>This documents the development version 2.7.0.dev0. Official Docker images only exist for releases, so the commands below use the latest release, 2.6.0. To run the development version, <a class="reference internal" href="../developer/docker.html"><span class="doc">build your own image</span></a>.</p>
-</div>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">freesurfer_license</span><span class="o">=</span><span class="si">${</span><span class="nv">freesurfer_license</span><span class="k">:-</span><span class="p">/path/to/your/freesurfer/license_file</span><span class="si">}</span>
 <span class="c1"># 1. Build the singularity image (only if it does not exist)</span>
 singularity<span class="w"> </span>build<span class="w"> </span><span class="se">\</span>
@@ -720,10 +713,6 @@ The script will generate a bias-field corrected image at <code class="docutils l
 <li><p>you are not able to specify a custom, conformed t1 image via <code class="docutils literal notranslate"><span class="pre">--t1</span> <span class="pre">&lt;t1_path&gt;</span></code> (<code class="docutils literal notranslate"><span class="pre">run_fastsurfer.sh</span> <span class="pre">--surf_only</span></code> will always use <code class="docutils literal notranslate"><span class="pre">&lt;subjects_dir&gt;/&lt;subject_id&gt;/mri/orig.mgz</span></code>).</p></li>
 </ol>
 <p>Invoke the following command (make sure you have enough resources to run the given number of subjects in parallel or drop the <code class="docutils literal notranslate"><span class="pre">--parallel_surf</span> <span class="pre">max</span></code> flag to run them in series!):</p>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>This documents the development version 2.7.0.dev0. Official Docker images only exist for releases, so the commands below use the latest release, 2.6.0. To run the development version, <a class="reference internal" href="../developer/docker.html"><span class="doc">build your own image</span></a>.</p>
-</div>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">freesurfer_license</span><span class="o">=</span><span class="si">${</span><span class="nv">freesurfer_license</span><span class="k">:-</span><span class="p">/path/to/your/freesurfer/license_file</span><span class="si">}</span>
 singularity<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>--no-mount<span class="w"> </span>home,cwd<span class="w"> </span>-e<span class="w"> </span><span class="se">\</span>
 <span class="w">            </span>-B<span class="w"> </span><span class="nv">$HOME</span>/my_fastsurfer_analysis<span class="w"> </span><span class="se">\</span>
@@ -758,7 +747,7 @@ The directory will then be populated with the FreeSurfer file structure, includi
                 <div class="context">
                   <span>Next</span>
                 </div>
-                <div class="title">Surface registration: recon-surfreg.sh</div>
+                <div class="title">Surface Registration: recon-surfreg.sh</div>
               </div>
               <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
             </a>
@@ -809,7 +798,7 @@ The directory will then be populated with the FreeSurfer file structure, includi
         <div class="toc-tree-container">
           <div class="toc-tree">
             <ul>
-<li><a class="reference internal" href="#">Surface pipeline: recon-surf.sh</a><ul>
+<li><a class="reference internal" href="#">Surface Pipeline: recon-surf.sh</a><ul>
 <li><a class="reference internal" href="#overview">Overview</a></li>
 <li><a class="reference internal" href="#usage">Usage</a></li>
 <li><a class="reference internal" href="#examples">Examples</a><ul>
