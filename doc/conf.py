@@ -222,6 +222,8 @@ exclude_patterns = [
     # instructions for writing the documentation, not part of it
     "AGENTS.md",
     "CONVENTIONS.md",
+    # the setup of each system, included in the quick start and the install pages rather than pages of their own
+    "overview/install/setup/*",
 ]
 
 

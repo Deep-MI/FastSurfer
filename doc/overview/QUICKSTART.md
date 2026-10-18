@@ -11,23 +11,62 @@ runs on an HPC cluster, we recommend running FastSurfer directly, which gives fu
 resources: see the [installation guide](INSTALL.md), [Running FastSurfer in a container](CONTAINERS.md), and the
 scripts for [many subjects](../scripts/BATCH.md) and for [SLURM clusters](../scripts/SLURM.md).
 
+Set up your computer
+--------------------
+Once, set up what the launcher runs FastSurfer with:
+
+`````{tab-set}
+
+````{tab-item} Linux
+:sync: linux
+
+```{include} install/setup/linux.md
+:relative-docs: .
+```
+
+The launcher picks the image for your NVIDIA GPU (or AMD GPU, experimental, or the CPU) and downloads it on the
+first run. [Linux](install/LINUX.md) explains the images.
+````
+
+````{tab-item} Windows
+:sync: windows
+
+```{include} install/setup/windows.md
+:relative-docs: .
+```
+
+[Windows](install/WINDOWS.md) has more details.
+````
+
+````{tab-item} Mac with Apple silicon
+:sync: macos
+
+FastSurfer runs natively with the [macOS package](install/MACOS.md), which uses the Mac's GPU (M1 or newer).
+Download and install it with the button on that page, or let the launcher do it: after step 1 below,
+`./fastsurfer --update` downloads the package and opens the macOS Installer. macOS may block the installer, because
+it is not signed by Apple yet; [Install](install/MACOS.md#install) explains how to allow it.
+````
+
+````{tab-item} Intel Mac
+:sync: macos-intel
+
+FastSurfer runs in Docker, on the CPU (the macOS package needs Apple silicon):
+
+```{include} install/setup/macos_intel.md
+:relative-docs: .
+```
+````
+
+`````
+
+If the launcher still cannot run FastSurfer, it says what is missing and how to fix it.
+
 Segment an example image
 ------------------------
 With a GPU (8 GB of graphics memory) this takes well under a minute; without one, FastSurfer uses the CPU and takes
 a few minutes longer. You can use your own T1-weighted full head MRI (0.7 to 1 mm voxel sizes, no preprocessing,
-`.nii`, `.nii.gz` or `.mgz`), or the example image the commands download.
-
-First, install what the launcher runs FastSurfer with:
-
-- **Linux, Windows or Intel Mac:** Apptainer, Singularity or Docker, see [Linux](install/LINUX.md),
-  [Windows](install/WINDOWS.md) (Docker in WSL2, run the commands below there) or
-  [Intel Macs](install/MACOS.md#docker-intel-macs). `docker run --rm hello-world` or `apptainer --version` checks
-  it. The launcher picks the image for your NVIDIA GPU (or AMD GPU, experimental, or the CPU) and downloads it on
-  the first run.
-- **Mac with Apple silicon (M1 or newer):** the [macOS package](install/MACOS.md), which runs natively and uses the
-  Mac's GPU. After step 1 below, `./fastsurfer --update` downloads it and opens the macOS Installer.
-
-Then download the launcher and run FastSurfer:
+`.nii`, `.nii.gz` or `.mgz`), or the example image the commands download. On Windows, run the commands in the
+Ubuntu terminal.
 
 ```bash
 # 0. Create a directory for this test

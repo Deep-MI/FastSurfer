@@ -9,9 +9,15 @@ and for the CPU only, on [Docker Hub](https://hub.docker.com/r/deepmi/fastsurfer
 A GPU with enough memory makes the segmentation much faster, see the
 [system requirements](../intro.rst#system-requirements). Without a GPU, use the [CPU image](#cpu-only).
 
-With Apptainer, Singularity or Docker installed, the [launcher](../CONTAINERS.md#the-launcher) does the rest: it
-picks the image for your NVIDIA GPU and driver (or for an AMD GPU, experimental, or the CPU image), downloads it,
-and runs FastSurfer with the flags of `run_fastsurfer.sh`:
+Set up
+------
+```{include} setup/linux.md
+:relative-docs: .
+```
+
+Then the [launcher](../CONTAINERS.md#the-launcher) does the rest: it picks the image for your NVIDIA GPU and driver
+(or for an AMD GPU, experimental, or the CPU image), downloads it, and runs FastSurfer with the flags of
+`run_fastsurfer.sh`:
 
 ```bash
 curl -fsSLO {{ LAUNCHER_URL }}

@@ -54,6 +54,8 @@ from pathlib import Path
 
 DOCKER_REPO = "deepmi/fastsurfer"
 DOC_URL = "https://deep-mi.org/FastSurfer/stable/overview/CONTAINERS.html"
+# what to install on each system, for the messages about a missing or unusable container runtime
+SETUP_URL = "https://deep-mi.org/FastSurfer/stable/overview/QUICKSTART.html#set-up-your-computer"
 LAUNCHER_URL = "https://raw.githubusercontent.com/Deep-MI/FastSurfer/stable/tools/fastsurfer"
 # seconds to wait for Docker Hub and GitHub, so a machine without internet is not held up
 HUB_TIMEOUT = 5
@@ -1291,17 +1293,60 @@ def is_apple_silicon() -> bool:
     return out.stdout.strip() == "1"
 
 
-def docker_memory_gib() -> float:
-    """The memory Docker's containers can use; on macOS and Windows, that of Docker's VM."""
+def is_wsl() -> bool:
+    """Whether this is Linux in WSL2 on Windows, whose kernel names Microsoft."""
+    return platform.system() == "Linux" and "microsoft" in platform.release().lower()
+
+
+def no_runtime_message(system: str, wsl: bool) -> str:
+    """What to install when neither Apptainer, Singularity nor Docker is, on this system."""
+    if system == "Darwin":
+        return f"Docker is not installed. On an Intel Mac, FastSurfer runs in Docker Desktop, see {SETUP_URL}."
+    if wsl:
+        return (f"Docker is not available in this WSL distribution. Install Docker Desktop in Windows and switch on "
+                f"its WSL integration for this distribution (Settings > Resources > WSL integration), see {SETUP_URL}.")
+    return (f"Neither Apptainer, Singularity nor Docker is installed. On a cluster, Apptainer is often a module "
+            f"(module load apptainer); otherwise an administrator installs Apptainer or Docker, see {SETUP_URL}.")
+
+
+def docker_problem(error: str, system: str, wsl: bool) -> str:
+    """What to do when `docker info` fails with this error, on this system."""
+    lowered = error.lower()
+    desktop = system == "Darwin" or wsl
+    if "could not be found in this wsl" in lowered:
+        return (f"Docker Desktop's WSL integration is off for this distribution: switch it on under Settings > "
+                f"Resources > WSL integration, see {SETUP_URL}.")
+    if "permission denied" in lowered and not desktop:
+        return (f"Docker is installed, but this user may not use it: an administrator adds you to the docker group, "
+                f"then log out and back in, see {SETUP_URL}.")
+    if "cannot connect to the docker daemon" in lowered or "is the docker daemon running" in lowered:
+        if desktop:
+            return "Docker is installed, but not running: start Docker Desktop."
+        return "Docker is installed, but its service is not running: an administrator starts it."
+    reason = (error.strip().splitlines() or ["docker info failed"])[-1]
+    return f"Docker is installed, but does not work: {reason}"
+
+
+def docker_info() -> tuple[float, set[str]]:
+    """
+    The memory Docker's containers can use (on macOS and Windows, that of Docker's VM) and the runtimes Docker
+    knows, e.g. nvidia with the NVIDIA Container Toolkit; stops with what to do if Docker cannot be used.
+    """
+    import json
+
     try:
-        out = subprocess.run(["docker", "info", "--format", "{{.MemTotal}}"],
+        out = subprocess.run(["docker", "info", "--format", "{{.MemTotal}} {{json .Runtimes}}"],
                              capture_output=True, text=True, timeout=60)
     except (OSError, subprocess.SubprocessError) as error:
         raise LauncherError(f"Could not ask Docker for its settings: {error}") from error
     if out.returncode != 0:
-        reason = (out.stderr.strip().splitlines() or ["docker info failed"])[-1]
-        raise LauncherError(f"Docker is installed, but not running: {reason}")
-    return int(out.stdout.strip()) / 2**30
+        raise LauncherError(docker_problem(out.stderr or out.stdout, platform.system(), is_wsl()))
+    memory, _, runtimes = out.stdout.strip().partition(" ")
+    try:
+        names = set(json.loads(runtimes or "{}"))
+    except ValueError:
+        names = set()
+    return int(memory) / 2**30, names
 
 
 def _last_value(args: list[str], flag: str) -> str | None:
@@ -1506,7 +1551,7 @@ def container_commands(options: argparse.Namespace, script: str | None, other: b
     download_only = options.update and not other and not fastsurfer_args
     installed = {name for name in ("apptainer", "singularity", "docker") if shutil.which(name)}
     if not installed:
-        raise LauncherError(f"Neither Apptainer, Singularity nor Docker is installed, see {DOC_URL}.")
+        raise LauncherError(no_runtime_message(platform.system(), is_wsl()))
     if options.runtime != "auto" and options.runtime not in installed:
         raise LauncherError(f"{options.runtime} is not installed.")
     if brun and not {"--subjects", "--subjects_list", "--subject_list", "--help"} & set(fastsurfer_args):
@@ -1607,13 +1652,13 @@ def container_commands(options: argparse.Namespace, script: str | None, other: b
         commands.append(docker_command(plan.image, build.gpu, mounts, program, args, extra, user, emulate,
                                        build.devices, workdir, interactive, build.amd, build.env,
                                        amd_device_groups() if build.amd else None, tty))
-        if not options.print_only and not download_only:
-            memory = docker_memory_gib()
-            if memory < MIN_DOCKER_MEMORY_GIB:
+        if not options.print_only:
+            memory, runtimes = docker_info()
+            if memory < MIN_DOCKER_MEMORY_GIB and not download_only:
                 if platform.system() == "Darwin":
                     where = ("in Docker's settings (Docker Desktop: Settings > Resources; Colima: colima start "
                              "--memory 16)")
-                elif "microsoft" in platform.release().lower():
+                elif is_wsl():
                     # Docker Desktop on WSL2 runs in the memory WSL2 has
                     where = ("of WSL2 in %UserProfile%\\.wslconfig (memory=16GB in the [wsl2] section), then run "
                              "wsl --shutdown")
@@ -1621,6 +1666,14 @@ def container_commands(options: argparse.Namespace, script: str | None, other: b
                     where = "for Docker"
                 info(f"Docker can use only {memory:.1f} GB of memory, and FastSurfer may fail with less than "
                      f"15 GB. Increase the memory {where}.", level="WARNING")
+            # Docker on Linux reaches NVIDIA GPUs through the NVIDIA Container Toolkit, which Docker Desktop has
+            # built in; it registers the nvidia runtime or, in newer versions, only installs its hook
+            toolkit = "nvidia" in runtimes or any(shutil.which(name) for name in ("nvidia-container-runtime-hook",
+                                                                                  "nvidia-ctk"))
+            if build.gpu and not build.amd and platform.system() == "Linux" and not is_wsl() and not toolkit:
+                info(f"Docker seems to lack the NVIDIA Container Toolkit, which it needs for the GPU. If Docker "
+                     f"stops with 'could not select device driver', an administrator installs it (see {SETUP_URL}), "
+                     f"or --device cpu runs FastSurfer on the CPU.", level="WARNING")
     else:
         if kind == "sif" and not Path(plan.image).is_file():
             raise LauncherError(f"--image {value}: no such file.")

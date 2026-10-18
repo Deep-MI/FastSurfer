@@ -564,6 +564,26 @@ def test_plan_amd_build():
         launcher.plan_amd_build(["--device", "cuda"], [old], False)
 
 
+@pytest.mark.parametrize(
+    ("error", "system", "wsl", "advice"),
+    [
+        # the errors Docker prints, and what the launcher tells the user to do instead
+        ("permission denied while trying to connect to the Docker daemon socket at unix:///var/run/docker.sock: "
+         "Get \"http://%2Fvar%2Frun%2Fdocker.sock/v1.45/info\": dial unix /var/run/docker.sock: connect: "
+         "permission denied", "Linux", False, "docker group"),
+        ("Cannot connect to the Docker daemon at unix:///var/run/docker.sock. Is the docker daemon running?",
+         "Linux", False, "administrator starts it"),
+        ("Cannot connect to the Docker daemon at unix:///Users/me/.docker/run/docker.sock. Is the docker daemon "
+         "running?", "Darwin", False, "start Docker Desktop"),
+        ("The command 'docker' could not be found in this WSL 2 distro.\nWe recommend to activate the WSL "
+         "integration in Docker Desktop settings.", "Linux", True, "WSL integration"),
+        ("error during connect: something else\n", "Linux", False, "does not work: error during connect"),
+    ],
+)
+def test_docker_problem(error, system, wsl, advice):
+    assert advice in launcher.docker_problem(error, system, wsl)
+
+
 def test_plan_image_build_custom():
     nvidia, amd = [gpu((8, 6))], [launcher.AmdGpu(0, (11, 0, 0), 24)]
     # an own image on a machine with only AMD GPUs gets them, whatever its name

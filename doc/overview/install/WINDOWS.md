@@ -5,16 +5,16 @@ On Windows, run FastSurfer in our Docker image, with Docker Desktop on WSL2. The
 [FreeSurfer license](../INSTALL.md#freesurfer-license), which is free but not included: get it from FreeSurfer
 before your first full run.
 
-Make sure that these are installed and running:
-* [WSL2](https://learn.microsoft.com/en-us/windows/wsl/install)
-* [Docker Desktop](https://docs.docker.com/desktop/install/windows-install/)
+Set up
+------
+```{include} setup/windows.md
+:relative-docs: .
+```
 
 For a GPU, the requirements in the NVIDIA GPU tab below apply as well.
 
-The [launcher](../CONTAINERS.md#the-launcher) writes the Docker command for you. Run it in the terminal of your
-WSL2 Linux distribution (for example Ubuntu, from the Start menu), not in PowerShell. Docker Desktop's `docker`
-command is available there once you switch on the WSL integration for that distribution (Docker Desktop:
-**Settings > Resources > WSL integration**). For example:
+Then the [launcher](../CONTAINERS.md#the-launcher) writes the Docker command for you. In the Ubuntu terminal, for
+example:
 
 ```bash
 curl -fsSLO {{ LAUNCHER_URL }}
@@ -27,7 +27,9 @@ It picks the image for your NVIDIA GPU (or the CPU image), downloads it, shares 
 runs it as your WSL user. Keep the data in your WSL home folder: Windows folders are available below `/mnt/c/`, but
 reading them from WSL is slower.
 
-Without the launcher, choose the image for your hardware and run the commands in Windows PowerShell.
+Without the launcher
+--------------------
+Choose the image for your hardware and run the commands in Windows PowerShell.
 
 `````{tab-set}
 

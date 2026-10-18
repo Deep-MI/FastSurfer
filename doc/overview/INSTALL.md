@@ -1,7 +1,8 @@
 Installation
 ============
-FastSurfer works the same way on every system: you call `run_fastsurfer.sh` with a T1-weighted MRI image. How you
-install it depends on your system. Pick yours:
+FastSurfer works the same way on every system: you call `run_fastsurfer.sh` with a T1-weighted MRI image. To try it,
+the [quick start](QUICKSTART.md#set-up-your-computer) sets up your computer and runs FastSurfer with the launcher in
+a few steps. How you install it for your own work depends on your system. Pick yours:
 
 ````{grid} 1 2 2 2
 :gutter: 3

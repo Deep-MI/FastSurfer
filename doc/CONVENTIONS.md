@@ -129,6 +129,13 @@ Names are snake_case, except `subjectX` and the file names of container images.
   example `-v C:/Users/user/my_mri_data:/home/user/my_mri_data`. The license file is mounted from its made-up path:
   `-v C:/path/to/your/freesurfer/license_file:/home/user/freesurfer_license`.
 
+## Shared setup
+
+What each system needs before FastSurfer runs (a container runtime, WSL2, Docker Desktop) is written once, in
+`doc/overview/install/setup/`, and included in the quick start and the install page of that system with
+`:relative-docs: .`. Links in these files are relative to that folder. `exclude_patterns` in `doc/conf.py` keeps them
+from becoming pages of their own.
+
 ## Line length
 
 Lines in code fences in the documentation are at most 80 characters, so there is no scroll bar. Count the rendered

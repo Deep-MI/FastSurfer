@@ -160,13 +160,16 @@ Docker (Intel Macs)
 The package does not run on Intel Macs, but Docker does, with the full pipeline on the CPU (2 to 4 times slower
 than on Apple silicon).
 
-1. Install [Docker Desktop for Mac](https://docs.docker.com/get-docker/), start it, and under
-   **Settings > Resources** set the memory to 15 GB (or the most you have; with less than that, it may fail).
-2. Download the CPU image. Open a Terminal window and run:
+```{include} setup/macos_intel.md
+:relative-docs: .
+```
 
-   ```bash
-   docker pull deepmi/fastsurfer:cpu-v{{ FASTSURFER_VERSION }}
-   ```
+Then run FastSurfer with the [launcher](../CONTAINERS.md#the-launcher), as in the [quick start](../QUICKSTART.md).
+Without it, download the CPU image:
 
-3. Run FastSurfer as in [Example 2](../EXAMPLES.md#example-2-fastsurfer-docker), with the CPU image and without
-   `--gpus all`.
+```bash
+docker pull deepmi/fastsurfer:cpu-v{{ FASTSURFER_VERSION }}
+```
+
+and run FastSurfer as in [Example 2](../EXAMPLES.md#example-2-fastsurfer-docker), with the CPU image and without
+`--gpus all`.
