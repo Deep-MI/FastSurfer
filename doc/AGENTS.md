@@ -5,7 +5,7 @@
 - `AGENTS.md` and `CONVENTIONS.md` are not part of the built documentation, `exclude_patterns` in `doc/conf.py` lists
   them.
 - Markdown is parsed by the `fix_links` extension (`doc/sphinx_ext/fix_links`), which extends MyST: among others, it
-  substitutes `{{ NAME }}` in code and renders banners on top of code blocks, see CONVENTIONS.md.
+  substitutes `{{ NAME }}` in code, see CONVENTIONS.md.
 - Check changes by building the documentation from the repository root, warnings are errors:
 
   ```bash

@@ -159,12 +159,9 @@ documentation, the latest release. Likewise, the NVIDIA image of that release is
 release, the CUDA version of the image `latest` points to while that release is the newest, and
 `{{ CUDA_STRING }}` the PyTorch backend of that version (`cu` and the version without dots). Name another CUDA
 version only where the text is about choosing one; `tools/Docker/build.py --print_supported cuda|rocm` lists the
-supported versions.
-`fix_links` also renders a note on top of each code block that uses them (`fix_links_substitution_banners` in
-`doc/conf.py`), with a separate text for `{{ FASTSURFER_VERSION }}`, `{{ CUDA_STRING }}` and both: that the commands
-use the latest release (in the development documentation), and that images for other CUDA versions are available on
-Docker Hub. Do not add such notes by hand. Where the version is not about an image, such as the folder of the macOS
-package, use `{{ PACKAGE_VERSION }}`, the same version without the note. The download of the launcher uses
+supported versions. Commands name these images without a note about the version: the title and the announcement bar
+of each page say which version a tree documents. Where the version is not about an image, such as the folder of the
+macOS package, use `{{ PACKAGE_VERSION }}`, the same version. The download of the launcher uses
 `{{ LAUNCHER_URL }}`, the copy published next to the pages of the same tree (`stable` or `dev`). `README.md` is
 shown on GitHub, where nothing is substituted, so it names the `stable` copy.
 
@@ -176,7 +173,7 @@ and ROCm images of `pyproject.toml`, and `{{ CUDA_LEGACY_STRING }}` is the image
 The software in the images of that release, which is also what the native installation clones (`--branch stable`),
 comes with versions from the same tree: `{{ PYTHON_VERSION }}` is `tool.python.version` in `pyproject.toml`,
 `{{ UBUNTU_VERSION }}` the Ubuntu version of `tool.docker.runtime_base` in `pyproject.toml`, and
-`{{ FREESURFER_VERSION }}` is `tool.freesurfer.version` in `pyproject.toml`. Code blocks that use them get no note.
+`{{ FREESURFER_VERSION }}` is `tool.freesurfer.version` in `pyproject.toml`.
 
 reST files are not substituted, so commands there use the `latest` image instead: `deepmi/fastsurfer:latest` and
 `$HOME/my_singularity_images/fastsurfer-latest.sif`.

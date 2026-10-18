@@ -192,7 +192,7 @@ myst_enable_extensions = {
 # configure substitutions, fix_links also replaces string substitutions inside code, which MyST does not
 myst_substitutions = {
     "FASTSURFER_VERSION": image_version,
-    # the same version for the folder of the macOS package, without the note on docker images
+    # the same version, for the folder of the macOS package rather than an image
     "PACKAGE_VERSION": image_version,
     "CUDA_STRING": image_cuda,
     "CUDA_VERSION": version_cuda,
@@ -246,7 +246,8 @@ html_static_path = ["_static"]
 # served next to the pages, so the launcher downloads from deep-mi.org/FastSurfer/<stable|dev>/
 html_extra_path = ["../tools/fastsurfer"]
 html_js_files = ["doc-version-link.js"]  # points the announcement bar at the sibling doc tree
-html_title = project
+# top left and in the browser tab: the release this tree documents, or dev
+html_title = f"{project} {image_version}" if documents_a_release else f"{project} dev"
 html_show_sphinx = False
 
 # Documentation to change footer icons:
@@ -265,15 +266,6 @@ html_theme_options = {
         },
     ],
 }
-
-# doc.yml publishes each build to gh-pages under the ref it was built from, so that ref is what
-# says whether this tree documents a release. It is read from the environment rather than from git,
-# because actions/checkout leaves a detached HEAD and `git branch --show-current` is empty there.
-# The tag pattern matches the release tags this project actually uses, all of them X.Y.Z. A tag
-# with a suffix falls through to the development wording, which is the safe way round. doc.yml
-# publishes no tags today, so only "stable" reaches this in practice.
-publish_ref = os.environ.get("GITHUB_REF_NAME", "")
-documents_a_release = publish_ref == "stable" or re.fullmatch(r"v\d+\.\d+\.\d+", publish_ref) is not None
 
 # The announcement bar is the only site-wide notice furo offers, so it also carries the link to the
 # other published tree. The href here is a fallback that is only correct at the tree root;
@@ -428,42 +420,3 @@ fix_links_alternative_targets = {
     "/overview/intro": ("/index.rst", "/overview/index.rst"),
 }
 fix_links_project_root = Path("..")
-# set of substitution names => text (one MyST markdown paragraph) of the note fix_links renders on top of each fenced
-# code block that uses exactly these of the names used here as `{{ name }}`, sets without an entry get no note
-# the commands use the official images, which may not match this tree's version (FastSurfer, default CUDA version)
-_docker_hub = f"[Docker Hub](https://hub.docker.com/r/deepmi/fastsurfer/tags?name=v{image_version})"
-_torch_docs_url = f"(https://pytorch.org/docs)"
-if documents_a_release:
-    fix_links_substitution_banners = {
-        frozenset({"CUDA_STRING"}): (
-            f"The commands below use {image_cuda}, which references the default CUDA version ({version_cuda}) of "
-            f"FastSurfer {image_version}. Other CUDA versions are supported by [PyTorch]({_torch_docs_url}), but "
-            f"depend on the PyTorch version. If you use `uv`, then `--torch-backend auto` automatically lets `uv` "
-            f"decide."
-        ),
-        frozenset({"FASTSURFER_VERSION", "CUDA_STRING"}): (
-            f"The commands below use the tagged FastSurfer image `:{image_cuda}-v{image_version}`. CUDA {version_cuda} "
-            f"is the default CUDA version bundled in both `:latest` and that image. Images of {image_version} for "
-            f"other CUDA versions, ROCm and CPU are available on {_docker_hub}."
-        ),
-    }
-else:
-    _latest_release_str = (
-        f"This documents the development version {version}. Official Docker images only exist for releases, so the "
-        f"commands below use the latest release, {image_version}"
-    )
-    _build_image = "To run the development version, {doc}`build your own image </developer/docker>`."
-    fix_links_substitution_banners = {
-        frozenset({"FASTSURFER_VERSION"}): f"{_latest_release_str}. {_build_image}",
-        frozenset({"CUDA_STRING"}): (
-            f"{_latest_release_str}. The commands below use {image_cuda}, which references the default CUDA version "
-            f"({version_cuda}) of FastSurfer {image_version}. The default PyTorch and CUDA versions might be different "
-            f"for this development version (see supported [PyTorch's documentation]({_torch_docs_url}). If you use "
-            f"`uv`, then `--torch-backend auto` automatically lets `uv` decide."
-        ),
-        frozenset({"FASTSURFER_VERSION", "CUDA_STRING"}): (
-            f"{_latest_release_str}, for its default CUDA version, {version_cuda}. Images of {image_version} for other "
-            f"CUDA versions, ROCm and CPU are available on {_docker_hub}. {_build_image}"
-        ),
-    }
-
