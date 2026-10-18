@@ -1,5 +1,5 @@
-Running FastSurfer in a container
-================================
+Containers
+==========
 This page explains the commands that run FastSurfer in our Apptainer (Singularity) or Docker images: the flags of the
 container, and how FastSurfer's own flags work inside it. To get an image, see the installation page of your system
 ([Linux](install/LINUX.md), [Windows](install/WINDOWS.md), [Intel Macs](install/MACOS.md#docker-intel-macs)); the
