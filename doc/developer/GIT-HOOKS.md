@@ -1,4 +1,4 @@
-Git hooks
+Git Hooks
 =========
 
 The FastSurfer team has developed a pre-commit hook script to help implement

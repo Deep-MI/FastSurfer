@@ -1,4 +1,4 @@
-Running modules directly
+Running Modules Directly
 ========================
 
 ``run_fastsurfer.sh`` runs all modules for you. These pages describe the scripts of the individual modules, for experts

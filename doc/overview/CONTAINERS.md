@@ -92,8 +92,8 @@ paths in the arguments, so relative paths only work inside the current directory
 images are installed, such a program uses the newest instead of asking.
 
 `--print_only` prints the commands instead of running them, `--update_launcher`
-replaces the launcher with the current one, and `--help` lists all launcher options. The sections
-below explain the commands it runs.
+replaces the launcher with the current one, and `--help` lists all launcher options, as does its
+[reference](../scripts/LAUNCHER.md). The sections below explain the commands it runs.
 
 Before starting many runs at once, e.g. a SLURM array, run the launcher once (e.g. on one subject),
 so the image is downloaded and built only once rather than by every job.

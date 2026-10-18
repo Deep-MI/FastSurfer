@@ -1,4 +1,4 @@
-Building Docker images
+Building Docker Images
 ----------------------
 
 .. include:: ../../tools/Docker/README.md
