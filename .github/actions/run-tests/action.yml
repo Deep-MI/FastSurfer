@@ -51,7 +51,7 @@ runs:
         echo "FS_JUNIT_ARTIFACT=$artifact" >> "$GITHUB_ENV"
         echo "FS_JUNIT_FILE=$JUNIT_DIR/$artifact.xml" >> "$GITHUB_ENV"
     - name: Setup uv and Python 3.12
-      uses: astral-sh/setup-uv@v10.3.0
+      uses: astral-sh/setup-uv@v10.3.2
       with:
         python-version: '3.12'
     - name: Install the test environment
