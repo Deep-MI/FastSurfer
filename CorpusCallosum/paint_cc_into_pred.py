@@ -26,7 +26,7 @@ from scipy import ndimage
 from CorpusCallosum.data.constants import FORNIX_LABEL, SUBSEGMENT_LABELS
 from FastSurferCNN.data_loader.conform import Reorientation, is_conform
 from FastSurferCNN.data_loader.data_utils import as_mgh_image, load_image
-from FastSurferCNN.reduce_to_aseg import reduce_to_aseg_and_save
+from FastSurferCNN.reduce_to_aseg import mask_segmentation, reduce_to_aseg_and_save
 from FastSurferCNN.utils import Mask2d, Mask3d, Shape3d, logging
 from FastSurferCNN.utils.arg_types import path_or_none
 from FastSurferCNN.utils.brainvolstats import mask_in_array
@@ -97,6 +97,14 @@ def make_parser() -> argparse.ArgumentParser:
         type=path_or_none,
         required=False,
         help="optionally also reduce the resulting segmentation to aseg and save separately.",
+        default=None,
+    )
+    parser.add_argument(
+        "--mask",
+        dest="mask",
+        type=path_or_none,
+        required=False,
+        help="optionally remove the labels outside this brainmask, except the corpus callosum, from both outputs.",
         default=None,
     )
     parser.add_argument(
@@ -504,6 +512,13 @@ if __name__ == "__main__":
         aseg_image.affine,
         voxel_size,
     )
+
+    if options.mask is not None:
+        # an edited segmentation or an edited mask can leave labels outside the mask, the corpus callosum is trusted
+        _, mask_data = load_image(options.mask)
+        if mask_data.shape != pred_corrected.shape:
+            sys.exit("Error: The mask and the segmentation do not have the same shape.")
+        pred_corrected = mask_segmentation(pred_corrected, mask_data, float(np.prod(voxel_size)), SUBSEGMENT_LABELS)
 
     logger.info(f"Writing segmentation with corpus callosum to: {options.output}")
     pred_with_cc_fin = as_mgh_image(pred_corrected, aseg_image.affine, aseg_image.header)

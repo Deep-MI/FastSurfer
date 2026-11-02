@@ -1239,6 +1239,7 @@ if [[ "${#content_of_subject_dir[@]}" -gt 1 ]] ; then
 fi
 
 asegdkt_segfile_manedit=$(add_file_suffix "$asegdkt_segfile" "manedit")
+mask_name_manedit=$(add_file_suffix "$mask_name" "manedit")
 
 # ============= Copying the input into the subject directory ==================
 # Runs for both pipelines, so that a segmentation-only run leaves behind the rawavg a later
@@ -1337,30 +1338,39 @@ then
       echo "ERROR: FastSurfer asegdkt segmentation failed." | tee -a "$seg_log"
       exit 1
     fi
-    if [[ -e "$asegdkt_segfile_manedit" ]]
+    if [[ -e "$asegdkt_segfile_manedit" ]] && [[ "$edits" != "true" ]]
     then
-      if [[ "$edits" == "true" ]]
+      {
+        echo "ERROR: $asegdkt_segfile_manedit (manedit file for <asegdkt_segfile>) detected,"
+        echo "  but edit was not passed. Please delete $asegdkt_segfile_manedit, or add --edits!"
+      } | tee -a "$seg_log"
+      exit 1
+    fi
+    if [[ "$edits" == "true" ]] && { [[ -e "$asegdkt_segfile_manedit" ]] || [[ -e "$mask_name_manedit" ]] ; }
+    then
+      # labels outside the mask are removed, the white matter islands are kept as edited
+      mask_flags=()
+      if [[ -e "$asegdkt_segfile_manedit" ]]
       then
         {
           echo "INFO: $asegdkt_segfile_manedit (manedit file for <asegdkt_segfile>) detected, supersedes"
           echo "  $asegdkt_segfile <asegdkt_segfile> for creation of $aseg_segfile and $mask_name!"
         } | tee -a "$seg_log"
         asegdkt_segfile="$asegdkt_segfile_manedit"
-        cmd=($python "$fastsurfercnndir/reduce_to_aseg.py" -i "$asegdkt_segfile" -o "$aseg_segfile"
-             --outmask "$mask_name" --fixwm)
-        echo_quoted "${cmd[@]}" | tee -a "$seg_log"
-        "${wrap[@]}" "${cmd[@]}" | tee -a "$seg_log"
-        exit_code="${PIPESTATUS[0]}"
-        if [[ "${exit_code}" != 0 ]]
-        then
-          echo "ERROR: Reduction of asegdkt to aseg failed." | tee -a "$seg_log"
-          exit 1
-        fi
-      else
-        {
-          echo "ERROR: $asegdkt_segfile_manedit (manedit file for <asegdkt_segfile>) detected,"
-          echo "  but edit was not passed. Please delete $asegdkt_segfile_manedit, or add --edits!"
-        } | tee -a "$seg_log"
+      fi
+      if [[ -e "$mask_name_manedit" ]]
+      then
+        echo "INFO: $mask_name_manedit (manedit file for the mask) detected, masks $aseg_segfile." | tee -a "$seg_log"
+        mask_flags=(--mask "$mask_name_manedit")
+      fi
+      cmd=($python "$fastsurfercnndir/reduce_to_aseg.py" -i "$asegdkt_segfile" -o "$aseg_segfile"
+           --outmask "$mask_name" "${mask_flags[@]}")
+      echo_quoted "${cmd[@]}" | tee -a "$seg_log"
+      "${wrap[@]}" "${cmd[@]}" | tee -a "$seg_log"
+      exit_code="${PIPESTATUS[0]}"
+      if [[ "${exit_code}" != 0 ]]
+      then
+        echo "ERROR: Reduction of asegdkt to aseg failed." | tee -a "$seg_log"
         exit 1
       fi
     fi
@@ -1427,7 +1437,6 @@ then
     # a local, not mask_name itself: that one is handed to recon-surf.sh further down, and which
     # mask the surfaces are built from is not this block's decision to make
     mask_for_measure="$mask_name"
-    mask_name_manedit=$(add_file_suffix "$mask_name" "manedit")
     if [[ -e "$mask_name_manedit" ]] ; then mask_for_measure="$mask_name_manedit" ; fi
     cmd=($python "${fastsurfercnndir}/segstats.py" --segfile "$asegdkt_segfile" --normfile "$norm_name"
          --lut "$fastsurfercnndir/config/FreeSurferColorLUT.txt" --sd "${sd}" --sid "${subject}"
@@ -1631,6 +1640,10 @@ then
       cmd=($python "$CorpusCallosumDir/paint_cc_into_pred.py" -in_cc "$callosum_seg" -in_pred "$asegdkt_segfile"
            "-out" "$asegdkt_withcc_segfile" "-aseg" "$aseg_auto_segfile")
       if [[ "$native_image" != "false" ]] ; then cmd+=(--keepgeom) ; fi
+      # the mask the surfaces are built from, so an edited segmentation or mask leaves no label outside it
+      if [[ "$edits" == "true" ]] && [[ -e "$mask_name_manedit" ]] ; then cmd+=(--mask "$mask_name_manedit")
+      elif [[ -e "$mask_name" ]] ; then cmd+=(--mask "$mask_name")
+      fi
       echo_quoted "${cmd[@]}"
       "${wrap[@]}" "${cmd[@]}"
       if [[ "${PIPESTATUS[0]}" != 0 ]] ; then echo "ERROR: asegdkt cc inpainting failed!" ; exit 1 ; fi

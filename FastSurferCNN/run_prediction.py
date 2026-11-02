@@ -689,6 +689,10 @@ def main(
         try:
             # The orig_t1_file is only used to populate verbose messages here
             pred_data = eval.get_prediction(subject.orig_name, data_array, orig_img.header.get_zooms(), orig_img.affine)
+            # remove labels outside the brainmask and flip white matter islands, so every output derived from the
+            # segmentation lies inside the brainmask
+            LOGGER.info("Creating brainmask based on segmentation...")
+            pred_data, bm = rta.clean_segmentation(pred_data, float(np.prod(orig_img.header.get_zooms()[:3])))
             futures.append(eval.async_save_img(subject.segfile, pred_data, orig_img, dtype=np.int16))
 
             # Create aseg and brainmask
@@ -696,12 +700,8 @@ def main(
             # There is a funny edge case in legacy FastSurfer 2.0, where the behavior is not well-defined, if orig_name
             # is an absolute path, but out_dir is not set. Then, we would create a sub-folder in the folder of orig_name
             # using the subject_id (passed by --sid or extracted from the orig_name) and use that as the subject folder.
-            bm = None
             store_brainmask = subject.can_resolve_filename(brainmask_name)
             store_aseg = subject.can_resolve_filename(aseg_name)
-            if store_brainmask or store_aseg:
-                LOGGER.info("Creating brainmask based on segmentation...")
-                bm = rta.create_mask(pred_data, 5, 4)
             if store_brainmask:
                 # get mask
                 mask_name = subject.filename_in_subject_folder(brainmask_name)
@@ -714,11 +714,9 @@ def main(
                 LOGGER.info(message.format(**subjects.flags))
 
             if store_aseg:
-                # reduce aparc to aseg and mask regions
+                # the segmentation is already masked and its white matter islands flipped
                 LOGGER.info("Creating aseg based on segmentation...")
                 aseg = rta.reduce_to_aseg(pred_data)
-                aseg[bm == 0] = 0
-                aseg = rta.flip_wm_islands(aseg)
                 aseg_name = subject.filename_in_subject_folder(aseg_name)
                 # Change datatype to np.uint8, else mri_cc will fail!
                 futures.append(eval.async_save_img(aseg_name, aseg, orig_img, dtype=np.uint8))
