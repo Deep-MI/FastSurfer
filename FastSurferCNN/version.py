@@ -26,6 +26,12 @@ class DEFAULTS:
     }
 
 
+# the first line of the version info, e.g. "2.6.0+1dc02473 (stable)", see main
+VERSION_LINE = re.compile(r"^(\d+\.\d+\.\d+[^\s+]*|N/A)(\+([0-9A-Fa-f]+))?( \(([^)]*)\))?$")
+# the header of each invocation in a build log, which run_fastsurfer.sh appends after the version info
+INVOCATION_HEADER = "invocation:"
+
+
 class _RequiredVersionDict(TypedDict):
     """
     Dictionary with keys 'version_line', 'version', 'git_hash', 'git_branch'.
@@ -131,6 +137,21 @@ def make_parser():
         default=None,
         type=argparse.FileType("w"),
         help="File to write version info to (default: write to stdout).",
+    )
+    parser.add_argument(
+        "--append",
+        type=Path,
+        default=None,
+        help="Build log to append the version info to, unless it is the same as the last version info there; prints "
+             "a warning if only the environment differs, e.g. the python packages.",
+    )
+    parser.add_argument(
+        "--compare",
+        type=Path,
+        default=None,
+        help="Build log to compare this version with: if the last version recorded there is another major or minor "
+             "version, print its version line and exit with 3; another patch release, development version or "
+             "commit, exit with 4.",
     )
     parser.add_argument(
         "--prefer_cache",
@@ -466,6 +487,96 @@ def parse_build_file(build_file: TextIO | io.StringIO | None) -> VersionDict:
     return file_cache
 
 
+def last_version_block(build_log: str) -> str | None:
+    """
+    Return the last version info of a build log, from its last version line to the invocation after it.
+
+    A build log has the version info of each version that processed a subject, each followed by the
+    invocations that ran with it.
+
+    Parameters
+    ----------
+    build_log : str
+        The content of the build log.
+
+    Returns
+    -------
+    str, optional
+        The last version info, None if the build log has none.
+    """
+    lines = build_log.splitlines()
+    starts = [i for i, line in enumerate(lines) if VERSION_LINE.match(line)]
+    if not starts:
+        return None
+    block = []
+    for line in lines[starts[-1]:]:
+        if line == INVOCATION_HEADER:
+            break
+        block.append(line)
+    # the separator above the invocation header, and blank lines
+    while block and block[-1] in ("", "=" * 10):
+        block.pop()
+    return "\n".join(block)
+
+
+def version_difference(version_line: str, other_version_line: str) -> Literal["", "patch", "minor"]:
+    """
+    Return how two version lines differ, whatever the branch.
+
+    Abbreviated commit hashes differ in length between repositories, so one has to start with the other.
+
+    Parameters
+    ----------
+    version_line, other_version_line : str
+        Version lines, e.g. "2.6.0+1dc02473 (stable)".
+
+    Returns
+    -------
+    "", "patch", "minor"
+        "" for the same version and commit, "minor" if the major or minor version differs or a version is not
+        recognized, else "patch" (another patch release, development version or commit).
+    """
+    hits, other_hits = VERSION_LINE.match(version_line), VERSION_LINE.match(other_version_line)
+    if hits is None or other_hits is None:
+        return "minor"
+    (version, _, git_hash, *_), (other_version, _, other_hash, *_) = hits.groups(""), other_hits.groups("")
+    if version == other_version and (git_hash.startswith(other_hash) or other_hash.startswith(git_hash)):
+        return ""
+    major_minor, other_major_minor = (re.match(r"\d+\.\d+", v) for v in (version, other_version))
+    if major_minor is None or other_major_minor is None or major_minor.group() != other_major_minor.group():
+        return "minor"
+    return "patch"
+
+
+def append_build_log(build_log: Path, version_info: str) -> str | None:
+    """
+    Append the version info to the build log, unless it is the last version info there.
+
+    Parameters
+    ----------
+    build_log : Path
+        The build log.
+    version_info : str
+        The version info, as written by `main`.
+
+    Returns
+    -------
+    str, optional
+        A warning if the version is the same as the last one in the build log, but the environment differs.
+    """
+    content = build_log.read_text() if build_log.is_file() else ""
+    previous = last_version_block(content)
+    version_info = version_info.rstrip("\n")
+    if previous == version_info:
+        return None
+    with open(build_log, "a") as file:
+        file.write(("\n" if content else "") + version_info + "\n")
+    if previous is not None and not version_difference(previous.split("\n", 1)[0], version_info.split("\n", 1)[0]):
+        return (f"WARNING: This FastSurfer version runs in another environment than the last run on this subject, "
+                f"e.g. with other python packages or checkpoints; {build_log} records both.")
+    return None
+
+
 def read_version_from_project_file(project_file: TextIO) -> str:
     """
     Read the version entry from the pyproject file.
@@ -566,5 +677,21 @@ def read_and_close_version(project_file: TextIO | PathLike | None = None) -> str
 if __name__ == "__main__":
     import sys
 
-    args = make_parser().parse_args()
-    sys.exit(main(**vars(args)))
+    kwargs = vars(make_parser().parse_args())
+    append, compare = kwargs.pop("append"), kwargs.pop("compare")
+    if append is None and compare is None:
+        sys.exit(main(**kwargs))
+    buffer = io.StringIO()
+    returncode = main(**(kwargs | {"file": buffer}))
+    if compare is not None:
+        if returncode != 0:
+            sys.exit(returncode)
+        previous = last_version_block(compare.read_text()) if compare.is_file() else None
+        difference = previous and version_difference(previous.split("\n", 1)[0], buffer.getvalue().strip())
+        if difference:
+            print(previous.split("\n", 1)[0])
+        sys.exit({"minor": 3, "patch": 4}.get(difference, 0))
+    warning = append_build_log(append, buffer.getvalue())
+    if warning:
+        print(warning)
+    sys.exit(returncode)

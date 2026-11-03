@@ -95,6 +95,7 @@ threads_surf=""
 # python3 -s excludes user-directory package inclusion
 python="python3 -s"
 allow_root=()
+allow_version_mix="false"
 version_and_quit=""
 warn_seg_only=()
 warn_base=()
@@ -157,11 +158,16 @@ FLAGS:
                             result files by manedit substitutes (*.manedit.<ext>).
                             Segmentation edits (default paths):
                               mri/aparc.DKTatlas+aseg.deep.manedit.mgz
-                              mri/mask.manedit.mgz
                               mri/callosum.CC.upright.manedit.mgz
                             Surface: Disables check for existing recon-surf.sh
                               run; edits of mri/wm.mgz and brain.finalsurfs.mgz
                               as well as FreeSurfer-style WM control points.
+  --allow_version_mix     Allow a run on a subject directory that another
+                            major or minor FastSurfer version processed
+                            before. Without it, such a run stops, so process
+                            the subject again into a new directory. Other
+                            version differences only warn. scripts/build.log
+                            records every version.
   --version <info>        Print version information and exit; <info> is
                             optional. <info> may be empty, just prints the
                             version number, +git_branch also prints the current
@@ -479,6 +485,7 @@ case $key in
   # options that *just* set a flag
   #=============================================================
   --allow_root) allow_root=("$key") ;;
+  --allow_version_mix) allow_version_mix="true" ;;
   # options that set a variable
   --sid) subject="$1" ; shift ;;
   --sd) sd="$1" ; shift ;;
@@ -1149,11 +1156,12 @@ then
   set_thread_env "$threads_seg"
 fi
 
+# outside the block below, which runs in a subshell, as the version check further down needs it
+VERSION=$($python "$FASTSURFER_HOME/FastSurferCNN/version.py" "${version_cache_args[@]}")
 {
   echo "========================================================="
   echo "Start of the log for a new run_fastsurfer.sh invocation"
   echo "========================================================="
-  VERSION=$($python "$FASTSURFER_HOME/FastSurferCNN/version.py" "${version_cache_args[@]}")
   echo "Version: $VERSION"
   date 2>&1
   echo ""
@@ -1175,6 +1183,81 @@ if [[ -f "$tmpLF" ]] ; then cat "$tmpLF" >> "$seg_log" ; rm "$tmpLF" ; fi
 # shellcheck disable=SC2064
 trap "{ echo \"run_fastsurfer.sh terminated via signal at \$(date -R)!\" | tee -a \"$seg_log\" ; }" SIGINT SIGTERM
 
+if [[ "$run_seg_pipeline" != "true" ]]
+then
+  {
+    echo "INFO: Running run_fastsurfer.sh without segmentation pipeline;"
+    echo "  expecting previous --seg_only run in $subject_dir."
+  } | tee -a "$seg_log"
+fi
+
+function filter_log_build()
+{
+  # filter expected files $LF and $build_log
+  IFS=""
+  while read -r file ; do
+    if [[ "$sd/$subject/${file:2}" != "$seg_log" ]] && [[ "$sd/$subject/${file:2}" != "$build_log" ]] ; then
+      echo "$file"
+    fi
+  done
+}
+
+pushd "$subject_dir" > /dev/null || { echo "ERROR: Could not access $subject_dir!" ; exit 1 ; }
+  # read into the array rather than with mapfile, which is bash 4+ while macOS ships bash 3.2
+  content_of_subject_dir=()
+  while IFS= read -r found_file ; do content_of_subject_dir+=("$found_file") ; done \
+    < <(find "." -type f | filter_log_build)
+popd > /dev/null || exit 1
+if [[ "${#content_of_subject_dir[@]}" -gt 0 ]] ; then
+  if [[ "$edits" == "true" ]] ; then LABEL="INFO" ; else LABEL="WARNING" ; fi
+  {
+    echo "$LABEL: Found ${#content_of_subject_dir[@]} files in subject directory \$SUBJECTS_DIR/$subject:"
+    files=("${content_of_subject_dir[@]:0:6}")
+    if [[ "${#content_of_subject_dir[@]}" -gt 6 ]] ; then files+=("...") ; fi
+    echo "  Potentially Overwriting: ${files[*]}"
+  } | tee -a "$seg_log"
+fi
+
+# A subject directory is processed with one FastSurfer version, so compare with the version the build log
+# recorded for the files already there: another major or minor version stops, any other difference warns.
+# Before the build log is appended to below.
+if [[ "${#content_of_subject_dir[@]}" -gt 0 ]] && [[ -f "$build_log" ]]
+then
+  previous_version=$($python "$FASTSURFER_HOME/FastSurferCNN/version.py" --compare "$build_log" \
+                     "${version_cache_args[@]}")
+  version_status=$?
+  if [[ "$version_status" == 3 ]]
+  then
+    if [[ "$allow_version_mix" == "true" ]] ; then LABEL="WARNING" ; else LABEL="ERROR" ; fi
+    {
+      echo "$LABEL: \$SUBJECTS_DIR/$subject was processed with FastSurfer $previous_version, but this is"
+      echo "  FastSurfer $VERSION, another major or minor version."
+      if [[ "$allow_version_mix" == "true" ]]
+      then
+        echo "  Continuing with --allow_version_mix, $build_log records both versions."
+      else
+        echo "  Process the subject again into a new directory, or pass --allow_version_mix to continue."
+      fi
+    } | tee -a "$seg_log"
+    if [[ "$allow_version_mix" != "true" ]] ; then exit 1 ; fi
+  elif [[ "$version_status" == 4 ]]
+  then
+    {
+      echo "WARNING: \$SUBJECTS_DIR/$subject was processed with FastSurfer $previous_version, this is"
+      echo "  FastSurfer $VERSION. $build_log records both versions."
+    } | tee -a "$seg_log"
+  elif [[ "$version_status" != 0 ]]
+  then
+    echo "WARNING: Could not compare the FastSurfer version with $build_log." | tee -a "$seg_log"
+  fi
+elif [[ -f "$asegdkt_segfile" ]] && [[ ! -f "$build_log" ]]
+then
+  {
+    echo "WARNING: \$SUBJECTS_DIR/$subject has no record of the FastSurfer version that processed it"
+    echo "  before, so this run may mix versions."
+  } | tee -a "$seg_log"
+fi
+
 # create the build log, file with all version info in parallel
 # uses ${version_cache_args}, which is filled exactly if a build_cache file exists
 # Limit the runtime if the platform can: timeout is GNU coreutils, absent on macOS (gtimeout when
@@ -1192,7 +1275,9 @@ function run_with_timeout()
   fi
 }
 (
-  if run_with_timeout $python "$FASTSURFER_HOME/FastSurferCNN/version.py" --sections all -o "$build_log" "${version_cache_args[@]}"
+  # the version info is appended only if it differs from the last one, the invocation always
+  if build_warning=$(run_with_timeout $python "$FASTSURFER_HOME/FastSurferCNN/version.py" --sections all \
+                     --append "$build_log" "${version_cache_args[@]}")
   then
     {
       echo ""
@@ -1203,40 +1288,8 @@ function run_with_timeout()
       date -R
     } >> "$build_log"
   fi
+  if [[ -n "$build_warning" ]] ; then echo "$build_warning" | tee -a "$seg_log" ; fi
 ) &
-
-if [[ "$run_seg_pipeline" != "true" ]]
-then
-  {
-    echo "INFO: Running run_fastsurfer.sh without segmentation pipeline;"
-    echo "  expecting previous --seg_only run in $subject_dir."
-  } | tee -a "$seg_log"
-fi
-
-function filter_log_build()
-{
-  # filter expected files $LF and scripts/BUILD.log
-  IFS=""
-  while read -r file ; do
-    if [[ "$sd/$subject/${file:2}" != "$seg_log" ]] && [[ "$file" != "./scripts/BUILD.log" ]] ; then echo "$file" ; fi
-  done
-}
-
-pushd "$subject_dir" > /dev/null || { echo "ERROR: Could not access $subject_dir!" ; exit 1 ; }
-  # read into the array rather than with mapfile, which is bash 4+ while macOS ships bash 3.2
-  content_of_subject_dir=()
-  while IFS= read -r found_file ; do content_of_subject_dir+=("$found_file") ; done \
-    < <(find "." -type f | filter_log_build)
-popd > /dev/null || exit 1
-if [[ "${#content_of_subject_dir[@]}" -gt 1 ]] ; then
-  if [[ "$edits" == "true" ]] ; then LABEL="INFO" ; else LABEL="WARNING" ; fi
-  {
-    echo "$LABEL: Found ${#content_of_subject_dir[@]} files in subject directory \$SUBJECTS_DIR/$subject:"
-    files=("${content_of_subject_dir[@]:0:6}")
-    if [[ "${#content_of_subject_dir[@]}" -gt 6 ]] ; then files+=("...") ; fi
-    echo "  Potentially Overwriting: ${files[*]}"
-  } | tee -a "$seg_log"
-fi
 
 asegdkt_segfile_manedit=$(add_file_suffix "$asegdkt_segfile" "manedit")
 mask_name_manedit=$(add_file_suffix "$mask_name" "manedit")

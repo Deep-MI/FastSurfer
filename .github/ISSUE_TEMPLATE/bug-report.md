@@ -45,7 +45,7 @@ Please attach your log files here. They help understanding problems, FastSurfer 
 
 If you are interacting with the standard entrypoint scripts, the relevant log files are:
 * `run_fastsurfer.sh`: Log files `$SUBJECTS_DIR/$SUBJECT_ID/scripts/deep-seg.log`, 
-  `$SUBJECTS_DIR/$SUBJECT_ID/scripts/BUILD.log` and `$SUBJECTS_DIR/$SUBJECT_ID/scripts/recon-surf.log` (unless use are 
+  `$SUBJECTS_DIR/$SUBJECT_ID/scripts/build.log` and `$SUBJECTS_DIR/$SUBJECT_ID/scripts/recon-surf.log` (unless use are 
   running with `--seg_only`).
 * `long_fastsurfer.sh`: Log files `$SUBJECTS_DIR/$TEMPLATE_ID/scripts/long_fastsurfer.log`.
 * `brun_fastsurfer.sh`: Same as `run_fastsurfer.sh`.
@@ -61,7 +61,7 @@ Environment
 Please describe how and which version of FastSurfer you are using. For this fill out the list below!
 
 - **Installation type**: Docker / Singularity Image / native install
-- FastSurfer Version: `run_fastsurfer.sh --version all` gives full version information, see also `scripts/BUILD.log`.
+- FastSurfer Version: `run_fastsurfer.sh --version all` gives full version information, see also `scripts/build.log`.
 - FreeSurfer Version (if you are running a native install): FILL IN HERE
 - OS: Linux Version / Windows / Mac
 - GPU: e.g. RTX 2080 / ...
