@@ -515,9 +515,10 @@ if __name__ == "__main__":
 
     if options.mask is not None:
         # an edited segmentation or an edited mask can leave labels outside the mask, the corpus callosum is trusted
-        _, mask_data = load_image(options.mask)
-        if mask_data.shape != pred_corrected.shape:
-            sys.exit("Error: The mask and the segmentation do not have the same shape.")
+        mask_image, mask_data = load_image(options.mask)
+        # the mask is applied voxel by voxel, so it has to be on the same grid, up to float32 rounding of the affine
+        if mask_data.shape != pred_corrected.shape or not np.allclose(mask_image.affine, aseg_image.affine, atol=1e-4):
+            sys.exit("Error: The mask and the segmentation are not on the same voxel grid.")
         pred_corrected = mask_segmentation(pred_corrected, mask_data, float(np.prod(voxel_size)), SUBSEGMENT_LABELS)
 
     logger.info(f"Writing segmentation with corpus callosum to: {options.output}")

@@ -45,8 +45,6 @@ Script to reduce aparc+aseg to aseg by mapping cortex labels back to left/right 
 If --outmask is used, it also creates a brainmask by dilating (5) and eroding (4) 
 the segmentation, and then selecting the largest component. In that case also the 
 segmentation is masked (to remove small components outside the main brain region).
-With --mask, the segmentation is masked with that mask instead, e.g. a manually
-edited mask.
 
 If --flipwm is passed, disconnected WM islands will be checked and potentially
 swapped to the other hemisphere. Sometimes these islands carry the wrong label 
@@ -74,7 +72,6 @@ Dependencies:
 h_input = "path to input segmentation"
 h_output = "path to output segmentation"
 h_outmask = "path to output mask"
-h_mask = "path to a mask to mask the segmentation with, instead of the mask created for --outmask"
 h_fixwm = "whether to try to flip labels of disconnected WM island to other hemi"
 
 
@@ -94,7 +91,6 @@ def options_parse():
     parser.add_option("--input", "-i", dest="input_seg", help=h_input)
     parser.add_option("--output", "-o", dest="output_seg", help=h_output)
     parser.add_option("--outmask", dest="output_mask", help=h_outmask)
-    parser.add_option("--mask", dest="input_mask", help=h_mask)
     parser.add_option(
         "--fixwm", dest="fix_wm", help=h_fixwm, default=False, action="store_true"
     )
@@ -361,19 +357,11 @@ if __name__ == "__main__":
     # reduce aparc to aseg and mask regions
     aseg = reduce_to_aseg(inseg_data)
 
-    if options.input_mask:
-        bm = np.asanyarray(cast(nibabelImage, nib.load(options.input_mask)).dataobj)
-        if bm.shape != aseg.shape:
-            sys.exit(f"ERROR: The mask {options.input_mask} and the segmentation do not have the same shape.")
-    elif options.output_mask:
+    if options.output_mask:
+        # mask aseg also
         # wait and report errors in saving the mask
         bm = io_fut_mask.result()
-    else:
-        bm = None
-    if bm is not None:
         aseg = mask_segmentation(aseg, bm, float(np.prod(inseg_header.get_zooms()[:3])))
-    if io_fut_mask is not None:
-        io_fut_mask.result()
 
     if options.fix_wm:
         aseg = flip_wm_islands(aseg)
