@@ -686,10 +686,15 @@ if __name__ == "__main__":
     if compare is not None:
         if returncode != 0:
             sys.exit(returncode)
-        previous = last_version_block(compare.read_text()) if compare.is_file() else None
-        difference = previous and version_difference(previous.split("\n", 1)[0], buffer.getvalue().strip())
+        if not compare.is_file():
+            sys.exit(0)
+        previous = last_version_block(compare.read_text())
+        if previous is None:
+            sys.exit(f"{compare} records no version.")
+        previous_line = previous.split("\n", 1)[0]
+        difference = version_difference(previous_line, buffer.getvalue().split("\n", 1)[0])
         if difference:
-            print(previous.split("\n", 1)[0])
+            print(previous_line)
         sys.exit({"minor": 3, "patch": 4}.get(difference, 0))
     warning = append_build_log(append, buffer.getvalue())
     if warning:

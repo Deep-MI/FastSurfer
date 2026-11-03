@@ -1203,10 +1203,11 @@ function filter_log_build()
 }
 
 pushd "$subject_dir" > /dev/null || { echo "ERROR: Could not access $subject_dir!" ; exit 1 ; }
-  # read into the array rather than with mapfile, which is bash 4+ while macOS ships bash 3.2
+  # read into the array rather than with mapfile, which is bash 4+ while macOS ships bash 3.2; links count, as
+  # inputs may be linked into the subject directory
   content_of_subject_dir=()
   while IFS= read -r found_file ; do content_of_subject_dir+=("$found_file") ; done \
-    < <(find "." -type f | filter_log_build)
+    < <(find "." \( -type f -o -type l \) | filter_log_build)
 popd > /dev/null || exit 1
 if [[ "${#content_of_subject_dir[@]}" -gt 0 ]] ; then
   if [[ "$edits" == "true" ]] ; then LABEL="INFO" ; else LABEL="WARNING" ; fi
@@ -1248,7 +1249,10 @@ then
     } | tee -a "$seg_log"
   elif [[ "$version_status" != 0 ]]
   then
-    echo "WARNING: Could not compare the FastSurfer version with $build_log." | tee -a "$seg_log"
+    {
+      echo "WARNING: Could not read the FastSurfer version recorded in $build_log, so this run may mix"
+      echo "  versions."
+    } | tee -a "$seg_log"
   fi
 elif [[ -f "$asegdkt_segfile" ]] && [[ ! -f "$build_log" ]]
 then
