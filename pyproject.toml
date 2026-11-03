@@ -64,7 +64,7 @@ qc = [
     'whippersnappy>=2.1',
 ]
 lit = [
-    'neurolit>=0.7.0',
+    'neurolit>=0.7.1',
 ]
 container = [
     'fastsurfer[qc]',
