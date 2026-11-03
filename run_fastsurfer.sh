@@ -1239,6 +1239,7 @@ if [[ "${#content_of_subject_dir[@]}" -gt 1 ]] ; then
 fi
 
 asegdkt_segfile_manedit=$(add_file_suffix "$asegdkt_segfile" "manedit")
+mask_name_manedit=$(add_file_suffix "$mask_name" "manedit")
 
 # ============= Copying the input into the subject directory ==================
 # Runs for both pipelines, so that a segmentation-only run leaves behind the rawavg a later
@@ -1346,8 +1347,9 @@ then
           echo "  $asegdkt_segfile <asegdkt_segfile> for creation of $aseg_segfile and $mask_name!"
         } | tee -a "$seg_log"
         asegdkt_segfile="$asegdkt_segfile_manedit"
+        # labels outside the mask are removed, the white matter islands are kept as edited
         cmd=($python "$fastsurfercnndir/reduce_to_aseg.py" -i "$asegdkt_segfile" -o "$aseg_segfile"
-             --outmask "$mask_name" --fixwm)
+             --outmask "$mask_name")
         echo_quoted "${cmd[@]}" | tee -a "$seg_log"
         "${wrap[@]}" "${cmd[@]}" | tee -a "$seg_log"
         exit_code="${PIPESTATUS[0]}"
@@ -1427,7 +1429,6 @@ then
     # a local, not mask_name itself: that one is handed to recon-surf.sh further down, and which
     # mask the surfaces are built from is not this block's decision to make
     mask_for_measure="$mask_name"
-    mask_name_manedit=$(add_file_suffix "$mask_name" "manedit")
     if [[ -e "$mask_name_manedit" ]] ; then mask_for_measure="$mask_name_manedit" ; fi
     cmd=($python "${fastsurfercnndir}/segstats.py" --segfile "$asegdkt_segfile" --normfile "$norm_name"
          --lut "$fastsurfercnndir/config/FreeSurferColorLUT.txt" --sd "${sd}" --sid "${subject}"
@@ -1631,6 +1632,13 @@ then
       cmd=($python "$CorpusCallosumDir/paint_cc_into_pred.py" -in_cc "$callosum_seg" -in_pred "$asegdkt_segfile"
            "-out" "$asegdkt_withcc_segfile" "-aseg" "$aseg_auto_segfile")
       if [[ "$native_image" != "false" ]] ; then cmd+=(--keepgeom) ; fi
+      # the mask the surfaces are built from, so an edited segmentation or mask leaves no label outside it: as in
+      # recon-surf.sh, an edited mask, else for a longitudinal time point the mask of its template
+      base_mask="$sd/$baseid/mri/mask.mgz"
+      if [[ "$edits" == "true" ]] && [[ -e "$mask_name_manedit" ]] ; then cmd+=(--mask "$mask_name_manedit")
+      elif [[ "$long" == "true" ]] && [[ -e "$base_mask" ]] ; then cmd+=(--mask "$base_mask")
+      elif [[ -e "$mask_name" ]] ; then cmd+=(--mask "$mask_name")
+      fi
       echo_quoted "${cmd[@]}"
       "${wrap[@]}" "${cmd[@]}"
       if [[ "${PIPESTATUS[0]}" != 0 ]] ; then echo "ERROR: asegdkt cc inpainting failed!" ; exit 1 ; fi

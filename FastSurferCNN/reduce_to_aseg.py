@@ -36,6 +36,8 @@ _TDType = np.dtype[_T]
 
 
 LOGGER = logging.getLogger(__name__)
+# removing more than this volume of labels outside the brain mask is reported as a warning
+MAX_REMOVED_ML = 1.0
 
 HELPTEXT = """
 Script to reduce aparc+aseg to aseg by mapping cortex labels back to left/right GM.
@@ -182,7 +184,7 @@ def flip_wm_islands(aseg_data: np.ndarray[ShapeType, _TDType]) -> np.ndarray[Sha
     Parameters
     ----------
     aseg_data : numpy.ndarray
-        The input segmentation data.
+        The input segmentation data, an aseg or an aparc+aseg.
 
     Returns
     -------
@@ -212,9 +214,10 @@ def flip_wm_islands(aseg_data: np.ndarray[ShapeType, _TDType]) -> np.ndarray[Sha
     lh_islands, rh_islands = thread_executor().map(partial(_islands, aseg_data), [lh_wm, rh_wm])
 
 
-    # get signed probability for lh and rh (by smoothing joined GM+WM labels)
-    lhmask = np.logical_or(aseg_data == lh_wm, aseg_data == lh_gm)
-    rhmask = np.logical_or(aseg_data == rh_wm, aseg_data == rh_gm)
+    # get signed probability for lh and rh (by smoothing joined GM+WM labels), the cortex of an aparc+aseg as GM
+    sides = reduce_to_aseg(aseg_data)
+    lhmask = np.logical_or(sides == lh_wm, sides == lh_gm)
+    rhmask = np.logical_or(sides == rh_wm, sides == rh_gm)
     ii = gaussian(lhmask.astype(float) * (-1) + rhmask.astype(float), sigma=1.5)
 
     # flip island
@@ -226,6 +229,71 @@ def flip_wm_islands(aseg_data: np.ndarray[ShapeType, _TDType]) -> np.ndarray[Sha
     LOGGER.info(f"FlipWM: rh {rhswap.sum()} and lh {lhswap.sum()} flipped.")
 
     return flip_data
+
+
+def mask_segmentation(
+        seg: np.ndarray[ShapeType, _TDType],
+        mask: np.ndarray[ShapeType, np.dtype],
+        vox_vol: float,
+        keep: list[int] | tuple[int, ...] = (),
+) -> np.ndarray[ShapeType, _TDType]:
+    """
+    Remove the labels outside the mask, except those in keep, and warn if this removes much.
+
+    Labels outside the brain mask are errors of the segmentation, e.g. tissue in the neck. They would
+    end up outside brainmask.mgz, where the surface pipeline finds intensity 0 for them.
+
+    Parameters
+    ----------
+    seg : np.ndarray
+        The segmentation.
+    mask : np.ndarray
+        The mask, voxels > 0 are inside.
+    vox_vol : float
+        The volume of a voxel in mm^3.
+    keep : list of int, tuple of int, default=()
+        Labels to keep outside the mask.
+
+    Returns
+    -------
+    np.ndarray
+        The segmentation without labels outside the mask.
+    """
+    outside = (seg > 0) & (np.asarray(mask) == 0)
+    if keep:
+        outside &= ~mask_in_array(seg, keep)
+    removed_ml = np.count_nonzero(outside) * vox_vol / 1000
+    if removed_ml > MAX_REMOVED_ML:
+        LOGGER.warning(f"Removed {removed_ml:.1f} mL of labels outside the brain mask. Unless the mask was edited "
+                       f"to exclude them, check the segmentation for a mislabeled region outside the brain.")
+    elif removed_ml > 0:
+        LOGGER.info(f"Removed {removed_ml:.3f} mL of labels outside the brain mask.")
+    return np.where(outside, 0, seg).astype(seg.dtype, copy=False)
+
+
+def clean_segmentation(
+        seg: np.ndarray[ShapeType, _TDType],
+        vox_vol: float,
+) -> tuple[np.ndarray[ShapeType, _TDType], np.ndarray[ShapeType, np.dtype[np.uint8]]]:
+    """
+    Remove the labels outside the brain mask and flip disconnected white matter islands to their hemisphere.
+
+    Parameters
+    ----------
+    seg : np.ndarray
+        The aparc+aseg (or aseg) segmentation.
+    vox_vol : float
+        The volume of a voxel in mm^3.
+
+    Returns
+    -------
+    seg : np.ndarray
+        The cleaned segmentation.
+    mask : np.ndarray
+        The brain mask, see create_mask.
+    """
+    mask = create_mask(seg, 5, 4)
+    return flip_wm_islands(mask_segmentation(seg, mask, vox_vol)), mask
 
 
 def create_mask_and_save(
@@ -293,7 +361,7 @@ if __name__ == "__main__":
         # mask aseg also
         # wait and report errors in saving the mask
         bm = io_fut_mask.result()
-        aseg[bm == 0] = 0
+        aseg = mask_segmentation(aseg, bm, float(np.prod(inseg_header.get_zooms()[:3])))
 
     if options.fix_wm:
         aseg = flip_wm_islands(aseg)
