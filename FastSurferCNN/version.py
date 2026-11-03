@@ -27,7 +27,7 @@ class DEFAULTS:
 
 
 # the first line of the version info, e.g. "2.6.0+1dc02473 (stable)", see main
-VERSION_LINE = re.compile(r"^(\d+\.\d+\.\d+[^\s+]*|N/A)(\+([0-9A-Fa-f]+))?( \(([^)]*)\))?$")
+VERSION_LINE = re.compile(r"^(\d+\.\d+\.\d+[^\s+]*|N/A)(\+([0-9A-Fa-f]+))?( \((.*)\))?$")
 # the header of each invocation in a build log, which run_fastsurfer.sh appends after the version info
 INVOCATION_HEADER = "invocation:"
 

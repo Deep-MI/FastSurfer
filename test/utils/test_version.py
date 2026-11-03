@@ -91,6 +91,7 @@ def test_version_difference():
     assert version_difference("2.6.0+1dc02473 (stable)", "2.6.1+019ee29a (stable)") == "patch"
     assert version_difference("2.7.0.dev0+019ee29a (dev)", "2.7.0.dev0+48e42be9 (dev)") == "patch"
     assert version_difference("2.7.0.dev0+019ee29a (dev)", "2.7.0+5f3c2a10 (stable)") == "patch"
-    # another major or minor version stops
+    # another major or minor version stops, also on a branch whose name has parentheses
     assert version_difference("2.5.4+aa11bb22 (stable)", "2.6.1+019ee29a (stable)") == "minor"
+    assert version_difference("2.5.4+aa11bb22 (fix(mask))", "2.6.1+019ee29a (stable)") == "minor"
     assert version_difference("2.6.1+019ee29a (stable)", "3.0.0+5f3c2a10 (stable)") == "minor"
