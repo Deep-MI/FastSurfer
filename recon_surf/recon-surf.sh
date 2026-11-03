@@ -614,6 +614,27 @@ then
   mask="$mask_manedit"
 fi
 
+# mri_normalize takes the white matter of the aseg as control points, so a label outside the mask, where
+# brainmask.mgz and norm.mgz are 0, corrupts the intensity normalization and the surfaces built on it
+if ! outside=$($python "${binpath}count_outside_mask.py" "$mdir/$aseg_auto" "$mask") ; then
+  echo "ERROR: Could not check mri/$aseg_auto against $mask. $outside" | tee -a "$LF"
+  exit 1
+fi
+if [[ "$outside" != "0" ]] ; then
+  {
+    echo "ERROR: mri/$aseg_auto has $outside labelled voxels outside $mask, where"
+    echo "  brainmask.mgz is 0, which would corrupt the intensity normalization and the surfaces."
+    if [[ "$mask" == "$mask_manedit" ]] ; then
+      echo "  Rerun the segmentation with --edits (not --surf_only), so the segmentation follows the edited"
+      echo "  mask, or rename $mask."
+    else
+      echo "  The segmentation probably comes from an older FastSurfer version: rerun the segmentation (not"
+      echo "  --surf_only)."
+    fi
+  } | tee -a "$LF"
+  exit 1
+fi
+
 # ============================= NU BIAS CORRECTION =======================================
 
 if [[ ! -f "$mdir/orig_nu.mgz" ]] ; then
