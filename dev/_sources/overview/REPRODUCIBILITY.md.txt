@@ -13,6 +13,14 @@ same FastSurfer and FreeSurfer versions, is expected to give the same result.
 The topology correction repairs defects in an order that depends on its threads, so it always runs
 single-threaded, whatever `--threads` asks for.
 
+One version per subject
+-----------------------
+
+For identical results, process each subject with exactly one FastSurfer release, the same image or
+package, from the segmentation to the last `--edits` run. Within a study, use the same major and
+minor version for all subjects. If a study uses different versions, record and report which
+subject was processed with which; `scripts/build.log` lists the versions that processed a subject.
+
 With a different thread count
 -----------------------------
 

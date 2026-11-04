@@ -626,11 +626,16 @@ FLAGS:
                             result files by manedit substitutes (*.manedit.&lt;ext&gt;).
                             Segmentation edits (default paths):
                               mri/aparc.DKTatlas+aseg.deep.manedit.mgz
-                              mri/mask.manedit.mgz
                               mri/callosum.CC.upright.manedit.mgz
                             Surface: Disables check for existing recon-surf.sh
                               run; edits of mri/wm.mgz and brain.finalsurfs.mgz
                               as well as FreeSurfer-style WM control points.
+  --allow_version_mix     Allow a run on a subject directory that another
+                            major or minor FastSurfer version processed
+                            before. Without it, such a run stops, so process
+                            the subject again into a new directory. Other
+                            version differences only warn. scripts/build.log
+                            records every version.
   --version &lt;info&gt;        Print version information and exit; &lt;info&gt; is
                             optional. &lt;info&gt; may be empty, just prints the
                             version number, +git_branch also prints the current

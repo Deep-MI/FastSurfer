@@ -483,7 +483,7 @@
 <span id="fastsurfercnn-version"></span><h1>FastSurferCNN.version<a class="headerlink" href="#module-FastSurferCNN.version" title="Link to this heading">¶</a></h1>
 <dl class="py class">
 <dt class="sig sig-object py" id="FastSurferCNN.version.VersionDict">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">FastSurferCNN.version.</span></span><span class="sig-name descname"><span class="pre">VersionDict</span></span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/5b2fbe1/FastSurferCNN/version.py#L50-L56"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.version.VersionDict" title="Link to this definition">¶</a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">FastSurferCNN.version.</span></span><span class="sig-name descname"><span class="pre">VersionDict</span></span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/35aaa50/FastSurferCNN/version.py#L56-L62"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.version.VersionDict" title="Link to this definition">¶</a></dt>
 <dd><p>Dictionary with keys ‘version_line’, ‘version’, ‘git_hash’, ‘git_branch’,
 ‘checkpoints’, ‘git_status’, and ‘pypackages’. The last 3 are optional and may
 be missing depending on the content of the file.</p>
@@ -530,8 +530,31 @@ be missing depending on the content of the file.</p>
 </dd></dl>
 
 <dl class="py function">
+<dt class="sig sig-object py" id="FastSurferCNN.version.append_build_log">
+<span class="sig-prename descclassname"><span class="pre">FastSurferCNN.version.</span></span><span class="sig-name descname"><span class="pre">append_build_log</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">build_log</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">version_info</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/35aaa50/FastSurferCNN/version.py#L551-L579"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.version.append_build_log" title="Link to this definition">¶</a></dt>
+<dd><p>Append the version info to the build log, unless it is the last version info there.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl>
+<dt><strong>build_log</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/library/pathlib.html#pathlib.Path" title="(in Python v3.15)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Path</span></code></a></span></dt><dd><p>The build log.</p>
+</dd>
+<dt><strong>version_info</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a></span></dt><dd><p>The version info, as written by <a class="reference internal" href="#FastSurferCNN.version.main" title="FastSurferCNN.version.main"><code class="xref py py-obj docutils literal notranslate"><span class="pre">main</span></code></a>.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><dl class="simple">
+<dt><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">optional</span></code></dt><dd><p>A warning if the version is the same as the last one in the build log, but the environment differs. Only
+version info with sections tells the environment, a version line alone does not.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
 <dt class="sig sig-object py" id="FastSurferCNN.version.filter_git_status">
-<span class="sig-prename descclassname"><span class="pre">FastSurferCNN.version.</span></span><span class="sig-name descname"><span class="pre">filter_git_status</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">git_process</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/5b2fbe1/FastSurferCNN/version.py#L508-L528"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.version.filter_git_status" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">FastSurferCNN.version.</span></span><span class="sig-name descname"><span class="pre">filter_git_status</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">git_process</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/35aaa50/FastSurferCNN/version.py#L621-L641"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.version.filter_git_status" title="Link to this definition">¶</a></dt>
 <dd><p>Filter the output of a running git status process.</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -551,7 +574,7 @@ be missing depending on the content of the file.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="FastSurferCNN.version.get_default_version_info">
-<span class="sig-prename descclassname"><span class="pre">FastSurferCNN.version.</span></span><span class="sig-name descname"><span class="pre">get_default_version_info</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/5b2fbe1/FastSurferCNN/version.py#L389-L403"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.version.get_default_version_info" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">FastSurferCNN.version.</span></span><span class="sig-name descname"><span class="pre">get_default_version_info</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/35aaa50/FastSurferCNN/version.py#L410-L424"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.version.get_default_version_info" title="Link to this definition">¶</a></dt>
 <dd><p>Get the blank version information.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
@@ -565,7 +588,7 @@ be missing depending on the content of the file.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="FastSurferCNN.version.has_git">
-<span class="sig-prename descclassname"><span class="pre">FastSurferCNN.version.</span></span><span class="sig-name descname"><span class="pre">has_git</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/5b2fbe1/FastSurferCNN/version.py#L143-L153"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.version.has_git" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">FastSurferCNN.version.</span></span><span class="sig-name descname"><span class="pre">has_git</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/35aaa50/FastSurferCNN/version.py#L164-L174"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.version.has_git" title="Link to this definition">¶</a></dt>
 <dd><p>Determine whether FastSurfer is installed as a git directory.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
@@ -578,8 +601,30 @@ be missing depending on the content of the file.</p>
 </dd></dl>
 
 <dl class="py function">
+<dt class="sig sig-object py" id="FastSurferCNN.version.last_version_block">
+<span class="sig-prename descclassname"><span class="pre">FastSurferCNN.version.</span></span><span class="sig-name descname"><span class="pre">last_version_block</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">build_log</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/35aaa50/FastSurferCNN/version.py#L490-L519"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.version.last_version_block" title="Link to this definition">¶</a></dt>
+<dd><p>Return the last version info of a build log, from its last version line to the invocation after it.</p>
+<p>A build log has the version info of each version that processed a subject, each followed by the
+invocations that ran with it.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl>
+<dt><strong>build_log</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a></span></dt><dd><p>The content of the build log.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><dl class="simple">
+<dt><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">optional</span></code></dt><dd><p>The last version info, None if the build log has none.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
 <dt class="sig sig-object py" id="FastSurferCNN.version.main">
-<span class="sig-prename descclassname"><span class="pre">FastSurferCNN.version.</span></span><span class="sig-name descname"><span class="pre">main</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sections</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">project_file</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">build_cache</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">file</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">prefer_cache</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/5b2fbe1/FastSurferCNN/version.py#L214-L386"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.version.main" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">FastSurferCNN.version.</span></span><span class="sig-name descname"><span class="pre">main</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sections</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">project_file</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">build_cache</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">file</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">prefer_cache</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/35aaa50/FastSurferCNN/version.py#L235-L407"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.version.main" title="Link to this definition">¶</a></dt>
 <dd><p>Print version info to stdout or file.</p>
 <p>Prints/writes version info of FastSurfer in the style:
 <code class="docutils literal notranslate"><span class="pre">`</span>
@@ -632,7 +677,7 @@ packages section is left out of the output, which still contains the others.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="FastSurferCNN.version.make_parser">
-<span class="sig-prename descclassname"><span class="pre">FastSurferCNN.version.</span></span><span class="sig-name descname"><span class="pre">make_parser</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/5b2fbe1/FastSurferCNN/version.py#L99-L140"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.version.make_parser" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">FastSurferCNN.version.</span></span><span class="sig-name descname"><span class="pre">make_parser</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/35aaa50/FastSurferCNN/version.py#L105-L161"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.version.make_parser" title="Link to this definition">¶</a></dt>
 <dd><p>Generate the argument parser for the version script.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
@@ -646,7 +691,7 @@ packages section is left out of the output, which still contains the others.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="FastSurferCNN.version.parse_build_file">
-<span class="sig-prename descclassname"><span class="pre">FastSurferCNN.version.</span></span><span class="sig-name descname"><span class="pre">parse_build_file</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">build_file</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/5b2fbe1/FastSurferCNN/version.py#L406-L466"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.version.parse_build_file" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">FastSurferCNN.version.</span></span><span class="sig-name descname"><span class="pre">parse_build_file</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">build_file</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/35aaa50/FastSurferCNN/version.py#L427-L487"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.version.parse_build_file" title="Link to this definition">¶</a></dt>
 <dd><p>Read and parse a build file (same as output of <a class="reference internal" href="#FastSurferCNN.version.main" title="FastSurferCNN.version.main"><code class="xref py py-obj docutils literal notranslate"><span class="pre">main</span></code></a>).</p>
 <p>Read and parse a file with version information in the format that is also the output of the <a class="reference internal" href="#FastSurferCNN.version.main" title="FastSurferCNN.version.main"><code class="xref py py-obj docutils literal notranslate"><span class="pre">main</span></code></a> function. The
 format is documented in <a class="reference internal" href="#FastSurferCNN.version.main" title="FastSurferCNN.version.main"><code class="xref py py-obj docutils literal notranslate"><span class="pre">main</span></code></a>.</p>
@@ -671,7 +716,7 @@ format is documented in <a class="reference internal" href="#FastSurferCNN.versi
 
 <dl class="py function">
 <dt class="sig sig-object py" id="FastSurferCNN.version.print_build_file">
-<span class="sig-prename descclassname"><span class="pre">FastSurferCNN.version.</span></span><span class="sig-name descname"><span class="pre">print_build_file</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">version</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">git_hash</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">git_branch</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">git_status</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">checkpoints</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pypackages</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">file</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/5b2fbe1/FastSurferCNN/version.py#L156-L211"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.version.print_build_file" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">FastSurferCNN.version.</span></span><span class="sig-name descname"><span class="pre">print_build_file</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">version</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">git_hash</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">git_branch</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">git_status</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">checkpoints</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pypackages</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">file</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/35aaa50/FastSurferCNN/version.py#L177-L232"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.version.print_build_file" title="Link to this definition">¶</a></dt>
 <dd><p>Format and print the build file.</p>
 <dl class="field-list">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -699,7 +744,7 @@ format is documented in <a class="reference internal" href="#FastSurferCNN.versi
 
 <dl class="py function">
 <dt class="sig sig-object py" id="FastSurferCNN.version.read_and_close_version">
-<span class="sig-prename descclassname"><span class="pre">FastSurferCNN.version.</span></span><span class="sig-name descname"><span class="pre">read_and_close_version</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">project_file</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/5b2fbe1/FastSurferCNN/version.py#L531-L563"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.version.read_and_close_version" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">FastSurferCNN.version.</span></span><span class="sig-name descname"><span class="pre">read_and_close_version</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">project_file</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/35aaa50/FastSurferCNN/version.py#L644-L676"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.version.read_and_close_version" title="Link to this definition">¶</a></dt>
 <dd><p>Read and close the version from the pyproject file. Also fill default.</p>
 <p>Always closes the file pointer.</p>
 <dl class="field-list">
@@ -722,7 +767,7 @@ format is documented in <a class="reference internal" href="#FastSurferCNN.versi
 
 <dl class="py function">
 <dt class="sig sig-object py" id="FastSurferCNN.version.read_version_from_project_file">
-<span class="sig-prename descclassname"><span class="pre">FastSurferCNN.version.</span></span><span class="sig-name descname"><span class="pre">read_version_from_project_file</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">project_file</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/5b2fbe1/FastSurferCNN/version.py#L469-L505"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.version.read_version_from_project_file" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">FastSurferCNN.version.</span></span><span class="sig-name descname"><span class="pre">read_version_from_project_file</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">project_file</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/35aaa50/FastSurferCNN/version.py#L582-L618"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.version.read_version_from_project_file" title="Link to this definition">¶</a></dt>
 <dd><p>Read the version entry from the pyproject file.</p>
 <p>Searches for the [project] section in project_file, therein the version attribute.
 Extracts the Value. The file pointer is right after the version attribute at return
@@ -745,7 +790,7 @@ time.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="FastSurferCNN.version.section">
-<span class="sig-prename descclassname"><span class="pre">FastSurferCNN.version.</span></span><span class="sig-name descname"><span class="pre">section</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">arg</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/5b2fbe1/FastSurferCNN/version.py#L70-L96"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.version.section" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">FastSurferCNN.version.</span></span><span class="sig-name descname"><span class="pre">section</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">arg</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/35aaa50/FastSurferCNN/version.py#L76-L102"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.version.section" title="Link to this definition">¶</a></dt>
 <dd><p>Validate the argument is a valid sections string.</p>
 <p>A valid sections string is either ‘all’ or a concatenated list of ‘+checkpoints’,
 ‘+git’, and ‘+pip’, e.g. ‘+git+checkpoints’. The order does not matter.</p>
@@ -759,6 +804,28 @@ time.</p>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><dl class="simple">
 <dt><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a></dt><dd><p>The validated sections string.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="FastSurferCNN.version.version_difference">
+<span class="sig-prename descclassname"><span class="pre">FastSurferCNN.version.</span></span><span class="sig-name descname"><span class="pre">version_difference</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">version_line</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">other_version_line</span></span></em><span class="sig-paren">)</span><a class="reference external" href="https://github.com/Deep-MI/FastSurfer/blob/35aaa50/FastSurferCNN/version.py#L522-L548"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#FastSurferCNN.version.version_difference" title="Link to this definition">¶</a></dt>
+<dd><p>Return how two version lines differ, whatever the branch.</p>
+<p>Abbreviated commit hashes differ in length between repositories, so one has to start with the other.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl>
+<dt><strong>version_line, other_version_line</strong><span class="classifier"><a class="reference external" href="https://docs.python.org/3/builtins/stdtypes.html#str" title="(in Python v3.15)"><code class="docutils literal notranslate"><span class="pre">str</span></code></a></span></dt><dd><p>Version lines, e.g. “2.6.0+1dc02473 (stable)”.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><dl class="simple">
+<dt>“”, “patch”, “minor”</dt><dd><p>“” for the same version and commit, “minor” if the major or minor version differs or a version is not
+recognized, else “patch” (another patch release, development version or commit).</p>
 </dd>
 </dl>
 </dd>
@@ -830,9 +897,11 @@ time.</p>
             <ul>
 <li><a class="reference internal" href="#">FastSurferCNN.version</a><ul>
 <li><a class="reference internal" href="#FastSurferCNN.version.VersionDict"><code class="docutils literal notranslate"><span class="pre">VersionDict</span></code></a></li>
+<li><a class="reference internal" href="#FastSurferCNN.version.append_build_log"><code class="docutils literal notranslate"><span class="pre">append_build_log()</span></code></a></li>
 <li><a class="reference internal" href="#FastSurferCNN.version.filter_git_status"><code class="docutils literal notranslate"><span class="pre">filter_git_status()</span></code></a></li>
 <li><a class="reference internal" href="#FastSurferCNN.version.get_default_version_info"><code class="docutils literal notranslate"><span class="pre">get_default_version_info()</span></code></a></li>
 <li><a class="reference internal" href="#FastSurferCNN.version.has_git"><code class="docutils literal notranslate"><span class="pre">has_git()</span></code></a></li>
+<li><a class="reference internal" href="#FastSurferCNN.version.last_version_block"><code class="docutils literal notranslate"><span class="pre">last_version_block()</span></code></a></li>
 <li><a class="reference internal" href="#FastSurferCNN.version.main"><code class="docutils literal notranslate"><span class="pre">main()</span></code></a></li>
 <li><a class="reference internal" href="#FastSurferCNN.version.make_parser"><code class="docutils literal notranslate"><span class="pre">make_parser()</span></code></a></li>
 <li><a class="reference internal" href="#FastSurferCNN.version.parse_build_file"><code class="docutils literal notranslate"><span class="pre">parse_build_file()</span></code></a></li>
@@ -840,6 +909,7 @@ time.</p>
 <li><a class="reference internal" href="#FastSurferCNN.version.read_and_close_version"><code class="docutils literal notranslate"><span class="pre">read_and_close_version()</span></code></a></li>
 <li><a class="reference internal" href="#FastSurferCNN.version.read_version_from_project_file"><code class="docutils literal notranslate"><span class="pre">read_version_from_project_file()</span></code></a></li>
 <li><a class="reference internal" href="#FastSurferCNN.version.section"><code class="docutils literal notranslate"><span class="pre">section()</span></code></a></li>
+<li><a class="reference internal" href="#FastSurferCNN.version.version_difference"><code class="docutils literal notranslate"><span class="pre">version_difference()</span></code></a></li>
 </ul>
 </li>
 </ul>

@@ -490,6 +490,13 @@ same FastSurfer and FreeSurfer versions, is expected to give the same result.</p
 <p>The topology correction repairs defects in an order that depends on its threads, so it always runs
 single-threaded, whatever <code class="docutils literal notranslate"><span class="pre">--threads</span></code> asks for.</p>
 </section>
+<section id="one-version-per-subject">
+<h2>One version per subject<a class="headerlink" href="#one-version-per-subject" title="Link to this heading">¶</a></h2>
+<p>For identical results, process each subject with exactly one FastSurfer release, the same image or
+package, from the segmentation to the last <code class="docutils literal notranslate"><span class="pre">--edits</span></code> run. Within a study, use the same major and
+minor version for all subjects. If a study uses different versions, record and report which
+subject was processed with which; <code class="docutils literal notranslate"><span class="pre">scripts/build.log</span></code> lists the versions that processed a subject.</p>
+</section>
 <section id="with-a-different-thread-count">
 <h2>With a different thread count<a class="headerlink" href="#with-a-different-thread-count" title="Link to this heading">¶</a></h2>
 <p>The thread count is part of what has to stay the same. If it changes:</p>
@@ -631,6 +638,7 @@ python<span class="w"> </span><span class="nv">$FASTSURFER_HOME</span>/tools/com
             <ul>
 <li><a class="reference internal" href="#">Reproducibility</a><ul>
 <li><a class="reference internal" href="#on-one-machine">On one machine</a></li>
+<li><a class="reference internal" href="#one-version-per-subject">One version per subject</a></li>
 <li><a class="reference internal" href="#with-a-different-thread-count">With a different thread count</a></li>
 <li><a class="reference internal" href="#across-machines">Across machines</a></li>
 <li><a class="reference internal" href="#checking-a-run">Checking a run</a></li>
