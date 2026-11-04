@@ -1268,7 +1268,7 @@ fi
 # coreutils is installed via homebrew). Running unbounded is an acceptable fallback rather than a
 # compromise, because version.py already puts a 10s timeout on every subprocess it spawns (git,
 # md5sum, pip) and so cannot hang indefinitely; this is only a second line of defence. Without the
-# fallback the command just fails on macOS and the invocation block below is never appended.
+# fallback the command just fails on macOS.
 # A function, not an array: "${arr[@]}" on an empty array is an error under `set -u` in bash 3.2,
 # which is what macOS ships.
 function run_with_timeout()
@@ -1279,19 +1279,27 @@ function run_with_timeout()
   fi
 }
 (
-  # the version info is appended only if it differs from the last one, the invocation always
-  if build_warning=$(run_with_timeout $python "$FASTSURFER_HOME/FastSurferCNN/version.py" --sections all \
-                     --append "$build_log" "${version_cache_args[@]}")
+  # the version info is appended only if it differs from the last one, the invocation always. If the full version
+  # info fails, e.g. by the timeout, at least the version line, which the next run's version check compares with.
+  if ! build_warning=$(run_with_timeout $python "$FASTSURFER_HOME/FastSurferCNN/version.py" --sections all \
+                       --append "$build_log" "${version_cache_args[@]}")
   then
-    {
-      echo ""
-      echo "=========="
-      echo "invocation:"
-      echo "=========="
-      echo "$invocation_command"
-      date -R
-    } >> "$build_log"
+    if run_with_timeout $python "$FASTSURFER_HOME/FastSurferCNN/version.py" --append "$build_log" \
+       "${version_cache_args[@]}" > /dev/null
+    then
+      build_warning="WARNING: $build_log records only the version, the full version information failed."
+    else
+      build_warning="WARNING: Could not record the FastSurfer version in $build_log."
+    fi
   fi
+  {
+    echo ""
+    echo "=========="
+    echo "invocation:"
+    echo "=========="
+    echo "$invocation_command"
+    date -R
+  } >> "$build_log"
   if [[ -n "$build_warning" ]] ; then echo "$build_warning" | tee -a "$seg_log" ; fi
 ) &
 

@@ -46,6 +46,18 @@ def test_a_failed_section_keeps_the_others(tmp_path):
     assert re.match(r"\d+\.\d+\.\d+", version_line)
     assert "python packages:" not in rest
 
+    # appended to a build log, the report is recorded and the failed section only warns
+    build_log = tmp_path / "build.log"
+    result = subprocess.run(
+        [python, FASTSURFER_HOME / "FastSurferCNN" / "version.py", "--sections", "+pip", "--append", build_log],
+        env={**os.environ, "PYTHONPATH": str(FASTSURFER_HOME)},
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode == 0
+    assert "pypackages" in result.stdout
+    assert re.match(r"\d+\.\d+\.\d+", build_log.read_text())
+
 
 INVOCATION = "\n==========\ninvocation:\n==========\nrun_fastsurfer.sh --sid s\nMon, 2 Nov 2026 10:00:00 +0100\n"
 
@@ -75,10 +87,13 @@ def test_build_log_keeps_every_version(tmp_path):
     # the same version in another environment adds its version info, with a warning
     drifted = version_info("2.6.0+1dc02473 (stable)", "numpy 2.6.0")
     assert "another environment" in run(drifted)
+    # the version line alone, recorded when the full version info failed, tells no environment
+    assert run("2.6.0+1dc02473 (stable)\n") is None
     # another version adds its version info, which the next run compares with
     other = version_info("2.6.1+019ee29a (stable)", "numpy 2.6.0")
     assert run(other) is None
     assert build_log.read_text().count("python packages:") == 3
+    assert build_log.read_text().count("invocation:") == 5
     assert last_version_block(build_log.read_text()) == other.rstrip("\n")
 
 

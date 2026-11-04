@@ -562,7 +562,8 @@ def append_build_log(build_log: Path, version_info: str) -> str | None:
     Returns
     -------
     str, optional
-        A warning if the version is the same as the last one in the build log, but the environment differs.
+        A warning if the version is the same as the last one in the build log, but the environment differs. Only
+        version info with sections tells the environment, a version line alone does not.
     """
     content = build_log.read_text() if build_log.is_file() else ""
     previous = last_version_block(content)
@@ -571,7 +572,8 @@ def append_build_log(build_log: Path, version_info: str) -> str | None:
         return None
     with open(build_log, "a") as file:
         file.write(("\n" if content else "") + version_info + "\n")
-    if previous is not None and not version_difference(previous.split("\n", 1)[0], version_info.split("\n", 1)[0]):
+    with_sections = previous is not None and "\n" in previous and "\n" in version_info
+    if with_sections and not version_difference(previous.split("\n", 1)[0], version_info.split("\n", 1)[0]):
         return (f"WARNING: This FastSurfer version runs in another environment than the last run on this subject, "
                 f"e.g. with other python packages or checkpoints; {build_log} records both.")
     return None
@@ -696,7 +698,12 @@ if __name__ == "__main__":
         if difference:
             print(previous_line)
         sys.exit({"minor": 3, "patch": 4}.get(difference, 0))
+    if not buffer.getvalue():
+        sys.exit(returncode)
+    # a report without a failed section is still worth recording, the failure becomes a warning
+    if returncode != 0:
+        print(f"WARNING: {returncode} {append} records the version information without it.")
     warning = append_build_log(append, buffer.getvalue())
     if warning:
         print(warning)
-    sys.exit(returncode)
+    sys.exit(0)
