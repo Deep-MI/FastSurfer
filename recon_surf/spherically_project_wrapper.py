@@ -86,13 +86,13 @@ if __name__ == "__main__":
 
     pin_cpu_dispatch(environ, sys.executable)
 
-    # identify whether sksparse is installed (in which case we can use_cholmod in LaPy
+    # identify whether cholespy is installed, LaPy's backend for use_cholmod
     try:
         # ignore ruff F401 (unused import)
-        from sksparse import cholmod  # noqa F401
-        has_sksparse = True
+        import cholespy  # noqa F401
+        has_cholmod = True
     except ImportError:
-        has_sksparse = False
+        has_cholmod = False
         # First try to run standard spherical project
     try:
         from recon_surf.spherically_project import spherically_project_surface
@@ -101,8 +101,8 @@ if __name__ == "__main__":
         projected_surface = opts.sd / opts.subject / "surf" / f"{opts.hemi}.qsphere.nofix"
         print(f"Reading in surface: {source_surface} ...")
 
-        # only switch cholmod on if we have scikit sparse cholmod (cholmod on will be faster)
-        spherically_project_surface(source_surface, projected_surface, use_cholmod=has_sksparse)
+        # only switch cholmod on if we have cholespy (cholmod on will be faster)
+        spherically_project_surface(source_surface, projected_surface, use_cholmod=has_cholmod)
         print(f"Spherically projected surface output to: {projected_surface}")
 
     except Exception as e:
