@@ -101,12 +101,12 @@ jobs:
           then 
             flags+=(-vv --log_cli_level=DEBUG)
           fi
-          # One invocation, so a single report covers all three and the summary counts add up.
+          # One invocation, so a single report covers all of them and the summary counts add up.
           # test_brun_bash32.py is not collected here: every test in it needs /bin/bash to be 3.2,
           # which no linux runner has, so collecting it only produced seven skips. The macOS job
           # below is where it runs. Its own skipif stays, for a developer running the directory on
           # linux by hand.
-          python -m pytest "${flags[@]}" test/image test/shell test/utils \
+          python -m pytest "${flags[@]}" test/image test/shell test/topofix test/utils \
             --ignore=test/shell/test_brun_bash32.py
           echo "::endgroup::"
       - name: Upload the JUnit XML file as an artifact

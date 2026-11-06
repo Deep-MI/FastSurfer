@@ -21,3 +21,4 @@ recon_surf
     smooth_aparc
     spherically_project
     spherically_project_wrapper
+    topofix_surfaces

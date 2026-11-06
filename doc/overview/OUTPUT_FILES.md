@@ -97,6 +97,7 @@ The primary output files are pial, white, and inflated surface files, the thickn
 | stats     | lh.curv.stats, rh.curv.stats                                   | surface | table of curvature statistics                                                                |
 | stats     | wmparc.DKTatlas.mapped.stats                                   | surface | table of white matter segmentation statistics                                                |
 | scripts   | recon-all.log                                                  | surface | logfile                                                                                      |
+| scripts   | lh.topofix.json, rh.topofix.json                               | surface | with --topofix: what the topology correction did in each hemisphere                          |
 
 Lesion Inpainting Tool (LIT, optional)
 --------------------------------------
