@@ -23,6 +23,7 @@ mask=""               # Path and name of the brainmask (defaults to $SUBJECTS_DI
 subject=""            # Subject name
 fstess="false"        # if true: use FreeSurfer tessellation (mri_tesselate); if false: use mri_mc tessellation
 fsqsphere="false"     # if true: run FreeSurfer inflate1 + qsphere; if false: run FastSurfer spectral surface projection
+topofix="false"       # if true: create orig from the segmentation and correct its topology on the surface
 fsaparc="false"       # if true: run FreeSurfer aparc (and cortical ribbon); if false: map aparc from asegdkt_segfile
 fssurfreg="true"      # run FS surface registration to fsaverage, if false omit this step
 python="python3 -s"   # python version
@@ -102,6 +103,14 @@ FLAGS:
                             creation (default: mri_mc)
   --fsqsphere             Revert to FreeSurfer iterative inflation for qsphere
                             (default: spectral spherical projection)
+  --topofix               Experimental: create the white matter surface from
+                            the segmentation and remove its handles on the
+                            surface, instead of mri_mc, qsphere and
+                            mris_fix_topology. Writes a record of each
+                            hemisphere to scripts/<hemi>.topofix.json and runs
+                            the standard steps if it fails. Not used in the
+                            longitudinal stream, which takes its surfaces from
+                            the template.
   --fsaparc               Additionally create FS aparc segmentations and ribbon.
                             Skipped by default (--> DL prediction is used which
                             is faster, and usually these mapped ones are fine).
@@ -210,6 +219,7 @@ case $key in
   --segstats_legacy) segstats_legacy="true" ;;
   --fstess) fstess="true" ;;
   --fsqsphere) fsqsphere="true" ;;
+  --topofix) topofix="true" ;;
   --fsaparc) fsaparc="true" ;;
   --no_surfreg) fssurfreg="false" ;;
   --3t) atlas3T="true" ;;
@@ -815,6 +825,34 @@ for hemi in lh rh ; do
   echo "#!/bin/bash" > "$CMDF"
 
 
+# ============================= TOPOFIX ==============================================================
+
+  # With --topofix, orig.nofix, orig.premesh and orig come from the segmentation. The standard
+  # steps below (orig.nofix, qsphere and fix) are written into the else branch, so they only run
+  # if topofix_surfaces.py fails. The branch closes after the fix step.
+  if [[ "$long" == "false" ]] && [[ "$topofix" == "true" ]]
+  then
+    {
+      echo "echo \" \""
+      echo "echo \"================== Creating surfaces $hemi - topofix ===================\""
+      echo "echo \" \""
+    } | tee -a "$CMDF"
+    cmda=($python "${binpath}topofix_surfaces.py" --hemi "$hemi" --sd "$SUBJECTS_DIR" --subject "$subject"
+          --seg "$asegdkt_segfile")
+    if [[ -n "$hiresflag" ]] ; then cmda+=(--hires) ; fi
+    # as run_it_cmdf, but a failure starts the standard steps instead of ending the script
+    cmd="$(echo_quoted "${cmda[@]}")"
+    printf -v tmp %q "$cmd"
+    echo "echo $tmp" >> "$CMDF"
+    echo "$timecmd $cmd" | tee -a "$CMDF"
+    echo "if [[ \${PIPESTATUS[0]} == 0 ]] ; then" >> "$CMDF"
+    cmd="mris_remove_intersection $sdir/$hemi.orig $sdir/$hemi.orig"
+    RunIt "$cmd" "$LF" "$CMDF"
+    echo "else" >> "$CMDF"
+    echo "echo \"topofix failed on $hemi, running the standard surface steps instead\"" >> "$CMDF"
+  fi
+
+
 # ============================= TESSELLATE - SMOOTH =====================================================
 
   # In Long stream we skip these
@@ -947,6 +985,9 @@ for hemi in lh rh ; do
     cmd="recon-all -subject $subject -hemi $hemi -fix -no-isrunning -umask $(umask) $hiresflag"
     RunIt "$cmd" "$LF" "$CMDF"
     thread_env_exports "$threads_hemi" >> "$CMDF"
+
+    # end of the standard steps that --topofix replaces, see TOPOFIX above
+    if [[ "$topofix" == "true" ]] ; then echo "fi" >> "$CMDF" ; fi
 
     # fix the surfaces if they are corrupt
     cmd="$python ${binpath}rewrite_oriented_surface.py --file $sdir/$hemi.orig.premesh --backup $sdir/$hemi.orig.premesh.noorient"
