@@ -2116,7 +2116,9 @@ def global_stats[IntType: np.integer, NumberType: Number](
     if norm is None:
         nvoxels = int(label_mask.sum())
         out = __compute_borders(out)
-        return lab, (nvoxels, nvoxels, None, None, None, None, 0., out)
+        # the voxels off the border count fully, pv_calc adds the partial volumes of the border voxels
+        volume = np.logical_and(label_mask, np.logical_not(out)).sum().item()
+        return lab, (nvoxels, nvoxels, None, None, None, None, float(volume), out)
 
     data_dtype = int if np.issubdtype(norm.dtype, np.integer) else float
     data = norm[label_mask].astype(data_dtype)
