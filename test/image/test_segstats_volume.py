@@ -51,6 +51,32 @@ def test_volume_without_norm_of_uniform_cube():
     assert row["Volume_mm3"] == pytest.approx(125 * VOX_VOL)
 
 
+def make_ventricle_touching_caudate_at_an_edge() -> tuple[np.ndarray, np.ndarray]:
+    """Like `make_ventricle_in_white_matter`, plus caudate (11) that touches the ventricle only along an edge."""
+    seg = np.full((24, 24, 24), 2, dtype=np.int32)
+    seg[6:18, 6:12, 6:12] = 4
+    seg[6:18, 12:18, 12:18] = 11
+    seg[:2], seg[-2:] = 0, 0
+    rng = np.random.default_rng(0)
+    pv_guide = np.select([seg == 4, seg == 11, seg == 2], [30.0, 80.0, 110.0], 0.0) + rng.normal(0, 3, seg.shape)
+    return seg, pv_guide.astype(np.float32)
+
+
+@pytest.mark.parametrize("legacy_freesurfer", [False, True])
+@pytest.mark.parametrize(("labels", "merged_labels"), [
+    ([4], None),
+    ([2, 4], None),
+    # segstats.py --measure_only passes no labels, only the merged labels of the measures
+    (np.zeros((0,), dtype=int), {10000: [4]}),
+])
+def test_volume_does_not_depend_on_the_other_labels(labels, merged_labels, legacy_freesurfer):
+    seg, pv_guide = make_ventricle_touching_caudate_at_an_edge()
+    kwargs = {"vox_vol": VOX_VOL, "legacy_freesurfer": legacy_freesurfer}
+    all_labels = volumes(pv_calc(seg, pv_guide, None, [2, 4, 11], **kwargs))
+    some_labels = volumes(pv_calc(seg, pv_guide, None, labels, merged_labels=merged_labels, **kwargs))
+    assert some_labels[10000 if merged_labels else 4] == pytest.approx(all_labels[4], rel=1e-12)
+
+
 def write_images(directory: Path) -> tuple[Path, Path]:
     """Write the segmentation and the partial volume guide of `make_ventricle_in_white_matter` as mgz files."""
     seg, pv_guide = make_ventricle_in_white_matter()

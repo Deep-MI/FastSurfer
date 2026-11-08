@@ -1578,6 +1578,48 @@ def borders[ArrayType: np.ndarray](
     return np.logical_or.reduce(nbr_same, out=out)
 
 
+def borders_near_labels[IntType: np.integer](
+    seg: npt.NDArray[IntType],
+    labels: Iterable[IntType],
+) -> npt.NDArray[bool] | None:
+    """
+    Compute the border voxels of all labels in seg that have a label of labels in their 26-neighborhood.
+
+    pv_calc_patch mixes a border voxel with the labels in its 26-neighborhood, so the border voxels of other labels
+    contribute to the partial volume of labels, even if they are not on the 6-connected border of a label of labels.
+
+    Parameters
+    ----------
+    seg : npt.NDArray[IntType]
+        The segmentation image.
+    labels : Iterable[IntType]
+        The labels whose partial volumes are computed.
+
+    Returns
+    -------
+    npt.NDArray[bool], None
+        Binary mask of voxels on the 6-connected border (like seg_borders, both sides of the change) of any label in
+        seg that have a label of labels in their 26-neighborhood, or None, if all labels in seg other than 0 are in
+        labels (then the borders of labels already include all these voxels).
+    """
+    labels = list(labels)
+    present = np.unique(seg)
+    if np.all(np.isin(present[present != 0], labels)):
+        return None
+    from scipy.ndimage import binary_dilation
+
+    # 6-connected border of all labels, the voxels on both sides of a change of the label
+    any_border = np.zeros(seg.shape, dtype=bool)
+    for axis in range(seg.ndim):
+        change = np.diff(seg, axis=axis) != 0
+        lower = (slice(None),) * axis + (slice(None, -1),)
+        upper = (slice(None),) * axis + (slice(1, None),)
+        any_border[lower] |= change
+        any_border[upper] |= change
+    near_labels = binary_dilation(np.isin(seg, labels), structure=np.ones((3,) * seg.ndim, dtype=bool))
+    return np.logical_and(any_border, near_labels)
+
+
 def pad_slicer(
     slicer: Sequence[slice],
     whalf: int,
@@ -1845,8 +1887,13 @@ def pv_calc[IntType: np.integer](
             mins[lab], maxes[lab], sums[lab], sums_2[lab] = data[2:-2]
             volumes[lab], borders[lab] = data[-2] * vox_vol, data[-1]
 
-    # un_global_crop border here
     any_border = np.any(list(borders.values()), axis=0)
+    # voxels on the border of labels that are not in all_labels also mix with labels in their 26-neighborhood, so the
+    # volumes do not depend on which other labels are requested (legacy_freesurfer only mixes 6-neighbors, which are
+    # already on the border of the label)
+    if not legacy_freesurfer and (near_border := borders_near_labels(seg[global_crop], borders.keys())) is not None:
+        any_border = np.logical_or(any_border, near_border)
+    # un_global_crop border here
     pad_width = np.asarray(
         [(slc.start, shp - slc.stop) for slc, shp in zip(global_crop, seg.shape, strict=False)],
         dtype=int,
