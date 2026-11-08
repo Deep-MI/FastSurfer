@@ -1394,8 +1394,8 @@ then
     # ... so stats/brainvol.stats also exists (but it is slightly different
     #cmd="recon-all -subject $subject -segstats $hiresflag $fsthreads"
     #RunIt "$cmd" "$LF"
-    # this call is only "required" to "compute" brainvol.stats, so --normfile/--pvfile
-    # are not required
+    # this call only computes brainvol.stats; --pvfile is required for the partial volume
+    # corrected measures (VentricleChoroidVol, BrainSegNotVentSurf), --normfile is not needed
     cmda=($python "$FASTSURFER_HOME/FastSurferCNN/segstats.py" --sid "$subject"
           --segfile "$mdir/aseg.mgz" --pvfile "$mdir/norm.mgz"
           --measure_only --threads "$threads" --segstatsfile "$statsdir/brainvol.stats"

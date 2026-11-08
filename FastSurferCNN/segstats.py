@@ -2077,7 +2077,8 @@ def global_stats[IntType: np.integer, NumberType: Number](
 ) -> tuple[IntType, _GlobalStats]:
     """
     Compute Label, Number of voxels, 'robust' number of voxels, norm minimum, maximum,
-    sum, sum of squares and 6-connected border of label lab (out references the border).
+    sum, sum of squares, volume of the non-border voxels and 6-connected border of label lab (out references the
+    border).
 
     Parameters
     ----------
@@ -2085,7 +2086,7 @@ def global_stats[IntType: np.integer, NumberType: Number](
         Label to compute statistics for.
     norm : npt.NDArray[_NumberType], optional
         The intensity image (default: None, do not compute intensity stats such as
-        normMin, normMax, etc.).
+        normMin, normMax, etc.; the number of voxels, the volume and the border are still computed).
     seg : npt.NDArray[_IntType]
         The segmentation image.
     out : npt.NDArray[bool], optional
@@ -2102,7 +2103,8 @@ def global_stats[IntType: np.integer, NumberType: Number](
     stats : _GlobalStats
         A tuple of number_of_voxels, number_of_within_robustness_thresholds,
         minimum_intensity, maximum_intensity, sum_of_intensities,
-        sum_of_intensity_squares, and border with respect to the label.
+        sum_of_intensity_squares, number of voxels of the label that are not on the border (pv_calc adds the partial
+        volumes of the border voxels), and border with respect to the label.
     """
     def __compute_borders(out: np.ndarray | None) -> np.ndarray:
         # compute/update the border
@@ -2113,20 +2115,19 @@ def global_stats[IntType: np.integer, NumberType: Number](
         return out
 
     label_mask = cast(npt.NDArray[bool], seg == lab)
-    if norm is None:
-        nvoxels = int(label_mask.sum())
-        out = __compute_borders(out)
-        # the voxels off the border count fully, pv_calc adds the partial volumes of the border voxels
-        volume = np.logical_and(label_mask, np.logical_not(out)).sum().item()
-        return lab, (nvoxels, nvoxels, None, None, None, None, float(volume), out)
-
-    data_dtype = int if np.issubdtype(norm.dtype, np.integer) else float
-    data = norm[label_mask].astype(data_dtype)
-    nvoxels: int = data.shape[0]
+    nvoxels = int(label_mask.sum())
     # if lab is not in the image at all
     if nvoxels == 0:
         return lab, (0, 0, None, None, None, None, 0., out)
     out = __compute_borders(out)
+    # the voxels off the border count fully, pv_calc adds the partial volumes of the border voxels; this is
+    # independent of the intensity image and the robustness criterium
+    volume = float(np.logical_and(label_mask, np.logical_not(out)).sum())
+    if norm is None:
+        return lab, (nvoxels, nvoxels, None, None, None, None, volume, out)
+
+    data_dtype = int if np.issubdtype(norm.dtype, np.integer) else float
+    data = norm[label_mask].astype(data_dtype)
 
     if robust_percentage is not None:
         data = np.sort(data)[robust_slice(nvoxels, robust_percentage, legacy_freesurfer)]
@@ -2138,9 +2139,6 @@ def global_stats[IntType: np.integer, NumberType: Number](
     __voxel_count = data.shape[0]
     _sum: float = data.sum().item()
     sum_2: float = (data * data).sum().item()
-    # this is independent of the robustness criterium
-    _volume_mask = np.logical_and(label_mask, np.logical_not(out))
-    volume: float = np.sum(_volume_mask).astype(float).item()
     return lab, (nvoxels, __voxel_count, _min, _max, _sum, sum_2, volume, out)
 
 
