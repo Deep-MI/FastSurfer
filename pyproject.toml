@@ -33,7 +33,7 @@ classifiers = [
 ]
 dependencies = [
     'h5py>=3.7',
-    'lapy>=1.5.0',
+    'lapy>=1.5.0,<1.8', # 1.8 changes the surfaces: its faster mean curvature flow changes the topology fix
     'libigl>=2.6.0', # needed for the cortical ribbon
     'matplotlib>=3.7.1',
     'meshpy>=2025.1.1', # needed for FastSurfer-CC
