@@ -1578,6 +1578,48 @@ def borders[ArrayType: np.ndarray](
     return np.logical_or.reduce(nbr_same, out=out)
 
 
+def borders_near_labels[IntType: np.integer](
+    seg: npt.NDArray[IntType],
+    labels: Iterable[IntType],
+) -> npt.NDArray[bool] | None:
+    """
+    Compute the border voxels of all labels in seg that have a label of labels in their 26-neighborhood.
+
+    pv_calc_patch mixes a border voxel with the labels in its 26-neighborhood, so the border voxels of other labels
+    contribute to the partial volume of labels, even if they are not on the 6-connected border of a label of labels.
+
+    Parameters
+    ----------
+    seg : npt.NDArray[IntType]
+        The segmentation image.
+    labels : Iterable[IntType]
+        The labels whose partial volumes are computed.
+
+    Returns
+    -------
+    npt.NDArray[bool], None
+        Binary mask of voxels on the 6-connected border (like seg_borders, both sides of the change) of any label in
+        seg that have a label of labels in their 26-neighborhood, or None, if all labels in seg other than 0 are in
+        labels (then the borders of labels already include all these voxels).
+    """
+    labels = list(labels)
+    present = np.unique(seg)
+    if np.all(np.isin(present[present != 0], labels)):
+        return None
+    from scipy.ndimage import binary_dilation
+
+    # 6-connected border of all labels, the voxels on both sides of a change of the label
+    any_border = np.zeros(seg.shape, dtype=bool)
+    for axis in range(seg.ndim):
+        change = np.diff(seg, axis=axis) != 0
+        lower = (slice(None),) * axis + (slice(None, -1),)
+        upper = (slice(None),) * axis + (slice(1, None),)
+        any_border[lower] |= change
+        any_border[upper] |= change
+    near_labels = binary_dilation(np.isin(seg, labels), structure=np.ones((3,) * seg.ndim, dtype=bool))
+    return np.logical_and(any_border, near_labels)
+
+
 def pad_slicer(
     slicer: Sequence[slice],
     whalf: int,
@@ -1845,8 +1887,13 @@ def pv_calc[IntType: np.integer](
             mins[lab], maxes[lab], sums[lab], sums_2[lab] = data[2:-2]
             volumes[lab], borders[lab] = data[-2] * vox_vol, data[-1]
 
-    # un_global_crop border here
     any_border = np.any(list(borders.values()), axis=0)
+    # voxels on the border of labels that are not in all_labels also mix with labels in their 26-neighborhood, so the
+    # volumes do not depend on which other labels are requested (legacy_freesurfer only mixes 6-neighbors, which are
+    # already on the border of the label)
+    if not legacy_freesurfer and (near_border := borders_near_labels(seg[global_crop], borders.keys())) is not None:
+        any_border = np.logical_or(any_border, near_border)
+    # un_global_crop border here
     pad_width = np.asarray(
         [(slc.start, shp - slc.stop) for slc, shp in zip(global_crop, seg.shape, strict=False)],
         dtype=int,
@@ -2077,7 +2124,8 @@ def global_stats[IntType: np.integer, NumberType: Number](
 ) -> tuple[IntType, _GlobalStats]:
     """
     Compute Label, Number of voxels, 'robust' number of voxels, norm minimum, maximum,
-    sum, sum of squares and 6-connected border of label lab (out references the border).
+    sum, sum of squares, volume of the non-border voxels and 6-connected border of label lab (out references the
+    border).
 
     Parameters
     ----------
@@ -2085,7 +2133,7 @@ def global_stats[IntType: np.integer, NumberType: Number](
         Label to compute statistics for.
     norm : npt.NDArray[_NumberType], optional
         The intensity image (default: None, do not compute intensity stats such as
-        normMin, normMax, etc.).
+        normMin, normMax, etc.; the number of voxels, the volume and the border are still computed).
     seg : npt.NDArray[_IntType]
         The segmentation image.
     out : npt.NDArray[bool], optional
@@ -2102,7 +2150,8 @@ def global_stats[IntType: np.integer, NumberType: Number](
     stats : _GlobalStats
         A tuple of number_of_voxels, number_of_within_robustness_thresholds,
         minimum_intensity, maximum_intensity, sum_of_intensities,
-        sum_of_intensity_squares, and border with respect to the label.
+        sum_of_intensity_squares, number of voxels of the label that are not on the border (pv_calc adds the partial
+        volumes of the border voxels), and border with respect to the label.
     """
     def __compute_borders(out: np.ndarray | None) -> np.ndarray:
         # compute/update the border
@@ -2113,18 +2162,19 @@ def global_stats[IntType: np.integer, NumberType: Number](
         return out
 
     label_mask = cast(npt.NDArray[bool], seg == lab)
-    if norm is None:
-        nvoxels = int(label_mask.sum())
-        out = __compute_borders(out)
-        return lab, (nvoxels, nvoxels, None, None, None, None, 0., out)
-
-    data_dtype = int if np.issubdtype(norm.dtype, np.integer) else float
-    data = norm[label_mask].astype(data_dtype)
-    nvoxels: int = data.shape[0]
+    nvoxels = int(label_mask.sum())
     # if lab is not in the image at all
     if nvoxels == 0:
         return lab, (0, 0, None, None, None, None, 0., out)
     out = __compute_borders(out)
+    # the voxels off the border count fully, pv_calc adds the partial volumes of the border voxels; this is
+    # independent of the intensity image and the robustness criterium
+    volume = float(np.logical_and(label_mask, np.logical_not(out)).sum())
+    if norm is None:
+        return lab, (nvoxels, nvoxels, None, None, None, None, volume, out)
+
+    data_dtype = int if np.issubdtype(norm.dtype, np.integer) else float
+    data = norm[label_mask].astype(data_dtype)
 
     if robust_percentage is not None:
         data = np.sort(data)[robust_slice(nvoxels, robust_percentage, legacy_freesurfer)]
@@ -2136,9 +2186,6 @@ def global_stats[IntType: np.integer, NumberType: Number](
     __voxel_count = data.shape[0]
     _sum: float = data.sum().item()
     sum_2: float = (data * data).sum().item()
-    # this is independent of the robustness criterium
-    _volume_mask = np.logical_and(label_mask, np.logical_not(out))
-    volume: float = np.sum(_volume_mask).astype(float).item()
     return lab, (nvoxels, __voxel_count, _min, _max, _sum, sum_2, volume, out)
 
 
