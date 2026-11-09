@@ -1417,7 +1417,7 @@ def is_conform(
     if orientation is None or orientation == "native":
         checks[f"Orientation {orientation}"] = "IGNORED", orientation_text
     else:
-        is_soft = not orientation.startswith("soft")
+        is_soft = orientation.startswith("soft")
         is_correct_orientation = is_orientation(img.affine, orientation[-3:], is_soft, eps)
         checks[f"Orientation {orientation.upper()}"] = is_correct_orientation, orientation_text
 
@@ -1500,7 +1500,7 @@ def is_orientation(
         The affine to check.
     target_orientation : OrientationType, default="lia"
         The target orientation for which to check the affine for.
-    soft : bool, default=True
+    soft : bool, default=False
         Whether the orientation is required to be "exactly" (strict) LIA or just similar (soft) (i.e. it is roughly
         oriented as `target_orientation`).
     eps : float, default=1e-6
@@ -1517,7 +1517,7 @@ def is_orientation(
     else:
         return False
 
-    return does_vox2vox_rot_require_interpolation(affine / np.linalg.norm(affine, axis=0), rot_eps=eps, vox_eps=eps)
+    return not does_vox2vox_rot_require_interpolation(affine / np.linalg.norm(affine, axis=0), rot_eps=eps, vox_eps=eps)
 
 
 def conformed_vox_img_size(
