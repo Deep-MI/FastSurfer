@@ -1347,7 +1347,7 @@ def is_conform(
         the target size: "fov": derive from the fov per dimension; "auto": get the largest "fov" and use this 3 times.
     dtype : Type, None, default=numpy.uint8
         Specifies the intended target dtype, if None the dtype check is disabled. For an integer dtype, the stored
-        data must also be unscaled (no scale slope or intercept, as NIfTI's scl_slope and scl_inter).
+        data must also be unscaled (no scale slope or intercept, such as NIfTI's scl_slope and scl_inter).
     orientation : "soft-XXX", "XXX", "native", None, default="lia"
         Whether to force the conforming to a specific orientation specified by XXX, e.g. LIA.
     verbose : bool, default=True
