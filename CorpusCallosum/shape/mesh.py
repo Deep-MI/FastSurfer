@@ -21,11 +21,9 @@ import numpy as np
 import plotly.graph_objects as go
 from lapy import TriaMesh
 from plotly.io import write_html as plotly_write_html
-from scipy.ndimage import gaussian_filter1d
 
 import FastSurferCNN.utils.logging as logging
 from CorpusCallosum.shape.contour import CCContour
-from CorpusCallosum.shape.thickness import make_mesh_from_contour
 from FastSurferCNN.utils import AffineMatrix4x4, nibabelHeader, nibabelImage
 from FastSurferCNN.utils.common import update_docstring
 
@@ -38,97 +36,6 @@ except ImportError:
         pass
 
 logger = logging.get_logger(__name__)
-
-
-
-def _create_cap(
-    points: np.ndarray,
-    contour: CCContour,
-) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
-    """Create a cap mesh for one end of the corpus callosum.
-
-    Parameters
-    ----------
-    points : np.ndarray
-        Array of shape (N, 2) containing mesh points
-    trias : np.ndarray
-        Array of shape (M, 3) containing triangle indices
-    contour : CCContour
-        CCContour object to create cap for
-
-    Returns
-    -------
-    tuple[np.ndarray, np.ndarray, np.ndarray]
-        - level_vertices : Array of vertices for the cap mesh
-        - level_faces : Array of face indices for the cap mesh
-        - level_colors : Array of thickness values for each vertex
-
-    Notes
-    -----
-    The function:
-    1. Creates level paths using _create_levelpaths
-    2. Resamples level paths to fixed number of points
-    3. Creates triangles between consecutive level paths
-    4. Smooths thickness values for visualization
-    """
-    levelpaths, thickness_values, _, _, _, _, _ = contour.create_levelpaths(num_points=len(points), inplace=False)
-
-    # Create mesh from level paths
-    level_vertices = []
-    level_faces = []
-    level_colors = []
-    vertex_counter = 0
-    sorted_thickness_values = np.array(thickness_values)
-
-    # smooth thickness values
-    for _ in range(3):
-        sorted_thickness_values = gaussian_filter1d(sorted_thickness_values, sigma=5)
-
-    NUM_LEVELPOINTS = 50
-
-    assert len(sorted_thickness_values) == len(levelpaths)
-
-    # TODO: handle gap between first/last levelpath and contour
-    for idx, levelpath1 in enumerate(levelpaths):
-        levelpath1 = lapy.TriaMesh._TriaMesh__iterative_resample_polygon(levelpath1, NUM_LEVELPOINTS)
-        level_vertices.append(levelpath1)
-        level_colors.append(np.full((len(levelpath1)), sorted_thickness_values[idx]))
-        if idx + 1 < len(levelpaths):
-            levelpath2 = lapy.TriaMesh._TriaMesh__iterative_resample_polygon(levelpaths[idx + 1], NUM_LEVELPOINTS)
-
-            # Create faces between the two paths by connecting vertices
-            faces_between = []
-            i, j = 0, 0
-
-            while i < len(levelpath1) - 1 and j < len(levelpath2) - 1:
-                faces_between.append([i, i + 1, len(levelpath1) + j])
-                faces_between.append([i + 1, len(levelpath1) + j + 1, len(levelpath1) + j])
-
-                i += 1
-                j += 1
-
-            while i < len(levelpath1) - 1:
-                faces_between.append([i, i + 1, len(levelpath1) + j])
-                i += 1
-
-            while j < len(levelpath2) - 1:
-                faces_between.append([i, len(levelpath1) + j + 1, len(levelpath1) + j])
-                j += 1
-
-            if faces_between:
-                faces_between = np.array(faces_between)
-                level_faces.append(faces_between + vertex_counter)
-
-        vertex_counter += len(levelpath1)
-
-    # Convert to numpy arrays
-    level_vertices = np.vstack(level_vertices)
-    # Add z-coordinate (column 0) to make vertices 3D
-    level_vertices = np.hstack([np.full((len(level_vertices), 1), contour.z_position), level_vertices])
-    level_faces = np.vstack(level_faces)
-    level_colors = np.concatenate(level_colors)
-
-    return level_vertices, level_faces, level_colors
 
 
 def make_triangles_between_contours(contour1: np.ndarray, contour2: np.ndarray) -> np.ndarray:
@@ -678,8 +585,6 @@ class CCMesh(lapy.TriaMesh):
     def from_contours(
             cls: type[Self],
             contours: list[CCContour],
-            lr_center: float = 0,
-            closed: bool = False,
             smooth: int = 0,
     ) -> Self:
         """Create a surface mesh by triangulating between consecutive contours.
@@ -688,10 +593,6 @@ class CCMesh(lapy.TriaMesh):
         ----------
         contours : list[CCContour]
             List of CCContour objects to create mesh from.
-        lr_center : float, default=0
-            Center position in the left-right axis.
-        closed : bool, default=False
-            Whether to create a closed mesh by adding caps.
         smooth : int, default=0
             Number of smoothing iterations to apply.
 
@@ -702,21 +603,17 @@ class CCMesh(lapy.TriaMesh):
 
         Raises
         ------
-        Warning
-            If no valid contours are found.
+        ValueError
+            If two contours have the same z_position, or if contours have different numbers of points.
 
         Notes
         -----
         The function:
-        1. Filters out None contours.
-        2. Calculates z-coordinates for each slice.
-        3. Creates triangles between adjacent contours.
-        4. Optionally:
-        - Creates caps at both ends.
-        - Applies smoothing.
-        - Colors caps based on thickness values.
+        1. Places each contour's points at its z_position.
+        2. Creates triangles between adjacent contours.
+        3. Optionally applies smoothing.
         """
-        # Check that all contours have the same resolution
+        # Check that no two contours share the same z_position
         z_coordinates = np.array([contour.z_position for contour in contours])
         same_z_position = np.isclose(z_coordinates[:, None], z_coordinates[None, :])
         # filter for diagonal and duplicates
@@ -727,19 +624,14 @@ class CCMesh(lapy.TriaMesh):
                 f"have similar z_positions."
             )
 
-        # Calculate z coordinates for each slice
-        # z_coordinates = (np.arange(len(contours)) - len(contours) // 2) * contours[0].resolution + lr_center
-
         # vertices list with z-coordinates and collect thickness values
         vertices = []
         faces = []
         vertex_values_list = []
-        vertex_start_indices = []  # Track starting index for each contour
         current_index = 0
         previous_contour: CCContour | None = None
 
         for contour in contours:
-            vertex_start_indices.append(current_index)
             vertices.append(np.hstack([np.full((len(contour.points), 1), contour.z_position), contour.points]))
             if contour.thickness_values is not None:
                 vertex_values_list.append(contour.thickness_values)
@@ -767,41 +659,5 @@ class CCMesh(lapy.TriaMesh):
             vertices = tmp_mesh.v
             faces = tmp_mesh.t
             vertex_values = tmp_mesh.mesh_vertex_colors
-
-        if closed:
-            # this functionality is untested and not used
-            logger.warning("CCMesh.from_contours(closed=True) is untested and likely has errors.")
-
-            # Close the mesh by creating caps on both ends
-            # Left cap (first slice)
-            left_side_points, left_side_trias = make_mesh_from_contour(vertices[0][..., 1:])
-            left_side_points = np.hstack([np.full((len(left_side_points), 1), z_coordinates[0]), left_side_points])
-
-            # Right cap (last slice)
-            right_side_points, right_side_trias = make_mesh_from_contour(vertices[-1][..., 1:])
-            right_side_points = np.hstack([np.full((len(right_side_points), 1), z_coordinates[-1]), right_side_points])
-
-            # color_sides is a legacy visualization option to allow caps to have thickness colors
-            color_sides = True
-            if color_sides:
-                left_side_points, left_side_trias, left_side_colors = _create_cap(
-                    left_side_points, contours[0]
-                )
-                right_side_points, right_side_trias, right_side_colors = _create_cap(
-                    right_side_points, contours[-1]
-                )
-                # reverse right side trias for proper orientation
-                right_side_trias = right_side_trias[:, ::-1]
-
-                vertex_values = np.concatenate([vertex_values, left_side_colors, right_side_colors])
-            
-            left_side_trias = left_side_trias + current_index
-            current_index += len(left_side_points)
-
-            right_side_trias = right_side_trias + current_index
-            current_index += len(right_side_points)
-
-            vertices.extend([left_side_points, right_side_points])
-            faces.extend([left_side_trias, right_side_trias])
 
         return cls(vertices, faces, vertex_values=vertex_values)
