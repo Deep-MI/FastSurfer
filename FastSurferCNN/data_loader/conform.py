@@ -1346,7 +1346,8 @@ def is_conform(
         Conform the image to this image size, a specific smaller size (0-1, for high-res), or automatically determine
         the target size: "fov": derive from the fov per dimension; "auto": get the largest "fov" and use this 3 times.
     dtype : Type, None, default=numpy.uint8
-        Specifies the intended target dtype, if None the dtype check is disabled.
+        Specifies the intended target dtype, if None the dtype check is disabled. For an integer dtype, the stored
+        data must also be unscaled (no scale slope or intercept, such as NIfTI's scl_slope and scl_inter).
     orientation : "soft-XXX", "XXX", "native", None, default="lia"
         Whether to force the conforming to a specific orientation specified by XXX, e.g. LIA.
     verbose : bool, default=True
@@ -1433,7 +1434,18 @@ def is_conform(
             _dtype_name = _dtype.__name__
         else:
             _dtype_name = str(_dtype)
-        checks[f"Dtype {_dtype_name}"] = np.issubdtype(img.get_data_dtype(), _dtype), dtype_text
+        is_correct_dtype = np.issubdtype(img.get_data_dtype(), _dtype)
+        # A stored integer type with a scale factor (e.g. NIfTI scl_slope/scl_inter) loads as scaled float data,
+        # which is neither integer-valued nor necessarily inside the range of the stored type.
+        slope, inter = getattr(img.dataobj, "slope", 1.0), getattr(img.dataobj, "inter", 0.0)
+        if np.issubdtype(_dtype, np.integer) and not (slope == 1 and inter == 0):
+            is_correct_dtype = False
+            dtype_text += f" scaled by slope {slope:g} and intercept {inter:g}"
+        # An in-memory image (no file behind it) holds its data as an array, whose dtype need not match the header.
+        if isinstance(img.dataobj, np.ndarray) and not np.issubdtype(img.dataobj.dtype, _dtype):
+            is_correct_dtype = False
+            dtype_text += f" but holds {img.dataobj.dtype.name} data"
+        checks[f"Dtype {_dtype_name}"] = is_correct_dtype, dtype_text
 
     _is_conform = all(map(lambda x: x[0], checks.values()))
 
