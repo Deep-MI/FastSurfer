@@ -1441,6 +1441,10 @@ def is_conform(
         if np.issubdtype(_dtype, np.integer) and not (slope == 1 and inter == 0):
             is_correct_dtype = False
             dtype_text += f" scaled by slope {slope:g} and intercept {inter:g}"
+        # An in-memory image (no file behind it) holds its data as an array, whose dtype need not match the header.
+        if isinstance(img.dataobj, np.ndarray) and not np.issubdtype(img.dataobj.dtype, _dtype):
+            is_correct_dtype = False
+            dtype_text += f" but holds {img.dataobj.dtype.name} data"
         checks[f"Dtype {_dtype_name}"] = is_correct_dtype, dtype_text
 
     _is_conform = all(map(lambda x: x[0], checks.values()))
