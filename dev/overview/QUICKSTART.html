@@ -10,7 +10,7 @@
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?v=7bdb33bb" />
     <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
-    <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=95c83b7e" />
+    <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=6a604523" />
     <link rel="stylesheet" type="text/css" href="../_static/styles/furo-extensions.css?v=8dab3a3b" />
     
     
@@ -495,8 +495,8 @@ scripts for <a class="reference internal" href="../scripts/BATCH.html"><span cla
 <p>Once, set up what the launcher runs FastSurfer with:</p>
 <div class="sd-tab-set docutils">
 <input checked="checked" id="sd-tab-item-0" name="sd-tab-set-0" type="radio">
-<label class="sd-tab-label" data-sync-group="tab" data-sync-id="linux" for="sd-tab-item-0">
-Linux</label><div class="sd-tab-content docutils">
+<label aria-controls="sd-tab-item-0-content" class="sd-tab-label" data-sync-group="tab" data-sync-id="linux" for="sd-tab-item-0">
+Linux</label><div class="sd-tab-content docutils" id="sd-tab-item-0-content">
 <p>FastSurfer runs in a container, with Apptainer (or its predecessor Singularity) or Docker. Check whether one of them
 works, for example:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Apptainer (with Singularity: singularity --version)</span>
@@ -519,8 +519,8 @@ Apptainer needs only the NVIDIA driver.</p></li>
 first run. <a class="reference internal" href="install/LINUX.html"><span class="std std-doc">Linux</span></a> explains the images.</p>
 </div>
 <input id="sd-tab-item-1" name="sd-tab-set-0" type="radio">
-<label class="sd-tab-label" data-sync-group="tab" data-sync-id="windows" for="sd-tab-item-1">
-Windows</label><div class="sd-tab-content docutils">
+<label aria-controls="sd-tab-item-1-content" class="sd-tab-label" data-sync-group="tab" data-sync-id="windows" for="sd-tab-item-1">
+Windows</label><div class="sd-tab-content docutils" id="sd-tab-item-1-content">
 <p>FastSurfer runs in Docker, inside WSL2, the Linux environment of Windows:</p>
 <ol class="arabic">
 <li><p>Install WSL2: open PowerShell as administrator, run <code class="docutils literal notranslate"><span class="pre">wsl</span> <span class="pre">--install</span></code>, and restart Windows. This also installs
@@ -540,16 +540,16 @@ much FastSurfer needs, and the launcher warns if Docker has less.</p>
 <p><a class="reference internal" href="install/WINDOWS.html"><span class="std std-doc">Windows</span></a> has more details.</p>
 </div>
 <input id="sd-tab-item-2" name="sd-tab-set-0" type="radio">
-<label class="sd-tab-label" data-sync-group="tab" data-sync-id="macos" for="sd-tab-item-2">
-Mac with Apple silicon</label><div class="sd-tab-content docutils">
+<label aria-controls="sd-tab-item-2-content" class="sd-tab-label" data-sync-group="tab" data-sync-id="macos" for="sd-tab-item-2">
+Mac with Apple silicon</label><div class="sd-tab-content docutils" id="sd-tab-item-2-content">
 <p>FastSurfer runs natively with the <a class="reference internal" href="install/MACOS.html"><span class="std std-doc">macOS package</span></a>, which uses the Mac’s GPU (M1 or newer).
 Download and install it with the button on that page, or let the launcher do it: after step 1 below,
 <code class="docutils literal notranslate"><span class="pre">./fastsurfer</span> <span class="pre">--update</span></code> downloads the package and opens the macOS Installer. macOS may block the installer, because
 it is not signed by Apple yet; <a class="reference internal" href="install/MACOS.html#install"><span class="std std-ref">Install</span></a> explains how to allow it.</p>
 </div>
 <input id="sd-tab-item-3" name="sd-tab-set-0" type="radio">
-<label class="sd-tab-label" data-sync-group="tab" data-sync-id="macos-intel" for="sd-tab-item-3">
-Intel Mac</label><div class="sd-tab-content docutils">
+<label aria-controls="sd-tab-item-3-content" class="sd-tab-label" data-sync-group="tab" data-sync-id="macos-intel" for="sd-tab-item-3">
+Intel Mac</label><div class="sd-tab-content docutils" id="sd-tab-item-3-content">
 <p>FastSurfer runs in Docker, on the CPU (the macOS package needs Apple silicon):</p>
 <ol class="arabic">
 <li><p>Install <a class="reference external" href="https://docs.docker.com/get-docker/">Docker Desktop for Mac</a>, start it, and under <strong>Settings &gt; Resources</strong>
@@ -717,7 +717,7 @@ freeview<span class="w"> </span>-v<span class="w"> </span>140_orig.mgz<span clas
     <script src="../_static/scripts/furo.js?v=46bd48cc"></script>
     <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
     <script src="../_static/copybutton.js?v=1be11439"></script>
-    <script src="../_static/design-tabs.js?v=f930bc37"></script>
+    <script data-sd-tabs-storage-prefix="sphinx-design-tab-id-" src="../_static/design-tabs.js?v=fcb327ea"></script>
     <script src="../_static/doc-version-link.js?v=e710a016"></script>
     </body>
 </html>

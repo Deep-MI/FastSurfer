@@ -8,8 +8,10 @@ which is free but not included. On a Mac with an Intel CPU, use [Docker](#docker
 :class-card: sd-border-primary sd-shadow-sm
 :text-align: center
 
+```{card-header}
 **FastSurfer for macOS**
-^^^
+```
+
 Apple silicon (M1 or newer) · macOS 14 (Sonoma) or newer · about 1 GB download
 
 Includes its own Python, all Python packages, the network checkpoints and the FreeSurfer tools FastSurfer uses:
@@ -21,8 +23,10 @@ no other software to install, and no internet connection needed after the downlo
 
 {octicon}`download` Download the installer (.pkg)
 ```
-+++
+
+```{card-footer}
 [Other versions](https://github.com/Deep-MI/FastSurfer/releases/) · [Intel Mac? Use Docker](#docker-intel-macs)
+```
 ````
 
 Install
