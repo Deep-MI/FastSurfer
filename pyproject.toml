@@ -84,7 +84,8 @@ doc = [
     # 0.6.0 breaks parallel builds; 0.6.1 emits warnings for unrelated MyST links.
     'sphinx-argparse<0.6',
     'sphinx-copybutton',
-    'sphinx-design',
+    # 0.8 adds the card-header and card-footer directives.
+    'sphinx-design>=0.8',
     'sphinx-gallery',
     'sphinx-issues',
     'pypandoc',
