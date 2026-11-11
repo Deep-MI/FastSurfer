@@ -69,7 +69,8 @@ class HypVINNDataset(Dataset):
         modalities : ModalityDict
             The modalities of the subject.
         orig_zoom : npt.NDArray[float]
-            The original zoom of the subject.
+            The voxel sizes along R, A and S. The images in `modalities` must be in RAS orientation, as
+            `nibabel.as_closest_canonical` returns them.
         cfg : CfgNode
             The configuration object.
         mode : ModalityMode, default="t1t2"
@@ -136,9 +137,9 @@ class HypVINNDataset(Dataset):
         Parameters
         ----------
         orig_data : np.ndarray
-            The original data of the image.
+            The image data in RAS orientation.
         orig_zoom : npt.NDArray[float]
-            The original zoom of the image.
+            The voxel sizes along R, A and S.
         modality : np.ndarray
             The modality of the image.
 
@@ -147,22 +148,26 @@ class HypVINNDataset(Dataset):
         orig_thick : np.ndarray
             The standardized image.
         """
+        # orig_data is in RAS orientation, so orig_zoom holds the voxel sizes along R, A and S
         if self.plane == "sagittal":
+            # sagittal slices are A x S
             orig_data = transform_axial2sagittal(orig_data)
-            self.zoom = orig_zoom[::-1][:2]
+            self.zoom = (orig_zoom[1], orig_zoom[2])
             logger.info(
                 f"Loading {modality} sagittal with input voxelsize {self.zoom}"
             )
 
         elif self.plane == "coronal":
+            # coronal slices are R x S
             orig_data = transform_axial2coronal(orig_data)
-            self.zoom = orig_zoom[1:]
+            self.zoom = (orig_zoom[0], orig_zoom[2])
             logger.info(
                 f"Loading {modality} coronal with input voxelsize {self.zoom}"
             )
 
         else:
-            self.zoom = orig_zoom[:2]
+            # axial slices are R x A
+            self.zoom = (orig_zoom[0], orig_zoom[1])
             logger.info(
                 f"Loading {modality} axial with input voxelsize {self.zoom}"
             )
@@ -183,9 +188,6 @@ class HypVINNDataset(Dataset):
         scale : npt.NDArray[float]
             The scaling factor along the x and y dimensions. This is a numpy array of float values.
         """
-        # TODO: This needs to be updated based on the plane we are looking at in case we
-        #  are dealing with non-isotropic images as inputs.
-
         scale = self.base_res / np.asarray(self.zoom)
 
         return scale

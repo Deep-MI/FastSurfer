@@ -62,7 +62,8 @@ def load_checkpoint_config(filename: Path | str) -> CheckpointConfigDict:
     CheckpointConfigDict
         A dictionary representing the contents of the yaml file.
     """
-    if not filename.absolute():
+    filename = Path(filename)
+    if not filename.is_absolute():
         filename = FASTSURFER_ROOT / filename
 
     with open(filename) as file:
