@@ -1,4 +1,4 @@
-Surface pipeline: recon-surf.sh
+Surface Pipeline: recon-surf.sh
 ===============================
 
 .. note::

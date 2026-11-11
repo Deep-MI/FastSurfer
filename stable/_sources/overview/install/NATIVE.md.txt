@@ -1,4 +1,4 @@
-Installing from source
+Installing from Source
 ======================
 A native installation runs FastSurfer directly on your system, without a container. It is the setup for developers
 and for systems where containers are not available. You install all dependencies yourself (system packages, Python

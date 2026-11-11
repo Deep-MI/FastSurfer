@@ -159,7 +159,7 @@ In specific, such errors are inspected in `<subject_dir>/mri/aparc.DKTatlas+aseg
 ### What to do
 1. Copy the file `<subject_dir>/mri/aparc.DKTatlas+aseg.deep.mgz` to the same directory and name it `<subject_dir>/mri/aparc.DKTatlas+aseg.deep.manedit.mgz`.
 2. Open `<subject_dir>/mri/aparc.DKTatlas+aseg.deep.manedit.mgz` (for example using Freeview) and resolve all errors/quality issues.
-3. [Re-run FastSurfer](#general-process) to propagate the changes into other results. Among others, this updates `<subject_dir>/mri/aseg.auto_noCCseg.mgz` and `<subject_dir>/mri/mask.mgz`.
+3. [Re-run FastSurfer](#general-process) to propagate the changes into other results. Among others, this updates `<subject_dir>/mri/aseg.auto_noCCseg.mgz` and `<subject_dir>/mri/mask.mgz`. The mask is computed from the edited segmentation, so it follows edits at the edge of the brain; labels that remain outside it, such as an island unconnected to the brain, are left out of the derived segmentations and the log warns about them. White matter labels are kept as edited.
 
 Corpus callosum segmentation
 ----------------------------
