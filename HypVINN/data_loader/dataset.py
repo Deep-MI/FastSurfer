@@ -69,7 +69,8 @@ class HypVINNDataset(Dataset):
         modalities : ModalityDict
             The modalities of the subject.
         orig_zoom : npt.NDArray[float]
-            The original zoom of the subject.
+            The voxel sizes along R, A and S. The images in `modalities` must be in RAS orientation, as
+            `nibabel.as_closest_canonical` returns them.
         cfg : CfgNode
             The configuration object.
         mode : ModalityMode, default="t1t2"
@@ -136,9 +137,9 @@ class HypVINNDataset(Dataset):
         Parameters
         ----------
         orig_data : np.ndarray
-            The original data of the image.
+            The image data in RAS orientation.
         orig_zoom : npt.NDArray[float]
-            The original zoom of the image.
+            The voxel sizes along R, A and S.
         modality : np.ndarray
             The modality of the image.
 

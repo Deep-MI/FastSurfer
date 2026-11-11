@@ -144,8 +144,8 @@ def option_parse() -> argparse.ArgumentParser:
     # 5. Checkpoint to load
     parser_defaults.add_plane_flags(advanced, "checkpoint", files, checkpoints_config)
 
-    config_files = {plane: Path(f"HypVINN/config/HypVINN_{plane}_v1.1.0.yaml") for plane in PLANES}
-    parser_defaults.add_plane_flags(advanced, "config", config_files, checkpoints_config)
+    # 6. Config file of each network
+    parser_defaults.add_plane_flags(advanced, "config", files, checkpoints_config)
     return parser
 
 
@@ -325,7 +325,7 @@ def main(
 
         # Load  Images
         image_data, affine, header, orig_zoom, orig_size = prep_tasks["load"].result()
-        logger.info(f"Scale factor: {orig_zoom}")
+        logger.info(f"Voxel size (R, A, S): {orig_zoom}")
 
         pred = time()
         pred_classes = get_prediction(
@@ -557,7 +557,7 @@ def get_prediction(
     modalities : ModalityDict
         A dictionary containing the modalities (T1 and/or T2) and their corresponding images.
     orig_zoom : npt.NDArray[float]
-        The original zoom of the subject.
+        The voxel sizes along R, A and S. The modalities must be in RAS orientation.
     model : Inference
         The Inference object of the model.
     target_shape : tuple[int, int, int]

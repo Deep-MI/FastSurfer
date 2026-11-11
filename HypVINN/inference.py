@@ -375,7 +375,7 @@ class Inference:
         modalities : ModalityDict
             The modalities of the subject.
         orig_zoom : npt.NDArray[float]
-            The original zoom of the subject.
+            The voxel sizes along R, A and S. The modalities must be in RAS orientation.
         pred_prob : torch.Tensor
             The tensor to update with the prediction probabilities.
         out_res : float, optional
