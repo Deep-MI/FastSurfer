@@ -188,11 +188,11 @@ FastSurfer supports multiple hardware acceleration modes: fully CPU (`--device c
 (`--device cuda --viewagg_device cpu`) and fully GPU (`--device cuda`). By default, FastSurfer will try to pick the best
 option. These modes require different system and video memory capacities, see the table below. 
 
-| Voxel size | mode: fully CPU           | mode: partial gpu                       | mode: fully GPU       |
-|:-----------|---------------------------|-----------------------------------------|:----------------------|
-| 1mm        | system memory (RAM): 8 GB | RAM: 8 GB, graphics memory (VRAM): 2 GB | RAM: 8 GB, VRAM: 6 GB |
-| 0.8mm      | RAM: 8 GB                 | RAM: 8 GB, VRAM: 2 GB                   | RAM: 8 GB, VRAM: 8 GB |
-| 0.7mm      | RAM: 16 GB                | RAM: 16 GB, VRAM: 3 GB                  | RAM: 8 GB, VRAM: 8 GB |
+| Voxel size | mode: fully CPU<br>RAM (system memory) | mode: partial GPU<br>RAM, VRAM (graphics memory) | mode: fully GPU<br>RAM, VRAM |
+|:-----------|----------------------------------------|--------------------------------------------------|:-----------------------------|
+| 1.0mm      | 8 GB                                   | 8 GB, 2 GB                                       | 8 GB, 6 GB                   |
+| 0.8mm      | 8 GB                                   | 8 GB, 2 GB                                       | 8 GB, 8 GB                   |
+| 0.7mm      | 16 GB                                  | 16 GB, 3 GB                                      | 8 GB, 8 GB                   |
 
 The default device is the GPU. The view-aggregation device can be switched to CPU and requires less GPU memory. CPU-only processing ```--device cpu``` is much slower and not recommended.
 
