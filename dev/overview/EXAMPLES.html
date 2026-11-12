@@ -493,7 +493,7 @@ singularity<span class="w"> </span><span class="nb">exec</span><span class="w"> 
 <span class="w">                 </span>-B<span class="w"> </span><span class="nv">$HOME</span>/my_mri_data<span class="w"> </span><span class="se">\</span>
 <span class="w">                 </span>-B<span class="w"> </span><span class="nv">$HOME</span>/my_fastsurfer_analysis<span class="w"> </span><span class="se">\</span>
 <span class="w">                 </span>-B<span class="w"> </span><span class="nv">$freesurfer_license</span><span class="w"> </span><span class="se">\</span>
-<span class="w">                 </span><span class="nv">$HOME</span>/my_singularity_images/fastsurfer-cu132-v2.6.0.sif<span class="w"> </span><span class="se">\</span>
+<span class="w">                 </span><span class="nv">$HOME</span>/my_singularity_images/fastsurfer-cu132-v2.6.1.sif<span class="w"> </span><span class="se">\</span>
 <span class="w">                 </span>/fastsurfer/run_fastsurfer.sh<span class="w"> </span><span class="se">\</span>
 <span class="w">                 </span>--fs_license<span class="w"> </span><span class="nv">$freesurfer_license</span><span class="w"> </span><span class="se">\</span>
 <span class="w">                 </span>--t1<span class="w"> </span><span class="nv">$HOME</span>/my_mri_data/subjectX/t1_weighted.nii.gz<span class="w"> </span><span class="se">\</span>
@@ -518,7 +518,7 @@ docker<span class="w"> </span>run<span class="w"> </span>--gpus<span class="w"> 
 <span class="w">    </span>-v<span class="w"> </span><span class="nv">$HOME</span>/my_fastsurfer_analysis:<span class="nv">$HOME</span>/my_fastsurfer_analysis<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>-v<span class="w"> </span><span class="nv">$freesurfer_license</span>:<span class="nv">$freesurfer_license</span><span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--rm<span class="w"> </span>--user<span class="w"> </span><span class="k">$(</span>id<span class="w"> </span>-u<span class="k">)</span>:<span class="k">$(</span>id<span class="w"> </span>-g<span class="k">)</span><span class="w"> </span><span class="se">\</span>
-<span class="w">    </span>deepmi/fastsurfer:cu132-v2.6.0<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>deepmi/fastsurfer:cu132-v2.6.1<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--fs_license<span class="w"> </span><span class="nv">$freesurfer_license</span><span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--t1<span class="w"> </span><span class="nv">$HOME</span>/my_mri_data/subjectX/t1_weighted.nii.gz<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--sid<span class="w"> </span>subjectX<span class="w"> </span>--sd<span class="w"> </span><span class="nv">$HOME</span>/my_fastsurfer_analysis<span class="w"> </span><span class="se">\</span>
@@ -579,7 +579,7 @@ docker<span class="w"> </span>run<span class="w"> </span>--gpus<span class="w"> 
 <span class="w">    </span>-v<span class="w"> </span><span class="nv">$freesurfer_license</span>:<span class="nv">$freesurfer_license</span><span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--entrypoint<span class="w"> </span><span class="s2">"/fastsurfer/brun_fastsurfer.sh"</span><span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--rm<span class="w"> </span>--user<span class="w"> </span><span class="k">$(</span>id<span class="w"> </span>-u<span class="k">)</span>:<span class="k">$(</span>id<span class="w"> </span>-g<span class="k">)</span><span class="w"> </span><span class="se">\</span>
-<span class="w">    </span>deepmi/fastsurfer:cu132-v2.6.0<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>deepmi/fastsurfer:cu132-v2.6.1<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--fs_license<span class="w"> </span><span class="nv">$freesurfer_license</span><span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--sd<span class="w"> </span><span class="nv">$HOME</span>/my_fastsurfer_analysis<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--subjects_list<span class="w"> </span><span class="nv">$HOME</span>/my_mri_data/subjects_list.txt<span class="w"> </span><span class="se">\</span>
@@ -596,7 +596,7 @@ singularity<span class="w"> </span><span class="nb">exec</span><span class="w"> 
 <span class="w">                 </span>-B<span class="w"> </span><span class="nv">$HOME</span>/my_mri_data<span class="w"> </span><span class="se">\</span>
 <span class="w">                 </span>-B<span class="w"> </span><span class="nv">$HOME</span>/my_fastsurfer_analysis<span class="w"> </span><span class="se">\</span>
 <span class="w">                 </span>-B<span class="w"> </span><span class="nv">$freesurfer_license</span><span class="w"> </span><span class="se">\</span>
-<span class="w">                 </span><span class="nv">$HOME</span>/my_singularity_images/fastsurfer-cu132-v2.6.0.sif<span class="w"> </span><span class="se">\</span>
+<span class="w">                 </span><span class="nv">$HOME</span>/my_singularity_images/fastsurfer-cu132-v2.6.1.sif<span class="w"> </span><span class="se">\</span>
 <span class="w">                 </span>/fastsurfer/brun_fastsurfer.sh<span class="w"> </span><span class="se">\</span>
 <span class="w">                 </span>--fs_license<span class="w"> </span><span class="nv">$freesurfer_license</span><span class="w"> </span><span class="se">\</span>
 <span class="w">                 </span>--sd<span class="w"> </span><span class="nv">$HOME</span>/my_fastsurfer_analysis<span class="w"> </span><span class="se">\</span>
@@ -652,7 +652,7 @@ docker<span class="w"> </span>run<span class="w"> </span>--gpus<span class="w"> 
 <span class="w">    </span>-v<span class="w"> </span><span class="nv">$HOME</span>/my_mri_data:<span class="nv">$HOME</span>/my_mri_data<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>-v<span class="w"> </span><span class="nv">$HOME</span>/my_fastsurfer_analysis:<span class="nv">$HOME</span>/my_fastsurfer_analysis<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--rm<span class="w"> </span>--user<span class="w"> </span><span class="k">$(</span>id<span class="w"> </span>-u<span class="k">)</span>:<span class="k">$(</span>id<span class="w"> </span>-g<span class="k">)</span><span class="w"> </span><span class="se">\</span>
-<span class="w">    </span>deepmi/fastsurfer:cu132-v2.6.0<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>deepmi/fastsurfer:cu132-v2.6.1<span class="w"> </span><span class="se">\</span>
 <span class="w">      </span>--t1<span class="w"> </span><span class="nv">$HOME</span>/my_mri_data/subjectX/t1_weighted.nii.gz<span class="w"> </span><span class="se">\</span>
 <span class="w">      </span>--asegdkt_segfile<span class="w"> </span><span class="se">\</span>
 <span class="w">        </span><span class="nv">$HOME</span>/my_fastsurfer_analysis/subjectX/aparc.DKTatlas+aseg.deep.mgz<span class="w"> </span><span class="se">\</span>
@@ -675,7 +675,7 @@ docker<span class="w"> </span>run<span class="w"> </span>--gpus<span class="w"> 
 <span class="w">    </span>--pattern<span class="w"> </span><span class="s1">'*/t1_weighted.nii.gz'</span><span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--remove_suffix<span class="w"> </span>/t1_weighted.nii.gz<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--singularity_image<span class="w"> </span><span class="se">\</span>
-<span class="w">        </span><span class="nv">$HOME</span>/my_singularity_images/fastsurfer-cu132-v2.6.0.sif<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span><span class="nv">$HOME</span>/my_singularity_images/fastsurfer-cu132-v2.6.1.sif<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--3T<span class="w"> </span><span class="c1"># fastsurfer flags</span>
 </pre></div>
 </div>
@@ -698,7 +698,7 @@ docker<span class="w"> </span>run<span class="w"> </span>--gpus<span class="w"> 
 <span class="w">    </span>-v<span class="w"> </span><span class="nv">$HOME</span>/my_fastsurfer_analysis:<span class="nv">$HOME</span>/my_fastsurfer_analysis<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>-v<span class="w"> </span><span class="nv">$freesurfer_license</span>:<span class="nv">$freesurfer_license</span><span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--rm<span class="w"> </span>--user<span class="w"> </span><span class="k">$(</span>id<span class="w"> </span>-u<span class="k">)</span>:<span class="k">$(</span>id<span class="w"> </span>-g<span class="k">)</span><span class="w"> </span><span class="se">\</span>
-<span class="w">    </span>deepmi/fastsurfer:cu132-v2.6.0<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>deepmi/fastsurfer:cu132-v2.6.1<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--fs_license<span class="w"> </span><span class="nv">$freesurfer_license</span><span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--t1<span class="w"> </span><span class="nv">$HOME</span>/my_mri_data/subjectX/t1_weighted.nii.gz<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--lesion_mask<span class="w"> </span><span class="nv">$HOME</span>/my_mri_data/subjectX/lesion_mask.nii.gz<span class="w"> </span><span class="se">\</span>

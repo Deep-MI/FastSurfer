@@ -624,7 +624,7 @@ Given you already ran the segmentation pipeline, and want to just run the surfac
 docker<span class="w"> </span>run<span class="w"> </span>-v<span class="w"> </span><span class="nv">$HOME</span>/my_fastsurfer_analysis:<span class="nv">$HOME</span>/my_fastsurfer_analysis<span class="w"> </span><span class="se">\</span>
 <span class="w">           </span>-v<span class="w"> </span><span class="nv">$freesurfer_license</span>:<span class="nv">$freesurfer_license</span><span class="w"> </span><span class="se">\</span>
 <span class="w">           </span>--entrypoint<span class="w"> </span>/fastsurfer/recon_surf/recon-surf.sh<span class="w"> </span><span class="se">\</span>
-<span class="w">           </span>--rm<span class="w"> </span>--user<span class="w"> </span><span class="k">$(</span>id<span class="w"> </span>-u<span class="k">)</span>:<span class="k">$(</span>id<span class="w"> </span>-g<span class="k">)</span><span class="w"> </span>deepmi/fastsurfer:cpu-v2.6.0<span class="w"> </span><span class="se">\</span>
+<span class="w">           </span>--rm<span class="w"> </span>--user<span class="w"> </span><span class="k">$(</span>id<span class="w"> </span>-u<span class="k">)</span>:<span class="k">$(</span>id<span class="w"> </span>-g<span class="k">)</span><span class="w"> </span>deepmi/fastsurfer:cpu-v2.6.1<span class="w"> </span><span class="se">\</span>
 <span class="w">           </span>--fs_license<span class="w"> </span><span class="nv">$freesurfer_license</span><span class="w"> </span><span class="se">\</span>
 <span class="w">           </span>--sid<span class="w"> </span>subjectX<span class="w"> </span>--sd<span class="w"> </span><span class="nv">$HOME</span>/my_fastsurfer_analysis<span class="w"> </span>--3T
 </pre></div>
@@ -651,14 +651,14 @@ the surface pipeline on top of it (i.e. on a different cluster), the following c
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">freesurfer_license</span><span class="o">=</span><span class="si">${</span><span class="nv">freesurfer_license</span><span class="k">:-</span><span class="p">/path/to/your/freesurfer/license_file</span><span class="si">}</span>
 <span class="c1"># 1. Build the singularity image (only if it does not exist)</span>
 singularity<span class="w"> </span>build<span class="w"> </span><span class="se">\</span>
-<span class="w">    </span><span class="nv">$HOME</span>/my_singularity_images/fastsurfer-cpu-v2.6.0.sif<span class="w"> </span><span class="se">\</span>
-<span class="w">    </span>docker://deepmi/fastsurfer:cpu-v2.6.0
+<span class="w">    </span><span class="nv">$HOME</span>/my_singularity_images/fastsurfer-cpu-v2.6.1.sif<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>docker://deepmi/fastsurfer:cpu-v2.6.1
 
 <span class="c1"># 2. Run command</span>
 singularity<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>--no-mount<span class="w"> </span>home,cwd<span class="w"> </span>-e<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>-B<span class="w"> </span><span class="nv">$HOME</span>/my_fastsurfer_analysis<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>-B<span class="w"> </span><span class="nv">$freesurfer_license</span><span class="w"> </span><span class="se">\</span>
-<span class="w">    </span><span class="nv">$HOME</span>/my_singularity_images/fastsurfer-cpu-v2.6.0.sif<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span><span class="nv">$HOME</span>/my_singularity_images/fastsurfer-cpu-v2.6.1.sif<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>/fastsurfer/recon_surf/recon-surf.sh<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--fs_license<span class="w"> </span><span class="nv">$freesurfer_license</span><span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--sid<span class="w"> </span>subjectX<span class="w"> </span>--sd<span class="w"> </span><span class="nv">$HOME</span>/my_fastsurfer_analysis<span class="w"> </span>--3T<span class="w"> </span><span class="se">\</span>
@@ -719,7 +719,7 @@ singularity<span class="w"> </span><span class="nb">exec</span><span class="w"> 
 <span class="w">            </span>-B<span class="w"> </span><span class="nv">$HOME</span>/my_fastsurfer_analysis<span class="w"> </span><span class="se">\</span>
 <span class="w">            </span>-B<span class="w"> </span><span class="nv">$HOME</span>/my_mri_data<span class="w"> </span><span class="se">\</span>
 <span class="w">            </span>-B<span class="w"> </span><span class="nv">$freesurfer_license</span><span class="w"> </span><span class="se">\</span>
-<span class="w">            </span><span class="nv">$HOME</span>/my_singularity_images/fastsurfer-cpu-v2.6.0.sif<span class="w"> </span><span class="se">\</span>
+<span class="w">            </span><span class="nv">$HOME</span>/my_singularity_images/fastsurfer-cpu-v2.6.1.sif<span class="w"> </span><span class="se">\</span>
 <span class="w">            </span>/fastsurfer/brun_fastsurfer.sh<span class="w"> </span><span class="se">\</span>
 <span class="w">            </span>--surf_only<span class="w"> </span><span class="se">\</span>
 <span class="w">            </span>--subjects_list<span class="w"> </span><span class="nv">$HOME</span>/my_mri_data/subjects_list.txt<span class="w"> </span><span class="se">\</span>

@@ -535,7 +535,7 @@ NVIDIA GPU</label><div class="sd-tab-content docutils" id="sd-tab-item-0-content
 install them. The default image runs on Turing (RTX 20) and newer GPUs with driver 580 or newer; for
 older GPUs or drivers, use the <code class="docutils literal notranslate"><span class="pre">cu126</span></code> image instead, see <a class="reference internal" href="LINUX.html#nvidia-gpus"><span class="std std-ref">NVIDIA GPUs</span></a>.
 Then download the image:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>docker<span class="w"> </span>pull<span class="w"> </span>deepmi/fastsurfer:cu132-v2.6.0
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>docker<span class="w"> </span>pull<span class="w"> </span>deepmi/fastsurfer:cu132-v2.6.1
 </pre></div>
 </div>
 <p>and run FastSurfer as in <a class="reference internal" href="../EXAMPLES.html#example-2-fastsurfer-docker"><span class="std std-ref">Example 2</span></a>, for example:</p>
@@ -543,7 +543,7 @@ Then download the image:</p>
 <span class="w">    </span>-v<span class="w"> </span>C:/Users/user/my_mri_data:/home/user/my_mri_data<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>-v<span class="w"> </span>C:/Users/user/my_fastsurfer_analysis:/home/user/my_fastsurfer_analysis<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>-v<span class="w"> </span>C:/path/to/your/freesurfer/license_file:/home/user/freesurfer_license<span class="w"> </span><span class="se">\</span>
-<span class="w">    </span>deepmi/fastsurfer:cu132-v2.6.0<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>deepmi/fastsurfer:cu132-v2.6.1<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--fs_license<span class="w"> </span>/home/user/freesurfer_license<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--t1<span class="w"> </span>/home/user/my_mri_data/subjectX/t1_weighted.nii.gz<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--sid<span class="w"> </span>subjectX<span class="w"> </span>--sd<span class="w"> </span>/home/user/my_fastsurfer_analysis
@@ -554,7 +554,7 @@ Then download the image:</p>
 <label aria-controls="sd-tab-item-1-content" class="sd-tab-label" for="sd-tab-item-1">
 CPU only</label><div class="sd-tab-content docutils" id="sd-tab-item-1-content">
 <p>Download the CPU image:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>docker<span class="w"> </span>pull<span class="w"> </span>deepmi/fastsurfer:cpu-v2.6.0
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>docker<span class="w"> </span>pull<span class="w"> </span>deepmi/fastsurfer:cpu-v2.6.1
 </pre></div>
 </div>
 <p>and run FastSurfer as in <a class="reference internal" href="../EXAMPLES.html#example-2-fastsurfer-docker"><span class="std std-ref">Example 2</span></a>, for example:</p>
@@ -562,7 +562,7 @@ CPU only</label><div class="sd-tab-content docutils" id="sd-tab-item-1-content">
 <span class="w">    </span>-v<span class="w"> </span>C:/Users/user/my_mri_data:/home/user/my_mri_data<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>-v<span class="w"> </span>C:/Users/user/my_fastsurfer_analysis:/home/user/my_fastsurfer_analysis<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>-v<span class="w"> </span>C:/path/to/your/freesurfer/license_file:/home/user/freesurfer_license<span class="w"> </span><span class="se">\</span>
-<span class="w">    </span>deepmi/fastsurfer:cpu-v2.6.0<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>deepmi/fastsurfer:cpu-v2.6.1<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--fs_license<span class="w"> </span>/home/user/freesurfer_license<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--t1<span class="w"> </span>/home/user/my_mri_data/subjectX/t1_weighted.nii.gz<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--device<span class="w"> </span>cpu<span class="w"> </span><span class="se">\</span>

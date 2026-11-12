@@ -527,7 +527,7 @@ docker<span class="w"> </span>run<span class="w"> </span>--gpus<span class="w"> 
 <span class="w">    </span>--user<span class="w"> </span><span class="s2">"</span><span class="k">$(</span>id<span class="w"> </span>-u<span class="k">)</span><span class="s2">:</span><span class="k">$(</span>id<span class="w"> </span>-g<span class="k">)</span><span class="s2">"</span><span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--volume<span class="w"> </span><span class="s2">"</span><span class="nv">$SUBJECTS_DIR</span><span class="s2">:</span><span class="nv">$SUBJECTS_DIR</span><span class="s2">"</span><span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--entrypoint<span class="w"> </span>/fastsurfer/tools/Docker/entrypoint.sh<span class="w"> </span><span class="se">\</span>
-<span class="w">    </span>deepmi/fastsurfer:cu132-v2.6.0<span class="w"> </span><span class="se">\</span>
+<span class="w">    </span>deepmi/fastsurfer:cu132-v2.6.1<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>python3<span class="w"> </span>/fastsurfer/CorpusCallosum/fastsurfer_cc.py<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--sd<span class="w"> </span><span class="s2">"</span><span class="nv">$SUBJECTS_DIR</span><span class="s2">"</span><span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--sid<span class="w"> </span><span class="s2">"</span><span class="nv">$subject_id</span><span class="s2">"</span><span class="w"> </span><span class="se">\</span>
@@ -543,7 +543,7 @@ docker<span class="w"> </span>run<span class="w"> </span>--gpus<span class="w"> 
 the subject directory and invoke the expert script directly:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span><span class="w"> </span><span class="nv">SUBJECTS_DIR</span><span class="o">=</span><span class="nv">$HOME</span>/my_fastsurfer_analysis
 <span class="nv">subject_id</span><span class="o">=</span>subjectX
-<span class="nv">fastsurfer_sif</span><span class="o">=</span><span class="nv">$HOME</span>/my_singularity_images/fastsurfer-cu132-v2.6.0.sif
+<span class="nv">fastsurfer_sif</span><span class="o">=</span><span class="nv">$HOME</span>/my_singularity_images/fastsurfer-cu132-v2.6.1.sif
 
 singularity<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>--nv<span class="w"> </span>--no-mount<span class="w"> </span>home,cwd<span class="w"> </span>-e<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--bind<span class="w"> </span><span class="s2">"</span><span class="nv">$SUBJECTS_DIR</span><span class="s2">"</span><span class="w"> </span><span class="se">\</span>
