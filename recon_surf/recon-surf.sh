@@ -899,10 +899,9 @@ for hemi in lh rh ; do
 
 # ============================= TOPOFIX ==============================================================
 
-  # With --topofix, the topology of orig.nofix is corrected on the surface itself, and the steps
-  # that follow mris_fix_topology in recon-all -fix make orig from orig.premesh. The standard steps
-  # below (qsphere and fix) are written into the else branch, so they only run if
-  # topofix_surfaces.py fails. The branch closes after the fix step.
+  # With --topofix, the topology of orig.nofix is corrected on the surface itself, and
+  # topofix_surfaces.py writes orig.premesh and orig. The standard steps below (qsphere and fix)
+  # are written into a branch that only runs if it fails, and that closes after the fix step.
   if [[ "$long" == "false" ]] && [[ "$topofix" == "true" ]]
   then
     {
@@ -916,15 +915,7 @@ for hemi in lh rh ; do
     printf -v tmp %q "$cmd"
     echo "echo $tmp" >> "$CMDF"
     echo "$timecmd $cmd" | tee -a "$CMDF"
-    echo "if [[ \${PIPESTATUS[0]} == 0 ]] ; then" >> "$CMDF"
-    # single threaded, as recon-all -fix below
-    thread_env_exports 1 >> "$CMDF"
-    cmd="mris_remesh --remesh --iters 3 --input $sdir/$hemi.orig.premesh --output $sdir/$hemi.orig"
-    RunIt "$cmd" "$LF" "$CMDF"
-    cmd="mris_remove_intersection $sdir/$hemi.orig $sdir/$hemi.orig"
-    RunIt "$cmd" "$LF" "$CMDF"
-    thread_env_exports "$threads_hemi" >> "$CMDF"
-    echo "else" >> "$CMDF"
+    echo "if [[ \${PIPESTATUS[0]} != 0 ]] ; then" >> "$CMDF"
     echo "echo \"topofix failed on $hemi, running the standard surface steps instead\"" >> "$CMDF"
   fi
 
