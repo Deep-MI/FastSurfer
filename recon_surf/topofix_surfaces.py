@@ -13,12 +13,12 @@
 # limitations under the License.
 
 """
-Create the topologically correct ``?h.orig`` of one hemisphere from the segmentation.
+Correct the topology of ``?h.orig.nofix`` of one hemisphere on the surface itself.
 
-This replaces the orig.nofix, qsphere and fix steps of recon-surf.sh with ``--topofix``. It
-writes ``surf/<hemi>.orig.nofix``, ``surf/<hemi>.orig.premesh`` and ``surf/<hemi>.orig``, and a QC
-record in ``scripts/<hemi>.topofix.json``. If it fails, the record says why and the exit status
-is 1, so that recon-surf.sh runs the standard steps instead.
+This replaces the qsphere step and mris_fix_topology in recon-surf.sh with ``--topofix``. It
+writes ``surf/<hemi>.orig.premesh`` and a QC record in ``scripts/<hemi>.topofix.json``. If it
+fails, the record says why and the exit status is 1, so that recon-surf.sh runs the standard steps
+instead.
 """
 
 import argparse
@@ -36,7 +36,7 @@ def setup_options():
     """
     from os import environ
 
-    parser = argparse.ArgumentParser(description="Topologically correct white matter surface from the segmentation")
+    parser = argparse.ArgumentParser(description="Correct the topology of orig.nofix on the surface itself")
     parser.add_argument("--hemi", choices=("lh", "rh"), help="Hemisphere to process.", required=True)
     parser.add_argument(
         "--sd",
@@ -46,16 +46,6 @@ def setup_options():
         required="SUBJECTS_DIR" not in environ,
     )
     parser.add_argument("--subject", type=str, help="Name (ID) of subject.", required=True)
-    parser.add_argument(
-        "--seg",
-        type=Path,
-        help="Segmentation; default: <subject_dir>/mri/aparc.DKTatlas+aseg.deep.mgz.",
-    )
-    parser.add_argument(
-        "--hires",
-        action="store_true",
-        help="Remesh to the coarser density of high-resolution surfaces on the standard route.",
-    )
     return parser.parse_args()
 
 
@@ -84,23 +74,21 @@ if __name__ == "__main__":
     pin_cpu_dispatch(environ, sys.executable)
 
     subject_dir = opts.sd / opts.subject
-    seg = opts.seg or subject_dir / "mri" / "aparc.DKTatlas+aseg.deep.mgz"
     record = subject_dir / "scripts" / f"{opts.hemi}.topofix.json"
     try:
-        from recon_surf.topofix.surfaces import TARGET_LENGTH, TARGET_LENGTH_HIRES, create_orig_surfaces
+        from recon_surf.topofix.surfaces import correct_orig_surface
 
-        target = TARGET_LENGTH_HIRES if opts.hires else TARGET_LENGTH
-        qc = create_orig_surfaces(seg, opts.hemi, subject_dir / "surf", target_length=target)
+        qc = correct_orig_surface(subject_dir / "surf", opts.hemi)
         qc["status"] = "ok"
         status = 0
     except Exception:
         print(format_exc())
-        qc = {"hemi": opts.hemi, "segmentation": str(seg), "status": "failed", "error": format_exc()}
+        qc = {"hemi": opts.hemi, "status": "failed", "error": format_exc()}
         status = 1
     record.write_text(json.dumps(qc, indent=2) + "\n")
     if status == 0:
         n = len(qc["handles"])
-        print(f"{opts.hemi}: genus {qc['genus']}, removed {n} handles, wrote surf/{opts.hemi}.orig and {record}")
+        print(f"{opts.hemi}: genus {qc['genus']}, removed {n} handles, wrote {opts.hemi}.orig.premesh and {record}")
     else:
         print(f"{opts.hemi}: topofix failed, see {record}")
     sys.exit(status)

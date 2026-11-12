@@ -102,18 +102,3 @@ def block_with_bridge():
     mask[7, 2, 5:8] = True
     mask[2:8, 2, 7] = True
     return mask
-
-
-def bar_on_two_pillars():
-    """
-    Block with a bar held at both ends by thin pillars, a genus-1 surface.
-
-    The shorter loop goes around one pillar; cutting it leaves the bar on a single pillar, a
-    protrusion that cropping removes. Filling the gap between the pillars keeps the bar.
-    """
-    mask = np.zeros((30, 30, 22), dtype=bool)
-    mask[2:28, 2:28, 2:10] = True
-    mask[11, 15, 10:14] = True
-    mask[18, 15, 10:14] = True
-    mask[11:19, 14:17, 14:17] = True
-    return mask

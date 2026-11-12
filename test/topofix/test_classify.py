@@ -12,15 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Cut or fill decided together for nearby handles, and whether a loop cuts or fills."""
+"""Whether surgery along a loop cuts a bridge or fills a tunnel."""
 
 from lapy import TriaMesh
-from lapy.topology import find_handles, fix_topology, shorter_loop
-from shapes import bar_on_two_pillars, block_with_bridge, voxel_surface
+from lapy.topology import find_handles
+from shapes import block_with_bridge, voxel_surface
 
 from recon_surf.topofix.classify import cuts_bridge, offset_ratio
-from recon_surf.topofix.folds import crop_folds
-from recon_surf.topofix.joint import FlipChooser, choose_jointly
 
 
 def test_bridge_loop_cuts_and_hole_loop_fills():
@@ -29,20 +27,3 @@ def test_bridge_loop_cuts_and_hole_loop_fills():
     short, long = sorted([handle.loop_a, handle.loop_b], key=len)
     assert offset_ratio(v, t, short) > 1 > offset_ratio(v, t, long)
     assert cuts_bridge(v, t, short) and not cuts_bridge(v, t, long)
-
-
-def test_bar_is_kept_by_filling_between_the_pillars():
-    v, t = voxel_surface(bar_on_two_pillars())
-    assert TriaMesh(v, t).genus() == 1
-
-    # one handle at a time, the shorter loop cuts one pillar and cropping removes the bar
-    fixed, _, _ = fix_topology(TriaMesh(v, t))
-    v2, _, _, _ = crop_folds(fixed.v, fixed.t)
-    assert v2[:, 2].max() < 14
-
-    centres, flips, groups = choose_jointly(v, t)
-    assert flips.tolist() == [True]
-    fixed, _, _ = fix_topology(TriaMesh(v, t), choose=FlipChooser(shorter_loop, centres, flips))
-    v2, t2, _, _ = crop_folds(fixed.v, fixed.t)
-    assert TriaMesh(v2, t2).genus() == 0
-    assert v2[:, 2].max() > 16
