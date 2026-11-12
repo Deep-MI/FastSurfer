@@ -103,13 +103,14 @@ FLAGS:
                             creation (default: mri_mc)
   --fsqsphere             Revert to FreeSurfer iterative inflation for qsphere
                             (default: spectral spherical projection)
-  --topofix               Experimental: remove the handles of orig.nofix on
-                            the surface itself, instead of qsphere and
-                            mris_fix_topology. Writes a record of each
-                            hemisphere to scripts/<hemi>.topofix.json and runs
-                            the standard steps if it fails. Not used in the
-                            longitudinal stream, which takes its surfaces from
-                            the template.
+  --topofix               Experimental: tessellate the white matter with
+                            marching cubes and remove its handles on the
+                            surface itself, instead of mri_mc, qsphere and
+                            mris_fix_topology. Ignores --fstess. Writes a
+                            record of each hemisphere to
+                            scripts/<hemi>.topofix.json and runs the standard
+                            steps if it fails. Not used in the longitudinal
+                            stream, which takes its surfaces from the template.
   --fsaparc               Additionally create FS aparc segmentations and ribbon.
                             Skipped by default (--> DL prediction is used which
                             is faster, and usually these mapped ones are fine).
@@ -836,7 +837,8 @@ for hemi in lh rh ; do
       echo "echo \" \""
     } | tee -a "$CMDF"
 
-    if [[ "$fstess" == "true" ]]
+    # --topofix replaces the tessellation, so it ignores --fstess
+    if [[ "$fstess" == "true" ]] && [[ "$topofix" != "true" ]]
     then
       cmd="recon-all -subject $subject -hemi $hemi -tessellate -smooth1 -no-isrunning -umask $(umask) $hiresflag $fsthreads"
       RunIt "$cmd" "$LF" "$CMDF"
@@ -847,6 +849,28 @@ for hemi in lh rh ; do
       # extract initial surface "?h.orig.nofix"
       cmd="mri_pretess $mdir/filled.mgz $hemivalue $mdir/brain.mgz $mdir/filled-pretess$hemivalue.mgz"
       RunIt "$cmd" "$LF" "$CMDF"
+
+      # With --topofix, topofix_surfaces.py tessellates filled-pretess, corrects the topology on the
+      # surface itself and writes orig.nofix, orig.premesh and orig. The standard steps below, up to
+      # and including the fix, are written into a branch that only runs if it fails, and that closes
+      # after the fix step.
+      if [[ "$topofix" == "true" ]]
+      then
+        {
+          echo "echo \" \""
+          echo "echo \"================== Creating surfaces $hemi - topofix ===================\""
+          echo "echo \" \""
+        } | tee -a "$CMDF"
+        cmda=($python "${binpath}topofix_surfaces.py" --hemi "$hemi" --sd "$SUBJECTS_DIR" --subject "$subject")
+        if [[ -n "$hiresflag" ]] ; then cmda+=(--hires) ; fi
+        # as run_it_cmdf, but a failure starts the standard steps instead of ending the script
+        cmd="$(echo_quoted "${cmda[@]}")"
+        printf -v tmp %q "$cmd"
+        echo "echo $tmp" >> "$CMDF"
+        echo "$timecmd $cmd" | tee -a "$CMDF"
+        echo "if [[ \${PIPESTATUS[0]} != 0 ]] ; then" >> "$CMDF"
+        echo "echo \"topofix failed on $hemi, running the standard surface steps instead\"" >> "$CMDF"
+      fi
 
       # Marching cube does not return filename and wrong volume info!
       outmesh=$sdir/$hemi.orig.nofix$hires_surface_suffix
@@ -895,29 +919,6 @@ for hemi in lh rh ; do
     RunIt "$cmd" "$LF"
 
   fi # end LONG
-
-
-# ============================= TOPOFIX ==============================================================
-
-  # With --topofix, the topology of orig.nofix is corrected on the surface itself, and
-  # topofix_surfaces.py writes orig.premesh and orig. The standard steps below (qsphere and fix)
-  # are written into a branch that only runs if it fails, and that closes after the fix step.
-  if [[ "$long" == "false" ]] && [[ "$topofix" == "true" ]]
-  then
-    {
-      echo "echo \" \""
-      echo "echo \"================== Creating surfaces $hemi - topofix ===================\""
-      echo "echo \" \""
-    } | tee -a "$CMDF"
-    cmda=($python "${binpath}topofix_surfaces.py" --hemi "$hemi" --sd "$SUBJECTS_DIR" --subject "$subject")
-    # as run_it_cmdf, but a failure starts the standard steps instead of ending the script
-    cmd="$(echo_quoted "${cmda[@]}")"
-    printf -v tmp %q "$cmd"
-    echo "echo $tmp" >> "$CMDF"
-    echo "$timecmd $cmd" | tee -a "$CMDF"
-    echo "if [[ \${PIPESTATUS[0]} != 0 ]] ; then" >> "$CMDF"
-    echo "echo \"topofix failed on $hemi, running the standard surface steps instead\"" >> "$CMDF"
-  fi
 
 
 # ============================= INFLATE1 - QSPHERE =====================================================
@@ -980,7 +981,7 @@ for hemi in lh rh ; do
     RunIt "$cmd" "$LF" "$CMDF"
     thread_env_exports "$threads_hemi" >> "$CMDF"
 
-    # end of the standard steps that --topofix replaces, see TOPOFIX above
+    # end of the standard steps that --topofix replaces, see TESSELLATE above
     if [[ "$topofix" == "true" ]] ; then echo "fi" >> "$CMDF" ; fi
 
     # fix the surfaces if they are corrupt

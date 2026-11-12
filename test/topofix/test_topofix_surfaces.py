@@ -15,8 +15,8 @@
 """
 The step recon-surf.sh runs with --topofix, called as recon-surf.sh calls it.
 
-recon-surf.sh only looks at the exit status: 0 means that orig.premesh and orig are written and
-genus 0, anything else starts the standard surface steps instead.
+recon-surf.sh only looks at the exit status: 0 means that orig.nofix, orig.premesh and orig are
+written and the latter two are genus 0, anything else starts the standard surface steps instead.
 """
 
 import json
@@ -24,6 +24,7 @@ import subprocess
 import sys
 from pathlib import Path
 
+import nibabel as nib
 import numpy as np
 from lapy import TriaMesh
 from lapy.intersect import self_intersections
@@ -34,17 +35,8 @@ from recon_surf.topofix.surfaces import average_vertex_positions, remove_interse
 
 FASTSURFER_HOME = Path(__file__).parent.parent.parent
 SCRIPT = FASTSURFER_HOME / "recon_surf" / "topofix_surfaces.py"
-VOLUME_INFO = {
-    "head": np.array([2, 0, 20], dtype=np.int32),
-    "valid": "1  # volume info valid",
-    "filename": "filled.mgz",
-    "volume": np.array([24, 24, 24]),
-    "voxelsize": np.array([1.0, 1.0, 1.0]),
-    "xras": np.array([-1.0, 0.0, 0.0]),
-    "yras": np.array([0.0, 0.0, -1.0]),
-    "zras": np.array([0.0, 1.0, 0.0]),
-    "cras": np.array([0.0, 0.0, 0.0]),
-}
+# LIA orientation, as conformed volumes
+CONFORMED = np.array([[-1.0, 0, 0, 12], [0, 0, 1, -12], [0, -1, 0, 12], [0, 0, 0, 1]])
 
 
 def run(subjects_dir):
@@ -58,12 +50,11 @@ def run(subjects_dir):
 def test_tunnel_is_removed_and_the_rest_of_the_surface_kept(tmp_path):
     mask = np.zeros((24, 24, 24), dtype=bool)
     mask[6:18, 6:18, 6:18] = True
-    mask[11:13, 11:13, 6:18] = False  # a tunnel through the block
-    for folder in ("surf", "scripts"):
+    mask[11:13, 11:13, 6:18] = False  # a tunnel through the block, along the third voxel axis
+    for folder in ("mri", "surf", "scripts"):
         (tmp_path / "subj" / folder).mkdir(parents=True)
-    surf = tmp_path / "subj" / "surf"
-    v, t = voxel_surface(mask)
-    TriaMesh(v, t, VOLUME_INFO).write_fssurf(str(surf / "lh.orig.nofix"))
+    img = nib.MGHImage(np.where(mask, 255, 0).astype(np.uint8), CONFORMED)
+    img.to_filename(tmp_path / "subj" / "mri" / "filled-pretess255.mgz")
 
     done = run(tmp_path)
     assert done.returncode == 0, done.stdout + done.stderr
@@ -71,20 +62,28 @@ def test_tunnel_is_removed_and_the_rest_of_the_surface_kept(tmp_path):
     record = json.loads((tmp_path / "subj" / "scripts" / "lh.topofix.json").read_text())
     assert record["status"] == "ok"
     assert record["genus"] == 1 and len(record["handles"]) == 1 and record["genus_corrected"] == 0
+    surf = tmp_path / "subj" / "surf"
+    nofix = TriaMesh.read_fssurf(str(surf / "lh.orig.nofix"))
+    assert nofix.is_closed() and nofix.is_manifold() and nofix.genus() == 1
+    # halfway between voxel centres: the block minus the tunnel, with its edges cut off
+    assert 0.95 * (12**3 - 48) < nofix.volume() < 12**3 - 48
     premesh = TriaMesh.read_fssurf(str(surf / "lh.orig.premesh"))
     assert premesh.is_closed() and premesh.is_manifold() and premesh.is_oriented()
     assert premesh.genus() == 0 and premesh.volume() > 0
     assert len(self_intersections(premesh)) == 0
     # away from the tunnel, every vertex keeps its position after the averaging mris_fix_topology does
-    far = np.max(np.abs(v[:, :2] - 11.5), axis=1) > 3
-    averaged = average_vertex_positions(v, t)
+    vox2ras = img.header.get_vox2ras_tkr()
+    axis = vox2ras[:3, 2] / np.linalg.norm(vox2ras[:3, 2])
+    offset = nofix.v - (vox2ras @ [11.5, 11.5, 12, 1])[:3]
+    far = np.linalg.norm(offset - np.outer(offset @ axis, axis), axis=1) > 4
+    averaged = average_vertex_positions(nofix.v, nofix.t)
     assert np.all(cKDTree(premesh.v).query(averaged[far])[0] < 1e-4)
     orig = TriaMesh.read_fssurf(str(surf / "lh.orig"))
     assert orig.is_closed() and orig.is_manifold() and orig.is_oriented() and orig.genus() == 0
     assert len(self_intersections(orig)) == 0
     assert abs(orig.volume() / premesh.volume() - 1) < 0.02
-    # the volume geometry of orig.nofix, which later FreeSurfer steps read
-    for surface in (premesh, orig):
+    # the volume geometry of filled-pretess, which later FreeSurfer steps read
+    for surface in (nofix, premesh, orig):
         assert surface.fsinfo is not None and tuple(surface.fsinfo["volume"]) == (24, 24, 24)
 
 
@@ -107,4 +106,4 @@ def test_a_failure_exits_with_1_and_records_the_error(tmp_path):
     done = run(tmp_path)
     assert done.returncode == 1
     record = json.loads((tmp_path / "subj" / "scripts" / "lh.topofix.json").read_text())
-    assert record["status"] == "failed" and "orig.nofix" in record["error"]
+    assert record["status"] == "failed" and "filled-pretess255.mgz" in record["error"]

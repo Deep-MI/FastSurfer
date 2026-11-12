@@ -12,19 +12,85 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Create ``?h.orig.premesh`` and ``?h.orig`` of one hemisphere by correcting the topology of ``?h.orig.nofix``."""
+"""Create ``?h.orig.nofix``, ``?h.orig.premesh`` and ``?h.orig`` of one hemisphere from ``filled-pretess*.mgz``."""
 
 import time
 from pathlib import Path
 
+import nibabel as nib
 import numpy as np
 from lapy import TriaMesh
 from lapy.intersect import self_intersections
 from lapy.remesh import remesh
 from lapy.topology import fix_topology
+from skimage import measure
 
 from recon_surf.topofix.classify import cuts_bridge
 from recon_surf.topofix.folds import crop_folds
+
+# label of each hemisphere in filled.mgz
+FILLED_LABELS = {"lh": 255, "rh": 127}
+# edge length that gives the density of mris_remesh --desired-face-area 0.5, the decimation of
+# high-resolution surfaces in recon-surf.sh
+DECIMATION_EDGE_LENGTH = 1.05
+
+
+def volume_info(img: nib.MGHImage, filename: str) -> dict:
+    """Volume geometry header of a surface extracted from ``img``, see :meth:`lapy.TriaMesh.write_fssurf`."""
+    hdr = img.header
+    mdc = np.asarray(hdr["Mdc"], dtype=float)
+    return {
+        "head": np.array([2, 0, 20], dtype=np.int32),
+        "valid": "1  # volume info valid",
+        "filename": filename,
+        "volume": np.asarray(hdr["dims"][:3], dtype=np.int64),
+        "voxelsize": np.asarray(hdr["delta"], dtype=float),
+        "xras": mdc[0],
+        "yras": mdc[1],
+        "zras": mdc[2],
+        "cras": np.asarray(hdr["Pxyz_c"], dtype=float),
+    }
+
+
+def extract_orig_nofix(mri_dir: Path | str, surf_dir: Path | str, hemi: str, hires: bool = False) -> dict:
+    """
+    Tessellate the hemisphere in ``filled-pretess<label>.mgz`` and write ``<hemi>.orig.nofix``.
+
+    This replaces mri_mc and mris_extract_main_component: marching cubes on the binary volume puts
+    the surface halfway between voxel centres, and only the largest component is kept. For
+    high-resolution input the surface is written to ``<hemi>.orig.nofix.predec`` and decimated, as
+    with mris_remesh in recon-surf.sh.
+
+    Returns
+    -------
+    dict
+        Number of vertices and triangles of each surface written, for the QC record.
+    """
+    mri_dir, surf_dir = Path(mri_dir), Path(surf_dir)
+    path = mri_dir / f"filled-pretess{FILLED_LABELS[hemi]}.mgz"
+    img = nib.load(str(path))
+    mask = np.asarray(img.dataobj) == FILLED_LABELS[hemi]
+    v, t, _, _ = measure.marching_cubes(mask.astype(np.float32), level=0.5)
+    mesh = TriaMesh(v, t)
+    mesh.keep_largest_connected_component_(clean=True)
+    vox2ras = img.header.get_vox2ras_tkr()
+    v = mesh.v @ vox2ras[:3, :3].T + vox2ras[:3, 3]
+    t = mesh.t if TriaMesh(v, mesh.t).volume() > 0 else mesh.t[:, ::-1]
+    nofix = TriaMesh(v, np.ascontiguousarray(t, dtype=np.int64), volume_info(img, str(path)))
+    qc = {}
+    if hires:
+        nofix.write_fssurf(str(surf_dir / f"{hemi}.orig.nofix.predec"))
+        qc["orig.nofix.predec"] = {"vertices": len(nofix.v), "triangles": len(nofix.t)}
+        nofix = remesh(nofix, target_length=DECIMATION_EDGE_LENGTH, iterations=3)
+    nofix.write_fssurf(str(surf_dir / f"{hemi}.orig.nofix"))
+    qc["orig.nofix"] = {"vertices": len(nofix.v), "triangles": len(nofix.t)}
+    return qc
+
+
+def mean_edge_length(v: np.ndarray, t: np.ndarray) -> float:
+    """Mean length of the edges of a triangle mesh."""
+    sides = np.unique(np.sort(np.concatenate([t[:, [0, 1]], t[:, [1, 2]], t[:, [2, 0]]]), axis=1), axis=0)
+    return float(np.linalg.norm(v[sides[:, 0]] - v[sides[:, 1]], axis=1).mean())
 
 
 def average_vertex_positions(v: np.ndarray, t: np.ndarray, iterations: int = 2) -> np.ndarray:
@@ -134,12 +200,12 @@ def correct_orig_surface(surf_dir: Path | str, hemi: str) -> dict:
     qc["genus_corrected"] = premesh.genus()
 
     # the density of mris_remesh --remesh --iters 3, whose edges end up at 0.95 times the mean
-    # edge length of its input
+    # edge length of its input. remesh leaves edges near its target alone, so its result depends
+    # on the input; one more pass with a corrected target reaches the wanted mean edge length.
     start = time.perf_counter()
-    sides = np.concatenate([t[:, [0, 1]], t[:, [1, 2]], t[:, [2, 0]]])
-    sides = np.unique(np.sort(sides, axis=1), axis=0)
-    mean_edge = float(np.linalg.norm(v[sides[:, 0]] - v[sides[:, 1]], axis=1).mean())
-    orig = remesh(premesh, target_length=0.95 * mean_edge, iterations=3)
+    wanted = 0.95 * mean_edge_length(v, t)
+    orig = remesh(premesh, target_length=wanted, iterations=3)
+    orig = remesh(premesh, target_length=wanted**2 / mean_edge_length(orig.v, orig.t), iterations=3)
     v_orig, n_moved = remove_intersections(orig.v, orig.t)
     TriaMesh(v_orig, orig.t, nofix.fsinfo).write_fssurf(str(surf_dir / f"{hemi}.orig"))
     qc["orig"] = {"vertices": len(v_orig), "triangles": len(orig.t)}

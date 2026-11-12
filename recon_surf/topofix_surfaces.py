@@ -13,9 +13,11 @@
 # limitations under the License.
 
 """
-Correct the topology of ``?h.orig.nofix`` of one hemisphere on the surface itself.
+Tessellate one hemisphere and correct its topology on the surface itself.
 
-This replaces the qsphere step and recon-all -fix in recon-surf.sh with ``--topofix``. It writes
+This replaces the steps of recon-surf.sh after mri_pretess up to and including recon-all -fix
+with ``--topofix``: mri_mc, mris_extract_main_component, the decimation of high-resolution
+surfaces, mris_smooth, the qsphere and the topology fix. It writes ``surf/<hemi>.orig.nofix``,
 ``surf/<hemi>.orig.premesh``, ``surf/<hemi>.orig`` and a QC record in
 ``scripts/<hemi>.topofix.json``. If it fails, the record says why and the exit status is 1, so
 that recon-surf.sh runs the standard steps instead.
@@ -46,6 +48,11 @@ def setup_options():
         required="SUBJECTS_DIR" not in environ,
     )
     parser.add_argument("--subject", type=str, help="Name (ID) of subject.", required=True)
+    parser.add_argument(
+        "--hires",
+        action="store_true",
+        help="Decimate the surface of a high-resolution volume, as recon-surf.sh does with mris_remesh.",
+    )
     return parser.parse_args()
 
 
@@ -76,9 +83,11 @@ if __name__ == "__main__":
     subject_dir = opts.sd / opts.subject
     record = subject_dir / "scripts" / f"{opts.hemi}.topofix.json"
     try:
-        from recon_surf.topofix.surfaces import correct_orig_surface
+        from recon_surf.topofix.surfaces import correct_orig_surface, extract_orig_nofix
 
+        tessellation = extract_orig_nofix(subject_dir / "mri", subject_dir / "surf", opts.hemi, hires=opts.hires)
         qc = correct_orig_surface(subject_dir / "surf", opts.hemi)
+        qc.update(tessellation)
         qc["status"] = "ok"
         status = 0
     except Exception:
