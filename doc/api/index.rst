@@ -29,4 +29,5 @@ FastSurfer API
     HypVINN.models.rst
     HypVINN.utils.rst
     recon_surf.rst
+    recon_surf.topofix.rst
 

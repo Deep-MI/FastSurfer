@@ -358,6 +358,10 @@ Resource Options:
                             mri_mc).
   --fsqsphere             Use FreeSurfer iterative inflation for qsphere
                             (default: spectral spherical projection).
+  --topofix               Experimental: tessellate the white matter with
+                            marching cubes and remove its handles on the
+                            surface itself, instead of mri_mc, qsphere and
+                            mris_fix_topology. Falls back to these if it fails.
   --fsaparc               Additionally create FS aparc segmentations and ribbon.
                             Skipped by default (--> DL prediction is used which
                             is faster, and usually these mapped ones are fine).
@@ -612,7 +616,7 @@ case $key in
   ##############################################################
   --seg_only) run_surf_pipeline="false" ;;
   # several flag options that are *just* passed through to recon-surf.sh
-  --fstess|--fsqsphere|--fsaparc|--no_surfreg|--ignore_fs_version) surf_flags+=("$key") ;;
+  --fstess|--fsqsphere|--topofix|--fsaparc|--no_surfreg|--ignore_fs_version) surf_flags+=("$key") ;;
   # passed through, not translated into --threads 2: at --threads 1 the two are not equivalent,
   # because --threads also sets the thread count for the sections outside the hemisphere loop,
   # and --parallel is specifically the way to keep those single threaded
