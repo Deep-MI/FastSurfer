@@ -8,6 +8,5 @@ recon_surf.topofix
 
     classify
     folds
-    joint
     segsurf
     surfaces

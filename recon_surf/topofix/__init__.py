@@ -13,11 +13,11 @@
 # limitations under the License.
 
 """
-Topologically correct white matter surfaces from the segmentation, without a spherical map.
+Topology correction of white matter surfaces on the surface itself, without a spherical map.
 
-The surface is extracted from the white matter of the segmentation, and its handles are found
-and removed on the surface itself with :mod:`lapy.topology`: each handle comes with two short
-loops that cross once, and surgery along one of them either cuts a bridge or fills a tunnel.
-Nearby handles are decided together (:mod:`.joint`), and protrusions on which a spherical map
-folds are cut off (:mod:`.folds`), because a later spherical registration cannot unfold them.
+The handles of the initial surface are found and removed with :mod:`lapy.topology`: each handle
+comes with two short loops that cross once, and surgery along one of them either cuts a bridge or
+fills a tunnel (:mod:`.classify`). Protrusions on which a spherical map folds are cut off
+(:mod:`.folds`), because a later spherical registration cannot unfold them. :mod:`.segsurf`
+extracts an initial surface from the segmentation instead.
 """

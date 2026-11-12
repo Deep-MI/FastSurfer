@@ -30,13 +30,6 @@ def loop_length(v: np.ndarray, loop: np.ndarray) -> float:
     return float(np.linalg.norm(np.roll(p, -1, axis=0) - p, axis=1).sum())
 
 
-def fan_area(v: np.ndarray, loop: np.ndarray) -> float:
-    """Area of the triangle fan from the loop centroid to the loop."""
-    p = v[loop]
-    c = p.mean(axis=0)
-    return 0.5 * float(np.linalg.norm(np.cross(p - c, np.roll(p, -1, axis=0) - c), axis=1).sum())
-
-
 def local_normals(v: np.ndarray, t: np.ndarray, vertices: np.ndarray) -> np.ndarray:
     """
     Area-weighted vertex normals, computed only at the given vertices.

@@ -103,9 +103,8 @@ FLAGS:
                             creation (default: mri_mc)
   --fsqsphere             Revert to FreeSurfer iterative inflation for qsphere
                             (default: spectral spherical projection)
-  --topofix               Experimental: create the white matter surface from
-                            the segmentation and remove its handles on the
-                            surface, instead of mri_mc, qsphere and
+  --topofix               Experimental: remove the handles of orig.nofix on
+                            the surface itself, instead of qsphere and
                             mris_fix_topology. Writes a record of each
                             hemisphere to scripts/<hemi>.topofix.json and runs
                             the standard steps if it fails. Not used in the
@@ -825,34 +824,6 @@ for hemi in lh rh ; do
   echo "#!/bin/bash" > "$CMDF"
 
 
-# ============================= TOPOFIX ==============================================================
-
-  # With --topofix, orig.nofix, orig.premesh and orig come from the segmentation. The standard
-  # steps below (orig.nofix, qsphere and fix) are written into the else branch, so they only run
-  # if topofix_surfaces.py fails. The branch closes after the fix step.
-  if [[ "$long" == "false" ]] && [[ "$topofix" == "true" ]]
-  then
-    {
-      echo "echo \" \""
-      echo "echo \"================== Creating surfaces $hemi - topofix ===================\""
-      echo "echo \" \""
-    } | tee -a "$CMDF"
-    cmda=($python "${binpath}topofix_surfaces.py" --hemi "$hemi" --sd "$SUBJECTS_DIR" --subject "$subject"
-          --seg "$asegdkt_segfile")
-    if [[ -n "$hiresflag" ]] ; then cmda+=(--hires) ; fi
-    # as run_it_cmdf, but a failure starts the standard steps instead of ending the script
-    cmd="$(echo_quoted "${cmda[@]}")"
-    printf -v tmp %q "$cmd"
-    echo "echo $tmp" >> "$CMDF"
-    echo "$timecmd $cmd" | tee -a "$CMDF"
-    echo "if [[ \${PIPESTATUS[0]} == 0 ]] ; then" >> "$CMDF"
-    cmd="mris_remove_intersection $sdir/$hemi.orig $sdir/$hemi.orig"
-    RunIt "$cmd" "$LF" "$CMDF"
-    echo "else" >> "$CMDF"
-    echo "echo \"topofix failed on $hemi, running the standard surface steps instead\"" >> "$CMDF"
-  fi
-
-
 # ============================= TESSELLATE - SMOOTH =====================================================
 
   # In Long stream we skip these
@@ -924,6 +895,38 @@ for hemi in lh rh ; do
     RunIt "$cmd" "$LF"
 
   fi # end LONG
+
+
+# ============================= TOPOFIX ==============================================================
+
+  # With --topofix, the topology of orig.nofix is corrected on the surface itself, and the steps
+  # that follow mris_fix_topology in recon-all -fix make orig from orig.premesh. The standard steps
+  # below (qsphere and fix) are written into the else branch, so they only run if
+  # topofix_surfaces.py fails. The branch closes after the fix step.
+  if [[ "$long" == "false" ]] && [[ "$topofix" == "true" ]]
+  then
+    {
+      echo "echo \" \""
+      echo "echo \"================== Creating surfaces $hemi - topofix ===================\""
+      echo "echo \" \""
+    } | tee -a "$CMDF"
+    cmda=($python "${binpath}topofix_surfaces.py" --hemi "$hemi" --sd "$SUBJECTS_DIR" --subject "$subject")
+    # as run_it_cmdf, but a failure starts the standard steps instead of ending the script
+    cmd="$(echo_quoted "${cmda[@]}")"
+    printf -v tmp %q "$cmd"
+    echo "echo $tmp" >> "$CMDF"
+    echo "$timecmd $cmd" | tee -a "$CMDF"
+    echo "if [[ \${PIPESTATUS[0]} == 0 ]] ; then" >> "$CMDF"
+    # single threaded, as recon-all -fix below
+    thread_env_exports 1 >> "$CMDF"
+    cmd="mris_remesh --remesh --iters 3 --input $sdir/$hemi.orig.premesh --output $sdir/$hemi.orig"
+    RunIt "$cmd" "$LF" "$CMDF"
+    cmd="mris_remove_intersection $sdir/$hemi.orig $sdir/$hemi.orig"
+    RunIt "$cmd" "$LF" "$CMDF"
+    thread_env_exports "$threads_hemi" >> "$CMDF"
+    echo "else" >> "$CMDF"
+    echo "echo \"topofix failed on $hemi, running the standard surface steps instead\"" >> "$CMDF"
+  fi
 
 
 # ============================= INFLATE1 - QSPHERE =====================================================
