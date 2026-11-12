@@ -15,8 +15,8 @@
 """
 The step recon-surf.sh runs with --topofix, called as recon-surf.sh calls it.
 
-recon-surf.sh only looks at the exit status: 0 means that orig.premesh is written and genus 0,
-anything else starts the standard surface steps instead.
+recon-surf.sh only looks at the exit status: 0 means that orig.premesh and orig are written and
+genus 0, anything else starts the standard surface steps instead.
 """
 
 import json
@@ -30,7 +30,7 @@ from lapy.intersect import self_intersections
 from scipy.spatial import cKDTree
 from shapes import voxel_surface
 
-from recon_surf.topofix.surfaces import average_vertex_positions
+from recon_surf.topofix.surfaces import average_vertex_positions, remove_intersections
 
 FASTSURFER_HOME = Path(__file__).parent.parent.parent
 SCRIPT = FASTSURFER_HOME / "recon_surf" / "topofix_surfaces.py"
@@ -79,8 +79,27 @@ def test_tunnel_is_removed_and_the_rest_of_the_surface_kept(tmp_path):
     far = np.max(np.abs(v[:, :2] - 11.5), axis=1) > 3
     averaged = average_vertex_positions(v, t)
     assert np.all(cKDTree(premesh.v).query(averaged[far])[0] < 1e-4)
+    orig = TriaMesh.read_fssurf(str(surf / "lh.orig"))
+    assert orig.is_closed() and orig.is_manifold() and orig.is_oriented() and orig.genus() == 0
+    assert len(self_intersections(orig)) == 0
+    assert abs(orig.volume() / premesh.volume() - 1) < 0.02
     # the volume geometry of orig.nofix, which later FreeSurfer steps read
-    assert premesh.fsinfo is not None and tuple(premesh.fsinfo["volume"]) == (24, 24, 24)
+    for surface in (premesh, orig):
+        assert surface.fsinfo is not None and tuple(surface.fsinfo["volume"]) == (24, 24, 24)
+
+
+def test_intersection_is_smoothed_away_locally():
+    mask = np.zeros((8, 8, 3), dtype=bool)
+    mask[1:7, 1:7, 1] = True  # a slab one voxel thick
+    v, t = voxel_surface(mask)
+    top = np.flatnonzero((v[:, 2] == v[:, 2].max()) & (np.abs(v[:, 0] - 4.5) < 0.1) & (np.abs(v[:, 1] - 4.5) < 0.1))
+    v[top, 2] -= 1.5  # pushed through the bottom face
+    assert len(self_intersections(TriaMesh(v, t))) > 0
+    fixed, n_moved = remove_intersections(v, t)
+    assert len(self_intersections(TriaMesh(fixed, t))) == 0
+    assert 0 < n_moved < len(v) / 2
+    far = np.max(np.abs(v[:, :2] - 4.5), axis=1) > 2.5
+    assert np.array_equal(fixed[far], v[far])
 
 
 def test_a_failure_exits_with_1_and_records_the_error(tmp_path):

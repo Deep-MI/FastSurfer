@@ -15,10 +15,10 @@
 """
 Correct the topology of ``?h.orig.nofix`` of one hemisphere on the surface itself.
 
-This replaces the qsphere step and mris_fix_topology in recon-surf.sh with ``--topofix``. It
-writes ``surf/<hemi>.orig.premesh`` and a QC record in ``scripts/<hemi>.topofix.json``. If it
-fails, the record says why and the exit status is 1, so that recon-surf.sh runs the standard steps
-instead.
+This replaces the qsphere step and recon-all -fix in recon-surf.sh with ``--topofix``. It writes
+``surf/<hemi>.orig.premesh``, ``surf/<hemi>.orig`` and a QC record in
+``scripts/<hemi>.topofix.json``. If it fails, the record says why and the exit status is 1, so
+that recon-surf.sh runs the standard steps instead.
 """
 
 import argparse
@@ -88,7 +88,7 @@ if __name__ == "__main__":
     record.write_text(json.dumps(qc, indent=2) + "\n")
     if status == 0:
         n = len(qc["handles"])
-        print(f"{opts.hemi}: genus {qc['genus']}, removed {n} handles, wrote {opts.hemi}.orig.premesh and {record}")
+        print(f"{opts.hemi}: genus {qc['genus']}, removed {n} handles, wrote {opts.hemi}.orig and {record}")
     else:
         print(f"{opts.hemi}: topofix failed, see {record}")
     sys.exit(status)
