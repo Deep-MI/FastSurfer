@@ -360,8 +360,9 @@ Resource Options:
                             (default: spectral spherical projection).
   --topofix               Experimental: tessellate the white matter with
                             marching cubes and remove its handles on the
-                            surface itself, instead of mri_mc, qsphere and
-                            mris_fix_topology. Falls back to these if it fails.
+                            surface itself, instead of mri_pretess, mri_mc,
+                            qsphere and mris_fix_topology. Falls back to these
+                            if it fails.
   --fsaparc               Additionally create FS aparc segmentations and ribbon.
                             Skipped by default (--> DL prediction is used which
                             is faster, and usually these mapped ones are fine).

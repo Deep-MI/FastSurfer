@@ -15,12 +15,12 @@
 """
 Tessellate one hemisphere and correct its topology on the surface itself.
 
-This replaces the steps of recon-surf.sh after mri_pretess up to and including recon-all -fix
-with ``--topofix``: mri_mc, mris_extract_main_component, the decimation of high-resolution
-surfaces, mris_smooth, the qsphere and the topology fix. It writes ``surf/<hemi>.orig.nofix``,
-``surf/<hemi>.orig.premesh``, ``surf/<hemi>.orig`` and a QC record in
-``scripts/<hemi>.topofix.json``. If it fails, the record says why and the exit status is 1, so
-that recon-surf.sh runs the standard steps instead.
+This replaces the steps of recon-surf.sh from mri_pretess up to and including recon-all -fix
+with ``--topofix``: mri_pretess, mri_mc, mris_extract_main_component, the decimation of
+high-resolution surfaces, mris_smooth, the qsphere and the topology fix. It writes
+``surf/<hemi>.orig.nofix``, ``surf/<hemi>.orig.premesh``, ``surf/<hemi>.orig`` and a QC record
+in ``scripts/<hemi>.topofix.json``. If it fails, the record says why and the exit status is 1,
+so that recon-surf.sh runs the standard steps instead.
 """
 
 import argparse

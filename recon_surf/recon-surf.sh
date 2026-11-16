@@ -105,9 +105,9 @@ FLAGS:
                             (default: spectral spherical projection)
   --topofix               Experimental: tessellate the white matter with
                             marching cubes and remove its handles on the
-                            surface itself, instead of mri_mc, qsphere and
-                            mris_fix_topology. Ignores --fstess. Writes a
-                            record of each hemisphere to
+                            surface itself, instead of mri_pretess, mri_mc,
+                            qsphere and mris_fix_topology. Ignores --fstess.
+                            Writes a record of each hemisphere to
                             scripts/<hemi>.topofix.json and runs the standard
                             steps if it fails. Not used in the longitudinal
                             stream, which takes its surfaces from the template.
@@ -846,11 +846,7 @@ for hemi in lh rh ; do
       # instead of mri_tesselate lego land use marching cube
       if [[ $hemi == "lh" ]] ; then hemivalue=255 ; else hemivalue=127 ; fi
 
-      # extract initial surface "?h.orig.nofix"
-      cmd="mri_pretess $mdir/filled.mgz $hemivalue $mdir/brain.mgz $mdir/filled-pretess$hemivalue.mgz"
-      RunIt "$cmd" "$LF" "$CMDF"
-
-      # With --topofix, topofix_surfaces.py tessellates filled-pretess, corrects the topology on the
+      # With --topofix, topofix_surfaces.py tessellates filled.mgz, corrects the topology on the
       # surface itself and writes orig.nofix, orig.premesh and orig. The standard steps below, up to
       # and including the fix, are written into a branch that only runs if it fails, and that closes
       # after the fix step.
@@ -871,6 +867,10 @@ for hemi in lh rh ; do
         echo "if [[ \${PIPESTATUS[0]} != 0 ]] ; then" >> "$CMDF"
         echo "echo \"topofix failed on $hemi, running the standard surface steps instead\"" >> "$CMDF"
       fi
+
+      # extract initial surface "?h.orig.nofix"
+      cmd="mri_pretess $mdir/filled.mgz $hemivalue $mdir/brain.mgz $mdir/filled-pretess$hemivalue.mgz"
+      RunIt "$cmd" "$LF" "$CMDF"
 
       # Marching cube does not return filename and wrong volume info!
       outmesh=$sdir/$hemi.orig.nofix$hires_surface_suffix

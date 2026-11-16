@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Create ``?h.orig.nofix``, ``?h.orig.premesh`` and ``?h.orig`` of one hemisphere from ``filled-pretess*.mgz``."""
+"""Create ``?h.orig.nofix``, ``?h.orig.premesh`` and ``?h.orig`` of one hemisphere from ``filled.mgz``."""
 
 import time
 from pathlib import Path
@@ -23,6 +23,7 @@ from lapy import TriaMesh
 from lapy.intersect import self_intersections
 from lapy.remesh import remesh
 from lapy.topology import fix_topology
+from scipy.ndimage import gaussian_filter
 from skimage import measure
 
 from recon_surf.topofix.classify import cuts_bridge
@@ -33,6 +34,9 @@ FILLED_LABELS = {"lh": 255, "rh": 127}
 # edge length that gives the density of mris_remesh --desired-face-area 0.5, the decimation of
 # high-resolution surfaces in recon-surf.sh
 DECIMATION_EDGE_LENGTH = 1.05
+# blur of the hemisphere mask in voxels, which resolves voxels touching only at an edge or corner
+# as mri_pretess does
+MASK_SIGMA = 0.5
 
 
 def volume_info(img: nib.MGHImage, filename: str) -> dict:
@@ -54,12 +58,13 @@ def volume_info(img: nib.MGHImage, filename: str) -> dict:
 
 def extract_orig_nofix(mri_dir: Path | str, surf_dir: Path | str, hemi: str, hires: bool = False) -> dict:
     """
-    Tessellate the hemisphere in ``filled-pretess<label>.mgz`` and write ``<hemi>.orig.nofix``.
+    Tessellate the hemisphere in ``filled.mgz`` and write ``<hemi>.orig.nofix``.
 
-    This replaces mri_mc and mris_extract_main_component: marching cubes on the binary volume puts
-    the surface halfway between voxel centres, and only the largest component is kept. For
-    high-resolution input the surface is written to ``<hemi>.orig.nofix.predec`` and decimated, as
-    with mris_remesh in recon-surf.sh.
+    This replaces mri_pretess, mri_mc and mris_extract_main_component. The hemisphere mask is
+    blurred slightly, see :data:`MASK_SIGMA`, and marching cubes at level 0.5 puts the surface
+    halfway between voxel centres; only the largest component is kept. For high-resolution input
+    the surface is written to ``<hemi>.orig.nofix.predec`` and decimated, as with mris_remesh in
+    recon-surf.sh.
 
     Returns
     -------
@@ -67,10 +72,11 @@ def extract_orig_nofix(mri_dir: Path | str, surf_dir: Path | str, hemi: str, hir
         Number of vertices and triangles of each surface written, for the QC record.
     """
     mri_dir, surf_dir = Path(mri_dir), Path(surf_dir)
-    path = mri_dir / f"filled-pretess{FILLED_LABELS[hemi]}.mgz"
+    path = mri_dir / "filled.mgz"
     img = nib.load(str(path))
     mask = np.asarray(img.dataobj) == FILLED_LABELS[hemi]
-    v, t, _, _ = measure.marching_cubes(mask.astype(np.float32), level=0.5)
+    blurred = gaussian_filter(mask.astype(np.float32), MASK_SIGMA, mode="constant")
+    v, t, _, _ = measure.marching_cubes(blurred, level=0.5)
     mesh = TriaMesh(v, t)
     mesh.keep_largest_connected_component_(clean=True)
     vox2ras = img.header.get_vox2ras_tkr()
