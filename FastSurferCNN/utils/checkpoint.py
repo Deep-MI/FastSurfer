@@ -16,7 +16,7 @@
 import hashlib
 import os
 import warnings
-from collections.abc import Iterable, MutableSequence
+from collections.abc import Iterable, MutableSequence, Sequence
 from functools import lru_cache
 from pathlib import Path
 from time import sleep
@@ -386,7 +386,7 @@ DOWNLOAD_RETRY_STATUS = frozenset({429, 500, 502, 503, 504})
 def download_checkpoint(
         checkpoint_name: str,
         checkpoint_path: str | Path,
-        urls: list[str],
+        urls: Sequence[str],
         md5: str | None = None,
 ) -> None:
     """
@@ -404,8 +404,8 @@ def download_checkpoint(
         Name of checkpoint.
     checkpoint_path : Path, str
         Path of the file in which the checkpoint will be saved.
-    urls : list[str]
-        List of URLs of checkpoint hosting sites.
+    urls : Sequence[str]
+        URLs of checkpoint hosting sites.
     md5 : str, optional
         The md5 of the published file. None accepts any file, with a warning.
     """
@@ -541,9 +541,11 @@ def to_checkpoint_files(*paths: Path | str, published: Iterable[CheckpointFile])
 
 
 def check_and_download_ckpts(
-        checkpoint: CheckpointFile | Path | str,
-        urls: list[str],
+        checkpoint: CheckpointFile | Path | str | None = None,
+        urls: Sequence[str] = (),
         verify_existing: bool = True,
+        *,
+        checkpoint_path: Path | str | None = None,
 ) -> None:
     """
     Check and download a checkpoint file, if it does not exist.
@@ -556,11 +558,26 @@ def check_and_download_ckpts(
     checkpoint : CheckpointFile
         The file in which the checkpoint will be saved, and the md5 the download is checked against.
         Passing a Path or str is deprecated, their downloads are not checked.
-    urls : list of str
-        URLs of checkpoint hosting site.
+    urls : Sequence of str
+        URLs of checkpoint hosting sites, at least one.
     verify_existing : bool, default=True
         Whether to check the checkpoint against the md5, if it already exists.
+    checkpoint_path : Path, str, optional
+        Deprecated, use checkpoint. The former name of checkpoint, raises a DeprecationWarning.
     """
+    if checkpoint_path is not None:
+        if checkpoint is not None:
+            raise TypeError("check_and_download_ckpts() got checkpoint and checkpoint_path, pass only checkpoint.")
+        warnings.warn(
+            "The checkpoint_path argument of check_and_download_ckpts is deprecated, use checkpoint.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        checkpoint = checkpoint_path
+    if checkpoint is None:
+        raise TypeError("check_and_download_ckpts() missing required argument checkpoint.")
+    if len(urls) == 0:
+        raise ValueError("check_and_download_ckpts() requires at least one url in urls.")
     checkpoint_path, md5 = _checkpoint_file(checkpoint, "check_and_download_ckpts")
     checkpoint_path = Path(checkpoint_path)
     if checkpoint_path.exists():
