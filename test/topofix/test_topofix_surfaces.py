@@ -54,7 +54,7 @@ def test_tunnel_is_removed_and_the_rest_of_the_surface_kept(tmp_path):
     for folder in ("mri", "surf", "scripts"):
         (tmp_path / "subj" / folder).mkdir(parents=True)
     img = nib.MGHImage(np.where(mask, 255, 0).astype(np.uint8), CONFORMED)
-    img.to_filename(tmp_path / "subj" / "mri" / "filled-pretess255.mgz")
+    img.to_filename(tmp_path / "subj" / "mri" / "filled.mgz")
 
     done = run(tmp_path)
     assert done.returncode == 0, done.stdout + done.stderr
@@ -82,7 +82,7 @@ def test_tunnel_is_removed_and_the_rest_of_the_surface_kept(tmp_path):
     assert orig.is_closed() and orig.is_manifold() and orig.is_oriented() and orig.genus() == 0
     assert len(self_intersections(orig)) == 0
     assert abs(orig.volume() / premesh.volume() - 1) < 0.02
-    # the volume geometry of filled-pretess, which later FreeSurfer steps read
+    # the volume geometry of filled.mgz, which later FreeSurfer steps read
     for surface in (nofix, premesh, orig):
         assert surface.fsinfo is not None and tuple(surface.fsinfo["volume"]) == (24, 24, 24)
 
@@ -106,4 +106,4 @@ def test_a_failure_exits_with_1_and_records_the_error(tmp_path):
     done = run(tmp_path)
     assert done.returncode == 1
     record = json.loads((tmp_path / "subj" / "scripts" / "lh.topofix.json").read_text())
-    assert record["status"] == "failed" and "filled-pretess255.mgz" in record["error"]
+    assert record["status"] == "failed" and "filled.mgz" in record["error"]
