@@ -106,7 +106,9 @@ FLAGS:
   --topofix               Experimental: tessellate the white matter with
                             marching cubes and remove its handles on the
                             surface itself, instead of mri_pretess, mri_mc,
-                            qsphere and mris_fix_topology. Ignores --fstess.
+                            qsphere and mris_fix_topology, and use gray and
+                            white modes that are not rounded to integers for
+                            surface placement. Ignores --fstess.
                             Writes a record of each hemisphere to
                             scripts/<hemi>.topofix.json and runs the standard
                             steps if it fails. Not used in the longitudinal
@@ -1011,8 +1013,19 @@ for hemi in lh rh ; do
     RunIt "$cmd" "$LF" "$CMDF"
 
     # create first WM surface white.preaparc from topo fixed orig surf
-    cmd="recon-all -subject $subject -hemi $hemi -autodetgwstats -white-preaparc -no-isrunning -umask $(umask) $hiresflag $fsthreads"
-    RunIt "$cmd" "$LF" "$CMDF"
+    if [[ "$topofix" == "true" ]]
+    then
+      # with --topofix, the gray and white modes are not rounded to integers
+      cmd="recon-all -subject $subject -hemi $hemi -autodetgwstats -no-isrunning -umask $(umask) $hiresflag $fsthreads"
+      RunIt "$cmd" "$LF" "$CMDF"
+      cmd="$python ${binpath}topofix_gwstats.py --hemi $hemi --sd $SUBJECTS_DIR --subject $subject"
+      RunIt "$cmd" "$LF" "$CMDF"
+      cmd="recon-all -subject $subject -hemi $hemi -white-preaparc -no-isrunning -umask $(umask) $hiresflag $fsthreads"
+      RunIt "$cmd" "$LF" "$CMDF"
+    else
+      cmd="recon-all -subject $subject -hemi $hemi -autodetgwstats -white-preaparc -no-isrunning -umask $(umask) $hiresflag $fsthreads"
+      RunIt "$cmd" "$LF" "$CMDF"
+    fi
 
   else # longitudinal stream
     # ... we skip topo fix
