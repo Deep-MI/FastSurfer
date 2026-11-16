@@ -361,8 +361,10 @@ Resource Options:
   --topofix               Experimental: tessellate the white matter with
                             marching cubes and remove its handles on the
                             surface itself, instead of mri_pretess, mri_mc,
-                            qsphere and mris_fix_topology. Falls back to these
-                            if it fails.
+                            qsphere and mris_fix_topology, and use gray and
+                            white modes that are not rounded to integers for
+                            surface placement. Falls back to the standard
+                            surface steps if it fails.
   --fsaparc               Additionally create FS aparc segmentations and ribbon.
                             Skipped by default (--> DL prediction is used which
                             is faster, and usually these mapped ones are fine).
