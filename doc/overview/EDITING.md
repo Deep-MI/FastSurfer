@@ -262,14 +262,14 @@ Pial surface placement
 ----------------------
 
 ### When to use
-Over- and/or under-segmentation of the cortical gray matter: voxels that should be gray matter are excluded, or those that should not are included.
-
+The pial surface includes tissue that is not gray matter, for example dura or cerebellum.
 
 ### What to do
-Often, these errors should be fixed in [asegdkt_segfile](#asegdkt_segfile) `<subject_dir>/mri/aparc.DKTatlas+aseg.deep.manedit.mgz`, but if that is not successful:
-1. Open and edit `<subject_dir>/mri/brain.finalsurfs.manedit.mgz` (overwriting values in `<subject_dir>/mri/brain.finalsurfs.mgz`).
+Often, these errors should be fixed in [asegdkt_segfile](#asegdkt_segfile) `<subject_dir>/mri/aparc.DKTatlas+aseg.deep.manedit.mgz`, which the brain mask follows, but if that is not successful:
+1. Open and edit `<subject_dir>/mri/brain.finalsurfs.manedit.mgz` (overwriting values in `<subject_dir>/mri/brain.finalsurfs.mgz`) and set the voxels the pial surface should exclude to 1.
 2. [Re-run FastSurfer](#general-process) to fix the pial surface.
-The manual label 255 indicates a voxel should be included in the gray matter and a voxel labeled 1 should not.
+
+This file cannot add gray matter. Do not set voxels to 255 to include them: outside the white matter or at its edge, the surface placement treats voxels this bright as non-brain tissue (as it does for the eye sockets) and pulls the pial surface inward there. The surface pipeline warns about such voxels. Gray matter that is missing because the brain mask cuts it off can be restored in the segmentation, see [asegdkt_segfile](#asegdkt_segfile), and the white matter is extended in `wm.mgz`, see [White matter segmentation](#white-matter-segmentation).
 
 See also: <https://surfer.nmr.mgh.harvard.edu/fswiki/Edits#brain.finalsurfs.mgz>
 
