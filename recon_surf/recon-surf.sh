@@ -778,6 +778,25 @@ if [[ "$aseg_moved" == "true" ]] ; then
   trap - EXIT
 fi
 
+# 255 in brain.finalsurfs.manedit.mgz does not add gray or white matter: mris_place_surface zeroes voxels above
+# 125 outside wm.mgz with fewer than 14 of 26 neighbours in wm.mgz, which pulls the pial surface inward
+bfs_manedit="$mdir/brain.finalsurfs.manedit.mgz"
+if [[ -f "$bfs_manedit" ]] ; then
+  if ! bright=$($python "${binpath}count_bright_edits.py" "$bfs_manedit" "$mdir/wm.mgz") ; then
+    echo "ERROR: Could not check mri/brain.finalsurfs.manedit.mgz against mri/wm.mgz. $bright" | tee -a "$LF"
+    exit 1
+  fi
+  if [[ "$bright" != "0" ]] ; then
+    {
+      echo "WARNING: mri/brain.finalsurfs.manedit.mgz has $bright voxels set to 255 outside or at the edge of wm.mgz."
+      echo "  The surface placement treats them as bright non-brain tissue, which pulls the pial surface inward"
+      echo "  there instead of including them. Set voxels to 1 to remove them from the pial surface, fix missing"
+      echo "  gray matter in the segmentation, and extend the white matter by setting voxels to 255 in wm.mgz,"
+      echo "  see the editing guide."
+    } | tee -a "$LF"
+  fi
+fi
+
 if [[ "$long" == "true" ]] ; then
   # in long we can skip fill as surfaces come from base
   # copy over filled from base for stop-edits to transfer to long (a bit of a hack)
