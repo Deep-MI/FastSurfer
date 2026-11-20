@@ -18,9 +18,13 @@ Check how the checkpoint download reacts to a host that misbehaves.
 The hosts do break mid-transfer: a build has logged
 ``ChunkedEncodingError ... IncompleteRead(2835659 bytes read, 28432957 more expected)`` from one of
 them. Falling through to the next url covers a host being down, but not the last url in the list,
-and not a transfer that breaks on a host that is otherwise up. No network is touched here; requests
-is replaced with stubs.
+and not a transfer that breaks on a host that is otherwise up. A transfer can also complete with
+the wrong bytes, which only the md5 from checkpoint_paths.yaml reveals. No network is touched here;
+requests is replaced with stubs.
 """
+
+import hashlib
+import logging
 
 import pytest
 import requests
@@ -204,3 +208,72 @@ def test_giving_up_with_no_reply_at_all_still_raises_the_right_error(monkeypatch
     assert "a_checkpoint.pkl" in message, "the error has to name the checkpoint"
     assert "host-a" in message and "host-b" in message, "and the hosts it tried"
     assert not target.exists()
+
+
+WEIGHTS_MD5 = hashlib.md5(b"weights").hexdigest()
+
+
+def test_a_corrupted_download_is_retried_like_a_broken_transfer(monkeypatch, no_sleep, target):
+    """A file that arrives with the wrong md5 is discarded and fetched again, not published."""
+    calls = stub_get(monkeypatch, [Reply(ok=True, content=b"weigh"), Reply(ok=True)])
+
+    checkpoint.download_checkpoint("a_checkpoint.pkl", target, ["https://host-a"], WEIGHTS_MD5)
+
+    assert len(calls) == 2
+    assert no_sleep == [checkpoint.DOWNLOAD_BACKOFF]
+    assert target.read_bytes() == b"weights"
+
+
+def test_a_host_serving_the_wrong_file_leaves_nothing_behind(monkeypatch, no_sleep, target):
+    """When no host serves the published file, the download fails and says what arrived instead."""
+    calls = stub_get(monkeypatch, [Reply(ok=True, content=b"other weights")])
+
+    with pytest.raises(DOWNLOAD_FAILED) as failure:
+        checkpoint.download_checkpoint(
+            "a_checkpoint.pkl", target, ["https://host-a", "https://host-b"], WEIGHTS_MD5
+        )
+    assert len(calls) == 2 * checkpoint.DOWNLOAD_ATTEMPTS, "each host gets its attempts"
+    message = str(failure.value)
+    assert WEIGHTS_MD5 in message and hashlib.md5(b"other weights").hexdigest() in message
+    assert "host-a" in message and "host-b" in message
+    assert not target.exists(), "a file that does not match must not be published"
+
+
+def test_a_stale_checkpoint_on_disk_is_named_but_kept(monkeypatch, caplog, target):
+    """
+    A checkpoint that already exists is checked by default, because old installs carry other weights.
+
+    The warning has to point to the file, so it can be deleted, and the file is neither replaced nor
+    does the run stop.
+    """
+    target.write_bytes(b"old weights")
+    calls = stub_get(monkeypatch, [AssertionError("a file on disk must not be downloaded")])
+
+    with caplog.at_level(logging.WARNING):
+        checkpoint.get_checkpoints(checkpoint.CheckpointFile(target, WEIGHTS_MD5), urls=["https://host-a"])
+
+    assert str(target) in caplog.text and WEIGHTS_MD5 in caplog.text
+    assert calls == []
+    assert target.read_bytes() == b"old weights"
+
+
+def test_a_checkpoint_elsewhere_gets_the_md5_of_its_published_file(tmp_path):
+    """--ckpt_* may point to another folder, and the download still requests the published file of its name."""
+    published = [checkpoint.CheckpointFile(tmp_path / "checkpoints" / "a_checkpoint.pkl", WEIGHTS_MD5)]
+
+    moved, custom = checkpoint.to_checkpoint_files(
+        tmp_path / "elsewhere" / "a_checkpoint.pkl", "my_weights.pkl", published=published
+    )
+
+    assert moved == (tmp_path / "elsewhere" / "a_checkpoint.pkl", WEIGHTS_MD5)
+    assert custom.md5 is None, "a file that was never published has nothing to be checked against"
+
+
+def test_a_plain_path_is_deprecated_but_still_downloaded(monkeypatch, no_sleep, target):
+    """Callers outside FastSurfer that pass a Path keep working until they move to CheckpointFile."""
+    stub_get(monkeypatch, [Reply(ok=True)])
+
+    with pytest.warns(DeprecationWarning, match="CheckpointFile"):
+        checkpoint.get_checkpoints(target, urls=["https://host-a"])
+
+    assert target.read_bytes() == b"weights"

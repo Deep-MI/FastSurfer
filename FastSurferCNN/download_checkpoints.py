@@ -13,33 +13,37 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from functools import lru_cache
 from itertools import chain
-from pathlib import Path
 
 from FastSurferCNN.utils.checkpoint import (
+    CheckpointFile,
     check_and_download_ckpts,
     get_checkpoints,
     get_config_file,
     load_checkpoint_config_defaults,
+    to_checkpoint_files,
 )
 from FastSurferCNN.utils.parallel import thread_executor
+
+MODULES = ("FastSurferCNN", "CorpusCallosum", "CerebNet", "HypVINN")
 
 
 class ConfigCache:
     @classmethod
-    @lru_cache
     def url(cls, module: str) -> list[str]:
         return load_checkpoint_config_defaults("url", get_config_file(module))
 
     @classmethod
-    @lru_cache
-    def checkpoint(cls, module: str) -> dict[str, Path]:
+    def checkpoint(cls, module: str) -> dict[str, CheckpointFile]:
         return load_checkpoint_config_defaults("checkpoint", get_config_file(module))
 
     @classmethod
     def all_urls(cls) -> list[str]:
-        return list(chain(*(cls.url(mod) for mod in ("FastSurferCNN", "CorpusCallosum", "CerebNet", "HypVINN"))))
+        return list(chain(*(cls.url(mod) for mod in MODULES)))
+
+    @classmethod
+    def all_checkpoints(cls) -> list[CheckpointFile]:
+        return list(chain(*(cls.checkpoint(mod).values() for mod in MODULES)))
 
 
 defaults = ConfigCache()
@@ -119,12 +123,11 @@ def main(
             if sel or all:
                 urls = defaults.url(mod) if url is None else [url]
                 futures.extend(thread_executor().submit(get_checkpoints, file, urls=urls)
-                               for key, file in defaults.checkpoint(mod).items())
-        for fname in files:
-            check_and_download_ckpts(
-                fname,
-                urls=defaults.all_urls() if url is None else [url],
-            )
+                               for file in defaults.checkpoint(mod).values())
+        if files:
+            urls = defaults.all_urls() if url is None else [url]
+            for checkpoint in to_checkpoint_files(*files, published=defaults.all_checkpoints()):
+                check_and_download_ckpts(checkpoint, urls=urls)
     except Exception as e:
         from traceback import print_exception
         print_exception(e)

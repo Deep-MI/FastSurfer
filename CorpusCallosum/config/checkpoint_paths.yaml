@@ -2,6 +2,14 @@ url:
 - "https://b2share.fz-juelich.de/api/files/e4eb699c-ba68-4470-9f3d-89ceeee1a334"
 - "https://zenodo.org/records/17141933/files"
 
+# md5 is the checksum the hosts publish for the file. A download that does not match is retried, a
+# checkpoint that already exists is checked too, but a mismatch only logs a warning and the file is kept.
+# So the file behind a link (url + file name of path) must not change: publish a changed file under a
+# new link and update the link and the md5 together.
 checkpoint:
-  segmentation: "checkpoints/FastSurferCC_segmentation_v1.0.0.pkl"
-  localization: "checkpoints/FastSurferCC_localization_v1.0.0.pkl"
+  segmentation:
+    path: "checkpoints/FastSurferCC_segmentation_v1.0.0.pkl"
+    md5: "01b46b5aff0b5a718a410db769d353fc"
+  localization:
+    path: "checkpoints/FastSurferCC_localization_v1.0.0.pkl"
+    md5: "97fb44467f12f8c673684a0b61169f31"
