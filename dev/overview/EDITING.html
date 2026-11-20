@@ -763,16 +763,16 @@ same coordinates on the edit rerun so the edited slab geometry remains valid.</p
 <h2>Pial surface placement<a class="headerlink" href="#pial-surface-placement" title="Link to this heading">¶</a></h2>
 <section id="id9">
 <h3>When to use<a class="headerlink" href="#id9" title="Link to this heading">¶</a></h3>
-<p>Over- and/or under-segmentation of the cortical gray matter: voxels that should be gray matter are excluded, or those that should not are included.</p>
+<p>The pial surface includes tissue that is not gray matter, for example dura or cerebellum.</p>
 </section>
 <section id="id10">
 <h3>What to do<a class="headerlink" href="#id10" title="Link to this heading">¶</a></h3>
-<p>Often, these errors should be fixed in <a class="reference internal" href="#asegdkt-segfile">asegdkt_segfile</a> <code class="docutils literal notranslate"><span class="pre">&lt;subject_dir&gt;/mri/aparc.DKTatlas+aseg.deep.manedit.mgz</span></code>, but if that is not successful:</p>
+<p>Often, these errors should be fixed in <a class="reference internal" href="#asegdkt-segfile">asegdkt_segfile</a> <code class="docutils literal notranslate"><span class="pre">&lt;subject_dir&gt;/mri/aparc.DKTatlas+aseg.deep.manedit.mgz</span></code>, which the brain mask follows, but if that is not successful:</p>
 <ol class="arabic simple">
-<li><p>Open and edit <code class="docutils literal notranslate"><span class="pre">&lt;subject_dir&gt;/mri/brain.finalsurfs.manedit.mgz</span></code> (overwriting values in <code class="docutils literal notranslate"><span class="pre">&lt;subject_dir&gt;/mri/brain.finalsurfs.mgz</span></code>).</p></li>
-<li><p><a class="reference internal" href="#general-process"><span class="std std-ref">Re-run FastSurfer</span></a> to fix the pial surface.
-The manual label 255 indicates a voxel should be included in the gray matter and a voxel labeled 1 should not.</p></li>
+<li><p>Open and edit <code class="docutils literal notranslate"><span class="pre">&lt;subject_dir&gt;/mri/brain.finalsurfs.manedit.mgz</span></code> (overwriting values in <code class="docutils literal notranslate"><span class="pre">&lt;subject_dir&gt;/mri/brain.finalsurfs.mgz</span></code>) and set the voxels the pial surface should exclude to 1.</p></li>
+<li><p><a class="reference internal" href="#general-process"><span class="std std-ref">Re-run FastSurfer</span></a> to fix the pial surface.</p></li>
 </ol>
+<p>This file cannot add gray matter. Do not set voxels to 255 to include them: outside the white matter or at its edge, the surface placement treats voxels this bright as non-brain tissue (as it does for the eye sockets) and pulls the pial surface inward there. The surface pipeline warns about such voxels. Gray matter that is missing because the brain mask cuts it off can be restored in the segmentation, see <a class="reference internal" href="#asegdkt-segfile">asegdkt_segfile</a>, and the white matter is extended in <code class="docutils literal notranslate"><span class="pre">wm.mgz</span></code>, see <a class="reference internal" href="#white-matter-segmentation"><span class="std std-ref">White matter segmentation</span></a>.</p>
 <p>See also: <a class="reference external" href="https://surfer.nmr.mgh.harvard.edu/fswiki/Edits#brain.finalsurfs.mgz">https://surfer.nmr.mgh.harvard.edu/fswiki/Edits#brain.finalsurfs.mgz</a></p>
 </section>
 </section>
