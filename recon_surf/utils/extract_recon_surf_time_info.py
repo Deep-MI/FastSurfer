@@ -47,7 +47,7 @@ if __name__ == "__main__":
         "--input_file_path",
         type=Path,
         default="scripts/recon-surf.log",
-        help="Path to recon-surf.log file",
+        help="Path to recon-surf.log file (only the latest invocation is reported)",
     )
     parser.add_argument(
         "-o",
@@ -66,6 +66,12 @@ if __name__ == "__main__":
 
     with open(args.input_file_path) as file:
         lines = [line.rstrip() for line in file.readlines()]
+
+    # Appended logs contain multiple invocations; report only the latest one.
+    for i in range(len(lines) - 1, -1, -1):
+        if lines[i] == "Log file for recon-surf.sh":
+            lines = lines[i:]
+            break
 
     timestamp_feature = "@#@FSTIME"
     recon_all_stage_feature = "#@# "
@@ -225,7 +231,7 @@ if __name__ == "__main__":
                         previous_datetime_str = " ".join(lines[j].split()[-6:])
 
                     ## Lines containing 'Ended' are used to find the end time of the last stage:
-                    if "Ended" in lines[j]:
+                    if "Ended" in lines[j] and not first_stage:
                         current_stage_start_time = lines[j].split()[-3]
                         stage_duration = get_recon_all_stage_duration(
                             lines[j], previous_datetime_str

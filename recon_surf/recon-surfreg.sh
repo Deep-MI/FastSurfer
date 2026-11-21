@@ -422,5 +422,10 @@ echo "CMDARGS ${inputargs[*]}"    >> "$DoneFile"
 
 echo "recon-surfreg.sh $subject finished without error at `date`"  | tee -a "$LF"
 
-cmd="$python ${binpath}utils/extract_recon_surf_time_info.py -i $LF -o $SUBJECTS_DIR/$subject/scripts/recon-surfreg_times.yaml"
-RunIt "$cmd" "/dev/null"
+# Timing reports are optional after successful surface registration.
+timing_report="$SUBJECTS_DIR/$subject/scripts/recon-surfreg_times.yaml"
+cmd="$python ${binpath}utils/extract_recon_surf_time_info.py -i $LF -o $timing_report"
+if ! ( RunIt "$cmd" "/dev/null" ) ; then
+  rm -f "$timing_report"
+  echo "WARNING: Timing report generation failed; surface registration completed successfully. No current timing report is available." | tee -a "$LF"
+fi
