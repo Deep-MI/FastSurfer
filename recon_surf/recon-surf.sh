@@ -438,6 +438,7 @@ DoneFile="$SUBJECTS_DIR/$subject/scripts/recon-surf.done"
 if [[ "$DoneFile" != /dev/null ]] ; then rm -f "$DoneFile" ; fi
 LF="$SUBJECTS_DIR/$subject/scripts/recon-surf.log"
 if [[ "$LF" != /dev/null ]]  && [[ "$edits" != "true" ]]; then rm -f "$LF" ; fi
+# extract_recon_surf_time_info.py uses this exact header to find the latest invocation in appended logs.
 echo "Log file for recon-surf.sh" >> "$LF"
 { # all output tee -a "$LF"
   date 2>&1

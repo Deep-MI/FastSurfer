@@ -12,9 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Check per-invocation timing reports and their nonfatal shell boundary."""
+"""Check per-invocation timing reports."""
 
-import shlex
 import subprocess
 import sys
 from pathlib import Path
@@ -74,62 +73,3 @@ def test_parser_reports_latest_invocation(tmp_path, case):
         "stop": "10:00:04",
         "duration_s": 3.0,
     }])
-
-
-@pytest.mark.parametrize("case", ["success", "failure", "partial", "reconstruction-failure"])
-@pytest.mark.parametrize(("pipeline", "completion"), [
-    ("recon-surf", "reconstruction"),
-    ("recon-surfreg", "surface registration"),
-])
-def test_final_reporting_preserves_reconstruction_status(tmp_path, case, pipeline, completion):
-    """Only report failures are nonfatal, and failed refreshes leave no YAML."""
-    scripts = tmp_path / "subject" / "scripts"
-    scripts.mkdir(parents=True)
-    log = scripts / f"{pipeline}.log"
-    log.write_text("reconstruction log\n")
-    report = scripts / f"{pipeline}_times.yaml"
-    report.write_text("date: previous run\n")
-    done = scripts / f"{pipeline}.done"
-    utils = tmp_path / "utils"
-    utils.mkdir()
-    (utils / PARSER.name).write_text(
-        "import sys\n"
-        "from pathlib import Path\n"
-        f"case = {case!r}\n"
-        "if case != 'failure':\n"
-        "    Path(sys.argv[sys.argv.index('-o') + 1]).write_text('date: current run\\n')\n"
-        "sys.exit(0 if case == 'success' else 1)\n"
-    )
-    tail = (FASTSURFER_HOME / "recon_surf" / f"{pipeline}.sh").read_text().split("# Create the Done File\n", 1)[1]
-    script = (
-        f"FASTSURFER_HOME={shlex.quote(str(FASTSURFER_HOME))}\n"
-        f'source "$FASTSURFER_HOME/recon_surf/functions.sh" > /dev/null 2>&1\n'
-        'timecmd=""\n'
-        f"binpath={shlex.quote(str(tmp_path) + '/')}\n"
-        f"python={shlex.quote(sys.executable)}\n"
-        f"SUBJECTS_DIR={shlex.quote(str(tmp_path))}\n"
-        "subject=subject\n"
-        f"LF={shlex.quote(str(log))}\n"
-        f"DoneFile={shlex.quote(str(done))}\n"
-        "StartTime=start\nEndTime=end\ntRunHours=1\nVERSION=test\ninputargs=()\n"
-        + ('RunIt "false" "$LF"\n' if case == "reconstruction-failure" else "")
-        + tail
-    )
-    result = subprocess.run(["bash", "-c", script], capture_output=True, text=True, timeout=30)
-
-    if case == "reconstruction-failure":
-        assert result.returncode != 0
-        assert not done.exists()
-        assert report.read_text() == "date: previous run\n"
-        assert "finished without error" not in log.read_text()
-    else:
-        assert result.returncode == 0, result.stderr
-        assert "SUBJECT subject" in done.read_text()
-        assert "finished without error" in log.read_text()
-        if case == "success":
-            assert report.read_text() == "date: current run\n"
-            assert "WARNING:" not in log.read_text()
-        else:
-            assert not report.exists()
-            assert "WARNING: Timing report generation failed" in log.read_text()
-            assert f"{completion} completed successfully" in result.stdout

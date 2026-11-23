@@ -16,6 +16,7 @@ Entries are grouped according to the section in `recon_surf.sh` in which the com
 
 ### Arguments
 * `--input_file_path`: Absolute path to the input `recon-surf.log` file. By default, this is `scripts/recon-surf.log` in the current directory.
+  Only the latest invocation is reported, since `recon-surf.sh --edits` appends to this log.
 * `--output_file_path`: Absolute path to the output `recon-surf_times.yaml` file. By default, the file will be saved in the same directory as the input file.
 * `--time_units`: Units for duration: s (seconds) or m (minutes; default)
 
@@ -25,4 +26,3 @@ The following will extract recon_surf command time information from `123456/scri
 ```
 python3 extract_recon_surf_time_info.py --input_file_path 123456/scripts/recon-surf.log --time_units m
 ```
-
