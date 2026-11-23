@@ -438,6 +438,7 @@ DoneFile="$SUBJECTS_DIR/$subject/scripts/recon-surf.done"
 if [[ "$DoneFile" != /dev/null ]] ; then rm -f "$DoneFile" ; fi
 LF="$SUBJECTS_DIR/$subject/scripts/recon-surf.log"
 if [[ "$LF" != /dev/null ]]  && [[ "$edits" != "true" ]]; then rm -f "$LF" ; fi
+# extract_recon_surf_time_info.py uses this exact header to find the latest invocation in appended logs.
 echo "Log file for recon-surf.sh" >> "$LF"
 { # all output tee -a "$LF"
   date 2>&1
@@ -1565,5 +1566,10 @@ tRunHours=$(printf %6.3f "$(bc -l <<< "($tSecEnd - $tSecStart) / 3600")")
 } > "$DoneFile"
 echo "recon-surf.sh $subject finished without error at $(date)" | tee -a "$LF"
 
-cmd="$python ${binpath}utils/extract_recon_surf_time_info.py -i $LF -o $SUBJECTS_DIR/$subject/scripts/recon-surf_times.yaml"
-RunIt "$cmd" "/dev/null"
+# Timing reports are optional after successful reconstruction.
+timing_report="$SUBJECTS_DIR/$subject/scripts/recon-surf_times.yaml"
+cmd="$python ${binpath}utils/extract_recon_surf_time_info.py -i $LF -o $timing_report"
+if ! ( RunIt "$cmd" "/dev/null" ) ; then
+  rm -f "$timing_report"
+  echo "WARNING: Timing report generation failed; reconstruction completed successfully. No current timing report is available." | tee -a "$LF"
+fi
