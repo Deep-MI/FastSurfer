@@ -122,12 +122,12 @@ def main(
         for mod, sel in (("FastSurferCNN", vinn), ("CerebNet", cerebnet), ("HypVINN", hypvinn), ("CorpusCallosum", cc)):
             if sel or all:
                 urls = defaults.url(mod) if url is None else [url]
-                futures.extend(thread_executor().submit(get_checkpoints, file, urls=urls)
+                futures.extend(thread_executor().submit(get_checkpoints, file, urls=urls, on_mismatch="replace")
                                for file in defaults.checkpoint(mod).values())
         if files:
             urls = defaults.all_urls() if url is None else [url]
             for checkpoint in to_checkpoint_files(*files, published=defaults.all_checkpoints()):
-                check_and_download_ckpts(checkpoint, urls=urls)
+                check_and_download_ckpts(checkpoint, urls=urls, on_mismatch="replace")
     except Exception as e:
         from traceback import print_exception
         print_exception(e)

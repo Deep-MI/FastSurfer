@@ -46,6 +46,35 @@ class CheckpointFile(NamedTuple):
     md5: str | None = None
 
 
+# What to do with a checkpoint that already exists and does not match the md5 of the published file:
+# raise a CorruptedCheckpointError (inference), download the published file to replace it
+# (download_checkpoints.py), or use it without hashing it.
+OnMismatch = Literal["raise", "replace", "ignore"]
+
+
+class CorruptedCheckpointError(RuntimeError):
+    """Checkpoints on disk whose md5 does not match the published file."""
+
+    def __init__(self, mismatches: Iterable[tuple[Path, str, str]], config_file: Path | None = None):
+        """
+        Parameters
+        ----------
+        mismatches : Iterable of (Path, str, str)
+            The path, the md5 on disk and the md5 of the published file of each corrupted checkpoint.
+        config_file : Path, optional
+            The checkpoint_paths.yaml that lists the published md5s.
+        """
+        self.mismatches = list(mismatches)
+        self.config_file = config_file
+        where = config_file or "the checkpoint_paths.yaml of the module"
+        files = "\n".join(f"  {path}: md5 {actual}, published {md5}" for path, actual, md5 in self.mismatches)
+        super().__init__(
+            f"Corrupted checkpoint files, their md5 does not match the published file:\n{files}\n"
+            f"Redownload them with FastSurferCNN/download_checkpoints.py, or, for checkpoints that are meant "
+            f"to differ, choose a different file name and update the path and the md5 in {where}."
+        )
+
+
 class CheckpointConfigDict(TypedDict, total=False):
     url: list[str]
     checkpoint: dict[Plane, CheckpointFile]
@@ -393,10 +422,11 @@ def download_checkpoint(
     Download a checkpoint file.
 
     Each url is tried up to DOWNLOAD_ATTEMPTS times, backing off between attempts, for a broken
-    transfer, a status in DOWNLOAD_RETRY_STATUS or a file that does not match md5. Any other status
-    moves straight to the next url. Raises an ExceptionGroup, or a RuntimeError whenever no host
-    answered with an error status, once every url has been exhausted. The file is only written to
-    checkpoint_path once it matches md5.
+    transfer or a status in DOWNLOAD_RETRY_STATUS. A file that does not match md5 is retried once, a
+    second mismatch moves to the next url, as does any other status. Raises an ExceptionGroup, or a
+    RuntimeError whenever no host answered with an error status, once every url has been exhausted.
+    The file is only written to checkpoint_path once it matches md5, so a failed download leaves an
+    existing file in place.
 
     Parameters
     ----------
@@ -408,6 +438,16 @@ def download_checkpoint(
         URLs of checkpoint hosting sites.
     md5 : str, optional
         The md5 of the published file. None accepts any file, with a warning.
+
+    Raises
+    ------
+    ExceptionGroup
+        If any host returned an HTTP error status. The exception group contains the HTTPError
+        exceptions from raise_for_status() for each host that answered with an error.
+    RuntimeError
+        If no host answered with an HTTP error status (all either failed in transport, served
+        a file without matching md5, or were unreachable). The message names each url tried
+        and what happened with it (mismatched md5, timeout, unreachable).
     """
     if md5 is None:
         LOGGER.warning(f"No md5 known for checkpoint {checkpoint_name}, so its download cannot be verified.")
@@ -421,6 +461,7 @@ def download_checkpoint(
         # this url's own reply, so that exhausting the attempts here does not read the reply of
         # the url before it
         reply = None
+        mismatched = False
         for attempt in range(1, DOWNLOAD_ATTEMPTS + 1):
             try:
                 LOGGER.info(f"Downloading checkpoint {checkpoint_name} from {url}")
@@ -435,6 +476,13 @@ def download_checkpoint(
                         content = reply.content
                         break
                     reason = f"Checkpoint {checkpoint_name} from {url} has md5 {actual_md5}, expected {md5}"
+                    if mismatched:
+                        # the same complete reply with the wrong md5 twice is the file this url serves,
+                        # not a broken transfer
+                        LOGGER.warning(reason)
+                        break
+                    # once, because a single mismatch may still be a corrupted transfer
+                    mismatched = True
                 elif reply.status_code not in DOWNLOAD_RETRY_STATUS:
                     break  # a settled answer, and it decides whether to try the next url
                 else:
@@ -543,15 +591,17 @@ def to_checkpoint_files(*paths: Path | str, published: Iterable[CheckpointFile])
 def check_and_download_ckpts(
         checkpoint: CheckpointFile | Path | str | None = None,
         urls: Sequence[str] = (),
-        verify_existing: bool = True,
+        on_mismatch: OnMismatch = "raise",
         *,
         checkpoint_path: Path | str | None = None,
 ) -> None:
     """
     Check and download a checkpoint file, if it does not exist.
 
-    A checkpoint that already exists is not downloaded again. With verify_existing, it is checked against
-    the md5, and a mismatch logs a warning, the file is used anyway.
+    A checkpoint that already exists is not downloaded again. If the existing checkpoint does not
+    match the md5, the action depends on on_mismatch: "raise" (default) raises a CorruptedCheckpointError,
+    "replace" downloads the published file and replaces the existing one, and "ignore" uses it without
+    checking.
 
     Parameters
     ----------
@@ -560,8 +610,9 @@ def check_and_download_ckpts(
         Passing a Path or str is deprecated, their downloads are not checked.
     urls : Sequence of str
         URLs of checkpoint hosting sites, at least one.
-    verify_existing : bool, default=True
-        Whether to check the checkpoint against the md5, if it already exists.
+    on_mismatch : {"raise", "replace", "ignore"}, default="raise"
+        What to do if an existing checkpoint does not match the md5. "raise" raises CorruptedCheckpointError;
+        "replace" downloads the published file and replaces the existing one; "ignore" uses it anyway.
     checkpoint_path : Path, str, optional
         Deprecated, use checkpoint. The former name of checkpoint, raises a DeprecationWarning.
     """
@@ -581,30 +632,38 @@ def check_and_download_ckpts(
     checkpoint_path, md5 = _checkpoint_file(checkpoint, "check_and_download_ckpts")
     checkpoint_path = Path(checkpoint_path)
     if checkpoint_path.exists():
-        if verify_existing and md5 is not None:
+        if md5 is not None:
             with open(checkpoint_path, "rb") as file:
                 actual = hashlib.file_digest(file, "md5").hexdigest()
             if actual != md5.lower():
-                LOGGER.warning(
-                    f"Checkpoint {checkpoint_path} has md5 {actual}, but the published file has {md5}. It is "
-                    f"used anyway, delete it, so the published file is downloaded on the next run."
-                )
+                if on_mismatch == "ignore":
+                    return
+                if on_mismatch == "raise":
+                    raise CorruptedCheckpointError([(checkpoint_path, actual, md5)])
+                # on_mismatch == "replace"
+                LOGGER.info(f"Checkpoint {checkpoint_path} has md5 {actual}, redownloading the published file.")
+                checkpoint_path.unlink()
+            else:
+                return  # file matches, nothing to do
+        else:
+            return  # no md5 to check
     else:
         # create dir if it does not exist
         checkpoint_path.parent.mkdir(parents=True, exist_ok=True)
-        download_checkpoint(checkpoint_path.name, checkpoint_path, urls, md5)
+    # download if it does not exist, or if md5 mismatched and on_mismatch == "replace"
+    download_checkpoint(checkpoint_path.name, checkpoint_path, urls, md5)
 
 
 def get_checkpoints(
         *checkpoints: CheckpointFile | Path | str,
         urls: list[str],
-        verify_existing: bool = True,
+        on_mismatch: OnMismatch = "raise",
 ) -> list[Path]:
     """
     Check and download checkpoint files if not exist.
 
-    Downloads are always checked against the md5 of their CheckpointFile, see download_checkpoint. With
-    verify_existing, checkpoints that already exist are checked as well, and a mismatch logs a warning, see
+    Downloads are always checked against the md5 of their CheckpointFile, see download_checkpoint. If a
+    checkpoint that already exists does not match, the action depends on on_mismatch, see
     check_and_download_ckpts.
 
     Parameters
@@ -614,13 +673,22 @@ def get_checkpoints(
         to_checkpoint_files. Passing a Path or str is deprecated, their downloads are not checked.
     urls : list of str
         URLs of checkpoint hosting sites.
-    verify_existing : bool, default=True
-        Whether to also check checkpoints that already exist against their md5.
+    on_mismatch : {"raise", "replace", "ignore"}, default="raise"
+        What to do if an existing checkpoint does not match the md5, see check_and_download_ckpts.
 
     Returns
     -------
     list[Path]
         The path of each checkpoint, relative paths resolved against the FastSurfer root directory.
+
+    Raises
+    ------
+    CorruptedCheckpointError
+        If on_mismatch is "raise" and existing checkpoints do not match, listing all of them.
+    Exception
+        If one checkpoint failed otherwise, the error of check_and_download_ckpts.
+    ExceptionGroup
+        If several checkpoints failed otherwise, the errors of each one.
     """
     files = []
     try:
@@ -630,14 +698,17 @@ def get_checkpoints(
             if not file.is_absolute() and file.parts[0] != ".":
                 file = FASTSURFER_ROOT / file
             files.append(file)
-            check_and_download_ckpts(CheckpointFile(file, md5), urls, verify_existing)
-    except requests.exceptions.HTTPError:
-        LOGGER.error(f"Could not find nor download checkpoints from {urls}")
-        raise
+            check_and_download_ckpts(CheckpointFile(file, md5), urls, on_mismatch)
+    except ExceptionGroup as eg:
+        # download_checkpoint raises ExceptionGroup with any HTTPErrors from the hosts
+        for exc in eg.exceptions:
+            if isinstance(exc, requests.exceptions.HTTPError):
+                LOGGER.error(f"Could not find nor download checkpoints from {urls}")
+                raise
     return files
 
 
-def get_module_checkpoints(module: str, *paths: Path | str, verify_existing: bool = True) -> list[Path]:
+def get_module_checkpoints(module: str, *paths: Path | str, on_mismatch: OnMismatch = "raise") -> list[Path]:
     """
     Check and download checkpoint files of a FastSurfer module if not exist.
 
@@ -651,8 +722,8 @@ def get_module_checkpoints(module: str, *paths: Path | str, verify_existing: boo
         The FastSurfer module the checkpoints belong to, e.g. "FastSurferCNN".
     *paths : Path, str
         Paths of the checkpoint files, relative paths are relative to the FastSurfer root directory.
-    verify_existing : bool, default=True
-        Whether to also check checkpoints that already exist against their md5, see get_checkpoints.
+    on_mismatch : {"raise", "replace", "ignore"}, default="raise"
+        What to do if an existing checkpoint does not match the md5, see check_and_download_ckpts.
 
     Returns
     -------
@@ -663,4 +734,4 @@ def get_module_checkpoints(module: str, *paths: Path | str, verify_existing: boo
     urls = load_checkpoint_config_defaults("url", config_file)
     published = load_checkpoint_config_defaults("checkpoint", config_file).values()
     checkpoints = to_checkpoint_files(*paths, published=published)
-    return get_checkpoints(*checkpoints, urls=urls, verify_existing=verify_existing)
+    return get_checkpoints(*checkpoints, urls=urls, on_mismatch=on_mismatch)

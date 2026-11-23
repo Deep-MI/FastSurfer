@@ -2,10 +2,11 @@ url:
 - "https://b2share.fz-juelich.de/api/files/a423a576-220d-47b0-9e0c-b5b32d45fc59"
 - "https://zenodo.org/records/10390573/files"
 
-# md5 is the checksum the hosts publish for the file. A download that does not match is retried, a
-# checkpoint that already exists is checked too, but a mismatch only logs a warning and the file is kept.
-# So the file behind a link (url + file name of path) must not change: publish a changed file under a
-# new link and update the link and the md5 together.
+# md5 is the checksum the hosts publish for the file, as verified by the FastSurfer maintainers.
+# Downloads that do not match are retried and never saved. If a checkpoint on disk does not match, the
+# action depends on how it is called: inference raises an error (with instructions to redownload or update
+# the config), download_checkpoints.py replaces the file. So the file behind a link (url + file name of
+# path) must not change: publish a changed file under a new link and update the link and the md5 together.
 checkpoint:
   axial:
     path: "checkpoints/aparc_vinn_axial_v2.0.0.pkl"

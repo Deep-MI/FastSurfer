@@ -24,7 +24,6 @@ requests is replaced with stubs.
 """
 
 import hashlib
-import logging
 
 import pytest
 import requests
@@ -232,29 +231,75 @@ def test_a_host_serving_the_wrong_file_leaves_nothing_behind(monkeypatch, no_sle
         checkpoint.download_checkpoint(
             "a_checkpoint.pkl", target, ["https://host-a", "https://host-b"], WEIGHTS_MD5
         )
-    assert len(calls) == 2 * checkpoint.DOWNLOAD_ATTEMPTS, "each host gets its attempts"
+    # each host gets one attempt (which mismatches) and one retry (which also mismatches), then moves to next
+    assert len(calls) == 4, f"expected 2 hosts × (1 attempt + 1 retry) = 4, got {len(calls)}"
+    # backoff occurs only once per host: after first mismatch, before retry
+    assert no_sleep == [checkpoint.DOWNLOAD_BACKOFF, checkpoint.DOWNLOAD_BACKOFF]
     message = str(failure.value)
     assert WEIGHTS_MD5 in message and hashlib.md5(b"other weights").hexdigest() in message
     assert "host-a" in message and "host-b" in message
     assert not target.exists(), "a file that does not match must not be published"
 
 
-def test_a_stale_checkpoint_on_disk_is_named_but_kept(monkeypatch, caplog, target):
+def test_a_mismatched_checkpoint_on_disk_raises_with_on_mismatch_raise(monkeypatch, target):
     """
-    A checkpoint that already exists is checked by default, because old installs carry other weights.
-
-    The warning has to point to the file, so it can be deleted, and the file is neither replaced nor
-    does the run stop.
+    With on_mismatch="raise" (the default for inference), a checkpoint on disk that does not match
+    raises CorruptedCheckpointError with the file name and md5s.
     """
     target.write_bytes(b"old weights")
     calls = stub_get(monkeypatch, [AssertionError("a file on disk must not be downloaded")])
 
-    with caplog.at_level(logging.WARNING):
+    with pytest.raises(checkpoint.CorruptedCheckpointError) as failure:
         checkpoint.get_checkpoints(checkpoint.CheckpointFile(target, WEIGHTS_MD5), urls=["https://host-a"])
 
-    assert str(target) in caplog.text and WEIGHTS_MD5 in caplog.text
+    assert str(target) in str(failure.value) and WEIGHTS_MD5 in str(failure.value)
+    assert calls == []
+    assert target.read_bytes() == b"old weights", "the file is not modified when the error is raised"
+
+
+def test_a_mismatched_checkpoint_on_disk_is_ignored_with_on_mismatch_ignore(monkeypatch, target):
+    """
+    With on_mismatch="ignore", a checkpoint on disk that does not match is used without checking or
+    replacing it, like before the md5 feature was added.
+    """
+    target.write_bytes(b"old weights")
+    calls = stub_get(monkeypatch, [AssertionError("a file on disk must not be downloaded")])
+
+    checkpoint.get_checkpoints(checkpoint.CheckpointFile(target, WEIGHTS_MD5), urls=["https://host-a"],
+                                on_mismatch="ignore")
+
     assert calls == []
     assert target.read_bytes() == b"old weights"
+
+
+def test_a_mismatched_checkpoint_on_disk_is_replaced_with_on_mismatch_replace(monkeypatch, no_sleep, target):
+    """
+    With on_mismatch="replace" (for download_checkpoints.py), a checkpoint on disk that does not match
+    is downloaded and replaced.
+    """
+    target.write_bytes(b"old weights")
+    calls = stub_get(monkeypatch, [Reply(ok=True)])
+
+    checkpoint.get_checkpoints(checkpoint.CheckpointFile(target, WEIGHTS_MD5), urls=["https://host-a"],
+                                on_mismatch="replace")
+
+    assert len(calls) == 1
+    assert target.read_bytes() == b"weights", "the file is replaced with the downloaded one"
+
+
+def test_a_matched_checkpoint_on_disk_is_not_re_downloaded_even_with_replace(monkeypatch, target):
+    """
+    With on_mismatch="replace", a checkpoint on disk that matches is not re-downloaded, to avoid
+    unnecessary network traffic.
+    """
+    target.write_bytes(b"weights")
+    calls = stub_get(monkeypatch, [AssertionError("a matched file on disk must not be downloaded")])
+
+    checkpoint.get_checkpoints(checkpoint.CheckpointFile(target, WEIGHTS_MD5), urls=["https://host-a"],
+                                on_mismatch="replace")
+
+    assert calls == []
+    assert target.read_bytes() == b"weights"
 
 
 def test_a_checkpoint_elsewhere_gets_the_md5_of_its_published_file(tmp_path):
