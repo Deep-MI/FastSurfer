@@ -3,10 +3,12 @@ url:
 - "https://zenodo.org/records/17141933/files"
 
 # md5 is the checksum the hosts publish for the file, as verified by the FastSurfer maintainers.
-# Downloads that do not match are retried and never saved. If a checkpoint on disk does not match, the
-# action depends on how it is called: inference raises an error (with instructions to redownload or update
-# the config), download_checkpoints.py replaces the file. So the file behind a link (url + file name of
-# path) must not change: publish a changed file under a new link and update the link and the md5 together.
+# To use a custom checkpoint, run `md5sum <file>` and copy only the hash (the first field of its output) into
+# md5 below, and set path to your file (relative paths are relative to the FastSurfer root).
+# Also give your file a new name, e.g. checkpoints/<name>_finetuned.pkl, so it is not taken for the checkpoint
+# the FastSurfer team publishes under this name: download_checkpoints.py replaces a file whose md5 does not match,
+# so with the published name it removes your file and then fails to download the published one, which does not
+# match your md5. Leave url unchanged: a file that exists at path is not downloaded.
 checkpoint:
   segmentation:
     path: "checkpoints/FastSurferCC_segmentation_v1.0.0.pkl"
