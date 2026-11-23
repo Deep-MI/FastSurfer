@@ -15,6 +15,7 @@
 # IMPORTS
 import hashlib
 import os
+import re
 import warnings
 from collections.abc import Iterable, MutableSequence, Sequence
 from concurrent.futures import ThreadPoolExecutor
@@ -39,6 +40,9 @@ else:
         ...
 
 LOGGER = logging.getLogger(__name__)
+
+# an md5 as md5sum prints it, 32 hex digits
+MD5_PATTERN = re.compile(r"[0-9a-fA-F]{32}")
 
 class CheckpointFile(NamedTuple):
     """A checkpoint file and the md5 of the published file, None where there is none to check against."""
@@ -125,7 +129,14 @@ def load_checkpoint_config(filename: Path | str) -> CheckpointConfigDict:
     for key, entry in data["checkpoint"].items():
         if not isinstance(entry, dict) or not {"path", "md5"} <= entry.keys():
             raise OSError(f"The file {filename} is not valid, checkpoint {key} needs a 'path' and an 'md5'.")
-        checkpoints[key] = CheckpointFile(Path(entry["path"]), str(entry["md5"]).lower())
+        md5 = entry["md5"]
+        # a str, because yaml reads an unquoted md5 of only digits as a number and an empty one as None
+        if not isinstance(md5, str) or not MD5_PATTERN.fullmatch(md5):
+            raise OSError(
+                f"The file {filename} is not valid, the md5 of checkpoint {key} must be a quoted string of 32 hex "
+                f"digits, not {md5!r}."
+            )
+        checkpoints[key] = CheckpointFile(Path(entry["path"]), md5.lower())
     data["checkpoint"] = checkpoints
     return data
 
@@ -455,14 +466,15 @@ def download_checkpoint(
     else:
         md5 = md5.lower()
     responses = []
-    # the last outcome of each url that delivered files, but only with the wrong md5
-    mismatches = []
+    # what went wrong on each url, every failed attempt in order
+    failures = []
     content = None
     for url in urls:
         # this url's own reply, so that exhausting the attempts here does not read the reply of
         # the url before it
         reply = None
         mismatched = False
+        reasons = []
         for attempt in range(1, DOWNLOAD_ATTEMPTS + 1):
             try:
                 LOGGER.info(f"Downloading checkpoint {checkpoint_name} from {url}")
@@ -481,6 +493,7 @@ def download_checkpoint(
                         # the same complete reply with the wrong md5 twice is the file this url serves,
                         # not a broken transfer
                         LOGGER.warning(reason)
+                        reasons.append(reason)
                         break
                     # once, because a single mismatch may still be a corrupted transfer
                     mismatched = True
@@ -497,6 +510,7 @@ def download_checkpoint(
             # the transport broke, the file arrived corrupted or the host asked for later, and another
             # attempt fixes any of these
             LOGGER.warning(reason)
+            reasons.append(reason)
             if attempt < DOWNLOAD_ATTEMPTS:
                 delay = DOWNLOAD_BACKOFF * 2 ** (attempt - 1)
                 LOGGER.info(
@@ -505,13 +519,12 @@ def download_checkpoint(
                 sleep(delay)
         if content is not None:
             break
-        # one entry per url rather than per attempt, so the error below reads as a list of hosts
-        if reply is not None:
-            if reply.ok:
-                # the reply is the checkpoint itself, so its text has nothing to report
-                mismatches.append(reason)
-            else:
-                responses.append(reply)
+        # one entry per url, listing its attempts, so the error below reads as a list of hosts
+        if reasons:
+            failures.append("\n".join(reasons))
+        # the url's last error status, which raise_for_status turns into an exception for the group below
+        if reply is not None and not reply.ok:
+            responses.append(reply)
 
     # if no request was successful, raise an error with all responses
     if content is None:
@@ -527,8 +540,8 @@ def download_checkpoint(
                 _ = _response.raise_for_status()
             except Exception as e:
                 exceptions.append(e)
-        for mismatch in mismatches:
-            message += f"\n\n{mismatch}"
+        for failure in failures:
+            message += f"\n\n{failure}"
         # exceptions is empty when every url failed in transport or delivered the wrong file, which
         # leaves no response to raise_for_status, and an ExceptionGroup must hold at least one
         # exception
@@ -641,9 +654,9 @@ def check_and_download_ckpts(
                     return
                 if on_mismatch == "raise":
                     raise CorruptedCheckpointError([(checkpoint_path, actual, md5)])
-                # on_mismatch == "replace"
+                # on_mismatch == "replace": download_checkpoint only overwrites the existing file once the
+                # download matches md5, so a failed download keeps it
                 LOGGER.info(f"Checkpoint {checkpoint_path} has md5 {actual}, redownloading the published file.")
-                checkpoint_path.unlink()
             else:
                 return  # file matches, nothing to do
         else:
