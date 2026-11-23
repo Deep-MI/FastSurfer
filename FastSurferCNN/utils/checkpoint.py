@@ -17,6 +17,7 @@ import hashlib
 import os
 import warnings
 from collections.abc import Iterable, MutableSequence, Sequence
+from concurrent.futures import ThreadPoolExecutor
 from functools import lru_cache
 from pathlib import Path
 from time import sleep
@@ -662,9 +663,9 @@ def get_checkpoints(
     """
     Check and download checkpoint files if not exist.
 
-    Downloads are always checked against the md5 of their CheckpointFile, see download_checkpoint. If a
-    checkpoint that already exists does not match, the action depends on on_mismatch, see
-    check_and_download_ckpts.
+    The checkpoints are checked and downloaded in parallel, one thread per checkpoint. Downloads are always
+    checked against the md5 of their CheckpointFile, see download_checkpoint. If a checkpoint that already
+    exists does not match, the action depends on on_mismatch, see check_and_download_ckpts.
 
     Parameters
     ----------
@@ -691,21 +692,33 @@ def get_checkpoints(
         If several checkpoints failed otherwise, the errors of each one.
     """
     files = []
-    try:
-        for checkpoint in checkpoints:
-            file, md5 = _checkpoint_file(checkpoint, "get_checkpoints")
-            file = Path(file)
-            if not file.is_absolute() and file.parts[0] != ".":
-                file = FASTSURFER_ROOT / file
-            files.append(file)
-            check_and_download_ckpts(CheckpointFile(file, md5), urls, on_mismatch)
-    except ExceptionGroup as eg:
+    for checkpoint in checkpoints:
+        # in the calling thread, so the DeprecationWarning points at the caller
+        file, md5 = _checkpoint_file(checkpoint, "get_checkpoints")
+        file = Path(file)
+        if not file.is_absolute() and file.parts[0] != ".":
+            file = FASTSURFER_ROOT / file
+        files.append(CheckpointFile(file, md5))
+    if not files:
+        return []
+    # a pool of its own rather than the shared thread_executor, because callers such as
+    # download_checkpoints.py already run get_checkpoints in that pool, and waiting on it from inside
+    # it can deadlock. submit instead of map, so the futures can be collected and all exceptions are captured.
+    with ThreadPoolExecutor(max_workers=len(files), thread_name_prefix="checkpoint_download") as executor:
+        futures = [executor.submit(check_and_download_ckpts, file, urls, on_mismatch) for file in files]
+    # every download has finished here, so a failure does not abandon the others halfway
+    errors = [e for future in futures if (e := future.exception()) is not None]
+    if any(isinstance(e, ExceptionGroup) and e.subgroup(requests.exceptions.HTTPError) for e in errors):
         # download_checkpoint raises ExceptionGroup with any HTTPErrors from the hosts
-        for exc in eg.exceptions:
-            if isinstance(exc, requests.exceptions.HTTPError):
-                LOGGER.error(f"Could not find nor download checkpoints from {urls}")
-                raise
-    return files
+        LOGGER.error(f"Could not find nor download checkpoints from {urls}")
+    if errors and all(isinstance(e, CorruptedCheckpointError) for e in errors):
+        # one error naming every corrupted file, so they can all be fixed at once
+        raise CorruptedCheckpointError(m for e in errors for m in e.mismatches)
+    if len(errors) == 1:
+        raise errors[0]
+    if errors:
+        raise ExceptionGroup(f"Could not get {len(errors)} of {len(files)} checkpoints", errors)
+    return [file.path for file in files]
 
 
 def get_module_checkpoints(module: str, *paths: Path | str, on_mismatch: OnMismatch = "raise") -> list[Path]:
