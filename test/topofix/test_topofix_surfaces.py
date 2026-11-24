@@ -20,7 +20,6 @@ written and the latter two are genus 0, anything else starts the standard surfac
 """
 
 import json
-import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -89,7 +88,6 @@ def test_tunnel_is_removed_and_the_rest_of_the_surface_kept(tmp_path):
         assert surface.fsinfo is not None and tuple(surface.fsinfo["volume"]) == (24, 24, 24)
 
 
-@pytest.mark.skipif(shutil.which("mri_pretess") is None, reason="needs FreeSurfer's mri_pretess")
 @pytest.mark.parametrize(("tunnel", "genus"), [(10, 0), (17, 1)], ids=["thalamus", "hippocampus"])
 def test_segmentation_white_matter_includes_the_structures_it_encloses(tmp_path, tunnel, genus):
     """With --wm segmentation, the surface is that of the segmentation's white matter, without filled.mgz."""

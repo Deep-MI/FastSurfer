@@ -58,7 +58,14 @@ def setup_options():
         choices=("filled", "segmentation"),
         default="filled",
         help="Tessellate the hemisphere in mri/filled.mgz (default), or the white matter of the segmentation "
-             "in mri/aparc.DKTatlas+aseg.orig.mgz, joined at edge and corner contacts by mri_pretess.",
+             "in mri/aparc.DKTatlas+aseg.orig.mgz, joined at edge and corner contacts as mri_pretess does.",
+    )
+    parser.add_argument(
+        "--pretess",
+        choices=("fixed", "freesurfer"),
+        default="fixed",
+        help="With --wm segmentation: join the contacts all at once, independently of the voxel order (default), "
+             "or exactly as mri_pretess does.",
     )
     return parser.parse_args()
 
@@ -94,6 +101,7 @@ if __name__ == "__main__":
 
         tessellation = extract_orig_nofix(
             subject_dir / "mri", subject_dir / "surf", opts.hemi, hires=opts.hires, wm=opts.wm,
+            pretess_mode=opts.pretess,
         )
         qc = correct_orig_surface(subject_dir / "surf", opts.hemi)
         qc.update(tessellation)

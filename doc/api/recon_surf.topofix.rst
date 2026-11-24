@@ -9,5 +9,6 @@ recon_surf.topofix
     classify
     folds
     gwstats
+    pretess
     segsurf
     surfaces

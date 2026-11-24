@@ -19,5 +19,6 @@ The handles of the initial surface are found and removed with :mod:`lapy.topolog
 comes with two short loops that cross once, and surgery along one of them either cuts a bridge or
 fills a tunnel (:mod:`.classify`). Protrusions on which a spherical map folds are cut off
 (:mod:`.folds`), because a later spherical registration cannot unfold them. :mod:`.segsurf`
-extracts an initial surface from the segmentation instead.
+takes the white matter from the segmentation instead, which :mod:`.pretess` joins where its voxels
+touch only at an edge or a corner.
 """

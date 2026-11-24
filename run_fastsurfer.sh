@@ -370,8 +370,8 @@ Resource Options:
                             tessellate, the hemisphere in filled.mgz (default)
                             or the white matter of the segmentation,
                             including the subcortical structures it encloses
-                            and joined at edge and corner contacts by
-                            mri_pretess, as filled.mgz is.
+                            and joined at edge and corner contacts as
+                            mri_pretess does.
   --fsaparc               Additionally create FS aparc segmentations and ribbon.
                             Skipped by default (--> DL prediction is used which
                             is faster, and usually these mapped ones are fine).
