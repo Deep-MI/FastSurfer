@@ -158,14 +158,10 @@ class CCMesh(lapy.TriaMesh):
             - "blue_to_red": Blue -> Light Blue -> Grey -> Orange -> Red
         thickness_overlay : bool, optional
             Whether to overlay thickness values on the mesh, by default True.
-        show_contours : bool, optional
-            Whether to show the contours, by default False.
         show_grid : bool, optional
             Whether to show the grid, by default False.
         color_range : tuple[float, float], optional
             Fixed range (min, max) for the colorbar, by default None.
-        show_mesh_edges : bool, optional
-            Whether to show the mesh edges, by default False.
         legend : str, optional
             Legend text for the colorbar, by default "".
         threshold : tuple[float, float], optional
