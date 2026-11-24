@@ -20,16 +20,18 @@ written and the latter two are genus 0, anything else starts the standard surfac
 """
 
 import json
+import shutil
 import subprocess
 import sys
 from pathlib import Path
 
 import nibabel as nib
 import numpy as np
+import pytest
 from lapy import TriaMesh
 from lapy.intersect import self_intersections
 from scipy.spatial import cKDTree
-from shapes import voxel_surface
+from shapes import segmentation_block, voxel_surface
 
 from recon_surf.topofix.surfaces import average_vertex_positions, remove_intersections
 
@@ -39,9 +41,9 @@ SCRIPT = FASTSURFER_HOME / "recon_surf" / "topofix_surfaces.py"
 CONFORMED = np.array([[-1.0, 0, 0, 12], [0, 0, 1, -12], [0, -1, 0, 12], [0, 0, 0, 1]])
 
 
-def run(subjects_dir):
+def run(subjects_dir, *args):
     return subprocess.run(
-        [sys.executable, str(SCRIPT), "--hemi", "lh", "--sd", str(subjects_dir), "--subject", "subj"],
+        [sys.executable, str(SCRIPT), "--hemi", "lh", "--sd", str(subjects_dir), "--subject", "subj", *args],
         capture_output=True,
         text=True,
     )
@@ -85,6 +87,27 @@ def test_tunnel_is_removed_and_the_rest_of_the_surface_kept(tmp_path):
     # the volume geometry of filled.mgz, which later FreeSurfer steps read
     for surface in (nofix, premesh, orig):
         assert surface.fsinfo is not None and tuple(surface.fsinfo["volume"]) == (24, 24, 24)
+
+
+@pytest.mark.skipif(shutil.which("mri_pretess") is None, reason="needs FreeSurfer's mri_pretess")
+@pytest.mark.parametrize(("tunnel", "genus"), [(10, 0), (17, 1)], ids=["thalamus", "hippocampus"])
+def test_segmentation_white_matter_includes_the_structures_it_encloses(tmp_path, tunnel, genus):
+    """With --wm segmentation, the surface is that of the segmentation's white matter, without filled.mgz."""
+    seg = segmentation_block()
+    seg[11:13, 11:13, 6:18] = tunnel  # a tunnel through the white matter block
+    for folder in ("mri", "surf", "scripts"):
+        (tmp_path / "subj" / folder).mkdir(parents=True)
+    mri = tmp_path / "subj" / "mri"
+    nib.MGHImage(seg.astype(np.int32), CONFORMED).to_filename(mri / "aparc.DKTatlas+aseg.orig.mgz")
+    nib.MGHImage(np.where(seg == 2, 110, 60).astype(np.uint8), CONFORMED).to_filename(mri / "brain.mgz")
+
+    done = run(tmp_path, "--wm", "segmentation")
+    assert done.returncode == 0, done.stdout + done.stderr
+
+    record = json.loads((tmp_path / "subj" / "scripts" / "lh.topofix.json").read_text())
+    assert record["wm"].endswith("aparc.DKTatlas+aseg.orig.mgz")
+    # the thalamus closes the tunnel, the hippocampus does not
+    assert record["genus"] == genus and len(record["handles"]) == genus and record["genus_corrected"] == 0
 
 
 def test_intersection_is_smoothed_away_locally():

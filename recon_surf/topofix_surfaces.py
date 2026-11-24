@@ -53,6 +53,13 @@ def setup_options():
         action="store_true",
         help="Decimate the surface of a high-resolution volume, as recon-surf.sh does with mris_remesh.",
     )
+    parser.add_argument(
+        "--wm",
+        choices=("filled", "segmentation"),
+        default="filled",
+        help="Tessellate the hemisphere in mri/filled.mgz (default), or the white matter of the segmentation "
+             "in mri/aparc.DKTatlas+aseg.orig.mgz, joined at edge and corner contacts by mri_pretess.",
+    )
     return parser.parse_args()
 
 
@@ -85,7 +92,9 @@ if __name__ == "__main__":
     try:
         from recon_surf.topofix.surfaces import correct_orig_surface, extract_orig_nofix
 
-        tessellation = extract_orig_nofix(subject_dir / "mri", subject_dir / "surf", opts.hemi, hires=opts.hires)
+        tessellation = extract_orig_nofix(
+            subject_dir / "mri", subject_dir / "surf", opts.hemi, hires=opts.hires, wm=opts.wm,
+        )
         qc = correct_orig_surface(subject_dir / "surf", opts.hemi)
         qc.update(tessellation)
         qc["status"] = "ok"

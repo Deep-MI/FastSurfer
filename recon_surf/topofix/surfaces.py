@@ -12,8 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Create ``?h.orig.nofix``, ``?h.orig.premesh`` and ``?h.orig`` of one hemisphere from ``filled.mgz``."""
+"""Create the white matter surfaces ``?h.orig.nofix``, ``?h.orig.premesh`` and ``?h.orig`` of one hemisphere."""
 
+import subprocess
+import tempfile
 import time
 from pathlib import Path
 
@@ -28,15 +30,34 @@ from skimage import measure
 
 from recon_surf.topofix.classify import cuts_bridge
 from recon_surf.topofix.folds import crop_folds
+from recon_surf.topofix.segsurf import white_matter_mask
 
 # label of each hemisphere in filled.mgz
 FILLED_LABELS = {"lh": 255, "rh": 127}
+# the volume each white matter source is read from; recon-surf.sh copies the segmentation, or its
+# manedit version, to aparc.DKTatlas+aseg.orig.mgz
+WM_FILES = {"filled": "filled.mgz", "segmentation": "aparc.DKTatlas+aseg.orig.mgz"}
 # edge length that gives the density of mris_remesh --desired-face-area 0.5, the decimation of
 # high-resolution surfaces in recon-surf.sh
 DECIMATION_EDGE_LENGTH = 1.05
-# blur of the hemisphere mask in voxels, which resolves voxels touching only at an edge or corner
-# as mri_pretess does
+# blur of the hemisphere mask in voxels; at level 0.5 it separates voxels that touch only at an
+# edge or corner, which is why the segmentation goes through mri_pretess first
 MASK_SIGMA = 0.5
+
+
+def pretess(mask: np.ndarray, img: nib.MGHImage, intensity: Path, work_dir: Path) -> np.ndarray:
+    """
+    Join the voxels of ``mask`` that touch only at an edge or corner, with mri_pretess as for filled.mgz.
+
+    mri_pretess adds the brighter voxel of ``intensity`` that makes such a contact a face contact.
+    """
+    hdr = img.header.copy()
+    hdr.set_data_dtype(np.uint8)
+    with tempfile.TemporaryDirectory(dir=work_dir) as tmp:
+        src, dst = Path(tmp) / "wm.mgz", Path(tmp) / "wm.pretess.mgz"
+        nib.MGHImage(np.where(mask, 255, 0).astype(np.uint8), img.affine, hdr).to_filename(src)
+        subprocess.run(["mri_pretess", str(src), "255", str(intensity), str(dst)], check=True, capture_output=True)
+        return np.asarray(nib.load(str(dst)).dataobj) == 255
 
 
 def volume_info(img: nib.MGHImage, filename: str) -> dict:
@@ -56,9 +77,15 @@ def volume_info(img: nib.MGHImage, filename: str) -> dict:
     }
 
 
-def extract_orig_nofix(mri_dir: Path | str, surf_dir: Path | str, hemi: str, hires: bool = False) -> dict:
+def extract_orig_nofix(
+        mri_dir: Path | str,
+        surf_dir: Path | str,
+        hemi: str,
+        hires: bool = False,
+        wm: str = "filled",
+) -> dict:
     """
-    Tessellate the hemisphere in ``filled.mgz`` and write ``<hemi>.orig.nofix``.
+    Tessellate the white matter of one hemisphere and write ``<hemi>.orig.nofix``.
 
     This replaces mri_pretess, mri_mc and mris_extract_main_component. The hemisphere mask is
     blurred slightly, see :data:`MASK_SIGMA`, and marching cubes at level 0.5 puts the surface
@@ -66,15 +93,37 @@ def extract_orig_nofix(mri_dir: Path | str, surf_dir: Path | str, hemi: str, hir
     the surface is written to ``<hemi>.orig.nofix.predec`` and decimated, as with mris_remesh in
     recon-surf.sh.
 
+    Parameters
+    ----------
+    mri_dir, surf_dir : Path, str
+        The subject's ``mri`` and ``surf`` folders.
+    hemi : {"lh", "rh"}
+        Hemisphere.
+    hires : bool, default=False
+        Whether to decimate the surface.
+    wm : {"filled", "segmentation"}, default="filled"
+        The hemisphere mask: the hemisphere in ``filled.mgz``, or the white matter of the
+        segmentation, see :func:`~recon_surf.topofix.segsurf.white_matter_mask`, joined at edge
+        and corner contacts by :func:`pretess` with ``brain.mgz``.
+
     Returns
     -------
     dict
-        Number of vertices and triangles of each surface written, for the QC record.
+        The white matter source and the number of vertices and triangles of each surface written,
+        for the QC record.
     """
     mri_dir, surf_dir = Path(mri_dir), Path(surf_dir)
-    path = mri_dir / "filled.mgz"
+    path = mri_dir / WM_FILES[wm]
     img = nib.load(str(path))
-    mask = np.asarray(img.dataobj) == FILLED_LABELS[hemi]
+    data = np.asarray(img.dataobj)
+    qc = {"wm": str(path)}
+    if wm == "filled":
+        mask = data == FILLED_LABELS[hemi]
+    else:
+        mask = white_matter_mask(data, hemi)
+        joined = pretess(mask, img, mri_dir / "brain.mgz", mri_dir)
+        qc["pretess_added_voxels"] = int((joined & ~mask).sum())
+        mask = joined
     blurred = gaussian_filter(mask.astype(np.float32), MASK_SIGMA, mode="constant")
     v, t, _, _ = measure.marching_cubes(blurred, level=0.5)
     mesh = TriaMesh(v, t)
@@ -83,7 +132,6 @@ def extract_orig_nofix(mri_dir: Path | str, surf_dir: Path | str, hemi: str, hir
     v = mesh.v @ vox2ras[:3, :3].T + vox2ras[:3, 3]
     t = mesh.t if TriaMesh(v, mesh.t).volume() > 0 else mesh.t[:, ::-1]
     nofix = TriaMesh(v, np.ascontiguousarray(t, dtype=np.int64), volume_info(img, str(path)))
-    qc = {}
     if hires:
         nofix.write_fssurf(str(surf_dir / f"{hemi}.orig.nofix.predec"))
         qc["orig.nofix.predec"] = {"vertices": len(nofix.v), "triangles": len(nofix.t)}

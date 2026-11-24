@@ -365,6 +365,13 @@ Resource Options:
                             white modes that are not rounded to integers for
                             surface placement. Falls back to the standard
                             surface steps if it fails.
+  --topofix_wm <filled|segmentation>
+                          Experimental, with --topofix: the white matter to
+                            tessellate, the hemisphere in filled.mgz (default)
+                            or the white matter of the segmentation,
+                            including the subcortical structures it encloses
+                            and joined at edge and corner contacts by
+                            mri_pretess, as filled.mgz is.
   --fsaparc               Additionally create FS aparc segmentations and ribbon.
                             Skipped by default (--> DL prediction is used which
                             is faster, and usually these mapped ones are fine).
@@ -620,6 +627,7 @@ case $key in
   --seg_only) run_surf_pipeline="false" ;;
   # several flag options that are *just* passed through to recon-surf.sh
   --fstess|--fsqsphere|--topofix|--fsaparc|--no_surfreg|--ignore_fs_version) surf_flags+=("$key") ;;
+  --topofix_wm) surf_flags+=("$key" "$1") ; shift ;;
   # passed through, not translated into --threads 2: at --threads 1 the two are not equivalent,
   # because --threads also sets the thread count for the sections outside the hemisphere loop,
   # and --parallel is specifically the way to keep those single threaded

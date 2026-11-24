@@ -23,7 +23,8 @@ mask=""               # Path and name of the brainmask (defaults to $SUBJECTS_DI
 subject=""            # Subject name
 fstess="false"        # if true: use FreeSurfer tessellation (mri_tesselate); if false: use mri_mc tessellation
 fsqsphere="false"     # if true: run FreeSurfer inflate1 + qsphere; if false: run FastSurfer spectral surface projection
-topofix="false"       # if true: create orig from the segmentation and correct its topology on the surface
+topofix="false"       # if true: tessellate the white matter and correct its topology on the surface
+topofix_wm="filled"   # with topofix, the white matter to tessellate: filled (filled.mgz) or segmentation
 fsaparc="false"       # if true: run FreeSurfer aparc (and cortical ribbon); if false: map aparc from asegdkt_segfile
 fssurfreg="true"      # run FS surface registration to fsaverage, if false omit this step
 python="python3 -s"   # python version
@@ -113,6 +114,13 @@ FLAGS:
                             scripts/<hemi>.topofix.json and runs the standard
                             steps if it fails. Not used in the longitudinal
                             stream, which takes its surfaces from the template.
+  --topofix_wm <filled|segmentation>
+                          Experimental, with --topofix: the white matter to
+                            tessellate, the hemisphere in filled.mgz (default)
+                            or the white matter of the segmentation,
+                            including the subcortical structures it encloses
+                            and joined at edge and corner contacts by
+                            mri_pretess, as filled.mgz is.
   --fsaparc               Additionally create FS aparc segmentations and ribbon.
                             Skipped by default (--> DL prediction is used which
                             is faster, and usually these mapped ones are fine).
@@ -222,6 +230,7 @@ case $key in
   --fstess) fstess="true" ;;
   --fsqsphere) fsqsphere="true" ;;
   --topofix) topofix="true" ;;
+  --topofix_wm) topofix_wm="$1" ; shift ;;
   --fsaparc) fsaparc="true" ;;
   --no_surfreg) fssurfreg="false" ;;
   --3t) atlas3T="true" ;;
@@ -299,6 +308,17 @@ if [[ "$long" == "true" ]] && [[ "$base" == "true" ]]
 then
   echo "ERROR: You specified both --long and --base. You need to setup and then run base template first,"
   echo "before you can run any longitudinal time points."
+  exit 1
+fi
+
+if [[ "$topofix_wm" != "filled" ]] && [[ "$topofix_wm" != "segmentation" ]]
+then
+  echo "ERROR: --topofix_wm must be filled or segmentation, not '$topofix_wm'."
+  exit 1
+fi
+if [[ "$topofix_wm" != "filled" ]] && [[ "$topofix" != "true" ]]
+then
+  echo "ERROR: --topofix_wm only applies with --topofix."
   exit 1
 fi
 
@@ -868,10 +888,10 @@ for hemi in lh rh ; do
       # instead of mri_tesselate lego land use marching cube
       if [[ $hemi == "lh" ]] ; then hemivalue=255 ; else hemivalue=127 ; fi
 
-      # With --topofix, topofix_surfaces.py tessellates filled.mgz, corrects the topology on the
-      # surface itself and writes orig.nofix, orig.premesh and orig. The standard steps below, up to
-      # and including the fix, are written into a branch that only runs if it fails, and that closes
-      # after the fix step.
+      # With --topofix, topofix_surfaces.py tessellates filled.mgz or the segmentation's white matter
+      # (--topofix_wm), corrects the topology on the surface itself and writes orig.nofix, orig.premesh
+      # and orig. The standard steps below, up to and including the fix, are written into a branch that
+      # only runs if it fails, and that closes after the fix step. They always tessellate filled.mgz.
       if [[ "$topofix" == "true" ]]
       then
         {
@@ -879,7 +899,8 @@ for hemi in lh rh ; do
           echo "echo \"================== Creating surfaces $hemi - topofix ===================\""
           echo "echo \" \""
         } | tee -a "$CMDF"
-        cmda=($python "${binpath}topofix_surfaces.py" --hemi "$hemi" --sd "$SUBJECTS_DIR" --subject "$subject")
+        cmda=($python "${binpath}topofix_surfaces.py" --hemi "$hemi" --sd "$SUBJECTS_DIR" --subject "$subject"
+              --wm "$topofix_wm")
         if [[ -n "$hiresflag" ]] ; then cmda+=(--hires) ; fi
         # as run_it_cmdf, but a failure starts the standard steps instead of ending the script
         cmd="$(echo_quoted "${cmda[@]}")"
