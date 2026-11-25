@@ -539,7 +539,6 @@ Here, we have also added the <code class="docutils literal notranslate"><span cl
 <li><p><code class="docutils literal notranslate"><span class="pre">--fstess</span></code>: Use mri_tesselate instead of marching cube (default) for surface creation (not recommended, but more similar to FreeSurfer)</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">--fsqsphere</span></code>: Use FreeSurfer default instead of novel spectral spherical projection for qsphere (also not recommended)</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">--fsaparc</span></code>: Use FS aparc segmentations in addition to DL prediction (slower in this case and usually the mapped ones from the DL prediction are fine)</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">--no_fs_T1</span></code>: Skip generation of <code class="docutils literal notranslate"><span class="pre">T1.mgz</span></code> (normalized <code class="docutils literal notranslate"><span class="pre">nu.mgz</span></code> included in standard FreeSurfer output) and create <code class="docutils literal notranslate"><span class="pre">brainmask.mgz</span></code> directly from <code class="docutils literal notranslate"><span class="pre">norm.mgz</span></code> instead. Saves 1:30 min.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">--no_surfreg</span></code>: Skip the surface registration (which creates <code class="docutils literal notranslate"><span class="pre">sphere.reg</span></code>) to safe time. Note, <code class="docutils literal notranslate"><span class="pre">sphere.reg</span></code> will be needed for any cross-subject statistical analysis of thickness maps, so do not use this option if you plan to perform cross-subject analysis.</p></li>
 </ul>
 </section>
@@ -829,9 +828,6 @@ Resource Options:
   --fsaparc               Additionally create FS aparc segmentations and ribbon.
                             Skipped by default (--&gt; DL prediction is used which
                             is faster, and usually these mapped ones are fine).
-  --no_fs_T1              Do not generate T1.mgz (normalized nu.mgz included in
-                            standard FreeSurfer output) and create brainmask.mgz
-                            directly from norm.mgz instead. Saves 1:30 min.
   --no_surfreg             Do not run Surface registration with FreeSurfer (for
                             cross-subject correspondence), Not recommended, but
                             speeds up processing if you e.g. just need the
