@@ -528,7 +528,7 @@ fi
 
 # create orig.mgz and aparc.DKTatlas+aseg.orig.mgz (copy of T1 and segmentation)
 # also ensures .mgz format (in case inputs are nifti)
-cmd="mri_convert $t1 $mdir/orig.mgz"
+cmd="$python -m neuroreg.cli.vol2vol --in $t1 --out $mdir/orig.mgz"
 RunIt "$cmd" "$LF"
 
 asegdkt_segfile_manedit=$(add_file_suffix "$asegdkt_segfile" "manedit")
@@ -537,7 +537,7 @@ if [[ ! "$asegdkt_segfile_manedit" =~ (\.manedit){2,}\. ]] && [[ -f "$asegdkt_se
 then
     asegdkt_segfile="$asegdkt_segfile_manedit" # use the manedit file
 fi
-cmd="mri_convert $asegdkt_segfile $mdir/aparc.DKTatlas+aseg.orig.mgz"
+cmd="$python -m neuroreg.cli.vol2vol --in $asegdkt_segfile --out $mdir/aparc.DKTatlas+aseg.orig.mgz"
 RunIt "$cmd" "$LF"
 
 # pctsurfcon reads mri/rawavg.mgz and hardcodes that path. run_fastsurfer.sh writes it from the
@@ -688,7 +688,7 @@ fi
 
 # the difference between nu and orig_nu is the fact that nu has the talairach-registration header
 # create norm by masking nu (supports manedit-ed mask)
-cmda=(mri_mask "$mdir/nu.mgz" "$mask" "$mdir/norm.mgz")
+cmda=($python -m neuroreg.cli.mri mask "$mdir/nu.mgz" "$mask" "$mdir/norm.mgz")
 run_it "$LF" "${cmda[@]}"
 # T1.mgz is a link to nu.mgz, as in FreeSurfer's seg2recon: tools such as fMRIPrep read it as the
 # full head image in FreeSurfer space. brainmask.mgz is norm.mgz, which masks the same voxels.
@@ -721,25 +721,49 @@ if [[ -f "$aseg_uchar" ]] ; then
   RunIt "mv -f $aseg_uchar $aseg_presurf" "$LF"
 fi
 
-cmd="recon-all -s $subject -asegmerge -normalization2 -maskbfs -umask $(umask) $hiresflag $fsthreads"
-RunIt "$cmd" "$LF"
+# The steps of recon-all -asegmerge -normalization2 -maskbfs with FS_V8_XOPTS=0.
+# -asegmerge: merge aseg.manedit.mgz, else copy aseg.auto.mgz unless aseg.presurf.mgz is newer
+if [[ -f "$mdir/aseg.manedit.mgz" ]] ; then
+  cmda=(mri_seg_diff --seg "$mdir/$aseg_auto" --diff-in "$mdir/aseg.manedit.mgz" --merged "$aseg_presurf")
+  run_it "$LF" "${cmda[@]}"
+elif [[ ! -f "$aseg_presurf" ]] || [[ "$mdir/$aseg_auto" -nt "$aseg_presurf" ]] ; then
+  run_it "$LF" cp "$mdir/$aseg_auto" "$aseg_presurf"
+fi
+# -normalization2, with the WM control points of --edits if there are any
+cmda=(mri_normalize -seed 1234)
+if [[ -f "$SUBJECTS_DIR/$subject/tmp/control.dat" ]] ; then cmda+=(-f "$SUBJECTS_DIR/$subject/tmp/control.dat") ; fi
+cmda+=(-mprage)
+if [[ -n "$hiresflag" ]] ; then cmda+=(-noconform) ; fi
+cmda+=(-aseg "$aseg_presurf" -mask "$mdir/brainmask.mgz" "$mdir/norm.mgz" "$mdir/brain.mgz")
+run_it "$LF" "${cmda[@]}"
+# -maskbfs, then transfer the edits of brain.finalsurfs.manedit.mgz, or create it unedited
+cmda=($python -m neuroreg.cli.mri mask -T 5 "$mdir/brain.mgz" "$mdir/brainmask.mgz" "$mdir/brain.finalsurfs.mgz")
+run_it "$LF" "${cmda[@]}"
+if [[ -f "$mdir/brain.finalsurfs.manedit.mgz" ]] ; then
+  cmda=(mri_mask -transfer 255 -keep_mask_deletion_edits "$mdir/brain.finalsurfs.mgz"
+        "$mdir/brain.finalsurfs.manedit.mgz" "$mdir/brain.finalsurfs.mgz")
+  run_it "$LF" "${cmda[@]}"
+else
+  run_it "$LF" cp "$mdir/brain.finalsurfs.mgz" "$mdir/brain.finalsurfs.manedit.mgz"
+fi
 
 aseg_moved="false"
 if [[ "$mtl_paths" == "skip" ]] ; then
-  aseg_type="$(mri_info --type "$aseg_presurf" 2> /dev/null)"
+  aseg_type="$($python -c 'import sys, nibabel; print(nibabel.load(sys.argv[1]).get_data_dtype())' "$aseg_presurf" 2> /dev/null)"
   # an unknown type would silently run the step, so stop instead
   if [[ -z "$aseg_type" ]] ; then
     echo "ERROR: Cannot read the data type of $aseg_presurf, which decides whether the MTL path step runs." | tee -a "$LF"
     exit 1
   fi
-  if [[ "$aseg_type" == "uchar" ]] ; then
+  if [[ "$aseg_type" == "uint8" ]] ; then
     echo "INFO: aseg.presurf.mgz is int while -segmentation runs, so the MTL path step is skipped." | tee -a "$LF"
     RunIt "mv $aseg_presurf $aseg_uchar" "$LF"
     aseg_moved="true"
-    # also when the run stops in between: FreeSurfer 8's -asegmerge does not overwrite a newer
+    # also when the run stops in between: -asegmerge above does not overwrite a newer
     # aseg.presurf.mgz, so a rerun would otherwise hand every later step the int copy
     trap 'mv -f "$aseg_uchar" "$aseg_presurf"' EXIT
-    RunIt "mri_convert -odt int $aseg_uchar $aseg_presurf" "$LF"
+    cmda=($python -m neuroreg.cli.vol2vol --in "$aseg_uchar" --out "$aseg_presurf" --out-dtype int32)
+    run_it "$LF" "${cmda[@]}"
   fi
 fi
 # In long, the WM segmentation is not skipped although the surfaces come from the base: wm.mgz is

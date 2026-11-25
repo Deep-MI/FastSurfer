@@ -291,16 +291,15 @@ SEGMENTATION PIPELINE:
   --t2 <t2_path>          *Optional* T2 full head input (must be externally biasfield
                             corrected when called with --no_biasfield). Requires an
                             ABSOLUTE Path!
-  --reg_mode <none|coreg|robust>
+  --reg_mode <none|coreg>
                           Ignored, if no T2 image is passed.
                             Specifies the registration method used to register T1
                             and T2 images. Options are 'coreg' (default) for
-                            mri_coreg, 'robust' for mri_robust_register, and 'none'
-                            to skip registration (this requires T1 and T2 are
-                            externally co-registered). With --long, 'none' means
-                            the T2 is co-registered with the T1 this time point
-                            was built from, and it is mapped into template space
-                            with the same transform as that T1.
+                            neuroreg.coreg and 'none' to skip registration (this
+                            requires T1 and T2 are externally co-registered). With
+                            --long, 'none' means the T2 is co-registered with the T1
+                            this time point was built from, and it is mapped into
+                            template space with the same transform as that T1.
   --qc_snap               Create QC snapshots in \$SUBJECTS_DIR/\$sid/qc_snapshots
                             to simplify the QC process.
 
@@ -591,8 +590,8 @@ case $key in
   --hypo_statsfile) hypo_statsfile="$1" ; shift ;;
   --reg_mode)
     mode=$(echo "$1" | tr "[:upper:]" "[:lower:]")
-    if [[ "$mode" =~ ^(none|coreg|robust)$ ]] ; then hypvinn_regmode="$mode"
-    else echo "Invalid --reg_mode option, must be 'none', 'coreg' or 'robust'." ; exit 1
+    if [[ "$mode" =~ ^(none|coreg)$ ]] ; then hypvinn_regmode="$mode"
+    else echo "Invalid --reg_mode option, must be 'none' or 'coreg'." ; exit 1
     fi
     shift # past value
     ;;
@@ -914,9 +913,6 @@ if [[ "$run_seg_pipeline" == "true" ]] ; then
   # existing biasfield corrected image
   if [[ "$run_talairach_registration" == "true" ]] ; then
     what_needs_license+=" and the talairach-registration in the segmentation pipeline"
-  fi
-  if [[ -n "$t2" ]] && [[ "$hypvinn_regmode" != "none" ]] ; then
-    what_needs_license+=" and the T1-T2 registration in the segmentation pipeline"
   fi
 fi
 if [[ -n "$what_needs_license" ]]
@@ -1612,7 +1608,8 @@ then
       fi
       if [[ "$run_biasfield" == "true" ]] ; then hypvinn_t1="$norm_name" ; else hypvinn_t1="$t1" ; fi
       hypvinn_t2="$subject_dir/mri/T2_nu.base.mgz"
-      cmd=(mri_convert -at "$tp_to_base_lta" --reslice_like "$hypvinn_t1" -rt cubic "$norm_name_t2" "$hypvinn_t2")
+      cmd=($python -m neuroreg.cli.vol2vol --in "$norm_name_t2" --transform "$tp_to_base_lta" --ref "$hypvinn_t1"
+           --cubic --keep-dtype --out "$hypvinn_t2")
       {
         echo "INFO: Mapping the T2 into template space with the transform of this time point's T1..."
         echo_quoted "${cmd[@]}"
