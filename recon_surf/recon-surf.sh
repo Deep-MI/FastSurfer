@@ -38,7 +38,6 @@ baseid=""             # baseid for longitudinal time point run
 
 # Dev flags default
 check_version="true"  # Check for supported FreeSurfer version (terminate if not detected)
-get_t1="true"         # Generate T1.mgz from nu.mgz and brainmask from it (default)
 hires_voxsize_threshold=0.999  # Threshold below which the hires options are passed
 # Whether mri_edit_wm_with_aseg runs its MTL path step. That step only runs when the aseg it is
 # handed is uchar, so until now a storage decision was deciding an anatomical correction. "skip"
@@ -145,9 +144,6 @@ Dev Flags:
   --ignore_fs_version     Switch on to avoid check for FreeSurfer version.
                             Program will otherwise terminate if $FS_VERSION_SUPPORT is 
                             not sourced. Can be used for testing dev versions.
-  --no_fs_T1              Do not generate T1.mgz (normalized nu.mgz included in
-                            standard FreeSurfer output) and create brainmask.mgz
-                            directly from norm.mgz instead. Saves 1:30 min.
   --no_surfreg            Do not run Surface registration with FreeSurfer (for
                             cross-subject correspondence). Not recommended, but
                             speeds up processing if you just need the stats and
@@ -227,7 +223,7 @@ case $key in
     shift # past value
     ;;
   --ignore_fs_version) check_version="false" ;;
-  --no_fs_t1 ) get_t1="false" ;;
+  --no_fs_t1 ) echo "WARNING: --no_fs_T1 is obsolete and will be removed, T1.mgz is now always a link to nu.mgz." ;;
   --base) base="true" ;;
   --long) long="true" ; baseid="$1" ; shift ;;
   -h|--help) usage ; exit ;;
@@ -523,12 +519,10 @@ if (( $(echo "$vox_size < $hires_voxsize_threshold" | bc -l) ))
 then
   echo "The voxel size $vox_size is less than $hires_voxsize_threshold, so we are proceeding with hires options." | tee -a "$LF"
   hiresflag="-hires"
-  noconform_if_hires=("-noconform")
   hires_surface_suffix=".predec"
 else
   echo "The voxel size $vox_size is not less than $hires_voxsize_threshold, so we are proceeding with standard options." | tee -a "$LF"
   hiresflag=""
-  noconform_if_hires=()
   hires_surface_suffix=""
 fi
 
@@ -688,7 +682,7 @@ fi
 # ============================= BRAINMASK ==============================================
 {
   echo " "
-  echo "============ Creating brainmask from aseg and nu or T1 ============"
+  echo "============ Creating norm and brainmask from nu and the mask ============"
   echo " "
 } | tee -a "$LF"
 
@@ -696,33 +690,12 @@ fi
 # create norm by masking nu (supports manedit-ed mask)
 cmda=(mri_mask "$mdir/nu.mgz" "$mask" "$mdir/norm.mgz")
 run_it "$LF" "${cmda[@]}"
-if [[ "$get_t1" == "true" ]]
-then
-  # create T1.mgz from nu (!! here we could also try passing aseg?)
-  # T1.mgz was needed by some 3rd party downstream tools such as fmriprep, so we provide it
-
-  # if base template run, write ctrl and bias vol files (maybe switch on later)
-  # this has mainly an effect in FreeSurfer on the segmentation, but if images come
-  # from different scanners it could hurt more than help. Here in FastSurfer
-  # it is unclear what effect it would even have, given that segmentations come
-  # from the FastSurferVINN. It could affect surface placement or partial volumes.
-  #base_flags=""
-  #if [ "$base" == "true" ]
-  #then
-  #  base_flags="-w $mdir/ctrl_vol.mgz $mdir/bias_vol.mgz"
-  #fi
-  # cmd="mri_normalize -g 1 -seed 1234 -mprage $base_flags $mdir/nu.mgz $mdir/T1.mgz $noconform_if_hires"
-  cmda=(mri_normalize -g 1 -seed 1234 -mprage "$mdir/nu.mgz" "$mdir/T1.mgz" "${noconform_if_hires[@]}")
-  run_it "$LF" "${cmda[@]}"
-  # create brainmask by masking T1 (supports manedit-ed mask)
-  cmda=(mri_mask "$mdir/T1.mgz" "$mask" "$mdir/brainmask.mgz")
-  run_it "$LF" "${cmda[@]}"
-else
-  # create brainmask by linkage to norm.mgz (masked nu.mgz)
-  pushd "$mdir" > /dev/null || ( echo "Could not cd to $mdir" ; exit 1 )
-    softlink_or_copy "norm.mgz" "brainmask.mgz" "$LF"
-  popd > /dev/null || (echo "Could not popd" ; exit 1 )
-fi
+# T1.mgz is a link to nu.mgz, as in FreeSurfer's seg2recon: tools such as fMRIPrep read it as the
+# full head image in FreeSurfer space. brainmask.mgz is norm.mgz, later steps only use its nonzero voxels.
+pushd "$mdir" > /dev/null || ( echo "Could not cd to $mdir" ; exit 1 )
+  softlink_or_copy "nu.mgz" "T1.mgz" "$LF"
+  softlink_or_copy "norm.mgz" "brainmask.mgz" "$LF"
+popd > /dev/null || (echo "Could not popd" ; exit 1 )
 
 # ============================= FILLED =====================================================
 

@@ -12,7 +12,6 @@ thresholds:
   orig_nu.mgz: 0.01
   nu.mgz: 0.01
   norm.mgz: 0.01
-  brainmask.mgz: 0.01
   brain.mgz: 0.01
   brain.finalsurfs.mgz: 0.01
   wm.mgz: 0.01
