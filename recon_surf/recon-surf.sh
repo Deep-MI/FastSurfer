@@ -691,7 +691,7 @@ fi
 cmda=(mri_mask "$mdir/nu.mgz" "$mask" "$mdir/norm.mgz")
 run_it "$LF" "${cmda[@]}"
 # T1.mgz is a link to nu.mgz, as in FreeSurfer's seg2recon: tools such as fMRIPrep read it as the
-# full head image in FreeSurfer space. brainmask.mgz is norm.mgz, later steps only use its nonzero voxels.
+# full head image in FreeSurfer space. brainmask.mgz is norm.mgz, which masks the same voxels.
 pushd "$mdir" > /dev/null || ( echo "Could not cd to $mdir" ; exit 1 )
   softlink_or_copy "nu.mgz" "T1.mgz" "$LF"
   softlink_or_copy "norm.mgz" "brainmask.mgz" "$LF"
