@@ -143,7 +143,7 @@ class CCMesh(lapy.TriaMesh):
         """Plot the mesh using Plotly for better performance and interactivity.
 
         Creates an interactive 3D visualization of the mesh with optional features like
-        thickness overlay, contour display, and grid visualization.
+        thickness overlay and grid visualization.
 
         Parameters
         ----------
