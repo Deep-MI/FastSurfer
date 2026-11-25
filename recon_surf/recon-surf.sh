@@ -172,7 +172,7 @@ EOF
 
 # Load the RunIt and the RunBatchJobs functions, also sets up timecmd
 source "$binpath/functions.sh"
-if [ -t "$timecmd" ] ; then timecmd="" ; fi # set timecmd to empty to fix SC2154
+timecmd="${timecmd:-}" # functions.sh sets it, assigned here for shellcheck (SC2154)
 
 # PRINT USAGE if called without params
 if [[ $# -eq 0 ]]
