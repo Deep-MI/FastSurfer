@@ -384,10 +384,6 @@ def normalize_wm_aseg(
         Image mask.
     itk_aseg : sitk.Image
         Aseg-like segmentation image to find WM.
-    radius : float, int, default=50
-        Radius of ball around centroid. Defaults to 50.
-    centroid : np.ndarray, optional
-        Image centroid. Defaults to None.
     target_wm : float | int
         Target white matter intensity. Defaults to 110.
     target_bg : float | int
