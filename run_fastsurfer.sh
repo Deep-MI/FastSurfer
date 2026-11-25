@@ -361,9 +361,6 @@ Resource Options:
   --fsaparc               Additionally create FS aparc segmentations and ribbon.
                             Skipped by default (--> DL prediction is used which
                             is faster, and usually these mapped ones are fine).
-  --no_fs_T1              Do not generate T1.mgz (normalized nu.mgz included in
-                            standard FreeSurfer output) and create brainmask.mgz
-                            directly from norm.mgz instead. Saves 1:30 min.
   --no_surfreg             Do not run Surface registration with FreeSurfer (for
                             cross-subject correspondence), Not recommended, but
                             speeds up processing if you e.g. just need the
@@ -617,7 +614,7 @@ case $key in
   # because --threads also sets the thread count for the sections outside the hemisphere loop,
   # and --parallel is specifically the way to keep those single threaded
   --parallel) legacy_parallel_hemi="true" ; surf_flags+=("$key") ;;
-  --no_fs_t1) surf_flags+=("--no_fs_T1") ;;
+  --no_fs_t1) echo "WARNING: --no_fs_T1 is obsolete and will be removed, T1.mgz is now always a link to nu.mgz." ;;
 
   # temporary segstats development flag
   --segstats_legacy) surf_flags+=("$key") ;;
