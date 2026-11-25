@@ -1608,7 +1608,8 @@ then
       fi
       if [[ "$run_biasfield" == "true" ]] ; then hypvinn_t1="$norm_name" ; else hypvinn_t1="$t1" ; fi
       hypvinn_t2="$subject_dir/mri/T2_nu.base.mgz"
-      cmd=(mri_convert -at "$tp_to_base_lta" --reslice_like "$hypvinn_t1" -rt cubic "$norm_name_t2" "$hypvinn_t2")
+      cmd=($python -m neuroreg.cli.vol2vol --in "$norm_name_t2" --transform "$tp_to_base_lta" --ref "$hypvinn_t1"
+           --cubic --keep-dtype --out "$hypvinn_t2")
       {
         echo "INFO: Mapping the T2 into template space with the transform of this time point's T1..."
         echo_quoted "${cmd[@]}"
