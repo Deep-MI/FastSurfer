@@ -121,8 +121,6 @@ class DiceScore:
         Label value of each class, num_classes of them. Defaults to 0, ..., num_classes - 1.
     device : str or torch.device, optional
         Device to move the predictions and labels to in update. None leaves them where they are.
-    one_hot : bool, default=False
-        Stored, but not used.
     output_transform : callable, optional
         Called with the elements of the tuple passed to update, returns the predicted and the true labels.
         The default takes the class with the highest score along dimension 1 of the prediction. None uses
@@ -133,7 +131,6 @@ class DiceScore:
         num_classes,
         class_ids=None,
         device=None,
-        one_hot=False,
         output_transform=lambda y_pred, y: (y_pred.data.max(1)[1], y),
     ):
         self._device = device
@@ -146,7 +143,6 @@ class DiceScore:
             f"Number of class ids is not correct,"
             f" given {len(self.class_ids)} but {self.n_classes} is needed."
         )
-        self.one_hot = one_hot
         self.union = torch.zeros(self.n_classes, self.n_classes)
         self.intersection = torch.zeros(self.n_classes, self.n_classes)
 
