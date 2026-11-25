@@ -107,19 +107,26 @@ def precision_recall(
 
 class DiceScore:
     """
-    Accumulating the component of the dice coefficient i.e. the union and intersection.
+    Accumulate the components of the Dice coefficient for all pairs of classes.
+
+    For each pair of a true class and a predicted class, the overlap and the sum of both sizes are added up
+    over all updates. compute turns them into a Dice confusion matrix, whose diagonal holds the Dice score
+    of each class.
 
     Parameters
     ----------
-    output_transform : callable, optional
-        A callable that is used to transform the :class:`~ignite.engine.Engine`\'s `process_function`\'s output into the
-        form expected by the metric. This can be useful if, for example, you have a multi-output model and
-        you want to compute the metric with respect to one of the outputs.
+    num_classes : int
+        Number of classes.
+    class_ids : array_like, optional
+        Label value of each class, num_classes of them. Defaults to 0, ..., num_classes - 1.
     device : str or torch.device, optional
-        Device specification in case of distributed computation usage.
-        In most cases, it can be defined as "cuda:local_rank" or "cuda"
-        if already set `torch.cuda.set_device(local_rank)`. By default, if a distributed process group is
-        initialized and available, the device is set to `cuda`.
+        Device to move the predictions and labels to in update. None leaves them where they are.
+    one_hot : bool, default=False
+        Stored, but not used.
+    output_transform : callable, optional
+        Called with the elements of the tuple passed to update, returns the predicted and the true labels.
+        The default takes the class with the highest score along dimension 1 of the prediction. None uses
+        the tuple as it is.
     """
     def __init__(
         self,
@@ -218,6 +225,20 @@ class DiceScore:
     def compute(self, per_class=False, class_idxs=None):
         """
         Compute the Dice score.
+
+        Parameters
+        ----------
+        per_class : bool, default=False
+            Whether to return the Dice score of each class instead of their mean.
+        class_idxs : np.ndarray, optional
+            Indices into class_ids of the classes to compute it for. All classes by default.
+
+        Returns
+        -------
+        float or np.ndarray
+            The mean Dice score over the classes, or with per_class the Dice score of each class.
+        np.ndarray
+            The Dice confusion matrix of the classes.
         """
         dice_cm_mat = self._dice_confusion_matrix(class_idxs)
         dice_score_per_class = dice_cm_mat.diagonal()
