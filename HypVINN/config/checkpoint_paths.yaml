@@ -2,10 +2,23 @@ url:
 - "https://b2share.fz-juelich.de/api/files/d9e37247-5455-4c83-853d-21e31fb5bea5"
 - "https://zenodo.org/records/11184216/files"
 
+# md5 is the checksum the hosts publish for the file, as verified by the FastSurfer maintainers.
+# To use a custom checkpoint, run `md5sum <file>` and copy only the hash (the first field of its output) into
+# md5 below, and set path to your file (relative paths are relative to the FastSurfer root).
+# Also give your file a new name, e.g. checkpoints/<name>_finetuned.pkl: md5s are matched by file name, so under the
+# published name, once md5 holds the published hash again (e.g. after updating FastSurfer), inference rejects your
+# file and download_checkpoints.py replaces it with the published one. Leave url unchanged: a file that exists at
+# path and matches md5 is not downloaded.
 checkpoint:
-  axial: "checkpoints/HypVINN_axial_v1.1.0.pkl"
-  coronal: "checkpoints/HypVINN_coronal_v1.1.0.pkl"
-  sagittal: "checkpoints/HypVINN_sagittal_v1.1.0.pkl"
+  axial:
+    path: "checkpoints/HypVINN_axial_v1.1.0.pkl"
+    md5: "ab1339037fe72a96474918e3e43230ea"
+  coronal:
+    path: "checkpoints/HypVINN_coronal_v1.1.0.pkl"
+    md5: "55e30ae9c3e888bd3be3fccfbc7fbe04"
+  sagittal:
+    path: "checkpoints/HypVINN_sagittal_v1.1.0.pkl"
+    md5: "7d400765666150f14389764703f837f2"
 
 config:
   axial: "HypVINN/config/HypVINN_axial_v1.1.0.yaml"

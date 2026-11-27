@@ -2,6 +2,17 @@ url:
 - "https://b2share.fz-juelich.de/api/files/e4eb699c-ba68-4470-9f3d-89ceeee1a334"
 - "https://zenodo.org/records/17141933/files"
 
+# md5 is the checksum the hosts publish for the file, as verified by the FastSurfer maintainers.
+# To use a custom checkpoint, run `md5sum <file>` and copy only the hash (the first field of its output) into
+# md5 below, and set path to your file (relative paths are relative to the FastSurfer root).
+# Also give your file a new name, e.g. checkpoints/<name>_finetuned.pkl: md5s are matched by file name, so under the
+# published name, once md5 holds the published hash again (e.g. after updating FastSurfer), inference rejects your
+# file and download_checkpoints.py replaces it with the published one. Leave url unchanged: a file that exists at
+# path and matches md5 is not downloaded.
 checkpoint:
-  segmentation: "checkpoints/FastSurferCC_segmentation_v1.0.0.pkl"
-  localization: "checkpoints/FastSurferCC_localization_v1.0.0.pkl"
+  segmentation:
+    path: "checkpoints/FastSurferCC_segmentation_v1.0.0.pkl"
+    md5: "01b46b5aff0b5a718a410db769d353fc"
+  localization:
+    path: "checkpoints/FastSurferCC_localization_v1.0.0.pkl"
+    md5: "97fb44467f12f8c673684a0b61169f31"

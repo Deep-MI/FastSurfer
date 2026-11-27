@@ -18,9 +18,12 @@ Check how the checkpoint download reacts to a host that misbehaves.
 The hosts do break mid-transfer: a build has logged
 ``ChunkedEncodingError ... IncompleteRead(2835659 bytes read, 28432957 more expected)`` from one of
 them. Falling through to the next url covers a host being down, but not the last url in the list,
-and not a transfer that breaks on a host that is otherwise up. No network is touched here; requests
-is replaced with stubs.
+and not a transfer that breaks on a host that is otherwise up. A transfer can also complete with
+the wrong bytes, which only the md5 from checkpoint_paths.yaml reveals. No network is touched here;
+requests is replaced with stubs.
 """
+
+import hashlib
 
 import pytest
 import requests
@@ -204,3 +207,182 @@ def test_giving_up_with_no_reply_at_all_still_raises_the_right_error(monkeypatch
     assert "a_checkpoint.pkl" in message, "the error has to name the checkpoint"
     assert "host-a" in message and "host-b" in message, "and the hosts it tried"
     assert not target.exists()
+
+
+WEIGHTS_MD5 = hashlib.md5(b"weights").hexdigest()
+
+
+def test_a_corrupted_download_is_retried_like_a_broken_transfer(monkeypatch, no_sleep, target):
+    """A file that arrives with the wrong md5 is discarded and fetched again, not published."""
+    calls = stub_get(monkeypatch, [Reply(ok=True, content=b"weigh"), Reply(ok=True)])
+
+    checkpoint.download_checkpoint("a_checkpoint.pkl", target, ["https://host-a"], WEIGHTS_MD5)
+
+    assert len(calls) == 2
+    assert no_sleep == [checkpoint.DOWNLOAD_BACKOFF]
+    assert target.read_bytes() == b"weights"
+
+
+def test_a_host_serving_the_wrong_file_leaves_nothing_behind(monkeypatch, no_sleep, target):
+    """When no host serves the published file, the download fails and says what arrived instead."""
+    calls = stub_get(monkeypatch, [Reply(ok=True, content=b"other weights")])
+
+    with pytest.raises(DOWNLOAD_FAILED) as failure:
+        checkpoint.download_checkpoint(
+            "a_checkpoint.pkl", target, ["https://host-a", "https://host-b"], WEIGHTS_MD5
+        )
+    # each host gets one attempt (which mismatches) and one retry (which also mismatches), then moves to next
+    assert len(calls) == 4, f"expected 2 hosts × (1 attempt + 1 retry) = 4, got {len(calls)}"
+    # backoff occurs only once per host: after first mismatch, before retry
+    assert no_sleep == [checkpoint.DOWNLOAD_BACKOFF, checkpoint.DOWNLOAD_BACKOFF]
+    message = str(failure.value)
+    assert WEIGHTS_MD5 in message and hashlib.md5(b"other weights").hexdigest() in message
+    assert "host-a" in message and "host-b" in message
+    assert not target.exists(), "a file that does not match must not be published"
+
+
+def test_giving_up_reports_every_attempt(monkeypatch, no_sleep, target):
+    """A host that served the wrong file and then answered 503 must not hide the wrong md5 behind the 503."""
+    wrong_md5 = hashlib.md5(b"other weights").hexdigest()
+    stub_get(monkeypatch, [Reply(ok=True, content=b"other weights"),
+                           Reply(ok=False, status=503, url="https://host-a/a_checkpoint.pkl")])
+
+    with pytest.raises(DOWNLOAD_FAILED) as failure:
+        checkpoint.download_checkpoint("a_checkpoint.pkl", target, ["https://host-a"], WEIGHTS_MD5)
+
+    message = str(failure.value)
+    assert wrong_md5 in message
+    assert "answered 503" in message
+
+
+def test_a_mismatched_checkpoint_on_disk_raises_with_on_mismatch_raise(monkeypatch, target):
+    """
+    With on_mismatch="raise" (the default for inference), a checkpoint on disk that does not match
+    raises CorruptedCheckpointError with the file name and md5s.
+    """
+    target.write_bytes(b"old weights")
+    calls = stub_get(monkeypatch, [AssertionError("a file on disk must not be downloaded")])
+
+    with pytest.raises(checkpoint.CorruptedCheckpointError) as failure:
+        checkpoint.get_checkpoints(checkpoint.CheckpointFile(target, WEIGHTS_MD5), urls=["https://host-a"])
+
+    assert str(target) in str(failure.value) and WEIGHTS_MD5 in str(failure.value)
+    assert calls == []
+    assert target.read_bytes() == b"old weights", "the file is not modified when the error is raised"
+
+
+def test_a_mismatched_checkpoint_on_disk_is_ignored_with_on_mismatch_ignore(monkeypatch, target):
+    """
+    With on_mismatch="ignore", a checkpoint on disk that does not match is used without checking or
+    replacing it, like before the md5 feature was added.
+    """
+    target.write_bytes(b"old weights")
+    calls = stub_get(monkeypatch, [AssertionError("a file on disk must not be downloaded")])
+
+    checkpoint.get_checkpoints(checkpoint.CheckpointFile(target, WEIGHTS_MD5), urls=["https://host-a"],
+                                on_mismatch="ignore")
+
+    assert calls == []
+    assert target.read_bytes() == b"old weights"
+
+
+def test_a_mismatched_checkpoint_on_disk_is_replaced_with_on_mismatch_replace(monkeypatch, no_sleep, target):
+    """
+    With on_mismatch="replace" (for download_checkpoints.py), a checkpoint on disk that does not match
+    is downloaded and replaced.
+    """
+    target.write_bytes(b"old weights")
+    calls = stub_get(monkeypatch, [Reply(ok=True)])
+
+    checkpoint.get_checkpoints(checkpoint.CheckpointFile(target, WEIGHTS_MD5), urls=["https://host-a"],
+                                on_mismatch="replace")
+
+    assert len(calls) == 1
+    assert target.read_bytes() == b"weights", "the file is replaced with the downloaded one"
+
+
+def test_a_failed_replacement_keeps_the_checkpoint_on_disk(monkeypatch, no_sleep, target):
+    """
+    With on_mismatch="replace", the checkpoint on disk is only overwritten by a download that matches md5,
+    so an offline node or a host serving the wrong file does not lose it.
+    """
+    target.write_bytes(b"old weights")
+    stub_get(monkeypatch, [requests.exceptions.ConnectionError("down")] * checkpoint.DOWNLOAD_ATTEMPTS
+             + [Reply(ok=True, content=b"wrong")] * 2)
+
+    with pytest.raises(DOWNLOAD_FAILED):
+        checkpoint.get_checkpoints(checkpoint.CheckpointFile(target, WEIGHTS_MD5),
+                                    urls=["https://host-a", "https://host-b"], on_mismatch="replace")
+
+    assert target.read_bytes() == b"old weights"
+
+
+def test_a_matched_checkpoint_on_disk_is_not_re_downloaded_even_with_replace(monkeypatch, target):
+    """
+    With on_mismatch="replace", a checkpoint on disk that matches is not re-downloaded, to avoid
+    unnecessary network traffic.
+    """
+    target.write_bytes(b"weights")
+    calls = stub_get(monkeypatch, [AssertionError("a matched file on disk must not be downloaded")])
+
+    checkpoint.get_checkpoints(checkpoint.CheckpointFile(target, WEIGHTS_MD5), urls=["https://host-a"],
+                                on_mismatch="replace")
+
+    assert calls == []
+    assert target.read_bytes() == b"weights"
+
+
+def test_a_checkpoint_elsewhere_gets_the_md5_of_its_published_file(tmp_path):
+    """--ckpt_* may point to another folder, and the download still requests the published file of its name."""
+    published = [checkpoint.CheckpointFile(tmp_path / "checkpoints" / "a_checkpoint.pkl", WEIGHTS_MD5)]
+
+    moved, custom = checkpoint.to_checkpoint_files(
+        tmp_path / "elsewhere" / "a_checkpoint.pkl", "my_weights.pkl", published=published
+    )
+
+    assert moved == (tmp_path / "elsewhere" / "a_checkpoint.pkl", WEIGHTS_MD5)
+    assert custom.md5 is None, "a file that was never published has nothing to be checked against"
+
+
+def test_a_plain_path_is_deprecated_but_still_downloaded(monkeypatch, no_sleep, target):
+    """Callers outside FastSurfer that pass a Path keep working until they move to CheckpointFile."""
+    stub_get(monkeypatch, [Reply(ok=True)])
+
+    with pytest.warns(DeprecationWarning, match="CheckpointFile"):
+        checkpoint.get_checkpoints(target, urls=["https://host-a"])
+
+    assert target.read_bytes() == b"weights"
+
+
+def write_config(tmp_path, md5_line: str):
+    config = tmp_path / "checkpoint_paths.yaml"
+    config.write_text(f'url:\n- "https://host-a"\ncheckpoint:\n  axial:\n    path: "a.pkl"\n    {md5_line}\n')
+    return config
+
+
+@pytest.mark.parametrize("md5_line", [
+    "md5:",  # left empty, which yaml reads as None
+    "md5: 12345678901234567890123456789012",  # unquoted digits, which yaml reads as an int
+    f'md5: "{WEIGHTS_MD5}  a.pkl"',  # the whole md5sum output instead of only the hash
+    f'md5: "{WEIGHTS_MD5[:-1]}"',  # truncated
+    f'md5: "{WEIGHTS_MD5[:-1]}g"',  # not hex
+])
+def test_an_invalid_md5_in_the_config_is_rejected_when_loading(tmp_path, md5_line):
+    """A malformed md5 can never match, so it would reject or replace every checkpoint it is checked against."""
+    with pytest.raises(OSError, match="md5 of checkpoint axial"):
+        checkpoint.load_checkpoint_config(write_config(tmp_path, md5_line))
+
+
+def test_an_upper_case_md5_in_the_config_is_accepted(tmp_path):
+    """hashlib reports lower case, so an md5 copied in upper case must still match."""
+    config = write_config(tmp_path, f'md5: "{WEIGHTS_MD5.upper()}"')
+
+    assert checkpoint.load_checkpoint_config(config)["checkpoint"]["axial"].md5 == WEIGHTS_MD5
+
+
+@pytest.mark.parametrize(
+    "config", sorted(checkpoint.FASTSURFER_ROOT.glob("*/config/checkpoint_paths.yaml")),
+    ids=lambda config: config.parent.parent.name,
+)
+def test_the_shipped_configs_have_valid_md5s(config):
+    checkpoint.load_checkpoint_config(config)

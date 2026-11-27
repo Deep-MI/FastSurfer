@@ -20,13 +20,9 @@ import sys
 from pathlib import Path
 
 from CerebNet.inference import Inference
-from CerebNet.utils.checkpoint import YAML_DEFAULT as CHECKPOINT_PATHS_FILE
 from CerebNet.utils.load_config import get_config
 from FastSurferCNN.utils import PLANES, Plane, logging, parser_defaults
-from FastSurferCNN.utils.checkpoint import (
-    get_checkpoints,
-    load_checkpoint_config_defaults,
-)
+from FastSurferCNN.utils.checkpoint import get_config_file, get_module_checkpoints
 from FastSurferCNN.utils.common import SubjectList
 
 logger = logging.get_logger(__name__)
@@ -103,7 +99,7 @@ def setup_options():
         advanced,
         "checkpoint",
         files,
-        CHECKPOINT_PATHS_FILE,
+        get_config_file("CerebNet"),
     )
 
     parser.add_argument(
@@ -162,10 +158,7 @@ def main(args: argparse.Namespace) -> int | str:
         subjects_kwargs["norm_name"] = "norm_name"
 
     logger.info("Checking or downloading default checkpoints ...")
-    
-    urls = load_checkpoint_config_defaults("url", filename=CHECKPOINT_PATHS_FILE)
-
-    get_checkpoints(args.ckpt_ax, args.ckpt_cor, args.ckpt_sag, urls=urls)
+    get_module_checkpoints("CerebNet", args.ckpt_ax, args.ckpt_cor, args.ckpt_sag)
 
     # Check input and output options and get all subjects of interest
     subjects = SubjectList(args, asegdkt_segfile="pred_name", segfile="cereb_segfile", **subjects_kwargs)

@@ -27,7 +27,6 @@ from FastSurferCNN.utils.checkpoint import (
     load_from_checkpoint,
     save_checkpoint,
 )
-from FastSurferCNN.utils.parser_defaults import FASTSURFER_ROOT
 
 __all__ = [
     "create_checkpoint_dir",
@@ -36,11 +35,7 @@ __all__ = [
     "is_checkpoint_epoch",
     "load_from_checkpoint",
     "save_checkpoint",
-    "YAML_DEFAULT",
 ]
-
-# DEFAULTS
-YAML_DEFAULT = FASTSURFER_ROOT / "CerebNet/config/checkpoint_paths.yaml"
 
 logger = logging.get_logger(__name__)
 

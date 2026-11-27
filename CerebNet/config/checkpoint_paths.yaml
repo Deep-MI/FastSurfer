@@ -4,7 +4,20 @@ url:
 - "https://b2share.fz-juelich.de/api/files/864b2ed5-e91e-4c2c-aa7a-c16b7c751b35"
 - "https://zenodo.org/records/10390742/files"
 
+# md5 is the checksum the hosts publish for the file, as verified by the FastSurfer maintainers.
+# To use a custom checkpoint, run `md5sum <file>` and copy only the hash (the first field of its output) into
+# md5 below, and set path to your file (relative paths are relative to the FastSurfer root).
+# Also give your file a new name, e.g. checkpoints/<name>_finetuned.pkl: md5s are matched by file name, so under the
+# published name, once md5 holds the published hash again (e.g. after updating FastSurfer), inference rejects your
+# file and download_checkpoints.py replaces it with the published one. Leave url unchanged: a file that exists at
+# path and matches md5 is not downloaded.
 checkpoint:
-  axial:  "checkpoints/CerebNet_axial_v1.0.0.pkl"
-  coronal: "checkpoints/CerebNet_coronal_v1.0.0.pkl"
-  sagittal: "checkpoints/CerebNet_sagittal_v1.0.0.pkl"
+  axial:
+    path: "checkpoints/CerebNet_axial_v1.0.0.pkl"
+    md5: "b62511c32e7ce059a68bb4e2728d5546"
+  coronal:
+    path: "checkpoints/CerebNet_coronal_v1.0.0.pkl"
+    md5: "840f87fa05cffdbf8b9d7e385acc76be"
+  sagittal:
+    path: "checkpoints/CerebNet_sagittal_v1.0.0.pkl"
+    md5: "eb836ed90893dc32950e83c8b060a360"

@@ -35,6 +35,7 @@ from FastSurferCNN.utils.arg_types import ImageSizeOption, OrientationType
 from FastSurferCNN.utils.common import SubjectDirectory, SubjectList, find_device
 from FastSurferCNN.utils.mapper import JsonColorLookupTable, Mapper, TSVLookupTable
 from FastSurferCNN.utils.parallel import SerialExecutor, get_num_threads
+from FastSurferCNN.utils.parser_defaults import FASTSURFER_ROOT
 
 if TYPE_CHECKING:
     import yacs.config
@@ -140,7 +141,7 @@ class Inference:
             return self.pool.submit(cls[file.suffix], file, *args, **kwargs)
 
         def lut_path(module: str, file: str) -> Path:
-            return cp.FASTSURFER_ROOT / module / "config" / file
+            return FASTSURFER_ROOT / module / "config" / file
 
         cerebnet_labels_file = lut_path("CerebNet", "CerebNet_ColorLUT.tsv")
         _cerebnet_mapper = prep_lut(cerebnet_labels_file, header=True)
