@@ -322,7 +322,7 @@ if __name__ == "__main__":
     projected_surf = options.output_surf
 
     print(f"Reading in surface: {surf_to_project} ...")
-    # switching cholmod off will be slower, but does not require scikit sparse cholmod
+    # switching cholmod off will be slower, but does not require cholespy
     spherically_project_surface(surf_to_project, projected_surf, use_cholmod=False)
     print(f"Outputting spherically projected surface: {projected_surf}")
 
